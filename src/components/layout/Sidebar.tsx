@@ -15,7 +15,6 @@ const navItems = [
   { path: "/cascading", label: "Cascading", icon: GitBranch },
   { path: "/cascade-matrisi", label: "Cascade Matrisi", icon: Network },
 
-  { path: "/komandalar", label: "Komandalar", icon: Users },
   { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardList },
   { path: "/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
   { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck },
@@ -23,7 +22,6 @@ const navItems = [
   { path: "/whistleblower", label: "Anonim Bildiriş", icon: Shield },
   { path: "/bonus", label: "Bonus hesablanması", icon: DollarSign },
   { path: "/hesablama-dusturlari", label: "Hesablama Düsturları", icon: Calculator },
-  { path: "/emekhaqqi-bazasi", label: "Əməkhaqqı bazası", icon: Wallet },
   { path: "/inteqrasiyalar", label: "İnteqrasiyalar", icon: Link2 },
   { path: "/ayarlar", label: "Ayarlar", icon: Settings },
 ];
