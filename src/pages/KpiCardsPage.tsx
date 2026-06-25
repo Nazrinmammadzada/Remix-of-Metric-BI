@@ -726,8 +726,34 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </div>
         )}
 
-        <div className="flex gap-6">
+        {/* Inline filter bar — applies to both Kart1 (table) and Kart2 (grouped) */}
+        {(kartView === "kart1" || kartView === "kart2") && (
+          <div className="mb-4 bg-card border border-border rounded-xl p-3 flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[11px] text-muted-foreground">Axtar</label>
+              <div className="relative mt-1">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="KPI adı ilə axtar..." className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
+              </div>
+            </div>
+            <div className="min-w-[180px]">
+              <label className="text-[11px] text-muted-foreground">Komanda</label>
+              <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
+            </div>
+            <div className="min-w-[160px]">
+              <label className="text-[11px] text-muted-foreground">Status</label>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+                <option>Hamısı</option>
+                {kpiStatusOptions.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <button onClick={resetFilters} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
+          </div>
+        )}
+
+        <div>
           <div className="flex-1">
+
             {kartView === "kart1" && forcedKartView === "kart1" ? (() => {
               // Status-based table for "Kartlar üzrə"
               const STATUS_LABELS = { natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv" } as const;
