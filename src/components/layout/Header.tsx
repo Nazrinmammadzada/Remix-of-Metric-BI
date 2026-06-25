@@ -1,4 +1,4 @@
-import { Search, Bell, Moon, Sun, LogOut, Mail, Building2, Users as UsersIcon, CheckCircle2, AlertCircle, Clock, Globe } from "lucide-react";
+import { Search, Bell, Moon, Sun, LogOut, Mail, Building2, Users as UsersIcon, CheckCircle2, AlertCircle, Clock, Globe, Shield } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -79,17 +79,26 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
   };
 
   const isHR = user?.role === "HR";
+  const isManager = user?.role === "MANAGER";
   const headerBg = isHR
     ? "bg-gradient-to-r from-primary/10 via-card/85 to-primary/10 border-primary/30"
-    : "bg-gradient-to-r from-success/10 via-card/85 to-success/10 border-success/30";
-  const accentBar = isHR ? "bg-primary" : "bg-success";
+    : isManager
+      ? "bg-gradient-to-r from-[hsl(268_75%_55%/0.12)] via-card/85 to-[hsl(268_75%_55%/0.12)] border-[hsl(268_75%_55%/0.35)]"
+      : "bg-gradient-to-r from-success/10 via-card/85 to-success/10 border-success/30";
+  const accentBar = isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success";
+  const roleLabel = isHR ? "HR Panel" : isManager ? "Rəhbər Paneli" : "İstifadəçi Paneli";
+  const roleChip = isHR
+    ? "bg-primary/15 text-primary"
+    : isManager
+      ? "bg-[hsl(268_75%_55%/0.18)] text-[hsl(268_75%_55%)]"
+      : "bg-success/15 text-success";
 
   return (
     <header className={`sticky top-0 z-40 h-16 border-b backdrop-blur-md flex items-center justify-between px-6 relative ${headerBg}`}>
       <span className={`absolute left-0 top-0 h-full w-1 ${accentBar}`} aria-hidden />
       <div className="flex items-center gap-3">
-        <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md ${isHR ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}>
-          {isHR ? "HR Panel" : "İstifadəçi Paneli"}
+        <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md ${roleChip}`}>
+          {roleLabel}
         </span>
         <span className="hidden md:inline text-xs text-muted-foreground">{dateStr}</span>
       </div>
