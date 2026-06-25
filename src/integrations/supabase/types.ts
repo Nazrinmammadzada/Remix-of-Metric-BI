@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      kpi_card_status: {
+        Row: {
+          assignees: Json
+          card_id: number
+          rejected_at: string | null
+          rejected_by: string | null
+          status: Database["public"]["Enums"]["kpi_card_status_enum"]
+          submitted_for_approval: boolean
+          updated_at: string
+          use_matrix: boolean
+        }
+        Insert: {
+          assignees?: Json
+          card_id: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: Database["public"]["Enums"]["kpi_card_status_enum"]
+          submitted_for_approval?: boolean
+          updated_at?: string
+          use_matrix?: boolean
+        }
+        Update: {
+          assignees?: Json
+          card_id?: number
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: Database["public"]["Enums"]["kpi_card_status_enum"]
+          submitted_for_approval?: boolean
+          updated_at?: string
+          use_matrix?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +55,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      kpi_card_status_enum: "natamam" | "tesdiq_gozlenilir" | "imtina" | "aktiv"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +182,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      kpi_card_status_enum: ["natamam", "tesdiq_gozlenilir", "imtina", "aktiv"],
+    },
   },
 } as const

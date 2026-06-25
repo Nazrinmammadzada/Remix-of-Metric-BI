@@ -12,6 +12,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import AccessDenied from "./pages/AccessDenied";
 import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
+import KpiHubPage from "./pages/KpiHubPage";
 import KpiScoresPage from "./pages/KpiScoresPage";
 import KpiSetPage from "./pages/KpiSetPage";
 import KpiLifecyclePage from "./pages/KpiLifecyclePage";
@@ -92,7 +93,7 @@ const App = () => {
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
             <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><AppLayout /></RouteGuard>}>
               <Route path="/hr" element={<HomePage />} />
-              <Route path="/kpi-kartlari" element={<KpiCardsPage />} />
+              <Route path="/kpi-kartlari" element={<KpiHubPage />} />
               <Route path="/kpi-qiymetleri" element={<KpiScoresPage />} />
               <Route path="/kpi-set" element={<KpiSetPage />} />
               <Route path="/hedef-tayin-izleme" element={<GoalTrackingPage />} />
