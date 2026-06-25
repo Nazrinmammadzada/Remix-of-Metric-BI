@@ -366,6 +366,7 @@ const KpiCardsPage = () => {
     ],
   });
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
+  const [kartView, setKartView] = useState<"kart1" | "kart2">("kart1");
   const [listSearch, setListSearch] = useState("");
   const [showPositionDropdown, setShowPositionDropdown] = useState(false);
   const [positionSearchText, setPositionSearchText] = useState("");
@@ -608,13 +609,13 @@ const KpiCardsPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="KPI Kartları" />
+      <Header title="KPİ-lar" />
       <main className="p-6 pb-24">
         <PageHero
-          badge="KPI İdarəetməsi"
+          badge="KPİ İdarəetməsi"
           icon={Sparkles}
-          title="KPI Kartları"
-          subtitle={`${filteredCards.length} aktiv KPI tapıldı`}
+          title="KPİ-lar"
+          subtitle={`${filteredCards.length} aktiv KPİ tapıldı`}
           right={
             <div className="flex gap-2">
               <ExportMenu
@@ -642,10 +643,101 @@ const KpiCardsPage = () => {
           }
         />
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          {[
+            { key: "kart1", title: "KART 1 – Kartlar üzrə", desc: "KPİ-ları kart strukturuna görə qruplaşdırılmış göstər", icon: LayoutGrid, grad: "from-violet-500/15 via-fuchsia-500/10 to-transparent", iconBg: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
+            { key: "kart2", title: "KART 2 – Əməkdaşlar üzrə", desc: "KPİ-ları məsul əməkdaşlara görə qruplaşdırılmış göstər", icon: Users, grad: "from-amber-500/15 via-orange-500/10 to-transparent", iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+          ].map(c => {
+            const Icon = c.icon as any;
+            const active = kartView === c.key;
+            return (
+              <button
+                key={c.key}
+                onClick={() => setKartView(c.key as "kart1" | "kart2")}
+                className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${c.grad} bg-card p-4 text-left transition-all hover:shadow-md ${active ? "border-primary ring-2 ring-primary/30" : "border-border"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-foreground">{c.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{c.desc}</p>
+                  </div>
+                  {active && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary text-primary-foreground">Aktiv</span>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
 
         <div className="flex gap-6">
           <div className="flex-1">
-            {(() => {
+            {kartView === "kart2" ? (() => {
+              const groups = new Map<string, KpiCard[]>();
+              filteredCards.forEach(c => {
+                const k = c.responsible || "Təyin olunmayıb";
+                if (!groups.has(k)) groups.set(k, []);
+                groups.get(k)!.push(c);
+              });
+              const entries = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+              if (entries.length === 0) {
+                return <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center text-sm text-muted-foreground">Filtrə uyğun KPİ tapılmadı</div>;
+              }
+              return (
+                <div className="space-y-4">
+                  {entries.map(([person, cards]) => {
+                    const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
+                    const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+                    return (
+                      <div key={person} className="rounded-2xl border border-border bg-card overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 via-secondary/40 to-transparent border-b border-border">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm shadow-sm">{initial}</div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">{person}</h3>
+                              <p className="text-[11px] text-muted-foreground">{cards.length} KPİ · Ortalama progress {avg}%</p>
+                            </div>
+                          </div>
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-card border border-border text-muted-foreground">{cards.length} kart</span>
+                        </div>
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {cards.map(card => (
+                            <div key={card.id} onClick={() => openDetail(card)} className={`bg-card rounded-xl p-4 border-2 border-border cursor-pointer hover:shadow-md hover:border-primary/40 transition-shadow ${card.frozen ? "opacity-70" : ""}`}>
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
+                                  {card.approvalStatus === "approved" ? <CheckCircle2 className="w-4 h-4 text-zone-green-text" /> : <Hourglass className="w-4 h-4 text-zone-yellow-text" />}
+                                </div>
+                                <div className="flex items-center gap-1 flex-wrap justify-end">
+                                  {card.isPersonal && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Fərdi</span>}
+                                  {card.frozen && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">Dondurulmuş</span>}
+                                </div>
+                              </div>
+                              <h4 className="font-semibold text-foreground text-sm mb-2 line-clamp-2">{card.name}</h4>
+                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                <span>Hədəf</span>
+                                <span className="font-semibold text-foreground">{card.target} {card.unit}</span>
+                              </div>
+                              <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                                <span>Cari</span>
+                                <span className="font-semibold text-success">{card.current} {card.unit}</span>
+                              </div>
+                              <div className="w-full bg-secondary rounded-full h-2">
+                                <div className="bg-success rounded-full h-2" style={{ width: `${card.progress}%` }} />
+                              </div>
+                              <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground">
+                                <span>{card.period}</span>
+                                <span className="font-semibold text-foreground">{card.progress}%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })() : (() => {
               const approvedCards = filteredCards.filter(c => c.approvalStatus === "approved" && !c.frozen);
               const pendingCards = filteredCards.filter(c => c.approvalStatus === "pending" && !c.frozen);
               const frozenCards = filteredCards.filter(c => c.frozen);

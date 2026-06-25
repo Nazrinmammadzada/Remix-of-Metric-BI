@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { PageHero, FancyCard } from "@/components/ui/page-hero";
 import {
   Building2, Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   Briefcase, UserPlus, Search, X, Check, KeyRound, ShieldCheck, UserCircle2,
   Eye, Folder, ChevronsLeft, ChevronsRight, ChevronLeft, Filter, Download,
+  Wallet, ArrowUpRight,
 } from "lucide-react";
 import chrLogo from "@/assets/chr-logo.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -144,6 +146,8 @@ const OrganizationPage = () => {
           }
         />
 
+        <ModuleCards />
+
         <div className="flex gap-1 border-b border-border mb-4">
           <button
             onClick={() => setTab("struktur")}
@@ -162,6 +166,55 @@ const OrganizationPage = () => {
 
         {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
       </main>
+    </div>
+  );
+};
+
+// ====================================================
+// Module entry cards — Komandalar & Əməkhaqqı bazası
+// ====================================================
+const ModuleCards = () => {
+  const navigate = useNavigate();
+  const cards = [
+    {
+      title: "Komandalar",
+      desc: "Komanda strukturlarını və üzvlərini idarə edin",
+      icon: Users,
+      path: "/komandalar",
+      gradient: "from-blue-500/15 via-sky-500/10 to-transparent",
+      iconBg: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+    },
+    {
+      title: "Əməkhaqqı bazası",
+      desc: "Əməkdaşların əməkhaqqı məlumatlarını idarə edin",
+      icon: Wallet,
+      path: "/emekhaqqi-bazasi",
+      gradient: "from-emerald-500/15 via-teal-500/10 to-transparent",
+      iconBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    },
+  ];
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      {cards.map(c => (
+        <button
+          key={c.path}
+          onClick={() => navigate(c.path)}
+          className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${c.gradient} bg-card p-4 text-left hover:shadow-md transition-all hover:-translate-y-0.5`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-11 h-11 rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+              <c.icon className="w-5 h-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-foreground">{c.title}</h3>
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.desc}</p>
+            </div>
+          </div>
+        </button>
+      ))}
     </div>
   );
 };
