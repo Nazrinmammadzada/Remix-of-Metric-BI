@@ -146,9 +146,19 @@ const OrganizationPage = () => {
           }
         />
 
-        <ModuleCards activeTab={tab} onSelectTab={setTab} />
-
-        {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+        {tab === null ? (
+          <ModuleCards activeTab={tab} onSelectTab={setTab} />
+        ) : (
+          <div className="space-y-4">
+            <button
+              onClick={() => setTab(null)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Geri
+            </button>
+            {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+          </div>
+        )}
       </main>
     </div>
   );
