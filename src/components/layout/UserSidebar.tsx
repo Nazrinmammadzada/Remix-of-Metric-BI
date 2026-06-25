@@ -1,5 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutGrid, ClipboardCheck, BarChart3, Users, LogOut, Settings, ClipboardList, Shield, ChevronLeft, ChevronRight } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, LayoutGrid, ClipboardCheck, BarChart3, Users, Settings, ClipboardList, Shield, ChevronLeft, ChevronRight } from "lucide-react";
+
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
 import { useAppSidebar } from "@/contexts/SidebarContext";
