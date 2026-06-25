@@ -89,8 +89,9 @@ const App = () => {
               <Route path="/kpi-kartlari" element={<KpiCardsPage />} />
               <Route path="/kpi-qiymetleri" element={<KpiScoresPage />} />
               <Route path="/kpi-set" element={<KpiSetPage />} />
+              <Route path="/hedef-tayin-izleme" element={<GoalTrackingPage />} />
               <Route path="/kpi-lifecycle" element={<KpiLifecyclePage />} />
-              <Route path="/cascading" element={<CascadingPage />} />
+              <Route path="/cascading" element={<CascadingHubPage />} />
               <Route path="/cascade-matrisi" element={<CascadeMatrixPage />} />
 
               <Route path="/sistem-tesdiq" element={<ApprovalsPage />} />
