@@ -42,6 +42,8 @@ import UserSettingsPage from "./pages/user/UserSettingsPage";
 import UserEvaluationPage from "./pages/user/UserEvaluationPage";
 import SuperAdminLayout from "./components/layout/SuperAdminLayout";
 import SuperAdminCompaniesPage from "./pages/SuperAdminCompaniesPage";
+import ManagerLayout from "./components/layout/ManagerLayout";
+import ManagerHomePage from "./pages/manager/ManagerHomePage";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { bootstrapDemoReviews } from "@/lib/peerReviewStore";
@@ -53,6 +55,7 @@ const RootRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === "SUPER_ADMIN") return <Navigate to="/super-admin" replace />;
+  if (user.role === "MANAGER") return <Navigate to="/manager" replace />;
   if (user.role === "USER") return <Navigate to="/user" replace />;
   return <Navigate to="/hr" replace />;
 };
@@ -60,7 +63,10 @@ const RootRedirect = () => {
 const LoginGuard = () => {
   const { user } = useAuth();
   if (user) {
-    const dest = user.role === "SUPER_ADMIN" ? "/super-admin" : user.role === "HR" ? "/hr" : "/user";
+    const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
+      : user.role === "HR" ? "/hr"
+      : user.role === "MANAGER" ? "/manager"
+      : "/user";
     return <Navigate to={dest} replace />;
   }
   return <LoginPage />;
@@ -123,6 +129,20 @@ const App = () => {
               <Route path="/user/qiymetlendirme" element={<UserEvaluationPage />} />
               <Route path="/user/whistleblower" element={<UserWhistleblowerPage />} />
               <Route path="/user/ayarlar" element={<UserSettingsPage />} />
+            </Route>
+
+            {/* Manager (Rəhbər) Panel */}
+            <Route element={<RouteGuard requiredRole="MANAGER"><ManagerLayout /></RouteGuard>}>
+              <Route path="/manager" element={<ManagerHomePage />} />
+              <Route path="/manager/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/manager/mesul-kartlar" element={<KpiCardsPage />} />
+              <Route path="/manager/komandam" element={<TeamsPage />} />
+              <Route path="/manager/kpi-izleme" element={<GoalTrackingPage />} />
+              <Route path="/manager/neticelerim" element={<KpiScoresPage />} />
+              <Route path="/manager/bonuslarim" element={<BonusPage />} />
+              <Route path="/manager/hesabat" element={<ReportsPage />} />
+              <Route path="/manager/whistleblower" element={<WhistleblowerPage />} />
+              <Route path="/manager/ayarlar" element={<SettingsPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
