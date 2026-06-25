@@ -25,6 +25,8 @@ import { getLimitsFor, getEntriesForCard } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
+import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
+import { upsertStatus } from "@/lib/kpiCardStatusStore";
 
 interface EvaluatorPerson { name: string; weight: number; }
 interface EvaluatorConfig {
