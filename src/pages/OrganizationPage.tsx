@@ -31,7 +31,7 @@ import { generateOtp } from "@/lib/passwordStore";
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
-  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq">("struktur");
+  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq" | null>(null);
   const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
   const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
   const [orgLogo, setOrgLogo] = useState<string | null>(() => localStorage.getItem(ORG_LOGO_KEY));
