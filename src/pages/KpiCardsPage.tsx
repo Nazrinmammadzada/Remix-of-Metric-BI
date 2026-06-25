@@ -371,7 +371,48 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     ],
   });
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
-  const [kartView, setKartView] = useState<"kart1" | "kart2">("kart1");
+  const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
+  useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
+
+  // === KPI card status (Natamam / Təsdiq gözlənilir / İmtina / Aktiv) ===
+  const [statusMap, setStatusMap] = useState<Record<number, import("@/lib/kpiCardStatusStore").KpiCardStatusRow>>({});
+  const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
+  useEffect(() => {
+    import("@/lib/kpiCardStatusStore").then(m => m.fetchAllStatuses().then(setStatusMap));
+  }, []);
+  const DEMO_STATUS: Record<number, Partial<import("@/lib/kpiCardStatusStore").KpiCardStatusRow>> = {
+    1: { status: "aktiv", use_matrix: true, submitted_for_approval: true, assignees: [{ name: "Samir Həsənov", ok: true }, { name: "Leyla Məmmədova", ok: true }] },
+    2: { status: "aktiv", assignees: [{ name: "Farid Həsənov", ok: true }] },
+    3: { status: "aktiv", assignees: [{ name: "Emin Məmmədov", ok: true }] },
+    4: { status: "aktiv", assignees: [{ name: "Leyla Həsənova", ok: true }] },
+    5: { status: "tesdiq_gozlenilir", use_matrix: true, submitted_for_approval: false, assignees: [{ name: "Rəşad Əliyev", ok: true }] },
+    6: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: true }, { name: "Tural İsmayılov", ok: false }] },
+    7: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", assignees: [{ name: "Leyla Məmmədova", ok: true }] },
+    8: { status: "aktiv", assignees: [{ name: "Tural İsmayılov", ok: true }] },
+  };
+  const getStatusFor = (cardId: number) => {
+    const remote = statusMap[cardId];
+    if (remote) return remote;
+    const demo = DEMO_STATUS[cardId] || { status: "natamam" as const, assignees: [] };
+    return {
+      card_id: cardId,
+      status: (demo.status || "natamam") as import("@/lib/kpiCardStatusStore").KpiCardStatus,
+      use_matrix: demo.use_matrix || false,
+      submitted_for_approval: demo.submitted_for_approval || false,
+      rejected_by: demo.rejected_by || null,
+      rejected_at: null,
+      assignees: demo.assignees || [],
+      updated_at: new Date().toISOString(),
+    } as import("@/lib/kpiCardStatusStore").KpiCardStatusRow;
+  };
+  const handleSubmitToMatrix = async (cardId: number) => {
+    const mod = await import("@/lib/kpiCardStatusStore");
+    await mod.submitToMatrix(cardId);
+    const next = await mod.fetchAllStatuses();
+    setStatusMap(next);
+    toast.success("Matris üzrə təsdiqə göndərildi");
+  };
+
   const [listSearch, setListSearch] = useState("");
   const [showPositionDropdown, setShowPositionDropdown] = useState(false);
   const [positionSearchText, setPositionSearchText] = useState("");
