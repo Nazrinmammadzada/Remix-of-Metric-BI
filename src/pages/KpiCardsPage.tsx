@@ -1061,39 +1061,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               );
             })()}
           </div>
-
-
-          {/* Filters sidebar */}
-          <div className="w-64 bg-card rounded-xl p-4 border border-border h-fit">
-            <div className="flex items-center gap-2 mb-4">
-              <Search className="w-4 h-4 text-muted-foreground" />
-              <span className="font-semibold text-foreground text-sm">Filtrlər</span>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-muted-foreground">Axtar</label>
-                <div className="relative mt-1">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                  <input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="KPI adı ilə axtar..." className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Komanda</label>
-                <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Status</label>
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
-                  <option>Hamısı</option>
-                  {kpiStatusOptions.map(s => <option key={s}>{s}</option>)}
-                </select>
-              </div>
-              {/* Zone filter removed */}
-              <button className="w-full py-2 text-sm rounded-lg bg-primary text-primary-foreground">Tətbiq et</button>
-              <button onClick={resetFilters} className="w-full py-2 text-sm rounded-lg border border-border bg-card">Sıfırla</button>
-            </div>
-          </div>
         </div>
+
       </main>
 
       {/* Natamam — assignees check/X dialog */}
