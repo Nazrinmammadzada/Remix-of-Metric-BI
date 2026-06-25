@@ -196,25 +196,25 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
         {/* Profile */}
         <div className="relative" ref={profileRef}>
           <button onClick={() => { setShowProfile(s => !s); setShowNotif(false); setShowLang(false); }} className="flex items-center gap-2 hover:bg-secondary/70 rounded-lg p-1 pr-3 transition-colors">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground text-sm font-semibold shadow-sm ${user?.role === "HR" ? "bg-primary" : "bg-success"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground text-sm font-semibold shadow-sm ${isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success"}`}>
               {user?.avatar || "A"}
             </div>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground leading-tight">{user?.name || "İstifadəçi"}</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">{user?.role === "HR" ? "HR Menecer" : "İstifadəçi"}</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">{isHR ? "HR Menecer" : isManager ? "Rəhbər" : "İstifadəçi"}</p>
             </div>
           </button>
           {showProfile && user && (
             <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
               <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/30 border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-primary-foreground text-lg font-semibold ${user.role === "HR" ? "bg-primary" : "bg-success"}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-primary-foreground text-lg font-semibold ${isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success"}`}>
                     {user.avatar}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground truncate">{user.name}</p>
-                    <span className={`inline-block mt-0.5 px-2 py-0.5 text-[10px] font-medium rounded-full ${user.role === "HR" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}>
-                      {user.role === "HR" ? "HR Menecer" : "İstifadəçi"}
+                    <span className={`inline-block mt-0.5 px-2 py-0.5 text-[10px] font-medium rounded-full ${roleChip}`}>
+                      {isHR ? "HR Menecer" : isManager ? "Rəhbər" : "İstifadəçi"}
                     </span>
                   </div>
                 </div>
