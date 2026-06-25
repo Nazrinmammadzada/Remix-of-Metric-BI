@@ -31,7 +31,9 @@ const allPeople: TeamMember[] = [
 
 
 const TeamsPage = () => {
+  const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
+
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [searchText, setSearchText] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
