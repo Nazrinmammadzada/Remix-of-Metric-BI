@@ -157,9 +157,42 @@ const OrganizationPage = () => {
 // ====================================================
 // Module entry cards — Komandalar & Əməkhaqqı bazası
 // ====================================================
-const ModuleCards = () => {
+type OrgTab = "struktur" | "emekdaslar" | "kataloq";
+const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab; onSelectTab: (t: OrgTab) => void }) => {
   const navigate = useNavigate();
-  const cards = [
+  const cards: Array<{
+    title: string;
+    desc: string;
+    icon: typeof Users;
+    gradient: string;
+    iconBg: string;
+    tab?: OrgTab;
+    path?: string;
+  }> = [
+    {
+      title: "Struktur",
+      desc: "Təşkilati strukturu və vəzifələri qurun",
+      icon: Network,
+      gradient: "from-indigo-500/15 via-violet-500/10 to-transparent",
+      iconBg: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
+      tab: "struktur",
+    },
+    {
+      title: "Əməkdaşlar siyahısı",
+      desc: "Əməkdaşları əlavə edin və idarə edin",
+      icon: UserCircle2,
+      gradient: "from-amber-500/15 via-orange-500/10 to-transparent",
+      iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+      tab: "emekdaslar",
+    },
+    {
+      title: "Struktur kataloqu",
+      desc: "Struktur tipləri və vəzifə kataloqu",
+      icon: Folder,
+      gradient: "from-fuchsia-500/15 via-pink-500/10 to-transparent",
+      iconBg: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400",
+      tab: "kataloq",
+    },
     {
       title: "Komandalar",
       desc: "Komanda strukturlarını və üzvlərini idarə edin",
@@ -178,27 +211,26 @@ const ModuleCards = () => {
     },
   ];
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-      {cards.map(c => (
-        <button
-          key={c.path}
-          onClick={() => navigate(c.path)}
-          className={`group relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br ${c.gradient} bg-card p-4 text-left hover:shadow-md transition-all hover:-translate-y-0.5`}
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
-              <c.icon className="w-5 h-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-foreground">{c.title}</h3>
-                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+      {cards.map(c => {
+        const isActive = c.tab && c.tab === activeTab;
+        return (
+          <button
+            key={c.title}
+            onClick={() => c.tab ? onSelectTab(c.tab) : c.path && navigate(c.path)}
+            className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${c.gradient} bg-card p-6 text-left hover:shadow-lg transition-all hover:-translate-y-0.5 min-h-[170px] ${isActive ? "border-primary ring-2 ring-primary/30 shadow-md" : "border-border"}`}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-14 h-14 rounded-2xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+                <c.icon className="w-7 h-7" />
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">{c.desc}</p>
+              <ArrowUpRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
-          </div>
-        </button>
-      ))}
+            <h3 className="font-semibold text-base text-foreground mb-1">{c.title}</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">{c.desc}</p>
+          </button>
+        );
+      })}
     </div>
   );
 };
