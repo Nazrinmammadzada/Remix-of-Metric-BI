@@ -6,7 +6,7 @@ import { SidebarProvider, useAppSidebar } from "@/contexts/SidebarContext";
 const Inner = () => {
   const { collapsed } = useAppSidebar();
   return (
-    <div className="min-h-screen bg-background">
+    <div className="theme-hr min-h-screen bg-background">
       <Sidebar />
       <div className={`transition-[margin] duration-300 ease-in-out ${collapsed ? "ml-[68px]" : "ml-[210px]"}`}>
         <Outlet />

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, Star, ChevronDown, Sparkles } from "lucide-react";
+import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, Star, ChevronDown, Sparkles, ArrowLeft } from "lucide-react";
+
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,7 +31,9 @@ const allPeople: TeamMember[] = [
 
 
 const TeamsPage = () => {
+  const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
+
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [searchText, setSearchText] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
@@ -173,7 +177,14 @@ const TeamsPage = () => {
     <div className="min-h-screen">
       <Header title="Komandalar" />
       <main className="p-6 pb-24">
+        <button
+          onClick={() => navigate("/teskilati-struktur")}
+          className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Geri
+        </button>
         <PageHero
+
           badge="Komanda İdarəsi"
           icon={Sparkles}
           title="Komandalar"

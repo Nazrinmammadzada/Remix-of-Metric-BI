@@ -1,5 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutGrid, BarChart3, Users, Link2, Settings, ClipboardCheck, LogOut, Calculator, ShieldCheck, Building2, ClipboardList, Shield, Wallet, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Network } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator, ShieldCheck, Building2, ClipboardList, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Network } from "lucide-react";
+
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSidebar } from "@/contexts/SidebarContext";
@@ -28,14 +29,9 @@ const navItems = [
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -129,33 +125,13 @@ const Sidebar = () => {
               </div>
             </div>
           )}
-          {collapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center justify-center px-2 py-2 rounded-lg text-sm text-sidebar-fg/70 hover:bg-destructive/20 hover:text-sidebar-fg w-full transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Çıxış</TooltipContent>
-            </Tooltip>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-fg/70 hover:bg-destructive/20 hover:text-sidebar-fg w-full transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Çıxış
-            </button>
-          )}
           {!collapsed && (
             <div className="mt-2 pt-2 border-t border-sidebar-fg/10 text-center">
               <p className="text-[10px] text-sidebar-fg/40">© Blink-bi.az bütün hüquqları qorunur</p>
             </div>
           )}
         </div>
+
       </aside>
     </TooltipProvider>
   );

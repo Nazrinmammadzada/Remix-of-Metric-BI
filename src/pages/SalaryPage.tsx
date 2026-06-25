@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import ExportMenu from "@/components/common/ExportMenu";
-import { Wallet, Plus, Trash2, ChevronDown, ChevronUp, X, FileSpreadsheet, Filter as FilterIcon, Columns, Download, Search, Eye, User as UserIcon, Calendar, FileText } from "lucide-react";
+import { Wallet, Plus, Trash2, ChevronDown, ChevronUp, X, FileSpreadsheet, Filter as FilterIcon, Columns, Download, Search, Eye, User as UserIcon, Calendar, FileText, ArrowLeft } from "lucide-react";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -37,7 +39,9 @@ interface AggRow {
 }
 
 const SalaryPage = () => {
+  const navigate = useNavigate();
   const [records, setRecords] = useState<SalaryRecord[]>(() => getRecords());
+
   const [employees] = useState<OrgEmployee[]>(() => getEmployees());
   const [uploads, setUploads] = useState<SalaryUpload[]>(() => getUploads());
 
@@ -299,7 +303,14 @@ const SalaryPage = () => {
     <div className="min-h-screen">
       <Header title="Əməkhaqqı bazası" />
       <main className="p-6 pb-24">
+        <button
+          onClick={() => navigate("/teskilati-struktur")}
+          className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Geri
+        </button>
         <PageHero
+
           badge="Əməkhaqqı bazası"
           icon={Wallet}
           title="Əməkhaqqı bazası"
