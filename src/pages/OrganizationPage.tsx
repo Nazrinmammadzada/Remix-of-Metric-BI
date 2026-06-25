@@ -146,23 +146,7 @@ const OrganizationPage = () => {
           }
         />
 
-        <ModuleCards />
-
-        <div className="flex gap-1 border-b border-border mb-4">
-          <button
-            onClick={() => setTab("struktur")}
-            className={`px-4 py-2 text-sm font-medium ${tab === "struktur" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
-          >Struktur</button>
-          <button
-            onClick={() => setTab("emekdaslar")}
-            className={`px-4 py-2 text-sm font-medium ${tab === "emekdaslar" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
-          >Əməkdaşlar siyahısı</button>
-          <button
-            onClick={() => setTab("kataloq")}
-            className={`px-4 py-2 text-sm font-medium ${tab === "kataloq" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
-          >Kataloq</button>
-        </div>
-
+        <ModuleCards activeTab={tab} onSelectTab={setTab} />
 
         {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
       </main>
