@@ -300,7 +300,12 @@ const zoneLabel = { green: "Yaşıl Zona", yellow: "Sarı Zona", red: "Qırmız�
 const zoneBg = { green: "bg-zone-green-bg text-zone-green-text", yellow: "bg-zone-yellow-bg text-zone-yellow-text", red: "bg-zone-red-bg text-zone-red-text" };
 const zoneBorder = { green: "border-zone-green-text/30", yellow: "border-zone-yellow-text/30", red: "border-zone-red-text/30" };
 
-const KpiCardsPage = () => {
+interface KpiCardsPageProps {
+  onBack?: () => void;
+  forcedKartView?: "kart1" | "kart2";
+}
+
+const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const { user } = useAuth();
   const kpiTypeOptions = useCatalogValues("kpi_types", KPI_TYPE_DEFAULTS);
   const kpiStatusOptions = useCatalogValues("kpi_statuses", ["Təsdiq gözləyən", "Təsdiq edilmiş"]);
