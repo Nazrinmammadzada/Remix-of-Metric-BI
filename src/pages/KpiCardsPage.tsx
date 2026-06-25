@@ -1362,7 +1362,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
-      {/* Create KPI Dialog - 3 Steps */}
+      {/* Yeni KPI Sehrbazı — Mərhələ 2 (addım 1-9) */}
+      <CreateKpiWizard open={wizardOpen} onOpenChange={setWizardOpen} onComplete={handleWizardComplete} />
+
+      {/* Köhnə Create KPI Dialog — yalnız edit (copy) axını üçün saxlanılır, addım 10-17 növbəti mərhələdə yeni sehrbaza köçürüləcək */}
+
       <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) { setEditingCardId(null); setLifecycleDraft(emptyLifecycleDraft()); } }}>
         <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
           <DialogHeader>
