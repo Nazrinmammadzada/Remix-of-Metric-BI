@@ -31,7 +31,7 @@ import { generateOtp } from "@/lib/passwordStore";
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
-  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq">("struktur");
+  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq" | null>(null);
   const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
   const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
   const [orgLogo, setOrgLogo] = useState<string | null>(() => localStorage.getItem(ORG_LOGO_KEY));
@@ -146,9 +146,19 @@ const OrganizationPage = () => {
           }
         />
 
-        <ModuleCards activeTab={tab} onSelectTab={setTab} />
-
-        {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+        {tab === null ? (
+          <ModuleCards activeTab={tab} onSelectTab={setTab} />
+        ) : (
+          <div className="space-y-4">
+            <button
+              onClick={() => setTab(null)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Geri
+            </button>
+            {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+          </div>
+        )}
       </main>
     </div>
   );
@@ -158,7 +168,7 @@ const OrganizationPage = () => {
 // Module entry cards — Komandalar & Əməkhaqqı bazası
 // ====================================================
 type OrgTab = "struktur" | "emekdaslar" | "kataloq";
-const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab; onSelectTab: (t: OrgTab) => void }) => {
+const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab | null; onSelectTab: (t: OrgTab) => void }) => {
   const navigate = useNavigate();
   const cards: Array<{
     title: string;
@@ -211,23 +221,23 @@ const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab; onSelectTa
     },
   ];
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-6">
       {cards.map(c => {
         const isActive = c.tab && c.tab === activeTab;
         return (
           <button
             key={c.title}
             onClick={() => c.tab ? onSelectTab(c.tab) : c.path && navigate(c.path)}
-            className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${c.gradient} bg-card p-6 text-left hover:shadow-lg transition-all hover:-translate-y-0.5 min-h-[170px] ${isActive ? "border-primary ring-2 ring-primary/30 shadow-md" : "border-border"}`}
+            className={`group relative overflow-hidden rounded-3xl border bg-gradient-to-br ${c.gradient} bg-card p-8 text-left hover:shadow-xl transition-all hover:-translate-y-1 min-h-[280px] flex flex-col ${isActive ? "border-primary ring-2 ring-primary/30 shadow-md" : "border-border"}`}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-14 h-14 rounded-2xl ${c.iconBg} flex items-center justify-center shrink-0`}>
-                <c.icon className="w-7 h-7" />
+            <div className="flex items-start justify-between mb-6">
+              <div className={`w-20 h-20 rounded-2xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+                <c.icon className="w-10 h-10" />
               </div>
-              <ArrowUpRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+              <ArrowUpRight className="w-6 h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
             </div>
-            <h3 className="font-semibold text-base text-foreground mb-1">{c.title}</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">{c.desc}</p>
+            <h3 className="font-semibold text-xl text-foreground mb-2">{c.title}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
           </button>
         );
       })}
