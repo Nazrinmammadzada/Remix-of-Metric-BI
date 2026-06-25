@@ -17,6 +17,8 @@ import KpiSetPage from "./pages/KpiSetPage";
 import KpiLifecyclePage from "./pages/KpiLifecyclePage";
 import CascadeMatrixPage from "./pages/CascadeMatrixPage";
 import CascadingPage from "./pages/CascadingPage";
+import CascadingHubPage from "./pages/CascadingHubPage";
+import GoalTrackingPage from "./pages/GoalTrackingPage";
 
 import ReportsPage from "./pages/ReportsPage";
 import TeamsPage from "./pages/TeamsPage";
