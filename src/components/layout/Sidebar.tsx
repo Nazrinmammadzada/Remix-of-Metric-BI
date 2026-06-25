@@ -129,33 +129,13 @@ const Sidebar = () => {
               </div>
             </div>
           )}
-          {collapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center justify-center px-2 py-2 rounded-lg text-sm text-sidebar-fg/70 hover:bg-destructive/20 hover:text-sidebar-fg w-full transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Çıxış</TooltipContent>
-            </Tooltip>
-          ) : (
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-fg/70 hover:bg-destructive/20 hover:text-sidebar-fg w-full transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Çıxış
-            </button>
-          )}
           {!collapsed && (
             <div className="mt-2 pt-2 border-t border-sidebar-fg/10 text-center">
               <p className="text-[10px] text-sidebar-fg/40">© Blink-bi.az bütün hüquqları qorunur</p>
             </div>
           )}
         </div>
+
       </aside>
     </TooltipProvider>
   );
