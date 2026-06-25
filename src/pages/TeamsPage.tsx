@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, Star, ChevronDown, Sparkles } from "lucide-react";
+import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, Star, ChevronDown, Sparkles, ArrowLeft } from "lucide-react";
+
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
