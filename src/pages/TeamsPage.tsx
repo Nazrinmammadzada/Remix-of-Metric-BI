@@ -177,7 +177,14 @@ const TeamsPage = () => {
     <div className="min-h-screen">
       <Header title="Komandalar" />
       <main className="p-6 pb-24">
+        <button
+          onClick={() => navigate("/teskilati-struktur")}
+          className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Geri
+        </button>
         <PageHero
+
           badge="Komanda İdarəsi"
           icon={Sparkles}
           title="Komandalar"
