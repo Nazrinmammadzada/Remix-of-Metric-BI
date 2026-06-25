@@ -138,10 +138,10 @@ const KpiScoresPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="KPI Qiymətləri" />
+      <Header title="KPI Nəticələri" />
       <main className="p-6 pb-24">
         <PageHero
-          badge="KPI Qiymətləri"
+          badge="KPI Nəticələri"
           icon={BarChart3}
           title="KPI Nəticələri"
           subtitle="Əməkdaşların KPI kartları üzrə qiymətləndirmə nəticələri"
