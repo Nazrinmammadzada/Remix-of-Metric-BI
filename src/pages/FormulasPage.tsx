@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-import { Plus, Pencil, Trash2, BookOpen, X, Check, ChevronDown, Search, AlertTriangle, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, BookOpen, X, Check, ChevronDown, ChevronLeft, Search, AlertTriangle, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { DataTable } from "@/components/common/DataTable";
 
 const KPI_TYPE_DEFAULTS = ["Absolut Hədəf", "Faiz Hədəfi", "Trend Hədəfi", "Benchmark", "Say Hədəfi"];
 
-const FormulasPage = () => {
+const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
   const [formulas, setFormulas] = useState<Formula[]>(() => getFormulas());
   const variables_initial = getVariables();
   const kpiTypeOptions = useCatalogValues("kpi_types", KPI_TYPE_DEFAULTS);
@@ -101,6 +101,14 @@ const FormulasPage = () => {
     <div className="min-h-screen">
       <Header title="Hesablama Düsturları" />
       <main className="p-6 pb-24">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Geri
+          </button>
+        )}
         <PageHero
           badge="Düstur Mərkəzi"
           icon={Sparkles}

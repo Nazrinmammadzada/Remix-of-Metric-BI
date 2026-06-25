@@ -502,12 +502,12 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="Ayarlar" />
+      <Header title="Sazlamalar" />
       <main className="p-6 pb-24">
         <PageHero
           badge="Sistem Sazlamaları"
           icon={Sparkles}
-          title="Ayarlar"
+          title="Sazlamalar"
           subtitle="Sistem konfiqurasiyası, rollar və şifrələri idarə edin"
         />
         <div className="flex gap-1 border-b border-border mb-6">

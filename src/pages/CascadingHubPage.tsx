@@ -11,35 +11,11 @@ const CascadingHubPage = () => {
   const [tab, setTab] = useState<CascadeTab | null>(null);
 
   if (tab === "topology") {
-    return (
-      <div className="min-h-screen">
-        <div className="p-6 pb-0">
-          <button
-            onClick={() => setTab(null)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" /> Geri
-          </button>
-        </div>
-        <CascadingPage />
-      </div>
-    );
+    return <CascadingPage onBack={() => setTab(null)} />;
   }
 
   if (tab === "matrix") {
-    return (
-      <div className="min-h-screen">
-        <div className="p-6 pb-0">
-          <button
-            onClick={() => setTab(null)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" /> Geri
-          </button>
-        </div>
-        <CascadeMatrixPage />
-      </div>
-    );
+    return <CascadeMatrixPage onBack={() => setTab(null)} />;
   }
 
   const cards: Array<{

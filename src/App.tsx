@@ -24,7 +24,7 @@ import ReportsPage from "./pages/ReportsPage";
 import TeamsPage from "./pages/TeamsPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import SettingsPage from "./pages/SettingsPage";
-import FormulasPage from "./pages/FormulasPage";
+import FormulasHubPage from "./pages/FormulasHubPage";
 import ApprovalsPage from "./pages/ApprovalsPage";
 import MatrixPage from "./pages/MatrixPage";
 import OrganizationPage from "./pages/OrganizationPage";
@@ -98,7 +98,7 @@ const App = () => {
               <Route path="/tesdiqleme-matrisi" element={<MatrixPage />} />
               <Route path="/hesabat" element={<ReportsPage />} />
               <Route path="/komandalar" element={<TeamsPage />} />
-              <Route path="/hesablama-dusturlari" element={<FormulasPage />} />
+              <Route path="/hesablama-dusturlari" element={<FormulasHubPage />} />
               <Route path="/inteqrasiyalar" element={<IntegrationsPage />} />
               <Route path="/teskilati-struktur" element={<OrganizationPage />} />
               <Route path="/emekhaqqi-bazasi" element={<SalaryPage />} />

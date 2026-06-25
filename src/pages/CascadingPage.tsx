@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { GitBranch, Share2, Save, AlertCircle } from "lucide-react";
+import { GitBranch, Share2, Save, AlertCircle, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,7 @@ import {
   type CascadeSlice,
 } from "@/lib/cascadingStore";
 
-const CascadingPage = () => {
+const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
   const allEntries = useKpiSet();
   const matrices = useCascadeMatrices();
   const assignments = useCascadeAssignments();
@@ -39,6 +39,14 @@ const CascadingPage = () => {
     <div className="min-h-screen">
       <Header title="Cascading" />
       <main className="p-6 pb-24">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Geri
+          </button>
+        )}
         <PageHero
           badge="Cascading"
           icon={GitBranch}
