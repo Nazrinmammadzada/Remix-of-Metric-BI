@@ -13,9 +13,9 @@ export const MODULE_PERMS: ModulePerm[] = [
   { key: "kpi", label: "KPI Kartları", path: "/kpi-kartlari" },
   { key: "kpi_scores", label: "KPI Qiymətləri", path: "/kpi-qiymetleri" },
   { key: "kpi_set", label: "KPI Set", path: "/kpi-set" },
-  { key: "kpi_lifecycle", label: "KPI Lifecycle", path: "/kpi-lifecycle" },
+  { key: "goal_tracking", label: "Hədəf təyinlərinin izlənilməsi", path: "/hedef-tayin-izleme" },
+  { key: "kpi_lifecycle", label: "KPI lifecycle izlənilmələri", path: "/kpi-lifecycle" },
   { key: "cascading", label: "Cascading", path: "/cascading" },
-  { key: "cascade_matrix", label: "Cascade Matrisi", path: "/cascade-matrisi" },
 
   { key: "teams", label: "Komandalar", path: "/komandalar" },
   { key: "evaluation", label: "Qiymətləndirmə", path: "/qiymetlendirme" },
