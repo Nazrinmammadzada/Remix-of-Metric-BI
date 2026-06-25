@@ -1,8 +1,42 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
-import { Check, ChevronLeft, ChevronRight, Sparkles, CalendarDays, Gauge, Users, User, ShieldCheck, Repeat } from "lucide-react";
+import {
+  Check, ChevronLeft, ChevronRight, Sparkles, CalendarDays, Gauge, Users, User,
+  ShieldCheck, Repeat, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
+
+// ============ TYPES ============
+export type HedefType =
+  | "Məbləğ" | "Say" | "İcra" | "Səriştə" | "Fərdi İnkişaf"
+  | "Faiz" | "Nisbət" | "Boolean" | "Zaman";
+
+export const HEDEF_TYPES: HedefType[] = [
+  "Məbləğ", "Say", "İcra", "Səriştə", "Fərdi İnkişaf",
+  "Faiz", "Nisbət", "Boolean", "Zaman",
+];
+
+export interface WizardHedef {
+  id: string;
+  name: string;
+  type: HedefType;
+  weight: number;          // % çəkisi
+  unit: string;            // AZN, ədəd, %, saat, ...
+  targetValue: string;     // hədəf rəqəmi
+  formula: string;         // hesablama qaydası (qısa)
+  scoringSystem: string;   // override (boş qoyulsa kart default-u tətbiq olunur)
+  cascading: boolean;      // cascade tətbiq olunur mu
+  evaluator: string;       // qiymətləndirici (ad/vəzifə)
+  assigner: string;        // təyin edən
+}
+
+export interface WizardAssignment {
+  id: string;
+  targetId: string;        // hansı hədəf üzrə
+  assigneeKind: "Şəxs" | "Komanda" | "Struktur" | "Vəzifə";
+  assigneeName: string;
+}
 
 export interface CreateKpiWizardDraft {
   name: string;
@@ -10,17 +44,16 @@ export interface CreateKpiWizardDraft {
   startDate: string;
   endDate: string;
   scoringSystem: string;
-  mode: "individual" | "bulk"; // Fərdi / Toplu
+  mode: "individual" | "bulk";
   lifecycle: {
-    assignmentDeadline: string; // son təyinetmə tarixi
-    reviews: string[]; // review tarixləri
+    assignmentDeadline: string;
+    reviews: string[];
     evaluationStart: string;
     evaluationEnd: string;
   };
   useMatrix: boolean;
-  // Mərhələ 3+ üçün — sonradan doldurulacaq
-  targets?: any[];
-  assignments?: any[];
+  targets: WizardHedef[];
+  assignments: WizardAssignment[];
 }
 
 export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
@@ -37,20 +70,38 @@ export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
     evaluationEnd: "",
   },
   useMatrix: false,
+  targets: [],
+  assignments: [],
 });
 
-const TOTAL_STEPS = 9;
+const emptyHedef = (): WizardHedef => ({
+  id: crypto.randomUUID(),
+  name: "",
+  type: "Məbləğ",
+  weight: 0,
+  unit: "AZN",
+  targetValue: "",
+  formula: "",
+  scoringSystem: "",
+  cascading: false,
+  evaluator: "",
+  assigner: "",
+});
+
+const TOTAL_STEPS = 11;
 
 const STEPS: { n: number; title: string; sub: string; icon: any }[] = [
   { n: 1, title: "KPI adı", sub: "KPI üçün başlıq daxil edin", icon: Sparkles },
   { n: 2, title: "Dövrülük", sub: "Hesablama dövrünü seçin", icon: Repeat },
   { n: 3, title: "Başlama tarixi", sub: "KPI nə vaxt başlayır", icon: CalendarDays },
   { n: 4, title: "Bitmə tarixi", sub: "KPI nə vaxt bitir", icon: CalendarDays },
-  { n: 5, title: "Bal sistemi", sub: "Qiymətləndirmə üçün default bal sistemi", icon: Gauge },
+  { n: 5, title: "Bal sistemi", sub: "Default qiymətləndirmə sistemi", icon: Gauge },
   { n: 6, title: "Təyinat növü", sub: "Fərdi yoxsa Toplu KPI", icon: Users },
-  { n: 7, title: "Lifecycle", sub: "Təyinetmə / Review / Qiymətləndirmə müddəti", icon: CalendarDays },
+  { n: 7, title: "Lifecycle", sub: "Deadline / Review / Qiymətləndirmə müddəti", icon: CalendarDays },
   { n: 8, title: "Təsdiq matrisi", sub: "Matris tətbiq olunacaqmı?", icon: ShieldCheck },
-  { n: 9, title: "Yekun", sub: "Məlumatları yoxlayın", icon: Check },
+  { n: 9, title: "Hədəflər (10-16)", sub: "Hədəf növləri, çəkiləri, cascade və qiymətləndirici", icon: TargetIcon },
+  { n: 10, title: "Təyinetmələr (17)", sub: "Hər hədəf üzrə kimlərə təyin edilsin", icon: UserPlus },
+  { n: 11, title: "Yekun", sub: "Məlumatları yoxlayın və yaradın", icon: Check },
 ];
 
 interface Props {
@@ -71,6 +122,39 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
     setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
 
+  // ---- Hədəf helpers ----
+  const updHedef = (id: string, patch: Partial<WizardHedef>) =>
+    setDraft(p => ({ ...p, targets: p.targets.map(t => t.id === id ? { ...t, ...patch } : t) }));
+  const addHedef = () => setDraft(p => ({ ...p, targets: [...p.targets, emptyHedef()] }));
+  const removeHedef = (id: string) => setDraft(p => ({
+    ...p,
+    targets: p.targets.filter(t => t.id !== id),
+    assignments: p.assignments.filter(a => a.targetId !== id),
+  }));
+  const copyHedef = (id: string) => setDraft(p => {
+    const src = p.targets.find(t => t.id === id);
+    if (!src) return p;
+    return { ...p, targets: [...p.targets, { ...src, id: crypto.randomUUID(), name: src.name + " (kopya)" }] };
+  });
+
+  const totalWeight = useMemo(() => draft.targets.reduce((s, t) => s + (Number(t.weight) || 0), 0), [draft.targets]);
+
+  // ---- Assignment helpers ----
+  const addAssignment = (targetId: string) => setDraft(p => ({
+    ...p,
+    assignments: [...p.assignments, { id: crypto.randomUUID(), targetId, assigneeKind: "Şəxs", assigneeName: "" }],
+  }));
+  const updAssignment = (id: string, patch: Partial<WizardAssignment>) =>
+    setDraft(p => ({ ...p, assignments: p.assignments.map(a => a.id === id ? { ...a, ...patch } : a) }));
+  const removeAssignment = (id: string) =>
+    setDraft(p => ({ ...p, assignments: p.assignments.filter(a => a.id !== id) }));
+
+  // Toplu rejimdə yalnız Komanda/Struktur/Vəzifə icazəli
+  const allowedKinds = (): WizardAssignment["assigneeKind"][] =>
+    draft.mode === "individual"
+      ? ["Şəxs", "Komanda", "Struktur", "Vəzifə"]
+      : ["Komanda", "Struktur", "Vəzifə"];
+
   const canNext = useMemo(() => {
     switch (step) {
       case 1: return draft.name.trim().length > 0;
@@ -81,10 +165,16 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
       case 6: return draft.mode === "individual" || draft.mode === "bulk";
       case 7: return !!draft.lifecycle.assignmentDeadline;
       case 8: return true;
-      case 9: return true;
+      case 9: return draft.targets.length > 0
+        && draft.targets.every(t => t.name.trim() && t.weight > 0)
+        && totalWeight === 100;
+      case 10: return draft.targets.every(t =>
+        draft.assignments.some(a => a.targetId === t.id && a.assigneeName.trim()),
+      );
+      case 11: return true;
       default: return false;
     }
-  }, [step, draft]);
+  }, [step, draft, totalWeight]);
 
   const close = () => {
     onOpenChange(false);
@@ -92,18 +182,23 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   };
 
   const handleNext = () => {
-    if (!canNext) { toast.error("Zəhmət olmasa bu sahəni doldurun"); return; }
+    if (!canNext) {
+      if (step === 9 && totalWeight !== 100) toast.error(`Hədəflərin ümumi çəkisi 100% olmalıdır (hazırda ${totalWeight}%)`);
+      else if (step === 10) toast.error("Hər hədəf üçün ən az bir təyinetmə əlavə edin");
+      else toast.error("Zəhmət olmasa bu sahəni doldurun");
+      return;
+    }
     if (step < TOTAL_STEPS) setStep(step + 1);
     else {
       onComplete(draft);
-      toast.success("KPI kartı üçün əsas məlumatlar saxlanıldı (Hədəflər addımı növbəti mərhələdə)");
+      toast.success("KPI kartı bütün hədəf və təyinetmələrlə yaradıldı");
       close();
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); else onOpenChange(true); }}>
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -325,29 +420,211 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     Təsdiqləmə matrisi tətbiq olunacaqmı?
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Aktiv edildikdə bütün hədəf təyinatları bitdikdən sonra kart "Təsdiq gözlənilir" statusuna keçəcək və "Matris üzrə təsdiqə göndər" düyməsi görünəcək. Aktiv edilmədikdə kart birbaşa "Aktiv" statusuna keçir.
+                    Aktiv edildikdə bütün hədəf təyinatları bitdikdən sonra kart "Təsdiq gözlənilir" statusuna keçəcək. Aktiv edilmədikdə kart birbaşa "Aktiv" statusuna keçir.
                   </p>
                 </div>
               </label>
             </div>
           )}
 
+          {/* === STEP 9: HƏDƏFLƏR (10-16 birləşdirilib) === */}
           {step === 9 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Hədəflər siyahısı</h3>
+                  <p className="text-xs text-muted-foreground">9 mümkün hədəf növü · ümumi çəki 100% olmalıdır</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${totalWeight === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                    Ümumi: {totalWeight}%
+                  </span>
+                  <button type="button" onClick={addHedef} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
+                    <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
+                  </button>
+                </div>
+              </div>
+
+              {draft.targets.length === 0 && (
+                <div className="text-center py-10 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
+                  Hələ hədəf əlavə edilməyib — "Hədəf əlavə et" düyməsindən başlayın.
+                </div>
+              )}
+
+              {draft.targets.map((t, idx) => (
+                <div key={t.id} className="relative p-3 rounded-lg border border-border bg-card/40 space-y-3">
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <button type="button" title="Kopyala" onClick={() => copyHedef(t.id)} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground">
+                      <Repeat className="w-3.5 h-3.5" />
+                    </button>
+                    <button type="button" title="Sil" onClick={() => removeHedef(t.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-xs font-semibold text-muted-foreground">Hədəf #{idx + 1}</div>
+
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-6">
+                      <label className="text-[11px] text-muted-foreground">Hədəfin adı *</label>
+                      <input value={t.name} onChange={e => updHedef(t.id, { name: e.target.value })}
+                        placeholder="Məsələn: Rüblük satış həcmi"
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <div className="col-span-3">
+                      <label className="text-[11px] text-muted-foreground">Növ *</label>
+                      <select value={t.type} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
+                        className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
+                        {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-span-3">
+                      <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
+                      <input type="number" min={0} max={100} value={t.weight}
+                        onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-3">
+                      <label className="text-[11px] text-muted-foreground">Ölçü vahidi</label>
+                      <input value={t.unit} onChange={e => updHedef(t.id, { unit: e.target.value })}
+                        placeholder="AZN / ədəd / % / saat"
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <div className="col-span-3">
+                      <label className="text-[11px] text-muted-foreground">Hədəf dəyəri</label>
+                      <input value={t.targetValue} onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                        placeholder="100000"
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <div className="col-span-6">
+                      <label className="text-[11px] text-muted-foreground">Hesablama düsturu / qaydası</label>
+                      <input value={t.formula} onChange={e => updHedef(t.id, { formula: e.target.value })}
+                        placeholder="Məs: (Faktiki / Plan) * 100"
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-4">
+                      <label className="text-[11px] text-muted-foreground">Qiymətləndirici</label>
+                      <input value={t.evaluator} onChange={e => updHedef(t.id, { evaluator: e.target.value })}
+                        placeholder="Ad və ya vəzifə"
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <div className="col-span-4">
+                      <label className="text-[11px] text-muted-foreground">Təyin edən</label>
+                      <input value={t.assigner} onChange={e => updHedef(t.id, { assigner: e.target.value })}
+                        placeholder="Rəhbər və ya HR"
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <div className="col-span-4">
+                      <label className="text-[11px] text-muted-foreground">Bal sistemi (override)</label>
+                      <select value={t.scoringSystem} onChange={e => updHedef(t.id, { scoringSystem: e.target.value })}
+                        className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
+                        <option value="">— Kart default-u —</option>
+                        {scoringSystems.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer pt-1">
+                    <input type="checkbox" checked={t.cascading} onChange={e => updHedef(t.id, { cascading: e.target.checked })} className="w-4 h-4" />
+                    <GitBranch className="w-3.5 h-3.5 text-primary" />
+                    Bu hədəf üzrə cascade tətbiq olunur (alt-bölmələrə paylanır)
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* === STEP 10: TƏYİNETMƏLƏR (17) === */}
+          {step === 10 && (
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Hər hədəf üzrə təyinetmələr</h3>
+                <p className="text-xs text-muted-foreground">
+                  {draft.mode === "individual"
+                    ? "Fərdi rejim: şəxs, komanda, struktur və ya vəzifə seçə bilərsiniz."
+                    : "Toplu rejim: yalnız komanda, struktur və ya vəzifə seçilə bilər."}
+                </p>
+              </div>
+              {draft.targets.map((t, i) => {
+                const rows = draft.assignments.filter(a => a.targetId === t.id);
+                return (
+                  <div key={t.id} className="p-3 rounded-lg border border-border bg-card/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-medium text-foreground">
+                        Hədəf #{i + 1}: <span className="text-primary">{t.name || "—"}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({t.type} · {t.weight}%)</span>
+                      </div>
+                      <button type="button" onClick={() => addAssignment(t.id)} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-primary text-primary-foreground">
+                        <Plus className="w-3 h-3" /> Təyinat
+                      </button>
+                    </div>
+                    {rows.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">Təyinat əlavə edilməyib.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {rows.map(a => (
+                          <div key={a.id} className="flex gap-2 items-center">
+                            <select value={a.assigneeKind}
+                              onChange={e => updAssignment(a.id, { assigneeKind: e.target.value as WizardAssignment["assigneeKind"] })}
+                              className="px-2 py-1.5 text-sm border border-border rounded bg-background">
+                              {allowedKinds().map(k => <option key={k} value={k}>{k}</option>)}
+                            </select>
+                            <input value={a.assigneeName} onChange={e => updAssignment(a.id, { assigneeName: e.target.value })}
+                              placeholder={`${a.assigneeKind} adı`}
+                              className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                            <button type="button" onClick={() => removeAssignment(a.id)} className="p-1.5 rounded hover:bg-destructive/10 text-destructive">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {draft.targets.length === 0 && (
+                <div className="text-center py-10 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
+                  Əvvəlcə əvvəlki addımda hədəf əlavə edin.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* === STEP 11: YEKUN === */}
+          {step === 11 && (
             <div className="space-y-3">
               <div className="p-4 rounded-lg border border-border bg-secondary/30 space-y-2">
                 <SummaryRow label="KPI adı" value={draft.name} />
                 <SummaryRow label="Dövrülük" value={draft.frequency} />
-                <SummaryRow label="Başlama" value={draft.startDate} />
-                <SummaryRow label="Bitmə" value={draft.endDate} />
+                <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
                 <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
                 <SummaryRow label="Təyinat növü" value={draft.mode === "individual" ? "Fərdi" : "Toplu"} />
                 <SummaryRow label="Təyinetmə deadline" value={draft.lifecycle.assignmentDeadline || "—"} />
                 <SummaryRow label="Qiymətləndirmə müddəti" value={draft.lifecycle.evaluationStart && draft.lifecycle.evaluationEnd ? `${draft.lifecycle.evaluationStart} → ${draft.lifecycle.evaluationEnd}` : "—"} />
                 <SummaryRow label="Review tarixləri" value={draft.lifecycle.reviews.filter(Boolean).join(", ") || "—"} />
                 <SummaryRow label="Təsdiq matrisi" value={draft.useMatrix ? "Bəli" : "Xeyr"} />
+                <SummaryRow label="Hədəf sayı" value={`${draft.targets.length} (ümumi çəki: ${totalWeight}%)`} />
+                <SummaryRow label="Təyinat sayı" value={`${draft.assignments.length}`} />
               </div>
-              <div className="p-3 rounded-lg border border-primary/30 bg-primary/5 text-xs text-foreground">
-                <strong>Növbəti mərhələ:</strong> Hədəflərin əlavə edilməsi (addım 10-16) və təyinetmələr (addım 17) modulun növbəti yenilənməsində aktivləşəcək. Hələlik kart bu məlumatlarla yaradılır və "Natamam" statusuna düşür.
+
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="px-3 py-2 bg-secondary/40 text-xs font-semibold text-foreground">Hədəflər və təyinatlar</div>
+                <div className="divide-y divide-border">
+                  {draft.targets.map((t, i) => (
+                    <div key={t.id} className="px-3 py-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-foreground">#{i + 1} {t.name} <span className="text-muted-foreground">({t.type} · {t.weight}%{t.cascading ? " · cascade" : ""})</span></span>
+                        <span className="text-muted-foreground">{draft.assignments.filter(a => a.targetId === t.id).length} təyinat</span>
+                      </div>
+                      {t.formula && <div className="text-muted-foreground mt-0.5">Düstur: {t.formula}</div>}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
