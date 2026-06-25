@@ -366,6 +366,7 @@ const KpiCardsPage = () => {
     ],
   });
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
+  const [kartView, setKartView] = useState<"kart1" | "kart2">("kart1");
   const [listSearch, setListSearch] = useState("");
   const [showPositionDropdown, setShowPositionDropdown] = useState(false);
   const [positionSearchText, setPositionSearchText] = useState("");
@@ -608,13 +609,13 @@ const KpiCardsPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="KPI Kartları" />
+      <Header title="KPİ-lar" />
       <main className="p-6 pb-24">
         <PageHero
-          badge="KPI İdarəetməsi"
+          badge="KPİ İdarəetməsi"
           icon={Sparkles}
-          title="KPI Kartları"
-          subtitle={`${filteredCards.length} aktiv KPI tapıldı`}
+          title="KPİ-lar"
+          subtitle={`${filteredCards.length} aktiv KPİ tapıldı`}
           right={
             <div className="flex gap-2">
               <ExportMenu
