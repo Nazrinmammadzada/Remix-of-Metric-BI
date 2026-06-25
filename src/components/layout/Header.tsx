@@ -111,6 +111,16 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
             className="pl-9 pr-4 py-2 text-sm bg-secondary/70 hover:bg-secondary rounded-lg border border-transparent focus:border-ring outline-none w-56 transition-all"
           />
         </div>
+        {isManager && (
+          <button
+            onClick={() => navigate("/manager/whistleblower")}
+            className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-[hsl(268_75%_55%/0.12)] hover:bg-[hsl(268_75%_55%/0.2)] text-[hsl(268_75%_55%)] transition-colors"
+            title="Anonim Bildiriş"
+          >
+            <Shield className="w-4 h-4" />
+            <span className="text-xs font-semibold hidden md:inline">Anonim Bildiriş</span>
+          </button>
+        )}
         <button
           onClick={() => setDark(d => !d)}
           className="w-9 h-9 rounded-lg bg-secondary/70 hover:bg-secondary flex items-center justify-center transition-colors"
