@@ -25,6 +25,8 @@ import { getLimitsFor, getEntriesForCard } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
+import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
+import { upsertStatus } from "@/lib/kpiCardStatusStore";
 
 interface EvaluatorPerson { name: string; weight: number; }
 interface EvaluatorConfig {
@@ -374,6 +376,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
 
+  // === Yeni KPI Sehrbazı (17 addımlı — Mərhələ 2: addım 1-9 aktiv) ===
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
+    const id = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
+    const newCard: KpiCard = {
+      id, name: d.name, icon: Target, zone: "yellow",
+      target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
+      responsible: "—",
+      period: `${d.startDate?.slice(0, 4) || "2026"} - ${d.frequency}`,
+      type: "Absolut Hədəf", formula: "—", generalTarget: "",
+      department: "—", group: "—", subdivision: "—",
+      startDate: d.startDate || "", endDate: d.endDate || "",
+      frequency: d.frequency,
+      team: [], history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
+      weight: 10, approvalStatus: "approved",
+      subKpis: [],
+    };
+    setKpiCards(prev => [newCard, ...prev]);
+    try {
+      await upsertStatus({
+        card_id: id,
+        status: "natamam",
+        use_matrix: d.useMatrix,
+        submitted_for_approval: false,
+        assignees: [],
+      });
+    } catch {}
+  };
+
+
   // === KPI card status (Natamam / Təsdiq gözlənilir / İmtina / Aktiv) ===
   const [statusMap, setStatusMap] = useState<Record<number, import("@/lib/kpiCardStatusStore").KpiCardStatusRow>>({});
   const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
@@ -689,7 +721,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <button onClick={() => setViewMode("card")} title="Kart görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "card" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
                 <button onClick={() => setViewMode("list")} title="Siyahı görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><List className="w-4 h-4" /></button>
               </div>
-              <button onClick={() => { setShowCreate(true); setCreateStep(1); setUseMatrix(true); setSelectedMatrixId(null); setLifecycleDraft(emptyLifecycleDraft()); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+              <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
                 <Plus className="w-4 h-4" /> Yeni KPI
               </button>
             </div>
@@ -771,7 +803,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <p className="text-xs text-muted-foreground mt-0.5">{filteredCards.length} KPİ kartı · Statuslara görə</p>
                     </div>
                     <button
-                      onClick={() => { setEditingCardId(null); setShowCreate(true); setCreateStep(1); setUseMatrix(true); setSelectedMatrixId(null); setLifecycleDraft(emptyLifecycleDraft()); }}
+                      onClick={() => { setEditingCardId(null); setWizardOpen(true); }}
                       className="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
                     >
                       <Plus className="w-5 h-5" /> Yeni KPI Kartı
@@ -1330,7 +1362,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
-      {/* Create KPI Dialog - 3 Steps */}
+      {/* Yeni KPI Sehrbazı — Mərhələ 2 (addım 1-9) */}
+      <CreateKpiWizard open={wizardOpen} onOpenChange={setWizardOpen} onComplete={handleWizardComplete} />
+
+      {/* Köhnə Create KPI Dialog — yalnız edit (copy) axını üçün saxlanılır, addım 10-17 növbəti mərhələdə yeni sehrbaza köçürüləcək */}
+
       <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) { setEditingCardId(null); setLifecycleDraft(emptyLifecycleDraft()); } }}>
         <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
           <DialogHeader>

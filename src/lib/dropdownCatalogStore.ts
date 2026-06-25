@@ -141,6 +141,9 @@ const SEED: DropdownCatalog[] = [
     "Korrupsiya", "Saxtakarlıq", "Mobbing / Təzyiq", "Diskriminasiya",
     "Təhlükəsizlik pozuntusu", "Etik qayda pozuntusu", "Digər",
   ]},
+  { id: "scoring_systems", name: "Qiymətləndirmə Bal Sistemi", system: true, values: [
+    "1-3 Bal Sistemi", "1-5 Bal Sistemi", "1-10 Bal Sistemi", "Faiz (0-100)",
+  ]},
 ];
 
 // Strukturlaşdırılmış kataloqlarda values array-ı rows.name-dən avtomatik sinxronlaşdırılır
