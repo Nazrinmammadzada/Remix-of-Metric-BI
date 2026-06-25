@@ -19,13 +19,11 @@ const allNavItems = [
 
 const UserSidebar = () => {
   const location = useLocation();
-  const { user, logout, hasPermission } = useAuth();
-  const navigate = useNavigate();
+  const { user, hasPermission } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
 
   const navItems = allNavItems.filter(item => item.permissions.some(p => hasPermission(p)));
 
-  const handleLogout = () => { logout(); navigate("/login"); };
 
   return (
     <TooltipProvider delayDuration={150}>
