@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator, ShieldCheck, Building2, ClipboardList, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Network } from "lucide-react";
+import { Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator, ShieldCheck, Building2, ClipboardList, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Target } from "lucide-react";
 
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,9 +12,9 @@ const navItems = [
   { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid },
   { path: "/kpi-qiymetleri", label: "KPI Qiymətləri", icon: Gauge },
   { path: "/kpi-set", label: "KPI Set", icon: SlidersHorizontal },
-  { path: "/kpi-lifecycle", label: "KPI Lifecycle", icon: Workflow },
+  { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target },
+  { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow },
   { path: "/cascading", label: "Cascading", icon: GitBranch },
-  { path: "/cascade-matrisi", label: "Cascade Matrisi", icon: Network },
 
   { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardList },
   { path: "/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
@@ -68,6 +68,7 @@ const Sidebar = () => {
               "/kpi-kartlari": "kpi",
               "/kpi-qiymetleri": "kpi_scores",
               "/kpi-set": "kpi_set",
+              "/hedef-tayin-izleme": "goal_tracking",
               "/kpi-lifecycle": "kpi_lifecycle",
               "/cascading": "cascading",
               "/cascade-matrisi": "cascade_matrix",

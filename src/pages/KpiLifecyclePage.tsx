@@ -62,12 +62,12 @@ const KpiLifecyclePage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="KPI Lifecycle" />
+      <Header title="KPI lifecycle izlənilmələri" />
       <main className="p-6 pb-24">
         <PageHero
-          badge="KPI Lifecycle"
+          badge="KPI lifecycle izlənilmələri"
           icon={Workflow}
-          title="KPI Lifecycle"
+          title="KPI lifecycle izlənilmələri"
           subtitle="Hər KPI kartı üçün təyin olunmuş planlama mərhələləri (təyinat, qiymətləndirmə, bonus, review)"
         />
 
