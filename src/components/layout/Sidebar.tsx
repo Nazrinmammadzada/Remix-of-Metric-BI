@@ -1,5 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, LayoutGrid, BarChart3, Users, Link2, Settings, ClipboardCheck, LogOut, Calculator, ShieldCheck, Building2, ClipboardList, Shield, Wallet, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Network } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator, ShieldCheck, Building2, ClipboardList, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Network } from "lucide-react";
+
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSidebar } from "@/contexts/SidebarContext";
