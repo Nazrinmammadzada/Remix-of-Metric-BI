@@ -1,4 +1,4 @@
-import { Search, Bell, Moon, Sun, LogOut, Mail, Building2, Users as UsersIcon, CheckCircle2, AlertCircle, Clock, Globe } from "lucide-react";
+import { Search, Bell, Moon, Sun, LogOut, Mail, Building2, Users as UsersIcon, CheckCircle2, AlertCircle, Clock, Globe, Shield } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -79,17 +79,26 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
   };
 
   const isHR = user?.role === "HR";
+  const isManager = user?.role === "MANAGER";
   const headerBg = isHR
     ? "bg-gradient-to-r from-primary/10 via-card/85 to-primary/10 border-primary/30"
-    : "bg-gradient-to-r from-success/10 via-card/85 to-success/10 border-success/30";
-  const accentBar = isHR ? "bg-primary" : "bg-success";
+    : isManager
+      ? "bg-gradient-to-r from-[hsl(268_75%_55%/0.12)] via-card/85 to-[hsl(268_75%_55%/0.12)] border-[hsl(268_75%_55%/0.35)]"
+      : "bg-gradient-to-r from-success/10 via-card/85 to-success/10 border-success/30";
+  const accentBar = isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success";
+  const roleLabel = isHR ? "HR Panel" : isManager ? "Rəhbər Paneli" : "İstifadəçi Paneli";
+  const roleChip = isHR
+    ? "bg-primary/15 text-primary"
+    : isManager
+      ? "bg-[hsl(268_75%_55%/0.18)] text-[hsl(268_75%_55%)]"
+      : "bg-success/15 text-success";
 
   return (
     <header className={`sticky top-0 z-40 h-16 border-b backdrop-blur-md flex items-center justify-between px-6 relative ${headerBg}`}>
       <span className={`absolute left-0 top-0 h-full w-1 ${accentBar}`} aria-hidden />
       <div className="flex items-center gap-3">
-        <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md ${isHR ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}>
-          {isHR ? "HR Panel" : "İstifadəçi Paneli"}
+        <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md ${roleChip}`}>
+          {roleLabel}
         </span>
         <span className="hidden md:inline text-xs text-muted-foreground">{dateStr}</span>
       </div>
@@ -102,6 +111,16 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
             className="pl-9 pr-4 py-2 text-sm bg-secondary/70 hover:bg-secondary rounded-lg border border-transparent focus:border-ring outline-none w-56 transition-all"
           />
         </div>
+        {isManager && (
+          <button
+            onClick={() => navigate("/manager/whistleblower")}
+            className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-[hsl(268_75%_55%/0.12)] hover:bg-[hsl(268_75%_55%/0.2)] text-[hsl(268_75%_55%)] transition-colors"
+            title="Anonim Bildiriş"
+          >
+            <Shield className="w-4 h-4" />
+            <span className="text-xs font-semibold hidden md:inline">Anonim Bildiriş</span>
+          </button>
+        )}
         <button
           onClick={() => setDark(d => !d)}
           className="w-9 h-9 rounded-lg bg-secondary/70 hover:bg-secondary flex items-center justify-center transition-colors"
@@ -177,25 +196,25 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
         {/* Profile */}
         <div className="relative" ref={profileRef}>
           <button onClick={() => { setShowProfile(s => !s); setShowNotif(false); setShowLang(false); }} className="flex items-center gap-2 hover:bg-secondary/70 rounded-lg p-1 pr-3 transition-colors">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground text-sm font-semibold shadow-sm ${user?.role === "HR" ? "bg-primary" : "bg-success"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground text-sm font-semibold shadow-sm ${isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success"}`}>
               {user?.avatar || "A"}
             </div>
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground leading-tight">{user?.name || "İstifadəçi"}</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">{user?.role === "HR" ? "HR Menecer" : "İstifadəçi"}</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">{isHR ? "HR Menecer" : isManager ? "Rəhbər" : "İstifadəçi"}</p>
             </div>
           </button>
           {showProfile && user && (
             <div className="absolute right-0 top-full mt-2 w-72 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
               <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/30 border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-primary-foreground text-lg font-semibold ${user.role === "HR" ? "bg-primary" : "bg-success"}`}>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-primary-foreground text-lg font-semibold ${isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success"}`}>
                     {user.avatar}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground truncate">{user.name}</p>
-                    <span className={`inline-block mt-0.5 px-2 py-0.5 text-[10px] font-medium rounded-full ${user.role === "HR" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}>
-                      {user.role === "HR" ? "HR Menecer" : "İstifadəçi"}
+                    <span className={`inline-block mt-0.5 px-2 py-0.5 text-[10px] font-medium rounded-full ${roleChip}`}>
+                      {isHR ? "HR Menecer" : isManager ? "Rəhbər" : "İstifadəçi"}
                     </span>
                   </div>
                 </div>

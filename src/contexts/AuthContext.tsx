@@ -6,7 +6,7 @@ import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 export interface AuthUser {
   name: string;
   email: string;
-  role: "HR" | "USER" | "SUPER_ADMIN";
+  role: "HR" | "USER" | "SUPER_ADMIN" | "MANAGER";
   avatar: string;
   department: string;
   team: string;
@@ -55,6 +55,21 @@ const demoProfiles: { email: string; user: AuthUser }[] = [
       department: "Satış Departamenti",
       team: "Elite Satış Komandası",
       permissions: ["home", "kpi_own", "kpi_team", "approvals", "reporting", "teams", "teams_compare"],
+    },
+  },
+  {
+    email: "manager@kpi.az",
+    user: {
+      name: "Elvin Rəhimov",
+      email: "manager@kpi.az",
+      role: "MANAGER",
+      avatar: "E",
+      department: "Satış Departamenti",
+      team: "Elite Satış Komandası",
+      permissions: [
+        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
+        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
+      ],
     },
   },
 ];

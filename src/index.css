@@ -110,6 +110,16 @@
     --header-tint: 158 70% 38%;
   }
 
+  /* MANAGER (Rəhbər) theme — royal purple/violet */
+  .theme-manager {
+    --sidebar-bg: 270 50% 20%;
+    --sidebar-fg: 270 25% 95%;
+    --sidebar-active: 268 75% 55%;
+    --sidebar-hover: 270 45% 28%;
+    --header-accent: 268 75% 55%;
+    --header-tint: 268 75% 55%;
+  }
+
   .dark .theme-hr {
     --sidebar-bg: 230 55% 11%;
     --sidebar-hover: 230 40% 18%;
@@ -117,6 +127,10 @@
   .dark .theme-user {
     --sidebar-bg: 165 50% 10%;
     --sidebar-hover: 165 40% 16%;
+  }
+  .dark .theme-manager {
+    --sidebar-bg: 270 45% 12%;
+    --sidebar-hover: 270 38% 18%;
   }
 }
 

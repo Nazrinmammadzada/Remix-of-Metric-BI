@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Role = "HR" | "USER" | "SUPER_ADMIN";
+type Role = "HR" | "USER" | "SUPER_ADMIN" | "MANAGER";
 
 interface RouteGuardProps {
   children: React.ReactNode;
