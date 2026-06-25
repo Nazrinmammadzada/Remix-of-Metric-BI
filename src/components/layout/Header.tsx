@@ -78,12 +78,23 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
     return <Clock className="w-4 h-4 text-muted-foreground" />;
   };
 
+  const isHR = user?.role === "HR";
+  const headerBg = isHR
+    ? "bg-gradient-to-r from-primary/10 via-card/85 to-primary/10 border-primary/30"
+    : "bg-gradient-to-r from-success/10 via-card/85 to-success/10 border-success/30";
+  const accentBar = isHR ? "bg-primary" : "bg-success";
+
   return (
-    <header className="sticky top-0 z-40 h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6">
+    <header className={`sticky top-0 z-40 h-16 border-b backdrop-blur-md flex items-center justify-between px-6 relative ${headerBg}`}>
+      <span className={`absolute left-0 top-0 h-full w-1 ${accentBar}`} aria-hidden />
       <div className="flex items-center gap-3">
+        <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md ${isHR ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}>
+          {isHR ? "HR Panel" : "İstifadəçi Paneli"}
+        </span>
         <span className="hidden md:inline text-xs text-muted-foreground">{dateStr}</span>
       </div>
       <div className="flex items-center gap-3">
+
         <div className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
