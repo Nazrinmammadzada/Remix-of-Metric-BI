@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 const navItems = [
   { path: "/hr", label: "Əsas Səhifə", icon: Home },
   { path: "/teskilati-struktur", label: "Təşkilat", icon: Building2 },
-  { path: "/kpi-kartlari", label: "KPI Kartları", icon: LayoutGrid },
+  { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid },
   { path: "/kpi-qiymetleri", label: "KPI Qiymətləri", icon: Gauge },
   { path: "/kpi-set", label: "KPI Set", icon: SlidersHorizontal },
   { path: "/kpi-lifecycle", label: "KPI Lifecycle", icon: Workflow },
