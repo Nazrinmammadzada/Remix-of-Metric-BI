@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { Network, Plus, Pencil, Trash2, X, ChevronDown } from "lucide-react";
+import { Network, Plus, Pencil, Trash2, X, ChevronDown, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -30,7 +30,7 @@ const SCOPE_TARGET_LABELS: Record<CascadeScopeType, string> = {
   user: "Şəxs(lər) seç",
 };
 
-const CascadeMatrixPage = () => {
+const CascadeMatrixPage = ({ onBack }: { onBack?: () => void } = {}) => {
   const matrices = useCascadeMatrices();
   const [editing, setEditing] = useState<CascadeMatrix | null>(null);
   const [creating, setCreating] = useState(false);
@@ -46,6 +46,14 @@ const CascadeMatrixPage = () => {
     <div className="min-h-screen">
       <Header title="Cascade Matrisi" />
       <main className="p-6 pb-24">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Geri
+          </button>
+        )}
         <PageHero
           badge="Cascade Matrisi"
           icon={Network}
