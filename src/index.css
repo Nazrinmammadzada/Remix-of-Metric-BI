@@ -89,7 +89,37 @@
     --zone-red-bg: 0 45% 18%;
     --zone-red-text: 0 75% 70%;
   }
+
+  /* HR theme — deep blue/indigo (default sidebar tokens, slightly enriched) */
+  .theme-hr {
+    --sidebar-bg: 230 65% 20%;
+    --sidebar-fg: 220 25% 95%;
+    --sidebar-active: 222 85% 52%;
+    --sidebar-hover: 230 55% 28%;
+    --header-accent: 222 78% 42%;
+    --header-tint: 222 78% 42%;
+  }
+
+  /* USER theme — emerald/teal so it's clearly distinct from HR */
+  .theme-user {
+    --sidebar-bg: 165 55% 16%;
+    --sidebar-fg: 160 25% 94%;
+    --sidebar-active: 158 70% 38%;
+    --sidebar-hover: 165 45% 22%;
+    --header-accent: 158 70% 38%;
+    --header-tint: 158 70% 38%;
+  }
+
+  .dark .theme-hr {
+    --sidebar-bg: 230 55% 11%;
+    --sidebar-hover: 230 40% 18%;
+  }
+  .dark .theme-user {
+    --sidebar-bg: 165 50% 10%;
+    --sidebar-hover: 165 40% 16%;
+  }
 }
+
 
 @layer base {
   * {
