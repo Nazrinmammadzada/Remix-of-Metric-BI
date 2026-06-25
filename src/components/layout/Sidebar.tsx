@@ -29,14 +29,9 @@ const navItems = [
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <TooltipProvider delayDuration={150}>
