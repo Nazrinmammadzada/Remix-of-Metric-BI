@@ -721,7 +721,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <button onClick={() => setViewMode("card")} title="Kart görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "card" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
                 <button onClick={() => setViewMode("list")} title="Siyahı görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><List className="w-4 h-4" /></button>
               </div>
-              <button onClick={() => { setShowCreate(true); setCreateStep(1); setUseMatrix(true); setSelectedMatrixId(null); setLifecycleDraft(emptyLifecycleDraft()); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+              <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
                 <Plus className="w-4 h-4" /> Yeni KPI
               </button>
             </div>
