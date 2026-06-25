@@ -656,6 +656,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   return (
     <div className="min-h-screen">
       <Header title="KPİ-lar" />
+      {onBack && (
+        <div className="px-6 pt-4">
+          <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
+            ← Geri
+          </button>
+        </div>
+      )}
       <main className="p-6 pb-24">
         <PageHero
           badge="KPİ İdarəetməsi"
