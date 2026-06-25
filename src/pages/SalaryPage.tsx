@@ -39,7 +39,9 @@ interface AggRow {
 }
 
 const SalaryPage = () => {
+  const navigate = useNavigate();
   const [records, setRecords] = useState<SalaryRecord[]>(() => getRecords());
+
   const [employees] = useState<OrgEmployee[]>(() => getEmployees());
   const [uploads, setUploads] = useState<SalaryUpload[]>(() => getUploads());
 
