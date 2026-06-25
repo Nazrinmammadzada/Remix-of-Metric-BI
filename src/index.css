@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light — soft white, not pure */
+    --background: 220 30% 98.5%;
+    --foreground: 222 35% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 35% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 35% 14%;
+    --primary: 222 78% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 25% 96%;
+    --secondary-foreground: 222 35% 14%;
+    --muted: 220 20% 95%;
+    --muted-foreground: 220 12% 46%;
+    --accent: 222 60% 96%;
+    --accent-foreground: 222 78% 30%;
+    --destructive: 0 78% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 91%;
+    --input: 220 20% 91%;
+    --ring: 222 78% 42%;
+    --radius: 0.75rem;
+
+    --sidebar-bg: 222 60% 22%;
+    --sidebar-fg: 220 25% 92%;
+    --sidebar-active: 222 78% 48%;
+    --sidebar-hover: 222 50% 28%;
+
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 92% 52%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 85% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --zone-green-bg: 152 55% 93%;
+    --zone-green-text: 152 65% 28%;
+    --zone-yellow-bg: 38 90% 92%;
+    --zone-yellow-text: 32 80% 35%;
+    --zone-red-bg: 0 75% 94%;
+    --zone-red-text: 0 70% 42%;
+  }
+
+  .dark {
+    /* Dark — deep navy, never pure black */
+    --background: 222 45% 7%;          /* ~#0B1220 */
+    --foreground: 220 18% 88%;
+    --card: 222 42% 10%;               /* ~#0F172A */
+    --card-foreground: 220 18% 88%;
+    --popover: 222 42% 10%;
+    --popover-foreground: 220 18% 88%;
+    --primary: 222 80% 62%;
+    --primary-foreground: 222 45% 7%;
+    --secondary: 222 35% 14%;          /* ~#111B2E */
+    --secondary-foreground: 220 18% 88%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 220 14% 62%;
+    --accent: 222 35% 16%;
+    --accent-foreground: 220 18% 88%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 28% 18%;
+    --input: 222 28% 18%;
+    --ring: 222 80% 62%;
+
+    --sidebar-bg: 222 50% 9%;
+    --sidebar-fg: 220 18% 88%;
+    --sidebar-active: 222 75% 38%;
+    --sidebar-hover: 222 38% 15%;
+
+    --success: 152 55% 48%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 90% 58%;
+    --warning-foreground: 222 45% 7%;
+    --info: 210 85% 62%;
+    --info-foreground: 0 0% 100%;
+
+    --zone-green-bg: 152 45% 16%;
+    --zone-green-text: 152 60% 65%;
+    --zone-yellow-bg: 35 50% 18%;
+    --zone-yellow-text: 35 85% 65%;
+    --zone-red-bg: 0 45% 18%;
+    --zone-red-text: 0 75% 70%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+  }
+  h1, h2, h3, h4, h5 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.45);
+  }
+  /* Fully hidden scrollbar but still scrollable */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* Premium card hover */
+  .card-elevated {
+    @apply bg-card border border-border rounded-xl transition-all duration-200;
+    box-shadow: 0 1px 2px hsl(222 45% 7% / 0.04), 0 1px 3px hsl(222 45% 7% / 0.03);
+  }
+  .card-elevated:hover {
+    box-shadow: 0 4px 12px hsl(222 45% 7% / 0.06), 0 2px 6px hsl(222 45% 7% / 0.04);
+    border-color: hsl(var(--border) / 0.8);
+  }
+
+  /* Modern table row */
+  .table-row-hover {
+    @apply transition-colors duration-150;
+  }
+  .table-row-hover:hover {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+}

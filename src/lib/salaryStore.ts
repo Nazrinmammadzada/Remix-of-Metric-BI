@@ -1,0 +1,87 @@
+// Salary database store (localStorage demo)
+
+export const MONTHS = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun",
+  "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
+] as const;
+export type Month = typeof MONTHS[number];
+
+export interface SalaryPeriod {
+  id: number;
+  month: Month;
+  year: number;
+  salary: number;          // base monthly salary (AZN)
+  totalDays: number;       // ümumi gün sayı
+  workedDays: number;      // gün sayı (faktiki)
+}
+
+export interface SalaryRecord {
+  id: number;
+  employeeId: number;
+  operator: string;
+  periods: SalaryPeriod[];
+  createdAt: string;
+}
+
+const STORAGE = "kpi_salary_records_v3";
+
+const buildPeriods = (baseId: number, salary: number, includeWorkedJitter = true): SalaryPeriod[] => {
+  const periods: SalaryPeriod[] = [];
+  const monthDays = [22, 20, 21, 22, 21, 21, 22, 22, 21, 22, 21, 22];
+  let pid = baseId;
+  for (const year of [2024, 2025, 2026]) {
+    MONTHS.forEach((m, idx) => {
+      // 2026: only up to current month (June = idx 5)
+      if (year === 2026 && idx > 5) return;
+      const td = monthDays[idx];
+      const worked = includeWorkedJitter ? Math.max(td - (idx % 3), td - 2) : td;
+      periods.push({ id: pid++, month: m, year, salary, totalDays: td, workedDays: worked });
+    });
+  }
+  return periods;
+};
+
+const seed: SalaryRecord[] = [
+  { id: 1, employeeId: 1, operator: "Admin",       periods: buildPeriods(10000, 4200), createdAt: new Date().toISOString() },
+  { id: 2, employeeId: 3, operator: "HR Operator", periods: buildPeriods(20000, 2800), createdAt: new Date().toISOString() },
+  { id: 3, employeeId: 4, operator: "Admin",       periods: buildPeriods(30000, 1800), createdAt: new Date().toISOString() },
+  { id: 4, employeeId: 5, operator: "Admin",       periods: buildPeriods(40000, 1800), createdAt: new Date().toISOString() },
+  { id: 5, employeeId: 6, operator: "HR Operator", periods: buildPeriods(50000, 4500), createdAt: new Date().toISOString() },
+  { id: 6, employeeId: 7, operator: "Admin",       periods: buildPeriods(60000, 1700), createdAt: new Date().toISOString() },
+  { id: 7, employeeId: 8, operator: "HR Operator", periods: buildPeriods(70000, 1900), createdAt: new Date().toISOString() },
+  { id: 8, employeeId: 2, operator: "Admin",       periods: buildPeriods(80000, 5000), createdAt: new Date().toISOString() },
+];
+
+
+const load = (): SalaryRecord[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  localStorage.setItem(STORAGE, JSON.stringify(seed));
+  return seed;
+};
+
+const save = (list: SalaryRecord[]) => {
+  localStorage.setItem(STORAGE, JSON.stringify(list));
+  window.dispatchEvent(new Event("salary-updated"));
+};
+
+export const getRecords = (): SalaryRecord[] => load();
+
+export const addRecord = (data: Omit<SalaryRecord, "id" | "createdAt">) => {
+  const list = load();
+  const id = list.length ? Math.max(...list.map(r => r.id)) + 1 : 1;
+  list.push({ ...data, id, createdAt: new Date().toISOString() });
+  save(list);
+  return list;
+};
+
+export const removeRecord = (id: number) => {
+  save(load().filter(r => r.id !== id));
+};
+
+export const computePay = (p: SalaryPeriod): number => {
+  if (!p.totalDays || p.totalDays <= 0) return 0;
+  return Math.round((p.salary * p.workedDays) / p.totalDays);
+};

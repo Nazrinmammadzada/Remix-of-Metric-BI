@@ -1,0 +1,1329 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import Header from "@/components/layout/Header";
+import { PageHero, FancyCard } from "@/components/ui/page-hero";
+import {
+  Building2, Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
+  Briefcase, UserPlus, Search, X, Check, KeyRound, ShieldCheck, UserCircle2,
+  Eye, Folder, ChevronsLeft, ChevronsRight, ChevronLeft, Filter, Download,
+} from "lucide-react";
+import chrLogo from "@/assets/chr-logo.jpeg";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
+  getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
+  assignSlot, removeSlot, removePosition, removeStructure, renameStructure, getAssignedEmployeeIds,
+  type OrgEmployee, type OrgStructure, type OrgPosition,
+} from "@/lib/orgStore";
+import {
+  getStructureTypes, addStructureType, removeStructureType,
+  getPositions, addPositionCatalog, removePositionCatalog,
+} from "@/lib/catalogStore";
+import SearchableSelect from "@/components/common/SearchableSelect";
+import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
+import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
+import { generateOtp } from "@/lib/passwordStore";
+
+const ORG_LOGO_KEY = "kpi_org_logo_v1";
+
+const OrganizationPage = () => {
+  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq">("struktur");
+  const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
+  const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
+  const [orgLogo, setOrgLogo] = useState<string | null>(() => localStorage.getItem(ORG_LOGO_KEY));
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const refresh = () => {
+      setEmployeesState(getEmployees());
+      setStructuresState(getStructures());
+    };
+    window.addEventListener("org-updated", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("org-updated", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const active = employees.filter(e => e.active).length;
+    return { total: employees.length, active };
+  }, [employees]);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|svg\+xml)$/.test(file.type)) {
+      toast.error("Yalnız PNG, JPG və ya SVG formatlı şəkillər qəbul olunur");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      localStorage.setItem(ORG_LOGO_KEY, url);
+      setOrgLogo(url);
+      toast.success(orgLogo ? "Logo dəyişdirildi" : "Logo əlavə edildi");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Header title="Təşkilat" />
+      <main className="p-6 pb-24">
+        <PageHero
+          badge="Təşkilat"
+          icon={Building2}
+          title="Təşkilat"
+          subtitle="Strukturlar, vəzifələr və əməkdaşlar"
+          left={
+            <div className="flex items-center gap-2 pl-2">
+              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
+              {orgLogo ? (
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="group relative h-16 w-16 rounded-xl border border-border bg-card overflow-hidden flex items-center justify-center shadow-sm"
+                  title="Logo dəyiş"
+                >
+                  <img src={orgLogo} alt="Təşkilat logosu" className="max-h-14 max-w-14 object-contain" />
+                  <span className="absolute inset-0 bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">Dəyiş</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 px-3 h-12 text-xs rounded-xl border border-dashed border-border bg-background hover:bg-secondary/40 text-muted-foreground"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Logo əlavə et
+                </button>
+              )}
+            </div>
+          }
+          right={
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <button
+                onClick={() => {
+                  const inp = document.createElement("input");
+                  inp.type = "file";
+                  inp.accept = ".xlsx,.xls,.csv";
+                  inp.onchange = () => {
+                    const f = inp.files?.[0];
+                    if (f) toast.success(`Excel faylı qəbul edildi: ${f.name}`);
+                  };
+                  inp.click();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+              >
+                <Download className="w-3.5 h-3.5 rotate-180" /> Excel import
+              </button>
+              <button
+                onClick={() => window.open("https://pre.chr.blink-bi.az/auth/sign-in", "_blank", "noopener,noreferrer")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+              >
+                <img src={chrLogo} alt="CHR" className="w-4 h-4 object-contain" />
+                CHR import
+              </button>
+              <button
+                onClick={() => toast.success("CHR-a export sorğusu göndərildi")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+              >
+                <img src={chrLogo} alt="CHR" className="w-4 h-4 object-contain" />
+                CHR export
+              </button>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
+                <Users className="w-4 h-4 text-primary" />
+                <div className="text-xs">
+                  <span className="font-semibold text-foreground">{stats.total}</span>
+                  <span className="text-muted-foreground"> əməkdaş · {stats.active} aktiv</span>
+                </div>
+              </div>
+            </div>
+          }
+        />
+
+        <div className="flex gap-1 border-b border-border mb-4">
+          <button
+            onClick={() => setTab("struktur")}
+            className={`px-4 py-2 text-sm font-medium ${tab === "struktur" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
+          >Struktur</button>
+          <button
+            onClick={() => setTab("emekdaslar")}
+            className={`px-4 py-2 text-sm font-medium ${tab === "emekdaslar" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
+          >Əməkdaşlar siyahısı</button>
+          <button
+            onClick={() => setTab("kataloq")}
+            className={`px-4 py-2 text-sm font-medium ${tab === "kataloq" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
+          >Kataloq</button>
+        </div>
+
+
+        {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+      </main>
+    </div>
+  );
+};
+
+// ====================================================
+// Helpers
+// ====================================================
+
+const countAllPositions = (node: OrgStructure): number =>
+  node.positions.length + node.children.reduce((s, c) => s + countAllPositions(c), 0);
+
+const countAllSlots = (node: OrgStructure): number =>
+  node.positions.reduce((s, p) => s + p.slots.length, 0) +
+  node.children.reduce((s, c) => s + countAllSlots(c), 0);
+
+// ====================================================
+// Structure tab — card-based tree
+// ====================================================
+
+const StructureTab = () => {
+  const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const refresh = () => setStructuresState(getStructures());
+    window.addEventListener("org-updated", refresh);
+    return () => window.removeEventListener("org-updated", refresh);
+  }, []);
+
+  const [showCreate, setShowCreate] = useState<{ parentId: number | null } | null>(null);
+  const [newStruct, setNewStruct] = useState({ type: "", name: "", count: 1 });
+
+  const [showChrImport, setShowChrImport] = useState(false);
+
+  const [staffModalFor, setStaffModalFor] = useState<OrgStructure | null>(null);
+
+  const toggleExpand = (id: number) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleCreate = () => {
+    if (!newStruct.type.trim()) { toast.error("Struktur tipini daxil edin"); return; }
+    const count = Math.max(1, Math.min(50, Number(newStruct.count) || 1));
+    if (showCreate?.parentId == null) addRootStructure(newStruct.type.trim(), "", count);
+    else addSubStructure(showCreate.parentId, newStruct.type.trim(), "", count);
+    toast.success(count > 1 ? `${count} struktur yaradıldı — adlandırın` : "Struktur yaradıldı — adlandırın");
+    setShowCreate(null);
+    setNewStruct({ type: "", name: "", count: 1 });
+  };
+
+  // Sync the staffModal data with latest tree
+  const liveStaffModal = useMemo(() => {
+    if (!staffModalFor) return null;
+    const find = (nodes: OrgStructure[]): OrgStructure | null => {
+      for (const n of nodes) {
+        if (n.id === staffModalFor.id) return n;
+        const r = find(n.children);
+        if (r) return r;
+      }
+      return null;
+    };
+    return find(structures);
+  }, [structures, staffModalFor]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={() => { setShowCreate({ parentId: null }); setNewStruct({ type: "", name: "", count: 1 }); }}
+          className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm hover:shadow-md transition-shadow"
+        >
+          <Plus className="w-4 h-4" /> Yeni struktur yarat
+        </button>
+      </div>
+
+
+      {structures.length === 0 ? (
+        <FancyCard>
+          <div className="py-16 text-center">
+            <Building2 className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">Hələ struktur yaradılmayıb. Yeni struktur yarat.</p>
+          </div>
+        </FancyCard>
+      ) : (
+        <div className="space-y-3">
+          {structures.map(node => (
+            <StructureCard
+              key={node.id}
+              node={node}
+              depth={0}
+              expanded={expanded}
+              onToggle={toggleExpand}
+              onAddSub={(parentId) => { setShowCreate({ parentId }); setNewStruct({ type: "", name: "", count: 1 }); }}
+              onOpenStaff={setStaffModalFor}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Create structure dialog (manual type input) */}
+      <Dialog open={!!showCreate} onOpenChange={() => setShowCreate(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{showCreate?.parentId == null ? "Yeni struktur yarat" : "Sub-struktur yarat"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground">Struktur tipi</label>
+              <Select value={newStruct.type} onValueChange={(v) => setNewStruct(p => ({ ...p, type: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Tip seçin" /></SelectTrigger>
+                <SelectContent>
+                  {getStructureTypes().map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">Tipləri Kataloq tabından idarə edin</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Struktur sayı</label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={newStruct.count}
+                onChange={e => setNewStruct(p => ({ ...p, count: Math.max(1, Math.min(50, Number(e.target.value) || 1)) }))}
+                className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">Yazılan say qədər struktur yaranacaq. Yaradıldıqdan sonra hər birini ayrıca adlandıra bilərsiniz.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleCreate} className="flex-1 py-2.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium">Yarat</button>
+              <button onClick={() => setShowCreate(null)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Staff (positions + slots) modal */}
+      <StaffModal node={liveStaffModal} onClose={() => setStaffModalFor(null)} />
+
+      <ChrImportDialog open={showChrImport} onClose={() => setShowChrImport(false)} />
+    </div>
+  );
+};
+
+const typeColorMap: Record<string, { bg: string; text: string; iconBg: string; iconText: string }> = {
+  Departament: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", iconBg: "from-blue-500/10 to-sky-500/10", iconText: "text-blue-600" },
+  Şöbə:      { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", iconBg: "from-emerald-500/10 to-teal-500/10", iconText: "text-emerald-600" },
+  Sektor:    { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", iconBg: "from-amber-500/10 to-orange-500/10", iconText: "text-amber-600" },
+  Qrup:      { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", iconBg: "from-purple-500/10 to-violet-500/10", iconText: "text-purple-600" },
+  Komanda:   { bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400", iconBg: "from-rose-500/10 to-pink-500/10", iconText: "text-rose-600" },
+};
+
+const getTypeColors = (type: string) => {
+  const colors = typeColorMap[type];
+  if (colors) return colors;
+  // Fallback for unknown types — hash-based deterministic color
+  const hash = Array.from(type).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0);
+  const fallbacks = [
+    { bg: "bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", iconBg: "from-cyan-500/10 to-teal-500/10", iconText: "text-cyan-600" },
+    { bg: "bg-indigo-500/10", text: "text-indigo-600 dark:text-indigo-400", iconBg: "from-indigo-500/10 to-violet-500/10", iconText: "text-indigo-600" },
+    { bg: "bg-lime-500/10", text: "text-lime-600 dark:text-lime-400", iconBg: "from-lime-500/10 to-green-500/10", iconText: "text-lime-600" },
+    { bg: "bg-fuchsia-500/10", text: "text-fuchsia-600 dark:text-fuchsia-400", iconBg: "from-fuchsia-500/10 to-purple-500/10", iconText: "text-fuchsia-600" },
+    { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", iconBg: "from-orange-500/10 to-red-500/10", iconText: "text-orange-600" },
+  ];
+  return fallbacks[hash % fallbacks.length];
+};
+
+interface StructureCardProps {
+  node: OrgStructure;
+  depth: number;
+  expanded: Set<number>;
+  onToggle: (id: number) => void;
+  onAddSub: (parentId: number) => void;
+  onOpenStaff: (n: OrgStructure) => void;
+}
+
+const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff }: StructureCardProps) => {
+  const isOpen = expanded.has(node.id);
+  const positionsCount = countAllPositions(node);
+  const slotsCount = countAllSlots(node);
+  const colors = getTypeColors(node.type);
+
+  const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState(node.name);
+
+  useEffect(() => { setDraftName(node.name); }, [node.name]);
+
+  const commitRename = () => {
+    const v = draftName.trim();
+    if (!v) { setDraftName(node.name); setEditing(false); return; }
+    if (v !== node.name) {
+      renameStructure(node.id, v);
+      toast.success("Ad yeniləndi");
+    }
+    setEditing(false);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`"${node.name}" strukturunu silmək istəyirsiniz?`)) return;
+    removeStructure(node.id);
+    toast.success("Struktur silindi");
+  };
+
+  return (
+    <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in">
+      <div className="rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden">
+        <div className="flex items-center gap-3 p-4">
+          <button
+            onClick={() => onToggle(node.id)}
+            className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+            aria-label="Aç/Bağla"
+          >
+            {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </button>
+
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors.iconBg} flex items-center justify-center`}>
+            <Folder className={`w-5 h-5 ${colors.iconText}`} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} font-semibold`}>{node.type}</span>
+              {editing ? (
+                <input
+                  autoFocus
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  onBlur={commitRename}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setDraftName(node.name); setEditing(false); } }}
+                  className="px-2 py-1 text-sm font-semibold border border-border rounded-md bg-background min-w-0 flex-1"
+                />
+              ) : (
+                <>
+                  <h3 className="font-semibold text-foreground truncate">{node.name}</h3>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="p-1 rounded hover:bg-secondary transition-colors"
+                    aria-label="Adı dəyiş"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><Briefcase className="w-3 h-3" /> {positionsCount} vəzifə</span>
+              <span className="inline-flex items-center gap-1"><UserCircle2 className="w-3 h-3" /> {slotsCount} ştat</span>
+              <span className="inline-flex items-center gap-1"><Building2 className="w-3 h-3" /> {node.children.length} sub-struktur</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onOpenStaff(node)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/40 transition-colors"
+          >
+            <Eye className="w-3.5 h-3.5" /> Ştat cədvəlinə bax
+          </button>
+          <button
+            onClick={() => onAddSub(node.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground hover:shadow-md transition-shadow"
+          >
+            <Plus className="w-3.5 h-3.5" /> Sub-struktur
+          </button>
+          <button onClick={handleDelete} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors">
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </button>
+        </div>
+      </div>
+
+      {isOpen && node.children.length > 0 && (
+        <div className="mt-3 space-y-3 animate-accordion-down">
+          {node.children.map(child => (
+            <StructureCard
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              expanded={expanded}
+              onToggle={onToggle}
+              onAddSub={onAddSub}
+              onOpenStaff={onOpenStaff}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ====================================================
+// Staff Modal — positions + slots for a structure
+// ====================================================
+
+const StaffModal = ({ node, onClose }: { node: OrgStructure | null; onClose: () => void }) => {
+  const [showAddPos, setShowAddPos] = useState(false);
+  const [newPosName, setNewPosName] = useState("");
+  const [search, setSearch] = useState("");
+
+  const handleCreatePos = () => {
+    if (!node || !newPosName.trim()) return;
+    addPosition(node.id, newPosName.trim());
+    toast.success("Vəzifə yaradıldı");
+    setNewPosName("");
+    setShowAddPos(false);
+  };
+
+  const filteredPositions = useMemo(() => {
+    if (!node) return [];
+    const q = search.trim().toLowerCase();
+    if (!q) return node.positions;
+    return node.positions.filter(p => p.name.toLowerCase().includes(q));
+  }, [node, search]);
+
+  return (
+    <Dialog open={!!node} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-primary" />
+            Ştat cədvəli — {node?.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between gap-2 pb-3 border-b border-border">
+          <p className="text-xs text-muted-foreground">{node && countAllPositions(node)} vəzifə · {node && countAllSlots(node)} ştat</p>
+          <button
+            onClick={() => setShowAddPos(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+          >
+            <Plus className="w-3.5 h-3.5" /> Vəzifə əlavə et
+          </button>
+        </div>
+
+        <div className="pt-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Ad, soyad və ya vəzifə üzrə axtar..."
+              className="w-full pl-8 pr-2 py-1.5 text-xs border border-border rounded-lg bg-background"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-y-auto flex-1 -mx-6 px-6 py-3 space-y-3">
+          {node && node.positions.length === 0 && (
+            <div className="py-12 text-center">
+              <Briefcase className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">Bu strukturda vəzifə yoxdur</p>
+            </div>
+          )}
+          {node && node.positions.length > 0 && filteredPositions.length === 0 && (
+            <p className="text-sm text-center text-muted-foreground py-6">Nəticə yoxdur</p>
+          )}
+          {filteredPositions.map(pos => (
+            <PositionCard key={pos.id} position={pos} />
+          ))}
+        </div>
+
+        {showAddPos && (
+          <div className="border-t border-border pt-3 flex items-center gap-2">
+            <div className="flex-1">
+              <PositionPicker value={newPosName} onChange={setNewPosName} />
+            </div>
+            <button onClick={handleCreatePos} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground">Əlavə et</button>
+            <button onClick={() => { setShowAddPos(false); setNewPosName(""); }} className="px-3 py-2 text-sm rounded-lg border border-border">Ləğv et</button>
+          </div>
+        )}
+
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const FRACTION_OPTIONS: { value: 1 | 0.75 | 0.5 | 0.25; label: string }[] = [
+  { value: 1, label: "Tam ştat (1.00)" },
+  { value: 0.75, label: "0.75 ştat" },
+  { value: 0.5, label: "Yarım ştat (0.50)" },
+  { value: 0.25, label: "0.25 ştat" },
+];
+
+const PositionCard = ({ position }: { position: OrgPosition }) => {
+  const [showAddSlot, setShowAddSlot] = useState(false);
+  const [slotCount, setSlotCount] = useState(1);
+  const [slotFraction, setSlotFraction] = useState<1 | 0.75 | 0.5 | 0.25>(1);
+
+  const handleDelete = () => {
+    if (!confirm(`"${position.name}" vəzifəsini silmək istəyirsiniz?`)) return;
+    removePosition(position.id);
+    toast.success("Vəzifə silindi");
+  };
+
+  const handleAddSlots = () => {
+    const n = Math.max(1, Math.min(100, Number(slotCount) || 1));
+    addSlot(position.id, n, slotFraction);
+    toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
+    setShowAddSlot(false);
+    setSlotCount(1);
+    setSlotFraction(1);
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b border-border">
+        <Briefcase className="w-4 h-4 text-amber-600" />
+        <span className="font-medium text-foreground flex-1">{position.name}</span>
+        <span className="text-xs text-muted-foreground">{position.slots.length} ştat</span>
+        <button
+          onClick={() => setShowAddSlot(true)}
+          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+        >
+          <Plus className="w-3 h-3" /> Ştat əlavə et
+        </button>
+        <button onClick={handleDelete} className="p-1 rounded hover:bg-destructive/10">
+          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+        </button>
+      </div>
+      <div className="divide-y divide-border">
+        {position.slots.length === 0 ? (
+          <p className="px-4 py-4 text-xs text-muted-foreground text-center">Heç bir ştat yoxdur</p>
+        ) : position.slots.map((slot, i) => (
+          <SlotRow key={slot.id} slot={slot} index={i + 1} />
+        ))}
+      </div>
+
+      <Dialog open={showAddSlot} onOpenChange={setShowAddSlot}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ştat əlavə et — {position.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground">Ştat sayı</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={slotCount}
+                onChange={e => setSlotCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+                className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Ştat vahidi</label>
+              <Select value={String(slotFraction)} onValueChange={(v) => setSlotFraction(Number(v) as 1 | 0.75 | 0.5 | 0.25)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FRACTION_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={String(f.value)}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleAddSlots} className="flex-1 py-2.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium">Əlavə et</button>
+              <button onClick={() => setShowAddSlot(false)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+interface SlotRowProps { slot: { id: number; employeeId: number | null; salary: number | null; fraction?: 1 | 0.75 | 0.5 | 0.25 }; index: number; }
+
+const SlotRow = ({ slot, index }: SlotRowProps) => {
+  const [employees, setEmployees] = useState<OrgEmployee[]>(() => getEmployees());
+  useEffect(() => {
+    const r = () => setEmployees(getEmployees());
+    window.addEventListener("org-updated", r);
+    return () => window.removeEventListener("org-updated", r);
+  }, []);
+
+  const assignedIds = useMemo(() => getAssignedEmployeeIds(), [employees]);
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const current = slot.employeeId ? employees.find(e => e.id === slot.employeeId) : null;
+  const available = employees.filter(e =>
+    e.active &&
+    (!assignedIds.has(e.id) || e.id === slot.employeeId) &&
+    `${e.firstName} ${e.lastName} ${e.fin}`.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20">
+      <span className="text-xs text-muted-foreground w-6">{index}.</span>
+      <UserCircle2 className="w-4 h-4 text-muted-foreground" />
+      <div className="flex-1 min-w-0">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="w-full text-left px-3 py-2 text-sm border border-border rounded-lg bg-background hover:bg-secondary/30 flex items-center justify-between gap-2"
+            >
+              <span className="truncate">
+                {current ? `${current.firstName} ${current.lastName}` : <span className="text-muted-foreground">Əməkdaş seç</span>}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform flex-shrink-0 ${open ? 'rotate-180' : ''}`} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" sideOffset={4} className="p-0 w-[--radix-popover-trigger-width] min-w-[320px]">
+            <div className="p-2 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  autoFocus
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Ad, soyad və ya FİN ilə axtar..."
+                  className="w-full pl-8 pr-2 py-2 text-sm border border-border rounded-md bg-background focus:ring-2 focus:ring-primary/30 focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1">
+              {current && (
+                <button
+                  onClick={() => { assignSlot(slot.id, { employeeId: null }); setOpen(false); toast.success("Təyinat ləğv edildi"); }}
+                  className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-destructive/5 border-b border-border flex items-center gap-1.5"
+                >
+                  <X className="w-3.5 h-3.5" /> Təyinatı ləğv et
+                </button>
+              )}
+              {available.length === 0 && (
+                <p className="px-3 py-6 text-xs text-muted-foreground text-center">Müsait əməkdaş yoxdur</p>
+              )}
+              {available.map(e => (
+                <button
+                  key={e.id}
+                  onClick={() => { assignSlot(slot.id, { employeeId: e.id }); setOpen(false); toast.success("Əməkdaş təyin edildi"); }}
+                  className={`w-full text-left px-3 py-2.5 text-sm hover:bg-secondary/40 flex items-center justify-between gap-3 ${e.id === slot.employeeId ? 'bg-primary/5' : ''}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground truncate">{e.firstName} {e.lastName}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">FİN: {e.fin}</p>
+                  </div>
+                  {e.id === slot.employeeId && <Check className="w-4 h-4 text-primary flex-shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+      <Select
+        value={String(slot.fraction ?? 1)}
+        onValueChange={(v) => assignSlot(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 })}
+      >
+        <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="1">Tam (1.00)</SelectItem>
+          <SelectItem value="0.75">0.75</SelectItem>
+          <SelectItem value="0.5">Yarım (0.50)</SelectItem>
+          <SelectItem value="0.25">0.25</SelectItem>
+        </SelectContent>
+      </Select>
+      <input
+        type="number"
+        placeholder="Maaş (AZN)"
+        value={slot.salary ?? ""}
+        onChange={e => assignSlot(slot.id, { salary: e.target.value ? Number(e.target.value) : null })}
+        className="w-32 px-2 py-1.5 text-sm border border-border rounded-lg bg-background"
+      />
+      <button onClick={() => removeSlot(slot.id)} className="p-1 rounded hover:bg-destructive/10">
+        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+      </button>
+    </div>
+  );
+};
+
+// Position picker using Popover (portal) so it never gets clipped by dialog overflow.
+const PositionPicker = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const options = useMemo(() => getPositions(), [open]);
+  const filtered = useMemo(() => options.filter(o => o.toLowerCase().includes(q.toLowerCase())), [options, q]);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="w-full min-h-[38px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between gap-2">
+          <span className={value ? "text-foreground truncate" : "text-muted-foreground truncate"}>{value || "Vəzifə seçin (kataloqdan)"}</span>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={4} className="p-0 w-[--radix-popover-trigger-width] min-w-[280px]">
+        <div className="p-2 border-b border-border">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Axtar..." className="w-full pl-7 pr-2 py-1.5 text-sm border border-border rounded bg-background" />
+          </div>
+        </div>
+        <div className="max-h-56 overflow-y-auto py-1">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground text-center">Nəticə yoxdur</div>
+          ) : filtered.map(o => (
+            <div key={o} onClick={() => { onChange(o); setOpen(false); setQ(""); }} className={`px-3 py-1.5 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${o === value ? "bg-primary/5" : ""}`}>
+              <span className="truncate">{o}</span>
+              {o === value && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+
+// ====================================================
+// Employees tab — with filters, pagination, numbering
+// ====================================================
+
+const EmployeesTab = () => {
+  const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
+  useEffect(() => {
+    const r = () => setEmployeesState(getEmployees());
+    window.addEventListener("org-updated", r);
+    return () => window.removeEventListener("org-updated", r);
+  }, []);
+
+  const [search, setSearch] = useState("");
+  
+
+  // Filters
+  const [filterStructure, setFilterStructure] = useState<string>("");
+  const [filterPosition, setFilterPosition] = useState<string>("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Pagination
+  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(1);
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [showChrImport, setShowChrImport] = useState(false);
+  const [form, setForm] = useState({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
+
+  const [editing, setEditing] = useState<OrgEmployee | null>(null);
+  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
+
+  const [otpDialog, setOtpDialog] = useState<{ user: OrgEmployee; code: string } | null>(null);
+
+  const structureOptions = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach(e => e.structurePath && set.add(e.structurePath));
+    return Array.from(set);
+  }, [employees]);
+
+  const positionOptions = useMemo(() => {
+    const set = new Set<string>();
+    employees.forEach(e => e.positionName && set.add(e.positionName));
+    return Array.from(set);
+  }, [employees]);
+
+  const [colFilters, setColFilters] = useState<Record<string, string>>({});
+  const setColFilter = (k: string, v: string) => setColFilters(p => ({ ...p, [k]: v }));
+
+  const filtered = useMemo(() => employees.filter(e => {
+    if (search && !`${e.firstName} ${e.lastName} ${e.fatherName || ""} ${e.fin} ${e.email}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterStructure && e.structurePath !== filterStructure) return false;
+    if (filterPosition && e.positionName !== filterPosition) return false;
+    if (filterStatus === "active" && !e.active) return false;
+    if (filterStatus === "inactive" && e.active) return false;
+    const l = (s: string) => s.toLowerCase();
+    const cf = colFilters;
+    if (cf.firstName && !l(e.firstName).includes(l(cf.firstName))) return false;
+    if (cf.lastName && !l(e.lastName).includes(l(cf.lastName))) return false;
+    if (cf.fatherName && !l(e.fatherName || "").includes(l(cf.fatherName))) return false;
+    if (cf.email && !l(e.email).includes(l(cf.email))) return false;
+    if (cf.position && !l(e.positionName || "").includes(l(cf.position))) return false;
+    if (cf.salary && !String(e.salary ?? "").toLowerCase().includes(l(cf.salary))) return false;
+    if (cf.status) {
+      const st = e.active ? "aktiv" : "deaktiv";
+      if (!st.includes(l(cf.status))) return false;
+    }
+    if (cf.struct && !l(e.structurePath || "").includes(l(cf.struct))) return false;
+    return true;
+  }), [employees, search, filterStructure, filterPosition, filterStatus, colFilters]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => { setPage(1); }, [search, filterStructure, filterPosition, filterStatus, pageSize]);
+
+  const handleCreate = () => {
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.fin.trim() || !form.email.trim()) {
+      toast.error("Tələb olunan xanaları doldurun");
+      return;
+    }
+    if (employees.some(e => e.fin === form.fin.trim())) {
+      toast.error("Bu FİN artıq mövcuddur");
+      return;
+    }
+    addEmployee({
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      fatherName: form.fatherName.trim() || undefined,
+      fin: form.fin.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+    });
+    toast.success("Əməkdaş yaradıldı");
+    setShowCreate(false);
+    setForm({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
+  };
+
+  const startEdit = (e: OrgEmployee) => {
+    setEditing(e);
+    setEditForm({ firstName: e.firstName, lastName: e.lastName, fatherName: e.fatherName || "", fin: e.fin, phone: e.phone, email: e.email });
+  };
+
+  const saveEdit = () => {
+    if (!editing) return;
+    const { fin: _ignored, ...rest } = editForm;
+    updateEmployee(editing.id, rest);
+    toast.success("Yeniləndi");
+    setEditing(null);
+  };
+
+  const handleOtp = (e: OrgEmployee) => {
+    if (!e.email) { toast.error("Email yoxdur"); return; }
+    const code = generateOtp(e.email);
+    setOtpDialog({ user: e, code });
+  };
+
+  const clearFilters = () => {
+    setFilterStructure(""); setFilterPosition(""); setFilterStatus("all");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div />
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Axtar..."
+              className="pl-10 pr-3 py-2 text-sm border border-border rounded-lg bg-background w-64"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(s => !s)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-border bg-background ${showFilters ? 'ring-2 ring-primary/30' : ''}`}
+          >
+            <Filter className="w-4 h-4" /> Filter
+          </button>
+          {/* CHR import moved to org-level action bar */}
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm"
+          >
+            <UserPlus className="w-4 h-4" /> Yeni əməkdaş yarat
+          </button>
+        </div>
+      </div>
+
+      {showFilters && (
+        <FancyCard>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Struktur</label>
+              <select value={filterStructure} onChange={e => setFilterStructure(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+                <option value="">Hamısı</option>
+                {structureOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Vəzifə</label>
+              <select value={filterPosition} onChange={e => setFilterPosition(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+                <option value="">Hamısı</option>
+                {positionOptions.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Status</label>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as "all" | "active" | "inactive")} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+                <option value="all">Hamısı</option>
+                <option value="active">Aktiv</option>
+                <option value="inactive">Deaktiv</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={clearFilters} className="px-3 py-2 text-sm rounded-lg border border-border bg-background w-full">Sıfırla</button>
+            </div>
+          </div>
+        </FancyCard>
+      )}
+
+      <FancyCard>
+        {(() => {
+          const splitPath = (p?: string) => (p ? p.split(" › ") : []);
+          const maxDepth = filtered.reduce((m, e) => Math.max(m, splitPath(e.structurePath).length), 0);
+          const structHeaders = Array.from({ length: maxDepth }, (_, i) => {
+            if (i === 0) return "Departament";
+            if (i === 1) return "Şöbə";
+            return `Sub-struktur ${i + 1}`;
+          });
+          const structCols: DataTableColumn<OrgEmployee>[] = structHeaders.map((h, i) => ({
+            key: `struct_${i}`,
+            label: h,
+            filterType: "text",
+            accessor: (e) => splitPath(e.structurePath)[i] || "",
+            render: (e) => splitPath(e.structurePath)[i] || <span className="text-muted-foreground italic">—</span>,
+          }));
+          const cols: DataTableColumn<OrgEmployee>[] = [
+            {
+              key: "op", label: "Əməliyyat", width: 110, align: "center", filterType: "none",
+              render: (e) => (
+                <div className="flex items-center gap-1 justify-center">
+                  <button onClick={() => startEdit(e)} title="Redaktə et" className="p-1.5 rounded hover:bg-secondary">
+                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                  <button onClick={() => handleOtp(e)} title="Şifrə yarat" className="p-1.5 rounded hover:bg-primary/10">
+                    <KeyRound className="w-3.5 h-3.5 text-primary" />
+                  </button>
+                </div>
+              ),
+            },
+            { key: "firstName", label: "Ad", filterType: "text", accessor: (e) => e.firstName, render: (e) => <span className="font-medium">{e.firstName}</span> },
+            { key: "lastName", label: "Soyad", filterType: "text", accessor: (e) => e.lastName },
+            { key: "fatherName", label: "Ata adı", filterType: "text", accessor: (e) => e.fatherName || "", render: (e) => e.fatherName || <span className="text-muted-foreground italic">—</span> },
+            { key: "email", label: "Email", filterType: "text", accessor: (e) => e.email, render: (e) => <span className="text-muted-foreground">{e.email}</span> },
+            ...structCols,
+            { key: "position", label: "Vəzifə", filterType: "text", accessor: (e) => e.positionName || "", render: (e) => e.positionName || <span className="text-muted-foreground italic">—</span> },
+            { key: "salary", label: "Əməkhaqqı", filterType: "number", accessor: (e) => e.salary ?? 0, render: (e) => e.salary ? `${e.salary} ₼` : <span className="text-muted-foreground italic">—</span> },
+            {
+              key: "status", label: "Status", filterType: "select", selectOptions: ["Aktiv", "Deaktiv"],
+              accessor: (e) => e.active ? "Aktiv" : "Deaktiv",
+              render: (e) => (
+                <button
+                  onClick={() => { toggleEmployeeActive(e.id); }}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${e.active ? 'bg-primary' : 'bg-muted'}`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-transform ${e.active ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              ),
+            },
+          ];
+          return (
+            <DataTable<OrgEmployee>
+              rows={filtered}
+              rowKey={(e) => e.id}
+              storageKey="org-employees"
+              emptyMessage="Əməkdaş tapılmadı"
+              columns={cols}
+            />
+          );
+        })()}
+      </FancyCard>
+
+
+
+
+
+      {/* Create employee */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Yeni əməkdaş yarat</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Ad" value={form.firstName} onChange={v => setForm(p => ({ ...p, firstName: v }))} />
+            <Field label="Soyad" value={form.lastName} onChange={v => setForm(p => ({ ...p, lastName: v }))} />
+            <Field label="Ata adı" value={form.fatherName} onChange={v => setForm(p => ({ ...p, fatherName: v }))} />
+            <Field label="FİN" value={form.fin} onChange={v => setForm(p => ({ ...p, fin: v }))} mono />
+            <Field label="Telefon nömrəsi" value={form.phone} onChange={v => setForm(p => ({ ...p, phone: v }))} />
+            <div className="col-span-2">
+              <Field label="Email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Struktur, vəzifə və əməkhaqqı məlumatları yalnız <span className="text-foreground font-medium">Struktur</span> tabından təyin oluna bilər.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <button onClick={handleCreate} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Yarat</button>
+            <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit employee */}
+      <Dialog open={!!editing} onOpenChange={() => setEditing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Əməkdaşı redaktə et</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Ad" value={editForm.firstName} onChange={v => setEditForm(p => ({ ...p, firstName: v }))} />
+            <Field label="Soyad" value={editForm.lastName} onChange={v => setEditForm(p => ({ ...p, lastName: v }))} />
+            <Field label="Ata adı" value={editForm.fatherName} onChange={v => setEditForm(p => ({ ...p, fatherName: v }))} />
+            <div>
+              <label className="text-sm font-medium text-foreground">FİN <span className="text-[10px] text-muted-foreground font-normal">(dəyişdirilə bilməz)</span></label>
+              <input
+                value={editForm.fin}
+                disabled
+                readOnly
+                className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-muted/40 font-mono cursor-not-allowed text-muted-foreground"
+              />
+            </div>
+            <Field label="Telefon nömrəsi" value={editForm.phone} onChange={v => setEditForm(p => ({ ...p, phone: v }))} />
+            <div className="col-span-2">
+              <Field label="Email" value={editForm.email} onChange={v => setEditForm(p => ({ ...p, email: v }))} />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={saveEdit} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Yadda Saxla</button>
+            <button onClick={() => setEditing(null)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* OTP */}
+      <Dialog open={!!otpDialog} onOpenChange={() => setOtpDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="w-5 h-5 text-primary" /> Birdəfəlik Şifrə</DialogTitle>
+          </DialogHeader>
+          {otpDialog && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/40 border border-border">
+                <p className="text-xs text-muted-foreground">İstifadəçi</p>
+                <p className="text-sm font-medium text-foreground">{otpDialog.user.firstName} {otpDialog.user.lastName}</p>
+                <p className="text-xs text-muted-foreground">{otpDialog.user.email}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">Yeni birdəfəlik şifrə</p>
+                <div className="inline-flex items-center gap-3 bg-primary/5 border-2 border-dashed border-primary/30 rounded-xl px-6 py-4">
+                  <span className="text-3xl font-bold tracking-widest font-mono text-primary">{otpDialog.code}</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(otpDialog.code); toast.success("Kopyalandı"); }}
+                    className="p-2 rounded-md hover:bg-primary/10"
+                  ><Check className="w-5 h-5 text-primary" /></button>
+                </div>
+              </div>
+              <button onClick={() => setOtpDialog(null)} className="w-full py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Bağla</button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ChrImportDialog open={showChrImport} onClose={() => setShowChrImport(false)} />
+    </div>
+  );
+};
+
+const Field = ({ label, value, onChange, mono }: { label: string; value: string; onChange: (v: string) => void; mono?: boolean }) => (
+  <div>
+    <label className="text-sm font-medium text-foreground">{label}</label>
+    <input
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className={`w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background ${mono ? 'font-mono' : ''}`}
+    />
+  </div>
+);
+
+// ====================================================
+// Catalog tab — manage structure types & positions
+// ====================================================
+const CatalogTab = () => {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const r = () => force(t => t + 1);
+    window.addEventListener("catalog-updated", r);
+    return () => window.removeEventListener("catalog-updated", r);
+  }, []);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <CatalogList
+        title="Struktur tipləri"
+        icon={Building2}
+        items={getStructureTypes()}
+        onAdd={(v) => { const r = addStructureType(v); r.ok ? toast.success("Tip əlavə edildi") : toast.error("Bu tip artıq mövcuddur"); }}
+        onRemove={(v) => { removeStructureType(v); toast.success("Tip silindi"); }}
+        placeholder="məs: Departament"
+      />
+      <CatalogList
+        title="Vəzifələr"
+        icon={Briefcase}
+        items={getPositions()}
+        onAdd={(v) => { const r = addPositionCatalog(v); r.ok ? toast.success("Vəzifə əlavə edildi") : toast.error("Bu vəzifə artıq mövcuddur"); }}
+        onRemove={(v) => { removePositionCatalog(v); toast.success("Vəzifə silindi"); }}
+        placeholder="məs: Backend Developer"
+      />
+    </div>
+  );
+};
+
+interface CatalogListProps {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: string[];
+  onAdd: (v: string) => void;
+  onRemove: (v: string) => void;
+  placeholder?: string;
+}
+const CatalogList = ({ title, icon: Icon, items, onAdd, onRemove, placeholder }: CatalogListProps) => {
+  const [val, setVal] = useState("");
+  const [q, setQ] = useState("");
+  const submit = () => {
+    if (!val.trim()) return;
+    onAdd(val.trim());
+    setVal("");
+  };
+  const filtered = useMemo(() => items.filter(i => i.toLowerCase().includes(q.toLowerCase())), [items, q]);
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-4 border-b border-border bg-muted/30">
+        <Icon className="w-4 h-4 text-primary" />
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <span className="ml-auto text-xs text-muted-foreground">{items.length}</span>
+      </div>
+      <div className="p-4 space-y-3">
+        <div className="flex gap-2">
+          <input
+            value={val}
+            onChange={e => setVal(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && submit()}
+            placeholder={placeholder}
+            className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+          />
+          <button onClick={submit} className="px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground inline-flex items-center gap-1">
+            <Plus className="w-4 h-4" /> Əlavə et
+          </button>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Axtar..."
+            className="w-full pl-8 pr-2 py-1.5 text-xs border border-border rounded-lg bg-background"
+          />
+        </div>
+        <div className="space-y-1.5 max-h-80 overflow-y-auto">
+          {filtered.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">{q ? "Nəticə yoxdur" : "Boşdur"}</p>}
+          {filtered.map(it => (
+            <div key={it} className="flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-border bg-background">
+              <span className="text-foreground">{it}</span>
+              <button onClick={() => onRemove(it)} className="p-1 rounded hover:bg-destructive/10">
+                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====================================================
+// CHR Import Dialog — shows changed fields as checkbox list
+// ====================================================
+
+interface ChrChange {
+  id: string;
+  employee: string;
+  field: string;
+  oldValue: string;
+  newValue: string;
+}
+
+const MOCK_CHR_CHANGES: ChrChange[] = [
+  { id: "c1", employee: "Günel Əlizadə", field: "Vəzifə", oldValue: "HR mütəxəssisi", newValue: "HR menecer" },
+  { id: "c2", employee: "Nigar Hüseynova", field: "Maaş", oldValue: "1200 AZN", newValue: "1450 AZN" },
+  { id: "c3", employee: "Samir Həsənov", field: "Şöbə", oldValue: "İT", newValue: "Texniki dəstək" },
+  { id: "c4", employee: "Leyla Məmmədova", field: "Telefon", oldValue: "+994501234570", newValue: "+994551234570" },
+  { id: "c5", employee: "Rəşad Əliyev", field: "Status", oldValue: "Aktiv", newValue: "Məzuniyyətdə" },
+];
+
+const ChrImportDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (open) setSelected(new Set(MOCK_CHR_CHANGES.map(c => c.id)));
+  }, [open]);
+
+  const toggle = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === MOCK_CHR_CHANGES.length) setSelected(new Set());
+    else setSelected(new Set(MOCK_CHR_CHANGES.map(c => c.id)));
+  };
+
+  const handleApply = () => {
+    if (selected.size === 0) { toast.error("Heç bir dəyişiklik seçilməyib"); return; }
+    toast.success(`${selected.size} dəyişiklik tətbiq edildi`);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Dəyişilən məlumatlar bunlardır</DialogTitle>
+          <p className="text-sm text-muted-foreground">CHR sistemindən gələn dəyişiklikləri seçin və tətbiq edin</p>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between pb-2 border-b border-border">
+          <button
+            onClick={toggleAll}
+            className="text-xs text-primary hover:underline"
+          >
+            {selected.size === MOCK_CHR_CHANGES.length ? "Heç birini seçmə" : "Hamısını seç"}
+          </button>
+          <span className="text-xs text-muted-foreground">{selected.size} / {MOCK_CHR_CHANGES.length} seçilib</span>
+        </div>
+
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {MOCK_CHR_CHANGES.map(c => {
+            const checked = selected.has(c.id);
+            return (
+              <label
+                key={c.id}
+                className="flex items-start gap-3 p-3 rounded-lg border border-border bg-background hover:bg-secondary/30 cursor-pointer transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(c.id)}
+                  className="mt-1 w-4 h-4 accent-primary"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{c.employee}</span>
+                    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">{c.field}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <span className="line-through">{c.oldValue}</span>
+                    <span className="mx-2">→</span>
+                    <span className="text-foreground font-medium">{c.newValue}</span>
+                  </div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+          <button
+            onClick={handleApply}
+            className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+          >
+            Tətbiq et
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default OrganizationPage;
+
