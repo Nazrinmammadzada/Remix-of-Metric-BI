@@ -696,6 +696,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           }
         />
 
+        {!forcedKartView && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           {[
             { key: "kart1", title: "KART 1 – Kartlar üzrə", desc: "KPİ-ları kart strukturuna görə qruplaşdırılmış göstər", icon: LayoutGrid, grad: "from-violet-500/15 via-fuchsia-500/10 to-transparent", iconBg: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
@@ -723,10 +724,93 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             );
           })}
         </div>
+        )}
 
         <div className="flex gap-6">
           <div className="flex-1">
-            {kartView === "kart2" ? (() => {
+            {kartView === "kart1" && forcedKartView === "kart1" ? (() => {
+              // Status-based table for "Kartlar üzrə"
+              const STATUS_LABELS = { natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv" } as const;
+              const STATUS_STYLES: Record<string, string> = {
+                natamam: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+                tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
+                imtina: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
+                aktiv: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+              };
+              return (
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-4 gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Kartlar üzrə</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{filteredCards.length} KPİ kartı · Statuslara görə</p>
+                    </div>
+                    <button
+                      onClick={() => { setEditingCardId(null); setShowCreate(true); setCreateStep(1); setUseMatrix(true); setSelectedMatrixId(null); setLifecycleDraft(emptyLifecycleDraft()); }}
+                      className="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                    >
+                      <Plus className="w-5 h-5" /> Yeni KPI Kartı
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                          <th className="py-2 px-2">Ad</th>
+                          <th className="py-2 px-2">Tip</th>
+                          <th className="py-2 px-2">Məsul</th>
+                          <th className="py-2 px-2">Dövr</th>
+                          <th className="py-2 px-2">Hədəf</th>
+                          <th className="py-2 px-2">Progress</th>
+                          <th className="py-2 px-2">Status</th>
+                          <th className="py-2 px-2">Əməliyyat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredCards.length === 0 ? (
+                          <tr><td colSpan={8} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
+                        ) : filteredCards.map(card => {
+                          const st = getStatusFor(card.id);
+                          return (
+                            <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
+                              <td className="py-2 px-2 font-medium text-foreground cursor-pointer" onClick={() => openDetail(card)}>{card.name}</td>
+                              <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
+                              <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
+                              <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
+                              <td className="py-2 px-2">{card.target} {card.unit}</td>
+                              <td className="py-2 px-2">{card.progress}%</td>
+                              <td className="py-2 px-2">
+                                <button
+                                  onClick={() => st.status === "natamam" && setStatusDialogCardId(card.id)}
+                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[st.status]} ${st.status === "natamam" ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
+                                  title={st.status === "natamam" ? "Təyin edənləri gör" : ""}
+                                >
+                                  {STATUS_LABELS[st.status]}
+                                </button>
+                              </td>
+                              <td className="py-2 px-2">
+                                {st.status === "tesdiq_gozlenilir" && !st.submitted_for_approval && (
+                                  <button onClick={() => handleSubmitToMatrix(card.id)} className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90">
+                                    Matris üzrə təsdiqə göndər
+                                  </button>
+                                )}
+                                {st.status === "tesdiq_gozlenilir" && st.submitted_for_approval && (
+                                  <span className="text-[11px] text-muted-foreground italic">Matrisə göndərildi</span>
+                                )}
+                                {st.status === "imtina" && (
+                                  <span className="text-[11px] text-rose-600 dark:text-rose-400">{st.rejected_by || "İmtina"} → kart yenidən yaradılmalıdır</span>
+                                )}
+                                {st.status === "aktiv" && <span className="text-[11px] text-muted-foreground">—</span>}
+                                {st.status === "natamam" && <span className="text-[11px] text-muted-foreground">Təyinlər tamamlanmayıb</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })() : kartView === "kart2" ? (() => {
               const groups = new Map<string, KpiCard[]>();
               filteredCards.forEach(c => {
                 const k = c.responsible || "Təyin olunmayıb";
