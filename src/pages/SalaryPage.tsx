@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import ExportMenu from "@/components/common/ExportMenu";
-import { Wallet, Plus, Trash2, ChevronDown, ChevronUp, X, FileSpreadsheet, Filter as FilterIcon, Columns, Download, Search, Eye, User as UserIcon, Calendar, FileText } from "lucide-react";
+import { Wallet, Plus, Trash2, ChevronDown, ChevronUp, X, FileSpreadsheet, Filter as FilterIcon, Columns, Download, Search, Eye, User as UserIcon, Calendar, FileText, ArrowLeft } from "lucide-react";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
