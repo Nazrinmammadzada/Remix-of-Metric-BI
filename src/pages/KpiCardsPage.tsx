@@ -1070,6 +1070,39 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </div>
       </main>
 
+      {/* Natamam — assignees check/X dialog */}
+      <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Təyin edənlər — Natamam</DialogTitle>
+          </DialogHeader>
+          {statusDialogCardId !== null && (() => {
+            const st = getStatusFor(statusDialogCardId);
+            if (!st.assignees || st.assignees.length === 0) {
+              return <p className="text-sm text-muted-foreground py-4">Bu kart üçün təyin edən şəxslər tapılmadı.</p>;
+            }
+            return (
+              <ul className="space-y-2 py-2">
+                {st.assignees.map((a, i) => (
+                  <li key={i} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-secondary/40">
+                    <span className="text-sm font-medium text-foreground">{a.name}</span>
+                    {a.ok ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                        <Check className="w-4 h-4" /> Təyin edilib
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 text-xs font-medium">
+                        <X className="w-4 h-4" /> Təyin edilməyib
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* KPI Detail Dialog */}
       <Dialog open={!!selectedKpi} onOpenChange={() => setSelectedKpi(null)}>
         <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[90vh] overflow-y-auto">
