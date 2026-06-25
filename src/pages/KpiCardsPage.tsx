@@ -376,6 +376,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
 
+  // === Yeni KPI Sehrbazı (17 addımlı — Mərhələ 2: addım 1-9 aktiv) ===
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
+    const id = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
+    const newCard: KpiCard = {
+      id, name: d.name, icon: Target, zone: "yellow",
+      target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
+      responsible: "—",
+      period: `${d.startDate?.slice(0, 4) || "2026"} - ${d.frequency}`,
+      type: "Absolut Hədəf", formula: "—", generalTarget: "",
+      department: "—", group: "—", subdivision: "—",
+      startDate: d.startDate || "", endDate: d.endDate || "",
+      frequency: d.frequency,
+      team: [], history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
+      weight: 10, approvalStatus: "approved",
+      subKpis: [],
+    };
+    setKpiCards(prev => [newCard, ...prev]);
+    try {
+      await upsertStatus({
+        card_id: id,
+        status: "natamam",
+        use_matrix: d.useMatrix,
+        submitted_for_approval: false,
+        assignees: [],
+      });
+    } catch {}
+  };
+
+
   // === KPI card status (Natamam / Təsdiq gözlənilir / İmtina / Aktiv) ===
   const [statusMap, setStatusMap] = useState<Record<number, import("@/lib/kpiCardStatusStore").KpiCardStatusRow>>({});
   const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
