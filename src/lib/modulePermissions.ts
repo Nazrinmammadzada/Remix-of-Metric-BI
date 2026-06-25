@@ -11,7 +11,7 @@ export const MODULE_PERMS: ModulePerm[] = [
   { key: "home", label: "Əsas Səhifə", path: "/hr" },
   { key: "organization", label: "Təşkilat", path: "/teskilati-struktur" },
   { key: "kpi", label: "KPI Kartları", path: "/kpi-kartlari" },
-  { key: "kpi_scores", label: "KPI Qiymətləri", path: "/kpi-qiymetleri" },
+  { key: "kpi_scores", label: "KPI Nəticələri", path: "/kpi-qiymetleri" },
   { key: "kpi_set", label: "KPI Set", path: "/kpi-set" },
   { key: "goal_tracking", label: "Hədəf təyinlərinin izlənilməsi", path: "/hedef-tayin-izleme" },
   { key: "kpi_lifecycle", label: "KPI lifecycle izlənilmələri", path: "/kpi-lifecycle" },
@@ -23,11 +23,11 @@ export const MODULE_PERMS: ModulePerm[] = [
   { key: "matrix", label: "Təsdiqləmə Matrisi", path: "/tesdiqleme-matrisi" },
   { key: "reporting", label: "Hesabatlar", path: "/hesabat" },
   { key: "whistleblower", label: "Anonim Bildiriş", path: "/whistleblower" },
-  { key: "bonus", label: "Bonus Hesablanması", path: "/bonus" },
+  { key: "bonus", label: "Bonuslar", path: "/bonus" },
   { key: "formulas", label: "Hesablama Düsturları", path: "/hesablama-dusturlari" },
   { key: "salary", label: "Əməkhaqqı Bazası", path: "/emekhaqqi-bazasi" },
   { key: "integrations", label: "İnteqrasiyalar", path: "/inteqrasiyalar" },
-  { key: "settings", label: "Ayarlar", path: "/ayarlar" },
+  { key: "settings", label: "Sazlamalar", path: "/ayarlar" },
 ];
 
 export const ALL_MODULE_KEYS: string[] = MODULE_PERMS.map(m => m.key);

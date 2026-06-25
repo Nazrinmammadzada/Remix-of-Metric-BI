@@ -143,7 +143,7 @@ const KpiScoresPage = () => {
         <PageHero
           badge="KPI Qiymətləri"
           icon={BarChart3}
-          title="KPI Qiymətləri"
+          title="KPI Nəticələri"
           subtitle="Əməkdaşların KPI kartları üzrə qiymətləndirmə nəticələri"
         />
 

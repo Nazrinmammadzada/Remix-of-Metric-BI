@@ -10,21 +10,17 @@ const navItems = [
   { path: "/hr", label: "Əsas Səhifə", icon: Home },
   { path: "/teskilati-struktur", label: "Təşkilat", icon: Building2 },
   { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid },
-  { path: "/kpi-qiymetleri", label: "KPI Qiymətləri", icon: Gauge },
-  { path: "/kpi-set", label: "KPI Set", icon: SlidersHorizontal },
   { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target },
   { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow },
+  { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge },
   { path: "/cascading", label: "Cascading", icon: GitBranch },
-
-  { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardList },
-  { path: "/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
   { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck },
   { path: "/hesabat", label: "Hesabatlar", icon: BarChart3 },
   { path: "/whistleblower", label: "Anonim Bildiriş", icon: Shield },
-  { path: "/bonus", label: "Bonus hesablanması", icon: DollarSign },
   { path: "/hesablama-dusturlari", label: "Hesablama Düsturları", icon: Calculator },
+  { path: "/bonus", label: "Bonuslar", icon: DollarSign },
   { path: "/inteqrasiyalar", label: "İnteqrasiyalar", icon: Link2 },
-  { path: "/ayarlar", label: "Ayarlar", icon: Settings },
+  { path: "/ayarlar", label: "Sazlamalar", icon: Settings },
 ];
 
 const Sidebar = () => {
