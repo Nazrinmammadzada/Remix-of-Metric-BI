@@ -848,19 +848,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 </button>
                               </td>
                               <td className="py-2 px-2">
-                                {st.status === "tesdiq_gozlenilir" && !st.submitted_for_approval && (
-                                  <button onClick={() => handleSubmitToMatrix(card.id)} className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90">
-                                    Matris üzrə təsdiqə göndər
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openWizard({
+                                        name: `${card.name} (kopya)`,
+                                        frequency: card.frequency || "Aylıq",
+                                        startDate: card.startDate || "",
+                                        endDate: card.endDate || "",
+                                      });
+                                    }}
+                                    title="Kopyala"
+                                    className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
                                   </button>
-                                )}
-                                {st.status === "tesdiq_gozlenilir" && st.submitted_for_approval && (
-                                  <span className="text-[11px] text-muted-foreground italic">Matrisə göndərildi</span>
-                                )}
-                                {st.status === "imtina" && (
-                                  <span className="text-[11px] text-rose-600 dark:text-rose-400">{st.rejected_by || "İmtina"} → kart yenidən yaradılmalıdır</span>
-                                )}
-                                {st.status === "aktiv" && <span className="text-[11px] text-muted-foreground">—</span>}
-                                {st.status === "natamam" && <span className="text-[11px] text-muted-foreground">Təyinlər tamamlanmayıb</span>}
+                                  {st.status === "tesdiq_gozlenilir" && !st.submitted_for_approval && (
+                                    <button onClick={() => handleSubmitToMatrix(card.id)} className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90">
+                                      Matris üzrə təsdiqə göndər
+                                    </button>
+                                  )}
+                                  {st.status === "tesdiq_gozlenilir" && st.submitted_for_approval && (
+                                    <span className="text-[11px] text-muted-foreground italic">Matrisə göndərildi</span>
+                                  )}
+                                  {st.status === "imtina" && (
+                                    <span className="text-[11px] text-rose-600 dark:text-rose-400">{st.rejected_by || "İmtina"} → kart yenidən yaradılmalıdır</span>
+                                  )}
+                                  {st.status === "aktiv" && <span className="text-[11px] text-muted-foreground">—</span>}
+                                  {st.status === "natamam" && <span className="text-[11px] text-muted-foreground">Təyinlər tamamlanmayıb</span>}
+                                </div>
                               </td>
                             </tr>
                           );
