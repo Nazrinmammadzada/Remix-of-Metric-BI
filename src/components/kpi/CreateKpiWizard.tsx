@@ -795,149 +795,79 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           )}
 
 
-          {/* ===== STEP 3: TƏYİNATLAR ===== */}
-          {step === 3 && (
-            <div className="space-y-3">
-              {/* KPI-ni təyin edən artıq 2-ci addımdadır */}
+          {/* ===== STEP 3: YEKUN VƏ TƏSDİQ ===== */}
+          {step === 3 && (() => {
+            const approvalMatrices = getApprovalMatrices();
+            const selectedMatrix = approvalMatrices.find(m => m.id === draft.approvalMatrixId);
+            return (
+              <div className="space-y-3">
+                <SummarySection title="Əsas Məlumatlar">
+                  <SummaryRow label="KPI adı" value={draft.name} />
+                  <SummaryRow label="Təyinat növü" value={draft.mode === "individual" ? "Fərdi" : "Toplu"} />
+                  <SummaryRow label="Dövr" value={draft.frequency} />
+                  <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
+                  <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
+                  <SummaryRow label="Təsdiqləmə matrisi tələbi" value={draft.useMatrix ? "Bəli" : "Xeyr"} />
+                </SummarySection>
 
-              {/* Qiymətləndiricilər */}
-              <div className="rounded-lg border border-border bg-card/40 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">Qiymətləndiricilər</h3>
-                  <div className="flex items-center gap-2">
-                    {draft.evaluators.length > 1 && (
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${evalWeight === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
-                        Çəki cəmi: {evalWeight}%
-                      </span>
-                    )}
-                    <button type="button" onClick={addEvaluator}
-                      className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground">
-                      <Plus className="w-3.5 h-3.5" /> Qiymətləndirici əlavə et
-                    </button>
-                  </div>
-                </div>
+                <SummarySection title="Lifecycle">
+                  <SummaryRow label="Assignment Deadline" value={draft.lifecycle.assignmentDeadline} />
+                  <SummaryRow label="Qiymətləndirmə" value={`${draft.lifecycle.evaluationStart} → ${draft.lifecycle.evaluationEnd}`} />
+                  <SummaryRow label="Review sayı" value={`${draft.lifecycle.reviews.length}`} />
+                </SummarySection>
 
-                {draft.evaluators.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">Ən az bir qiymətləndirici əlavə edin.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {draft.evaluators.map((ev, i) => (
-                      <div key={ev.id} className="grid grid-cols-12 gap-2 items-end">
-                        <div className="col-span-12 md:col-span-8">
-                          <label className="text-[11px] text-muted-foreground">Qiymətləndirici #{i + 1}</label>
-                          <select value={ev.name} onChange={e => updEvaluator(ev.id, { name: e.target.value })}
-                            className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                            <option value="">— Aktiv əməkdaş seçin —</option>
-                            {activeEmployees.map(emp => <option key={emp.id} value={emp.label}>{emp.label}</option>)}
-                          </select>
+                <SummarySection title={`Hədəflər (${draft.targets.length} · ${totalWeight}%)`}>
+                  {draft.targets.length === 0
+                    ? <div className="text-xs text-muted-foreground italic">Hədəf yoxdur</div>
+                    : draft.targets.map((t, i) => (
+                      <div key={t.id} className="text-xs py-1 border-b border-border/50 last:border-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">#{i + 1} {t.name}</span>
+                          <span className="text-muted-foreground">{t.type} · {t.weight}%{t.cascading ? ` · cascade (${t.cascadeMatrix})` : ""}</span>
                         </div>
-                        <div className="col-span-8 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Çəki (%) {draft.evaluators.length > 1 && "*"}</label>
-                          <input type="number" min={0} max={100} value={ev.weight}
-                            onChange={e => updEvaluator(ev.id, { weight: Number(e.target.value) })}
-                            disabled={draft.evaluators.length === 1}
-                            className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-50" />
-                        </div>
-                        <div className="col-span-4 md:col-span-1">
-                          <button type="button" onClick={() => removeEvaluator(ev.id)}
-                            className="w-full px-2 py-1.5 rounded border border-border text-destructive hover:bg-destructive/10 flex items-center justify-center">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Qiymətləndirici: <span className="text-foreground">{t.evaluator || "—"}</span>
+                          {" · "}Təyin edici: <span className="text-foreground">{draft.createdBy === "self" ? "Özüm" : (t.assigner || "—")}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    ))
+                  }
+                </SummarySection>
 
-              {/* KPI kimə təyin olunur */}
-              <div className="rounded-lg border border-border bg-card/40 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">KPI kimə təyin olunur</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {draft.mode === "individual"
-                        ? "Fərdi rejim: Şəxs / Komanda / Struktur / Vəzifə"
-                        : "Toplu rejim: Komanda / Struktur / Vəzifə"}
-                    </p>
-                  </div>
-                  <button type="button" onClick={addAssignTarget}
-                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground">
-                    <Plus className="w-3.5 h-3.5" /> Təyinat əlavə et
-                  </button>
-                </div>
+                <SummarySection title="Yaradan">
+                  <SummaryRow label="KPI-ni təyin edən" value={draft.createdBy === "self" ? "Özüm təyin edirəm" : (draft.createdByEmployee || "—")} />
+                </SummarySection>
 
-                {draft.assignTargets.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">Ən az bir təyinat əlavə edin.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {draft.assignTargets.map(a => (
-                      <div key={a.id} className="flex gap-2 items-center">
-                        <select value={a.kind}
-                          onChange={e => updAssignTarget(a.id, { kind: e.target.value as AssigneeKind, value: "" })}
-                          className="px-2 py-1.5 text-sm border border-border rounded bg-background w-32">
-                          {allowedKinds.map(k => <option key={k} value={k}>{k}</option>)}
-                        </select>
-                        {a.kind === "Şəxs" ? (
-                          <select value={a.value} onChange={e => updAssignTarget(a.id, { value: e.target.value })}
-                            className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                            <option value="">— Aktiv əməkdaş seçin —</option>
-                            {activeEmployees.map(emp => <option key={emp.id} value={emp.label}>{emp.label}</option>)}
-                          </select>
-                        ) : (
-                          <input value={a.value} onChange={e => updAssignTarget(a.id, { value: e.target.value })}
-                            placeholder={`${a.kind} adı`}
-                            className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                        )}
-                        <button type="button" onClick={() => removeAssignTarget(a.id)}
-                          className="p-2 rounded hover:bg-destructive/10 text-destructive">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ===== STEP 4: YEKUN ===== */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <SummarySection title="Əsas Məlumatlar">
-                <SummaryRow label="KPI adı" value={draft.name} />
-                <SummaryRow label="Təyinat növü" value={draft.mode === "individual" ? "Fərdi" : "Toplu"} />
-                <SummaryRow label="Dövr" value={draft.frequency} />
-                <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
-                <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
-                <SummaryRow label="Təsdiq matrisi" value={draft.useMatrix ? "Bəli" : "Xeyr"} />
-              </SummarySection>
-
-              <SummarySection title="Lifecycle">
-                <SummaryRow label="Assignment Deadline" value={draft.lifecycle.assignmentDeadline} />
-                <SummaryRow label="Qiymətləndirmə" value={`${draft.lifecycle.evaluationStart} → ${draft.lifecycle.evaluationEnd}`} />
-                <SummaryRow label="Review sayı" value={`${draft.lifecycle.reviews.length}`} />
-              </SummarySection>
-
-              <SummarySection title={`Hədəflər (${draft.targets.length} · ${totalWeight}%)`}>
-                {draft.targets.length === 0
-                  ? <div className="text-xs text-muted-foreground italic">Hədəf yoxdur</div>
-                  : draft.targets.map((t, i) => (
-                    <div key={t.id} className="text-xs flex items-center justify-between py-1 border-b border-border/50 last:border-0">
-                      <span className="font-medium text-foreground">#{i + 1} {t.name}</span>
-                      <span className="text-muted-foreground">{t.type} · {t.weight}%{t.cascading ? ` · cascade (${t.cascadeMatrix})` : ""}</span>
+                {/* Approval matrix selector — yalnız useMatrix aktiv olduqda */}
+                {draft.useMatrix && (
+                  <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə Matrisi seçimi</h3>
                     </div>
-                  ))
-                }
-              </SummarySection>
-
-              <SummarySection title="Təyinatlar">
-                <SummaryRow label="Yaradan" value={draft.createdBy === "self" ? "Özüm" : draft.createdByEmployee || "—"} />
-                <SummaryRow label="Qiymətləndirici" value={draft.evaluators.map(e => `${e.name}${draft.evaluators.length > 1 ? ` (${e.weight}%)` : ""}`).join(", ") || "—"} />
-                <SummaryRow label="Təyinat" value={draft.assignTargets.map(a => `${a.kind}: ${a.value}`).join(", ") || "—"} />
-              </SummarySection>
-            </div>
-          )}
+                    <p className="text-[11px] text-muted-foreground">
+                      1-ci addımda təsdiqləmə matrisi tətbiq olunmasını seçdiniz. KPI bu matris üzrə təsdiqdən keçəcək.
+                    </p>
+                    <select value={draft.approvalMatrixId}
+                      onChange={e => update({ approvalMatrixId: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                      <option value="">— Təsdiqləmə matrisi seçin —</option>
+                      {approvalMatrices.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} ({m.steps.length} addım)
+                        </option>
+                      ))}
+                    </select>
+                    {selectedMatrix && (
+                      <div className="text-[11px] text-muted-foreground">
+                        Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer */}
@@ -958,16 +888,19 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
               <>
                 <button type="button" onClick={() => finalize("draft")}
                   className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary">
-                  <Save className="w-4 h-4" /> Qaralama kimi saxla
+                  <Save className="w-4 h-4" /> Yadda saxla
                 </button>
-                <button type="button" onClick={() => finalize("create")}
-                  className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">
-                  KPI yarat
-                </button>
-                <button type="button" onClick={() => finalize("create_active")}
-                  className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
-                  <Power className="w-4 h-4" /> KPI yarat və aktiv et
-                </button>
+                {draft.useMatrix ? (
+                  <button type="button" onClick={() => finalize("submit")}
+                    className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium">
+                    <Send className="w-4 h-4" /> Təsdiqə göndər
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => finalize("create_active")}
+                    className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
+                    <Power className="w-4 h-4" /> KPI yarat
+                  </button>
+                )}
               </>
             )}
           </div>
