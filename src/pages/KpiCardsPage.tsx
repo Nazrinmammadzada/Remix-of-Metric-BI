@@ -759,15 +759,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           }
         />
 
-        {(onBack || true) && (
+        {onBack && (
           <div className="flex items-center gap-2 mb-4">
-            {onBack && (
-              <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
-                ← Geri
-              </button>
-            )}
-            <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="ml-auto inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-              <Plus className="w-4 h-4" /> Yeni KPI
+            <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
+              ← Geri
             </button>
           </div>
         )}
