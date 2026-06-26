@@ -271,11 +271,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           && !!draft.lifecycle.evaluationStart
           && !!draft.lifecycle.evaluationEnd;
       case 2:
+        if (draft.createdBy === "other" && !draft.createdByEmployee) return false;
         return draft.targets.length > 0
           && totalWeight === 100
-          && draft.targets.every(t => validateHedef(t) === null);
+          && draft.targets.every(t => validateHedef(t) === null)
+          && (draft.createdBy === "self" || draft.targets.every(t => !!t.assigner));
       case 3:
-        if (draft.createdBy === "other" && !draft.createdByEmployee) return false;
         if (draft.evaluators.length === 0) return false;
         if (draft.evaluators.some(e => !e.name)) return false;
         if (draft.evaluators.length > 1 && evalWeight !== 100) return false;
