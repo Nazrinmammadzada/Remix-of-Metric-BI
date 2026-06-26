@@ -354,8 +354,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         <div className="min-h-[280px]">
           {/* ===== STEP 1 ===== */}
           {step === 1 && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-12 gap-4">
+            <div className="space-y-3">
+              <div className="grid grid-cols-12 gap-3">
                 <Field label="KPI adı" required span="col-span-12">
                   <input autoFocus value={draft.name} onChange={e => update({ name: e.target.value })}
                     placeholder="Məsələn: Aylıq Satış Hədəfi 2026"
