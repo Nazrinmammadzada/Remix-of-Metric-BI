@@ -326,7 +326,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     { label: string; required?: boolean; children: React.ReactNode; span?: string }) => (
     <div className={span}>
       <label className="text-sm font-medium text-foreground">{label}{required && <span className="text-destructive"> *</span>}</label>
-      <div className="mt-1.5">{children}</div>
+      <div className="mt-1">{children}</div>
     </div>
   );
 
