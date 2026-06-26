@@ -419,7 +419,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
               </div>
 
               {/* Lifecycle */}
-              <div className="rounded-lg border border-border bg-card/40 p-4 space-y-4">
+              <div className="rounded-lg border border-border bg-card/40 p-3 space-y-3">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">KPI Lifecycle</h3>
