@@ -601,9 +601,16 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                       <div className="col-span-6 md:col-span-2">
-                        <label className="text-[11px] text-muted-foreground">Qiymət. balı *</label>
-                        <input type="number" min={1} value={t.scoreLimit}
-                          onChange={e => updHedef(t.id, { scoreLimit: Number(e.target.value) })}
+                        <label className="text-[11px] text-muted-foreground">
+                          Qiymət. balı *{scoreMax !== undefined && <span className="text-muted-foreground/80"> (1-{scoreMax})</span>}
+                        </label>
+                        <input type="number" min={1} max={scoreMax} value={t.scoreLimit}
+                          onChange={e => {
+                            let v = Number(e.target.value);
+                            if (scoreMax !== undefined && v > scoreMax) v = scoreMax;
+                            if (v < 1) v = 1;
+                            updHedef(t.id, { scoreLimit: v });
+                          }}
                           className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                     </div>
