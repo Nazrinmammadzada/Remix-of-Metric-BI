@@ -19,7 +19,7 @@ import BscScorecardTab from "@/components/kpi/BscScorecardTab";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
-import { LayoutGrid, List, Briefcase } from "lucide-react";
+import { LayoutGrid, List, Briefcase, Copy } from "lucide-react";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
 import { getLimitsFor, getEntriesForCard } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
