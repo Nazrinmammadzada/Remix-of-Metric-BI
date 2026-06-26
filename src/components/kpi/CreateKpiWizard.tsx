@@ -779,7 +779,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
           {/* ===== STEP 3: TƏYİNATLAR ===== */}
           {step === 3 && (
-            <div className="space-y-5">
+            <div className="space-y-3">
               {/* KPI-ni təyin edən artıq 2-ci addımdadır */}
 
               {/* Qiymətləndiricilər */}
