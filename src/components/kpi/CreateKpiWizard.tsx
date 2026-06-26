@@ -214,6 +214,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const removeHedef = (id: string) => setDraft(p => ({ ...p, targets: p.targets.filter(t => t.id !== id) }));
   const applyPersonToAll = (role: "evaluator" | "assigner", name: string) =>
     setDraft(p => ({ ...p, targets: p.targets.map(t => ({ ...t, [role]: name })) }));
+  const applyCascadeToAll = (matrixName: string) =>
+    setDraft(p => ({
+      ...p,
+      targets: p.targets.map(t =>
+        CASCADE_TYPES.includes(t.type) ? { ...t, cascading: true, cascadeMatrix: matrixName } : t,
+      ),
+    }));
   const totalWeight = useMemo(() => draft.targets.reduce((s, t) => s + (Number(t.weight) || 0), 0), [draft.targets]);
 
   // ====== REVIEWS ======
@@ -246,11 +253,23 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const removeAssignTarget = (id: string) =>
     update({ assignTargets: draft.assignTargets.filter(a => a.id !== id) });
 
+  // Scoring system upper bound (1-5 → 5, 1-10 → 10, 1-3 Bal → 3, Faiz (0-100) → 100, Digər → undefined)
+  const scoreMax = useMemo<number | undefined>(() => {
+    const s = (draft.scoringSystem || "").toLowerCase();
+    const m = s.match(/(\d+)\s*-\s*(\d+)/);
+    if (m) return Number(m[2]);
+    if (s.includes("faiz")) return 100;
+    return undefined;
+  }, [draft.scoringSystem]);
+
   // ====== VALIDATION ======
   const validateHedef = (t: WizardHedef): string | null => {
     if (!t.name.trim()) return "Hədəf adı boşdur";
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
     if (!t.scoreLimit || t.scoreLimit <= 0) return "Qiymətləndirmə balı daxil edilməlidir";
+    if (scoreMax !== undefined && t.scoreLimit > scoreMax) {
+      return `Qiymətləndirmə balı ${scoreMax}-dən böyük ola bilməz (bal sistemi: ${draft.scoringSystem})`;
+    }
     if (["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type)) {
       if (t.min === "" || t.max === "") return `${t.type}: Min və Max tələb olunur`;
       if (Number(t.min) > Number(t.max)) return `${t.type}: Min Max-dan kiçik olmalıdır`;
@@ -276,7 +295,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           && !!draft.lifecycle.evaluationStart
           && !!draft.lifecycle.evaluationEnd;
       case 2:
-        if (draft.createdBy === "other" && !draft.createdByEmployee) return false;
         return draft.targets.length > 0
           && totalWeight === 100
           && draft.targets.every(t => validateHedef(t) === null)
@@ -284,7 +302,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
       case 3: return true;
       default: return false;
     }
-  }, [step, draft, totalWeight, evalWeight]);
+  }, [step, draft, totalWeight, evalWeight, scoreMax]);
 
   const close = () => {
     onOpenChange(false);
@@ -508,19 +526,9 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </div>
                 {draft.createdBy === "other" && (
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-12 md:col-span-5 relative">
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                      <input value={empSearch} onChange={e => setEmpSearch(e.target.value)}
-                        placeholder="Əməkdaş adı ilə axtarın..."
-                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" />
-                    </div>
-                    <select value={draft.createdByEmployee} onChange={e => update({ createdByEmployee: e.target.value })}
-                      className="col-span-12 md:col-span-7 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                      <option value="">— Aktiv əməkdaş seçin —</option>
-                      {filteredEmployees.map(e => <option key={e.id} value={e.label}>{e.label}</option>)}
-                    </select>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Hər hədəfin daxilində "Təyin edici" düyməsi ilə fərqli əməkdaşlar təyin edə bilərsiniz.
+                  </p>
                 )}
                 {draft.createdBy === "self" && (
                   <p className="text-[11px] text-muted-foreground italic">Özüm təyin etdiyim üçün hər hədəfdə "Təyin edici" düyməsi qeyri-aktivdir.</p>
@@ -593,9 +601,16 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                       <div className="col-span-6 md:col-span-2">
-                        <label className="text-[11px] text-muted-foreground">Qiymət. balı *</label>
-                        <input type="number" min={1} value={t.scoreLimit}
-                          onChange={e => updHedef(t.id, { scoreLimit: Number(e.target.value) })}
+                        <label className="text-[11px] text-muted-foreground">
+                          Qiymət. balı *{scoreMax !== undefined && <span className="text-muted-foreground/80"> (1-{scoreMax})</span>}
+                        </label>
+                        <input type="number" min={1} max={scoreMax} value={t.scoreLimit}
+                          onChange={e => {
+                            let v = Number(e.target.value);
+                            if (scoreMax !== undefined && v > scoreMax) v = scoreMax;
+                            if (v < 1) v = 1;
+                            updHedef(t.id, { scoreLimit: v });
+                          }}
                           className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                     </div>
@@ -780,11 +795,24 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           Bu hədəf üzrə cascade tətbiq olunsun
                         </label>
                         {t.cascading && (
-                          <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
-                            className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                            <option value="">— Cascade Matrix seçin —</option>
-                            {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
-                          </select>
+                          <>
+                            <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
+                              className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                              <option value="">— Cascade Matrix seçin —</option>
+                              {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
+                            </select>
+                            {t.cascadeMatrix && draft.targets.filter(x => CASCADE_TYPES.includes(x.type)).length > 1 && (
+                              <button type="button"
+                                onClick={() => {
+                                  const count = draft.targets.filter(x => CASCADE_TYPES.includes(x.type)).length;
+                                  applyCascadeToAll(t.cascadeMatrix);
+                                  toast.success(`Cascade matrisi bütün uyğun hədəflərə tətbiq edildi (${count})`);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
+                                ⤵ Bütün cascade-uyğun hədəflərə tətbiq et
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
