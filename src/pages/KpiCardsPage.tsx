@@ -379,33 +379,72 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   // === Yeni KPI Sehrbazı (4 addımlı) ===
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardInitial, setWizardInitial] = useState<Partial<CreateKpiWizardDraft> | undefined>(undefined);
-  const openWizard = (initial?: Partial<CreateKpiWizardDraft>) => { setWizardInitial(initial); setWizardOpen(true); };
+  const [wizardEditingId, setWizardEditingId] = useState<number | null>(null);
+  // Saved wizard drafts per cardId (so editing resumes from the last step)
+  const [cardDrafts, setCardDrafts] = useState<Record<number, CreateKpiWizardDraft>>({});
+  const openWizard = (initial?: Partial<CreateKpiWizardDraft>, editingId: number | null = null) => {
+    setWizardInitial(initial);
+    setWizardEditingId(editingId);
+    setWizardOpen(true);
+  };
+  const openWizardForEdit = (cardId: number) => {
+    const saved = cardDrafts[cardId];
+    if (saved) {
+      openWizard(saved, cardId);
+    } else {
+      const card = kpiCards.find(c => c.id === cardId);
+      openWizard(card ? {
+        name: card.name,
+        frequency: card.frequency || "Aylıq",
+        startDate: card.startDate || "",
+        endDate: card.endDate || "",
+      } : undefined, cardId);
+    }
+  };
   const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
-    const id = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
-    const newCard: KpiCard = {
+    const action = d.action || "draft";
+    const editingId = wizardEditingId;
+    const id = editingId ?? (Math.max(0, ...kpiCards.map(c => c.id)) + 1);
+    const builtCard: KpiCard = {
       id, name: d.name, icon: Target, zone: "yellow",
       target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
-      responsible: "—",
+      responsible: d.createdBy === "self" ? "Özüm" : (d.createdByEmployee || "—"),
       period: `${d.startDate?.slice(0, 4) || "2026"} - ${d.frequency}`,
       type: "Absolut Hədəf", formula: "—", generalTarget: "",
       department: "—", group: "—", subdivision: "—",
       startDate: d.startDate || "", endDate: d.endDate || "",
       frequency: d.frequency,
       team: [], history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
-      weight: 10, approvalStatus: "approved",
+      weight: 10, approvalStatus: action === "create_active" ? "approved" : "pending",
       subKpis: [],
     };
-    setKpiCards(prev => [newCard, ...prev]);
+    setKpiCards(prev => {
+      if (editingId != null) {
+        return prev.map(c => c.id === editingId ? { ...c, ...builtCard, id: editingId } : c);
+      }
+      return [builtCard, ...prev];
+    });
+    setCardDrafts(prev => ({ ...prev, [id]: d }));
+    setWizardEditingId(null);
+
+    const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
+      action === "create_active" ? "aktiv"
+      : action === "submit" ? "tesdiq_gozlenilir"
+      : "natamam";
     try {
       await upsertStatus({
         card_id: id,
-        status: "natamam",
+        status: nextStatus,
         use_matrix: d.useMatrix,
-        submitted_for_approval: false,
+        submitted_for_approval: action === "submit",
         assignees: [],
       });
+      const mod = await import("@/lib/kpiCardStatusStore");
+      const next = await mod.fetchAllStatuses();
+      setStatusMap(next);
     } catch {}
   };
+
 
 
   // === KPI card status (Natamam / Təsdiq gözlənilir / İmtina / Aktiv) ===
@@ -858,8 +897,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   </button>
                                   {st.status !== "aktiv" && (
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); setEditingCardId(card.id); setShowCreate(true); setCreateStep(1); }}
-                                      title="Redaktə et"
+                                      onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                                      title="Redaktə et (qaldığınız addımdan davam)"
                                       className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
                                     >
                                       <Pencil className="w-3.5 h-3.5" />
@@ -1398,7 +1437,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       </Dialog>
 
       {/* Yeni KPI Sehrbazı — 4 addımlı */}
-      <CreateKpiWizard open={wizardOpen} onOpenChange={(o) => { setWizardOpen(o); if (!o) setWizardInitial(undefined); }} initial={wizardInitial} onComplete={handleWizardComplete} />
+      <CreateKpiWizard open={wizardOpen} onOpenChange={(o) => { setWizardOpen(o); if (!o) { setWizardInitial(undefined); setWizardEditingId(null); } }} initial={wizardInitial} onComplete={handleWizardComplete} />
 
 
       {/* Köhnə Create KPI Dialog — yalnız edit (copy) axını üçün saxlanılır, addım 10-17 növbəti mərhələdə yeni sehrbaza köçürüləcək */}
