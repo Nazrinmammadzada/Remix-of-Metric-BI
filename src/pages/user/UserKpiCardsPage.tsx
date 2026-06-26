@@ -10,6 +10,7 @@ import { formatUserWithRole } from "@/lib/matrixStore";
 import { getTeams, type TeamMember } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import KpiExtraTabContent, { isExtraTab } from "@/components/kpi/KpiExtraTabs";
+import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
 
 interface SubKpi {
   id: number; name: string; target: string; weight: number; current?: string; progress?: number;
