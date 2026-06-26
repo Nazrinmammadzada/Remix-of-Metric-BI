@@ -148,9 +148,8 @@ const emptyHedef = (): WizardHedef => ({
 
 const STEPS = [
   { n: 1, title: "Əsas məlumatlar", sub: "KPI adı, dövr, tarixlər və lifecycle", icon: Sparkles },
-  { n: 2, title: "Hədəflər", sub: "Hədəf növləri, çəkilər və qiymətləndirmə", icon: TargetIcon },
-  { n: 3, title: "Təyinatlar", sub: "Yaradıcı, qiymətləndiricilər və kimə təyin", icon: UserPlus },
-  { n: 4, title: "Yekun və təsdiq", sub: "Bütün məlumatları nəzərdən keçirin", icon: ClipboardList },
+  { n: 2, title: "Hədəflər", sub: "Hədəf növləri, çəkilər, qiymətləndirici və təyin edici", icon: TargetIcon },
+  { n: 3, title: "Yekun və təsdiq", sub: "Bütün məlumatları nəzərdən keçirin və yadda saxlayın", icon: ClipboardList },
 ];
 const TOTAL_STEPS = STEPS.length;
 
