@@ -275,6 +275,12 @@ const UserKpiCardsPage = () => {
           }
         />
 
+        <div className="mb-6">
+          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe />
+        </div>
+
+
+
 
         {/* View toggle & filters */}
         <div className="flex items-center gap-4 mb-6">
