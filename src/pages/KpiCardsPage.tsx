@@ -19,7 +19,7 @@ import BscScorecardTab from "@/components/kpi/BscScorecardTab";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
-import { LayoutGrid, List, Briefcase } from "lucide-react";
+import { LayoutGrid, List, Briefcase, Copy } from "lucide-react";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
 import { getLimitsFor, getEntriesForCard } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
@@ -376,8 +376,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
 
-  // === Yeni KPI Sehrbazı (17 addımlı — Mərhələ 2: addım 1-9 aktiv) ===
+  // === Yeni KPI Sehrbazı (4 addımlı) ===
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitial, setWizardInitial] = useState<Partial<CreateKpiWizardDraft> | undefined>(undefined);
+  const openWizard = (initial?: Partial<CreateKpiWizardDraft>) => { setWizardInitial(initial); setWizardOpen(true); };
   const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
     const id = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
     const newCard: KpiCard = {
@@ -846,19 +848,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 </button>
                               </td>
                               <td className="py-2 px-2">
-                                {st.status === "tesdiq_gozlenilir" && !st.submitted_for_approval && (
-                                  <button onClick={() => handleSubmitToMatrix(card.id)} className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90">
-                                    Matris üzrə təsdiqə göndər
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openWizard({
+                                        name: `${card.name} (kopya)`,
+                                        frequency: card.frequency || "Aylıq",
+                                        startDate: card.startDate || "",
+                                        endDate: card.endDate || "",
+                                      });
+                                    }}
+                                    title="Kopyala"
+                                    className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
                                   </button>
-                                )}
-                                {st.status === "tesdiq_gozlenilir" && st.submitted_for_approval && (
-                                  <span className="text-[11px] text-muted-foreground italic">Matrisə göndərildi</span>
-                                )}
-                                {st.status === "imtina" && (
-                                  <span className="text-[11px] text-rose-600 dark:text-rose-400">{st.rejected_by || "İmtina"} → kart yenidən yaradılmalıdır</span>
-                                )}
-                                {st.status === "aktiv" && <span className="text-[11px] text-muted-foreground">—</span>}
-                                {st.status === "natamam" && <span className="text-[11px] text-muted-foreground">Təyinlər tamamlanmayıb</span>}
+                                  {st.status === "tesdiq_gozlenilir" && !st.submitted_for_approval && (
+                                    <button onClick={() => handleSubmitToMatrix(card.id)} className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90">
+                                      Matris üzrə təsdiqə göndər
+                                    </button>
+                                  )}
+                                  {st.status === "tesdiq_gozlenilir" && st.submitted_for_approval && (
+                                    <span className="text-[11px] text-muted-foreground italic">Matrisə göndərildi</span>
+                                  )}
+                                  {st.status === "imtina" && (
+                                    <span className="text-[11px] text-rose-600 dark:text-rose-400">{st.rejected_by || "İmtina"} → kart yenidən yaradılmalıdır</span>
+                                  )}
+                                  {st.status === "aktiv" && <span className="text-[11px] text-muted-foreground">—</span>}
+                                  {st.status === "natamam" && <span className="text-[11px] text-muted-foreground">Təyinlər tamamlanmayıb</span>}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1362,8 +1381,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
-      {/* Yeni KPI Sehrbazı — Mərhələ 2 (addım 1-9) */}
-      <CreateKpiWizard open={wizardOpen} onOpenChange={setWizardOpen} onComplete={handleWizardComplete} />
+      {/* Yeni KPI Sehrbazı — 4 addımlı */}
+      <CreateKpiWizard open={wizardOpen} onOpenChange={(o) => { setWizardOpen(o); if (!o) setWizardInitial(undefined); }} initial={wizardInitial} onComplete={handleWizardComplete} />
+
 
       {/* Köhnə Create KPI Dialog — yalnız edit (copy) axını üçün saxlanılır, addım 10-17 növbəti mərhələdə yeni sehrbaza köçürüləcək */}
 
