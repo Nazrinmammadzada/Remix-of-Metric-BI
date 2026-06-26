@@ -3,6 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Users, Target, Trophy, Gift, Sparkles, TrendingUp } from "lucide-react";
 import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
+import { useApprovals } from "@/lib/approvalsStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { getCurrentEmployeeId, getVisibleApprovals, getVisibleKpiCards, getVisibleTeams } from "@/lib/scope";
+import { useMemo } from "react";
 
 const teamData = [
   { name: "Aysel", value: 92 },
@@ -14,7 +19,18 @@ const teamData = [
 
 const ManagerHomePage = () => {
   const { user } = useAuth();
+  const approvals = useApprovals();
+  const cards = useSharedKpiCards();
+  const meId = getCurrentEmployeeId(user);
+  const visibleApprovals = useMemo(() => getVisibleApprovals(user, approvals), [user, approvals]);
+  const visibleCards = useMemo(() => getVisibleKpiCards(user, cards), [user, cards]);
+  const teams = useMemo(() => getVisibleTeams(user), [user]);
+  const teamMembers = teams.reduce((acc, t) => acc + t.memberIds.length, 0);
+  const pendingApprovals = visibleApprovals.filter(a => a.status === "pending"
+    && meId && a.decisions[meId]?.decision === "pending").length;
+  const activeKpis = visibleCards.filter(c => c.status === "aktiv").length;
   const avg = Math.round(teamData.reduce((s, t) => s + t.value, 0) / teamData.length);
+
 
   return (
     <div className="min-h-screen">
