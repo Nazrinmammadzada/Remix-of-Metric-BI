@@ -429,17 +429,17 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <Field label="Assignment Deadline" required span="col-span-12 md:col-span-4">
                     <input type="date" value={draft.lifecycle.assignmentDeadline}
                       onChange={e => updLifecycle({ assignmentDeadline: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background" />
+                      className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background" />
                   </Field>
                   <Field label="Qiymətləndirmə başlanğıcı" required span="col-span-12 md:col-span-4">
                     <input type="date" value={draft.lifecycle.evaluationStart}
                       onChange={e => updLifecycle({ evaluationStart: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background" />
+                      className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background" />
                   </Field>
                   <Field label="Qiymətləndirmə bitmə" required span="col-span-12 md:col-span-4">
                     <input type="date" value={draft.lifecycle.evaluationEnd}
                       onChange={e => updLifecycle({ evaluationEnd: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background" />
+                      className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background" />
                   </Field>
                 </div>
 
@@ -459,21 +459,21 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           <div className="col-span-12 md:col-span-4">
                             <label className="text-[11px] text-muted-foreground">Review #{i + 1} adı</label>
                             <input value={r.name} onChange={e => updReview(r.id, { name: e.target.value })}
-                              className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div className="col-span-6 md:col-span-3">
                             <label className="text-[11px] text-muted-foreground">Başlama</label>
                             <input type="date" value={r.start} onChange={e => updReview(r.id, { start: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div className="col-span-6 md:col-span-3">
                             <label className="text-[11px] text-muted-foreground">Bitmə</label>
                             <input type="date" value={r.end} onChange={e => updReview(r.id, { end: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div className="col-span-12 md:col-span-2">
                             <button type="button" onClick={() => removeReview(r.id)}
-                              className="w-full px-2 py-2 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
+                              className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
                               Sil
                             </button>
                           </div>
@@ -515,10 +515,10 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                       <input value={empSearch} onChange={e => setEmpSearch(e.target.value)}
                         placeholder="Əməkdaş adı ilə axtarın..."
-                        className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded bg-background" />
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" />
                     </div>
                     <select value={draft.createdByEmployee} onChange={e => update({ createdByEmployee: e.target.value })}
-                      className="col-span-12 md:col-span-7 px-2.5 py-2 text-sm border border-border rounded bg-background">
+                      className="col-span-12 md:col-span-7 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
                       <option value="">— Aktiv əməkdaş seçin —</option>
                       {filteredEmployees.map(e => <option key={e.id} value={e.label}>{e.label}</option>)}
                     </select>
@@ -579,12 +579,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         <label className="text-[11px] text-muted-foreground">Hədəf adı *</label>
                         <input value={t.name} onChange={e => updHedef(t.id, { name: e.target.value })}
                           placeholder="Məsələn: Rüblük satış həcmi"
-                          className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                          className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                       <div className="col-span-12 md:col-span-3">
                         <label className="text-[11px] text-muted-foreground">Hədəf növü *</label>
                         <select value={t.type} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
-                          className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background">
+                          className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
                           {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
                         </select>
                       </div>
@@ -592,13 +592,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
                         <input type="number" min={0} max={100} value={t.weight}
                           onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
-                          className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                          className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                       <div className="col-span-6 md:col-span-2">
                         <label className="text-[11px] text-muted-foreground">Qiymət. balı *</label>
                         <input type="number" min={1} value={t.scoreLimit}
                           onChange={e => updHedef(t.id, { scoreLimit: Number(e.target.value) })}
-                          className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                          className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       </div>
                     </div>
 
@@ -611,18 +611,18 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           <div className="col-span-6 md:col-span-4">
                             <label className="text-[11px] text-muted-foreground">Min *</label>
                             <input type="number" value={t.min} onChange={e => updHedef(t.id, { min: e.target.value })}
-                              className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div className="col-span-6 md:col-span-4">
                             <label className="text-[11px] text-muted-foreground">Max *</label>
                             <input type="number" value={t.max} onChange={e => updHedef(t.id, { max: e.target.value })}
-                              className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           {t.type === "Məbləğ" && (
                             <div className="col-span-12 md:col-span-4">
                               <label className="text-[11px] text-muted-foreground">Valyuta</label>
                               <select value={t.currency} onChange={e => updHedef(t.id, { currency: e.target.value as WizardHedef["currency"] })}
-                                className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background">
+                                className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
                                 {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
                             </div>
@@ -633,14 +633,14 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       {t.type === "İcra" && (
                         <input value={t.freeInput} onChange={e => updHedef(t.id, { freeInput: e.target.value })}
                           placeholder="Sərbəst dəyər"
-                          className="w-full px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                          className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       )}
 
                       {t.type === "Səriştə" && (
                         <div className="space-y-2">
                           <p className="text-[11px] text-muted-foreground italic">Goal Name və Goal Value bu növ üçün edit edilmir.</p>
                           <select value={t.competencyMatrix} onChange={e => updHedef(t.id, { competencyMatrix: e.target.value })}
-                            className="w-full px-2.5 py-2 text-sm border border-border rounded bg-background">
+                            className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
                             <option value="">— Competency Matrix seçin —</option>
                             <option value="Liderlik">Liderlik</option>
                             <option value="Texniki Səriştə">Texniki Səriştə</option>
@@ -653,7 +653,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       {t.type === "Fərdi İnkişaf" && (
                         <input value={t.freeInput} onChange={e => updHedef(t.id, { freeInput: e.target.value })}
                           placeholder="Sərbəst dəyər"
-                          className="w-full px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                          className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                       )}
 
                       {t.type === "Boolean" && (
@@ -661,12 +661,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           <div>
                             <label className="text-[11px] text-muted-foreground">Bəli =</label>
                             <input type="number" value={t.booleanYes} onChange={e => updHedef(t.id, { booleanYes: Number(e.target.value) })}
-                              className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div>
                             <label className="text-[11px] text-muted-foreground">Xeyr =</label>
                             <input type="number" value={t.booleanNo} onChange={e => updHedef(t.id, { booleanNo: Number(e.target.value) })}
-                              className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                         </div>
                       )}
@@ -676,12 +676,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           <div>
                             <label className="text-[11px] text-muted-foreground">Başlama *</label>
                             <input type="date" value={t.timeStart} onChange={e => updHedef(t.id, { timeStart: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div>
                             <label className="text-[11px] text-muted-foreground">Bitmə *</label>
                             <input type="date" value={t.timeEnd} onChange={e => updHedef(t.id, { timeEnd: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                         </div>
                       )}
@@ -691,14 +691,14 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
                       <button type="button"
                         onClick={() => { setPickerOpen(pickerOpen === evalKey ? null : evalKey); setPickerSearch(""); }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full border-2 text-xs font-medium transition ${t.evaluator ? "border-primary bg-primary/10 text-primary" : "border-dashed border-primary/60 text-primary hover:bg-primary/5"}`}>
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition ${t.evaluator ? "border-primary bg-primary/10 text-primary" : "border-dashed border-primary/60 text-primary hover:bg-primary/5"}`}>
                         <UserPlus className="w-3.5 h-3.5" />
                         {t.evaluator ? `Qiymətləndirici: ${t.evaluator}` : "Qiymətləndirici seç"}
                       </button>
                       <button type="button"
                         disabled={assignerDisabled}
                         onClick={() => { setPickerOpen(pickerOpen === assignKey ? null : assignKey); setPickerSearch(""); }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full border-2 text-xs font-medium transition ${assignerDisabled ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60" : t.assigner ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-dashed border-amber-500/60 text-amber-700 hover:bg-amber-500/5"}`}>
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition ${assignerDisabled ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60" : t.assigner ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-dashed border-amber-500/60 text-amber-700 hover:bg-amber-500/5"}`}>
                         <UserPlus className="w-3.5 h-3.5" />
                         {assignerDisabled ? "Təyin edici (özüm)" : (t.assigner ? `Təyin edici: ${t.assigner}` : "Təyin edici seç")}
                       </button>
@@ -718,7 +718,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                             <input autoFocus value={pickerSearch} onChange={e => setPickerSearch(e.target.value)}
                               placeholder="Əməkdaş adı ilə axtarın..."
-                              className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded bg-background" />
+                              className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" />
                           </div>
                           <div className="max-h-48 overflow-y-auto border border-border/60 rounded divide-y divide-border/40">
                             {pickerEmployees.length === 0 && (
@@ -729,7 +729,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                               return (
                                 <button key={emp.id} type="button"
                                   onClick={() => updHedef(t.id, { [role]: emp.label } as Partial<WizardHedef>)}
-                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-primary/5 ${selected ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}>
+                                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-primary/5 ${selected ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}>
                                   {emp.label}{selected ? " ✓" : ""}
                                 </button>
                               );
@@ -743,7 +743,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                                 toast.success(`${roleLabel} bütün hədəflərə tətbiq edildi (${draft.targets.length})`);
                                 setPickerOpen(null);
                               }}
-                              className="w-full px-3 py-2 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
+                              className="w-full px-3 py-1.5 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
                               ⤵ Bütün {draft.targets.length} hədəfə tətbiq et
                             </button>
                           )}
@@ -763,7 +763,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         </label>
                         {t.cascading && (
                           <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
-                            className="w-full px-2.5 py-2 text-sm border border-border rounded bg-background">
+                            className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
                             <option value="">— Cascade Matrix seçin —</option>
                             {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
                           </select>
@@ -808,7 +808,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         <div className="col-span-12 md:col-span-8">
                           <label className="text-[11px] text-muted-foreground">Qiymətləndirici #{i + 1}</label>
                           <select value={ev.name} onChange={e => updEvaluator(ev.id, { name: e.target.value })}
-                            className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background">
+                            className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
                             <option value="">— Aktiv əməkdaş seçin —</option>
                             {activeEmployees.map(emp => <option key={emp.id} value={emp.label}>{emp.label}</option>)}
                           </select>
@@ -818,11 +818,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           <input type="number" min={0} max={100} value={ev.weight}
                             onChange={e => updEvaluator(ev.id, { weight: Number(e.target.value) })}
                             disabled={draft.evaluators.length === 1}
-                            className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background disabled:opacity-50" />
+                            className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-50" />
                         </div>
                         <div className="col-span-4 md:col-span-1">
                           <button type="button" onClick={() => removeEvaluator(ev.id)}
-                            className="w-full px-2 py-2 rounded border border-border text-destructive hover:bg-destructive/10 flex items-center justify-center">
+                            className="w-full px-2 py-1.5 rounded border border-border text-destructive hover:bg-destructive/10 flex items-center justify-center">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -857,19 +857,19 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       <div key={a.id} className="flex gap-2 items-center">
                         <select value={a.kind}
                           onChange={e => updAssignTarget(a.id, { kind: e.target.value as AssigneeKind, value: "" })}
-                          className="px-2 py-2 text-sm border border-border rounded bg-background w-32">
+                          className="px-2 py-1.5 text-sm border border-border rounded bg-background w-32">
                           {allowedKinds.map(k => <option key={k} value={k}>{k}</option>)}
                         </select>
                         {a.kind === "Şəxs" ? (
                           <select value={a.value} onChange={e => updAssignTarget(a.id, { value: e.target.value })}
-                            className="flex-1 px-2.5 py-2 text-sm border border-border rounded bg-background">
+                            className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
                             <option value="">— Aktiv əməkdaş seçin —</option>
                             {activeEmployees.map(emp => <option key={emp.id} value={emp.label}>{emp.label}</option>)}
                           </select>
                         ) : (
                           <input value={a.value} onChange={e => updAssignTarget(a.id, { value: e.target.value })}
                             placeholder={`${a.kind} adı`}
-                            className="flex-1 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                            className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
                         )}
                         <button type="button" onClick={() => removeAssignTarget(a.id)}
                           className="p-2 rounded hover:bg-destructive/10 text-destructive">
@@ -925,29 +925,29 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         {/* Footer */}
         <div className="flex items-center justify-between gap-2 pt-4 border-t border-border mt-4">
           <button type="button" onClick={() => step > 1 && setStep(step - 1)} disabled={step === 1}
-            className="flex items-center gap-1 px-4 py-2 text-sm rounded-lg border border-border bg-card text-foreground disabled:opacity-40">
+            className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground disabled:opacity-40">
             <ChevronLeft className="w-4 h-4" /> Geri
           </button>
           <div className="text-xs text-muted-foreground">{step} / {TOTAL_STEPS}</div>
           <div className="flex gap-2 flex-wrap justify-end">
-            <button type="button" onClick={close} className="px-4 py-2 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+            <button type="button" onClick={close} className="px-4 py-1.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
             {step < TOTAL_STEPS ? (
               <button type="button" onClick={handleNext} disabled={!canNext}
-                className="flex items-center gap-1 px-5 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
+                className="flex items-center gap-1 px-5 py-1.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
                 Növbəti <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
               <>
                 <button type="button" onClick={() => finalize("draft")}
-                  className="flex items-center gap-1 px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">
+                  className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary">
                   <Save className="w-4 h-4" /> Qaralama kimi saxla
                 </button>
                 <button type="button" onClick={() => finalize("create")}
-                  className="flex items-center gap-1 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground font-medium">
+                  className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">
                   KPI yarat
                 </button>
                 <button type="button" onClick={() => finalize("create_active")}
-                  className="flex items-center gap-1 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
+                  className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
                   <Power className="w-4 h-4" /> KPI yarat və aktiv et
                 </button>
               </>
@@ -971,7 +971,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 function SummarySection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-secondary/20">
-      <div className="px-3 py-2 bg-secondary/40 text-xs font-semibold text-foreground border-b border-border">{title}</div>
+      <div className="px-3 py-1.5 bg-secondary/40 text-xs font-semibold text-foreground border-b border-border">{title}</div>
       <div className="p-3 space-y-1">{children}</div>
     </div>
   );
