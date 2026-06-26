@@ -41,6 +41,11 @@ const UserHomePage = () => {
           <FancyStatCard icon={TrendingUp} label="Orta Performans" value={`${avg}%`} accent="violet" />
         </div>
 
+        <div className="mb-6">
+          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe />
+        </div>
+
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <FancyCard title="Performans Dinamikası" subtitle="Son 6 ay" className="lg:col-span-2">
             <ResponsiveContainer width="100%" height={250}>
