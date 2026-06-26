@@ -376,8 +376,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
 
-  // === Yeni KPI Sehrbazı (17 addımlı — Mərhələ 2: addım 1-9 aktiv) ===
+  // === Yeni KPI Sehrbazı (4 addımlı) ===
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitial, setWizardInitial] = useState<Partial<CreateKpiWizardDraft> | undefined>(undefined);
+  const openWizard = (initial?: Partial<CreateKpiWizardDraft>) => { setWizardInitial(initial); setWizardOpen(true); };
   const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
     const id = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
     const newCard: KpiCard = {
