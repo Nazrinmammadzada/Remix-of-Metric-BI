@@ -875,7 +875,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const st = getStatusFor(card.id);
                           return (
                             <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td className="py-2 px-2 font-medium text-foreground cursor-pointer" onClick={() => openDetail(card)}>{card.name}</td>
+                              <td className="py-2 px-2 font-medium text-foreground">{card.name}</td>
                               <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
                               <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
