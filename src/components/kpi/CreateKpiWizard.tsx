@@ -488,7 +488,47 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
           {/* ===== STEP 2: HƏDƏFLƏR ===== */}
           {step === 2 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* KPI-ni təyin edən — moved from Step 3 */}
+              <div className="rounded-lg border border-border bg-card/40 p-4 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h3 className="text-sm font-semibold text-foreground">KPI-ni təyin edən</h3>
+                  <div className="flex gap-2">
+                    {([
+                      { v: "self" as const, t: "Özüm təyin edirəm" },
+                      { v: "other" as const, t: "Digər əməkdaş təyin edir" },
+                    ]).map(o => {
+                      const active = draft.createdBy === o.v;
+                      return (
+                        <button key={o.v} type="button"
+                          onClick={() => update({ createdBy: o.v, createdByEmployee: o.v === "self" ? "" : draft.createdByEmployee })}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${active ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
+                          {o.t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {draft.createdBy === "other" && (
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-12 md:col-span-5 relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <input value={empSearch} onChange={e => setEmpSearch(e.target.value)}
+                        placeholder="Əməkdaş adı ilə axtarın..."
+                        className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <select value={draft.createdByEmployee} onChange={e => update({ createdByEmployee: e.target.value })}
+                      className="col-span-12 md:col-span-7 px-2.5 py-2 text-sm border border-border rounded bg-background">
+                      <option value="">— Aktiv əməkdaş seçin —</option>
+                      {filteredEmployees.map(e => <option key={e.id} value={e.label}>{e.label}</option>)}
+                    </select>
+                  </div>
+                )}
+                {draft.createdBy === "self" && (
+                  <p className="text-[11px] text-muted-foreground italic">Özüm təyin etdiyim üçün hər hədəfdə "Təyin edici" düyməsi qeyri-aktivdir.</p>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">KPI Hədəfləri</h3>
@@ -513,13 +553,26 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
               {draft.targets.map((t, idx) => {
                 const showMinMax = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
                 const showCascade = CASCADE_TYPES.includes(t.type);
+                const evalKey = `${t.id}:eval`;
+                const assignKey = `${t.id}:assign`;
+                const assignerDisabled = draft.createdBy === "self";
                 return (
-                  <div key={t.id} className="relative p-4 rounded-lg border border-border bg-card/40 space-y-3">
+                  <div key={t.id} className="relative p-5 rounded-xl border-2 border-primary/30 bg-card/60 space-y-4 shadow-sm">
                     <button type="button" title="Sil" onClick={() => removeHedef(t.id)}
-                      className="absolute top-2 right-2 p-1.5 rounded hover:bg-destructive/10 text-destructive">
-                      <Trash2 className="w-3.5 h-3.5" />
+                      className="absolute top-3 right-3 p-1.5 rounded hover:bg-destructive/10 text-destructive">
+                      <Trash2 className="w-4 h-4" />
                     </button>
-                    <div className="text-xs font-semibold text-muted-foreground">Hədəf #{idx + 1}</div>
+
+                    {/* BÖYÜK BAŞLIQ */}
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/60">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-lg flex items-center justify-center">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <div className="text-base font-bold text-foreground">Hədəf #{idx + 1}</div>
+                        <div className="text-xs text-muted-foreground">{t.name || "— Adsız hədəf —"} · {t.type}</div>
+                      </div>
+                    </div>
 
                     <div className="grid grid-cols-12 gap-2">
                       <div className="col-span-12 md:col-span-5">
@@ -528,17 +581,23 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           placeholder="Məsələn: Rüblük satış həcmi"
                           className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
                       </div>
-                      <div className="col-span-8 md:col-span-4">
+                      <div className="col-span-12 md:col-span-3">
                         <label className="text-[11px] text-muted-foreground">Hədəf növü *</label>
                         <select value={t.type} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
                           className="w-full mt-0.5 px-2 py-2 text-sm border border-border rounded bg-background">
                           {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
                         </select>
                       </div>
-                      <div className="col-span-4 md:col-span-3">
+                      <div className="col-span-6 md:col-span-2">
                         <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
                         <input type="number" min={0} max={100} value={t.weight}
                           onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
+                          className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
+                      </div>
+                      <div className="col-span-6 md:col-span-2">
+                        <label className="text-[11px] text-muted-foreground">Qiymət. balı *</label>
+                        <input type="number" min={1} value={t.scoreLimit}
+                          onChange={e => updHedef(t.id, { scoreLimit: Number(e.target.value) })}
                           className="w-full mt-0.5 px-2.5 py-2 text-sm border border-border rounded bg-background" />
                       </div>
                     </div>
@@ -628,6 +687,70 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       )}
                     </div>
 
+                    {/* QİYMƏTLƏNDİRİCİ & TƏYİN EDİCİ */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+                      <button type="button"
+                        onClick={() => { setPickerOpen(pickerOpen === evalKey ? null : evalKey); setPickerSearch(""); }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full border-2 text-xs font-medium transition ${t.evaluator ? "border-primary bg-primary/10 text-primary" : "border-dashed border-primary/60 text-primary hover:bg-primary/5"}`}>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        {t.evaluator ? `Qiymətləndirici: ${t.evaluator}` : "Qiymətləndirici seç"}
+                      </button>
+                      <button type="button"
+                        disabled={assignerDisabled}
+                        onClick={() => { setPickerOpen(pickerOpen === assignKey ? null : assignKey); setPickerSearch(""); }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full border-2 text-xs font-medium transition ${assignerDisabled ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60" : t.assigner ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-dashed border-amber-500/60 text-amber-700 hover:bg-amber-500/5"}`}>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        {assignerDisabled ? "Təyin edici (özüm)" : (t.assigner ? `Təyin edici: ${t.assigner}` : "Təyin edici seç")}
+                      </button>
+                    </div>
+
+                    {/* PICKER PANEL */}
+                    {(pickerOpen === evalKey || pickerOpen === assignKey) && (() => {
+                      const role: "evaluator" | "assigner" = pickerOpen === evalKey ? "evaluator" : "assigner";
+                      const roleLabel = role === "evaluator" ? "Qiymətləndirici" : "Təyin edici";
+                      return (
+                        <div className="rounded-lg border border-primary/40 bg-background p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs font-semibold text-foreground">{roleLabel} seç</div>
+                            <button type="button" onClick={() => setPickerOpen(null)} className="text-[11px] text-muted-foreground hover:text-foreground">Bağla</button>
+                          </div>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                            <input autoFocus value={pickerSearch} onChange={e => setPickerSearch(e.target.value)}
+                              placeholder="Əməkdaş adı ilə axtarın..."
+                              className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded bg-background" />
+                          </div>
+                          <div className="max-h-48 overflow-y-auto border border-border/60 rounded divide-y divide-border/40">
+                            {pickerEmployees.length === 0 && (
+                              <div className="px-3 py-4 text-xs text-muted-foreground text-center">Nəticə tapılmadı</div>
+                            )}
+                            {pickerEmployees.map(emp => {
+                              const selected = (role === "evaluator" ? t.evaluator : t.assigner) === emp.label;
+                              return (
+                                <button key={emp.id} type="button"
+                                  onClick={() => updHedef(t.id, { [role]: emp.label } as Partial<WizardHedef>)}
+                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-primary/5 ${selected ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}>
+                                  {emp.label}{selected ? " ✓" : ""}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {(role === "evaluator" ? t.evaluator : t.assigner) && draft.targets.length > 1 && (
+                            <button type="button"
+                              onClick={() => {
+                                const name = role === "evaluator" ? t.evaluator : t.assigner;
+                                applyPersonToAll(role, name);
+                                toast.success(`${roleLabel} bütün hədəflərə tətbiq edildi (${draft.targets.length})`);
+                                setPickerOpen(null);
+                              }}
+                              className="w-full px-3 py-2 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
+                              ⤵ Bütün {draft.targets.length} hədəfə tətbiq et
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Cascade — yalnız Məbləğ/Say/Faiz/Nisbət */}
                     {showCascade && (
                       <div className="rounded-md border border-border/60 p-3 bg-background/40 space-y-2">
@@ -652,6 +775,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
               })}
             </div>
           )}
+
 
           {/* ===== STEP 3: TƏYİNATLAR ===== */}
           {step === 3 && (
