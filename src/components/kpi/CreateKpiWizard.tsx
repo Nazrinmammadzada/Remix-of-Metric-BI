@@ -351,7 +351,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           ))}
         </div>
 
-        <div className="min-h-[420px]">
+        <div className="min-h-[280px]">
           {/* ===== STEP 1 ===== */}
           {step === 1 && (
             <div className="space-y-5">
