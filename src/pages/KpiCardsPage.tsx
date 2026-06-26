@@ -450,9 +450,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===
     try {
       const ownerId = getCurrentEmployeeId(user) || "e1";
-      const sharedStatus = nextStatus === "tesdiq_gozlenilir" ? "tesdiq_gozlenilir"
+      const sharedStatus: "natamam" | "tesdiq_gozlenilir" | "aktiv" =
+        nextStatus === "tesdiq_gozlenilir" ? "tesdiq_gozlenilir"
         : nextStatus === "aktiv" ? "aktiv"
-        : nextStatus === "imtina" ? "imtina"
         : "natamam";
       const sharedId = `legacy-${id}`;
       const shared = buildSharedCardFromDraft(d, {
