@@ -1364,8 +1364,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
-      {/* Yeni KPI Sehrbazı — Mərhələ 2 (addım 1-9) */}
-      <CreateKpiWizard open={wizardOpen} onOpenChange={setWizardOpen} onComplete={handleWizardComplete} />
+      {/* Yeni KPI Sehrbazı — 4 addımlı */}
+      <CreateKpiWizard open={wizardOpen} onOpenChange={(o) => { setWizardOpen(o); if (!o) setWizardInitial(undefined); }} initial={wizardInitial} onComplete={handleWizardComplete} />
+
 
       {/* Köhnə Create KPI Dialog — yalnız edit (copy) axını üçün saxlanılır, addım 10-17 növbəti mərhələdə yeni sehrbaza köçürüləcək */}
 
