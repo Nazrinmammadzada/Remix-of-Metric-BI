@@ -783,7 +783,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
               {/* KPI-ni təyin edən artıq 2-ci addımdadır */}
 
               {/* Qiymətləndiricilər */}
-              <div className="rounded-lg border border-border bg-card/40 p-4 space-y-3">
+              <div className="rounded-lg border border-border bg-card/40 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-foreground">Qiymətləndiricilər</h3>
                   <div className="flex items-center gap-2">
