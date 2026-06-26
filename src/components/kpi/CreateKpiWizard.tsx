@@ -557,7 +557,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 const assignKey = `${t.id}:assign`;
                 const assignerDisabled = draft.createdBy === "self";
                 return (
-                  <div key={t.id} className="relative p-5 rounded-xl border-2 border-primary/30 bg-card/60 space-y-4 shadow-sm">
+                  <div key={t.id} className="relative p-3.5 rounded-xl border-2 border-primary/30 bg-card/60 space-y-2.5 shadow-sm">
                     <button type="button" title="Sil" onClick={() => removeHedef(t.id)}
                       className="absolute top-3 right-3 p-1.5 rounded hover:bg-destructive/10 text-destructive">
                       <Trash2 className="w-4 h-4" />
