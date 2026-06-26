@@ -281,14 +281,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           && totalWeight === 100
           && draft.targets.every(t => validateHedef(t) === null)
           && (draft.createdBy === "self" || draft.targets.every(t => !!t.assigner));
-      case 3:
-        if (draft.evaluators.length === 0) return false;
-        if (draft.evaluators.some(e => !e.name)) return false;
-        if (draft.evaluators.length > 1 && evalWeight !== 100) return false;
-        if (draft.assignTargets.length === 0) return false;
-        if (draft.assignTargets.some(a => !a.value.trim())) return false;
-        return true;
-      case 4: return true;
+      case 3: return true;
       default: return false;
     }
   }, [step, draft, totalWeight, evalWeight]);
