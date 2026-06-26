@@ -488,7 +488,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
           {/* ===== STEP 2: HƏDƏFLƏR ===== */}
           {step === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* KPI-ni təyin edən — moved from Step 3 */}
               <div className="rounded-lg border border-border bg-card/40 p-4 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
