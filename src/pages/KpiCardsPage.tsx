@@ -729,13 +729,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   return (
     <div className="min-h-screen">
       <Header title="KPİ-lar" />
-      {onBack && (
-        <div className="px-6 pt-4">
-          <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
-            ← Geri
-          </button>
-        </div>
-      )}
       <main className="p-6 pb-24">
         <PageHero
           badge="KPİ İdarəetməsi"
@@ -762,12 +755,23 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <button onClick={() => setViewMode("card")} title="Kart görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "card" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
                 <button onClick={() => setViewMode("list")} title="Siyahı görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><List className="w-4 h-4" /></button>
               </div>
-              <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                <Plus className="w-4 h-4" /> Yeni KPI
-              </button>
             </div>
           }
         />
+
+        {(onBack || true) && (
+          <div className="flex items-center gap-2 mb-4">
+            {onBack && (
+              <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
+                ← Geri
+              </button>
+            )}
+            <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="ml-auto inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+              <Plus className="w-4 h-4" /> Yeni KPI
+            </button>
+          </div>
+        )}
+
 
         {!forcedKartView && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -871,7 +875,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const st = getStatusFor(card.id);
                           return (
                             <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td className="py-2 px-2 font-medium text-foreground cursor-pointer" onClick={() => openDetail(card)}>{card.name}</td>
+                              <td className="py-2 px-2 font-medium text-foreground">{card.name}</td>
                               <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
                               <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
@@ -898,42 +902,55 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   {st.status !== "aktiv" && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
-                                      title="Redaktə et (qaldığınız addımdan davam)"
+                                      title="Redaktə et"
                                       className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
                                     >
                                       <Pencil className="w-3.5 h-3.5" />
                                     </button>
                                   )}
                                   <button
-                                    onClick={(e) => {
+                                    onClick={async (e) => {
                                       e.stopPropagation();
-                                      openWizard({
-                                        name: `${card.name} (kopya)`,
-                                        frequency: card.frequency || "Aylıq",
-                                        startDate: card.startDate || "",
-                                        endDate: card.endDate || "",
-                                      });
+                                      const newId = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
+                                      const copy: KpiCard = { ...card, id: newId, name: `${card.name} (kopya)`, approvalStatus: "pending" };
+                                      setKpiCards(prev => [copy, ...prev]);
+                                      try {
+                                        await upsertStatus({ card_id: newId, status: "natamam", use_matrix: false, submitted_for_approval: false, assignees: [] });
+                                        const mod = await import("@/lib/kpiCardStatusStore");
+                                        const next = await mod.fetchAllStatuses();
+                                        setStatusMap(next);
+                                      } catch {}
+                                      toast.success("Kart kopyalandı (Natamam)");
                                     }}
                                     title="Kopyala"
                                     className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
                                   >
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
-                                  {st.status === "tesdiq_gozlenilir" && !st.submitted_for_approval && (
-                                    <button onClick={() => handleSubmitToMatrix(card.id)} className="text-[11px] px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90">
-                                      Matris üzrə təsdiqə göndər
+                                  {st.status === "natamam" && (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!confirm(`"${card.name}" kartını silmək istədiyinizə əminsiniz?`)) return;
+                                        setKpiCards(prev => prev.filter(c => c.id !== card.id));
+                                        try {
+                                          const { supabase } = await import("@/integrations/supabase/client");
+                                          await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
+                                          const mod = await import("@/lib/kpiCardStatusStore");
+                                          const next = await mod.fetchAllStatuses();
+                                          setStatusMap(next);
+                                        } catch {}
+                                        toast.success("Kart silindi");
+                                      }}
+                                      title="Sil"
+                                      className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
-                                  {st.status === "tesdiq_gozlenilir" && st.submitted_for_approval && (
-                                    <span className="text-[11px] text-muted-foreground italic">Matrisə göndərildi</span>
-                                  )}
-                                  {st.status === "imtina" && (
-                                    <span className="text-[11px] text-rose-600 dark:text-rose-400">{st.rejected_by || "İmtina"} → kart yenidən yaradılmalıdır</span>
-                                  )}
-                                  {st.status === "aktiv" && <span className="text-[11px] text-muted-foreground">—</span>}
-                                  {st.status === "natamam" && <span className="text-[11px] text-muted-foreground">Təyinlər tamamlanmayıb</span>}
                                 </div>
                               </td>
+
                             </tr>
                           );
                         })}
