@@ -564,8 +564,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     </button>
 
                     {/* BÖYÜK BAŞLIQ */}
-                    <div className="flex items-center gap-3 pb-2 border-b border-border/60">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-lg flex items-center justify-center">
+                    <div className="flex items-center gap-2 pb-1.5 border-b border-border/60">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-base flex items-center justify-center">
                         {idx + 1}
                       </div>
                       <div>
