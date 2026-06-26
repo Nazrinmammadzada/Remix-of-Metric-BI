@@ -897,8 +897,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   </button>
                                   {st.status !== "aktiv" && (
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); setEditingCardId(card.id); setShowCreate(true); setCreateStep(1); }}
-                                      title="Redaktə et"
+                                      onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                                      title="Redaktə et (qaldığınız addımdan davam)"
                                       className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
                                     >
                                       <Pencil className="w-3.5 h-3.5" />
