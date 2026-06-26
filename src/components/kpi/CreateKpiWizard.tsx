@@ -306,12 +306,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   };
 
   const finalize = (action: WizardAction) => {
-    if (!canNext && step === TOTAL_STEPS) return;
-    onComplete({ ...draft, action });
+    if (action === "submit" && draft.useMatrix && !draft.approvalMatrixId) {
+      toast.error("Təsdiqə göndərmək üçün təsdiqləmə matrisini seçin");
+      return;
+    }
+    onComplete({ ...draft, action, lastStep: step });
     toast.success(
-      action === "draft" ? "Qaralama olaraq saxlanıldı"
+      action === "draft" ? "Yadda saxlanıldı (Natamam)"
       : action === "create_active" ? "KPI yaradıldı və aktiv edildi"
-      : "KPI kartı yaradıldı",
+      : "KPI təsdiqə göndərildi",
     );
     close();
   };
