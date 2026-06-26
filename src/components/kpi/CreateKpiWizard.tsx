@@ -214,6 +214,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const removeHedef = (id: string) => setDraft(p => ({ ...p, targets: p.targets.filter(t => t.id !== id) }));
   const applyPersonToAll = (role: "evaluator" | "assigner", name: string) =>
     setDraft(p => ({ ...p, targets: p.targets.map(t => ({ ...t, [role]: name })) }));
+  const applyCascadeToAll = (matrixName: string) =>
+    setDraft(p => ({
+      ...p,
+      targets: p.targets.map(t =>
+        CASCADE_TYPES.includes(t.type) ? { ...t, cascading: true, cascadeMatrix: matrixName } : t,
+      ),
+    }));
   const totalWeight = useMemo(() => draft.targets.reduce((s, t) => s + (Number(t.weight) || 0), 0), [draft.targets]);
 
   // ====== REVIEWS ======
