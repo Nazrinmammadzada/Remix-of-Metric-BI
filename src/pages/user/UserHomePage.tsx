@@ -4,6 +4,7 @@ import { TrendingUp, Target, CheckCircle, Clock, Sparkles } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { AIChatSection } from "@/components/ai/AIChatSection";
+import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
 
 const chartData = [
   { month: "Yan", value: 72 }, { month: "Fev", value: 76 }, { month: "Mar", value: 80 },
