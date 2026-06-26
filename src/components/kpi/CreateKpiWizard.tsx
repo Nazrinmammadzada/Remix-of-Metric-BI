@@ -6,7 +6,7 @@ import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  Search, ClipboardList, Save, Power,
+  Search, ClipboardList, Save, Power, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -254,7 +254,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (t.type === "Zaman" && (!t.timeStart || !t.timeEnd)) return "Zaman: tarix aralığı tələb olunur";
     if (t.type === "İcra" && !t.freeInput.trim()) return "İcra: dəyər tələb olunur";
     if (t.type === "Fərdi İnkişaf" && !t.freeInput.trim()) return "Fərdi İnkişaf: dəyər tələb olunur";
-    if (!t.evaluator) return `"${t.name || "Hədəf"}" üçün Qiymətləndirici seçilməlidir`;
+    if (draft.createdBy !== "self" && !t.evaluator) return `"${t.name || "Hədəf"}" üçün Qiymətləndirici seçilməlidir`;
     return null;
   };
 
@@ -689,19 +689,39 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
                     {/* QİYMƏTLƏNDİRİCİ & TƏYİN EDİCİ */}
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-                      <button type="button"
-                        onClick={() => { setPickerOpen(pickerOpen === evalKey ? null : evalKey); setPickerSearch(""); }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition ${t.evaluator ? "border-primary bg-primary/10 text-primary" : "border-dashed border-primary/60 text-primary hover:bg-primary/5"}`}>
-                        <UserPlus className="w-3.5 h-3.5" />
-                        {t.evaluator ? `Qiymətləndirici: ${t.evaluator}` : "Qiymətləndirici seç"}
-                      </button>
-                      <button type="button"
-                        disabled={assignerDisabled}
-                        onClick={() => { setPickerOpen(pickerOpen === assignKey ? null : assignKey); setPickerSearch(""); }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 text-xs font-medium transition ${assignerDisabled ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60" : t.assigner ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-dashed border-amber-500/60 text-amber-700 hover:bg-amber-500/5"}`}>
-                        <UserPlus className="w-3.5 h-3.5" />
-                        {assignerDisabled ? "Təyin edici (özüm)" : (t.assigner ? `Təyin edici: ${t.assigner}` : "Təyin edici seç")}
-                      </button>
+                      <div className="flex items-center">
+                        <button type="button"
+                          onClick={() => { setPickerOpen(pickerOpen === evalKey ? null : evalKey); setPickerSearch(""); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 ${t.evaluator ? "rounded-l-full border-r-0" : "rounded-full"} border-2 text-xs font-medium transition ${t.evaluator ? "border-primary bg-primary/10 text-primary" : "border-dashed border-primary/60 text-primary hover:bg-primary/5"}`}>
+                          <UserPlus className="w-3.5 h-3.5" />
+                          {t.evaluator ? `Qiymətləndirici: ${t.evaluator}` : "Qiymətləndirici seç"}
+                        </button>
+                        {t.evaluator && (
+                          <button type="button"
+                            onClick={() => updHedef(t.id, { evaluator: "" })}
+                            title="Sil"
+                            className="px-2 py-1.5 rounded-r-full border-2 border-primary bg-primary/10 text-primary hover:bg-primary/20">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        <button type="button"
+                          disabled={assignerDisabled}
+                          onClick={() => { setPickerOpen(pickerOpen === assignKey ? null : assignKey); setPickerSearch(""); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 ${t.assigner && !assignerDisabled ? "rounded-l-full border-r-0" : "rounded-full"} border-2 text-xs font-medium transition ${assignerDisabled ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60" : t.assigner ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-dashed border-amber-500/60 text-amber-700 hover:bg-amber-500/5"}`}>
+                          <UserPlus className="w-3.5 h-3.5" />
+                          {assignerDisabled ? "Təyin edici (özüm)" : (t.assigner ? `Təyin edici: ${t.assigner}` : "Təyin edici seç")}
+                        </button>
+                        {t.assigner && !assignerDisabled && (
+                          <button type="button"
+                            onClick={() => updHedef(t.id, { assigner: "" })}
+                            title="Sil"
+                            className="px-2 py-1.5 rounded-r-full border-2 border-amber-500 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* PICKER PANEL */}
