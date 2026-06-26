@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getEmployees } from "@/lib/orgStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
+import { getApprovalMatrices, type ApprovalMatrix } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  Search, ClipboardList, Save, Power, X,
+  Search, ClipboardList, Save, Power, X, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 
