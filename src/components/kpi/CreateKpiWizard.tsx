@@ -254,7 +254,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (t.type === "Zaman" && (!t.timeStart || !t.timeEnd)) return "Zaman: tarix aralığı tələb olunur";
     if (t.type === "İcra" && !t.freeInput.trim()) return "İcra: dəyər tələb olunur";
     if (t.type === "Fərdi İnkişaf" && !t.freeInput.trim()) return "Fərdi İnkişaf: dəyər tələb olunur";
-    if (!t.evaluator) return `"${t.name || "Hədəf"}" üçün Qiymətləndirici seçilməlidir`;
+    if (draft.createdBy !== "self" && !t.evaluator) return `"${t.name || "Hədəf"}" üçün Qiymətləndirici seçilməlidir`;
     return null;
   };
 
