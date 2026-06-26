@@ -246,11 +246,23 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const removeAssignTarget = (id: string) =>
     update({ assignTargets: draft.assignTargets.filter(a => a.id !== id) });
 
+  // Scoring system upper bound (1-5 → 5, 1-10 → 10, 1-3 Bal → 3, Faiz (0-100) → 100, Digər → undefined)
+  const scoreMax = useMemo<number | undefined>(() => {
+    const s = (draft.scoringSystem || "").toLowerCase();
+    const m = s.match(/(\d+)\s*-\s*(\d+)/);
+    if (m) return Number(m[2]);
+    if (s.includes("faiz")) return 100;
+    return undefined;
+  }, [draft.scoringSystem]);
+
   // ====== VALIDATION ======
   const validateHedef = (t: WizardHedef): string | null => {
     if (!t.name.trim()) return "Hədəf adı boşdur";
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
     if (!t.scoreLimit || t.scoreLimit <= 0) return "Qiymətləndirmə balı daxil edilməlidir";
+    if (scoreMax !== undefined && t.scoreLimit > scoreMax) {
+      return `Qiymətləndirmə balı ${scoreMax}-dən böyük ola bilməz (bal sistemi: ${draft.scoringSystem})`;
+    }
     if (["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type)) {
       if (t.min === "" || t.max === "") return `${t.type}: Min və Max tələb olunur`;
       if (Number(t.min) > Number(t.max)) return `${t.type}: Min Max-dan kiçik olmalıdır`;
@@ -276,7 +288,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           && !!draft.lifecycle.evaluationStart
           && !!draft.lifecycle.evaluationEnd;
       case 2:
-        if (draft.createdBy === "other" && !draft.createdByEmployee) return false;
         return draft.targets.length > 0
           && totalWeight === 100
           && draft.targets.every(t => validateHedef(t) === null)
@@ -284,7 +295,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
       case 3: return true;
       default: return false;
     }
-  }, [step, draft, totalWeight, evalWeight]);
+  }, [step, draft, totalWeight, evalWeight, scoreMax]);
 
   const close = () => {
     onOpenChange(false);
