@@ -189,6 +189,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     return activeEmployees.filter(e => e.label.toLowerCase().includes(q));
   }, [empSearch, activeEmployees]);
 
+  // Per-target picker open state: `${hedefId}:${role}` where role = "eval" | "assign"
+  const [pickerOpen, setPickerOpen] = useState<string | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const pickerEmployees = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return activeEmployees;
+    return activeEmployees.filter(e => e.label.toLowerCase().includes(q));
+  }, [pickerSearch, activeEmployees]);
+
   const update = (patch: Partial<CreateKpiWizardDraft>) => setDraft(p => ({ ...p, ...patch }));
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
     setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
