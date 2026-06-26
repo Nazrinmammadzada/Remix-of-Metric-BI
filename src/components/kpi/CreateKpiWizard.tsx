@@ -111,6 +111,7 @@ export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
   endDate: "",
   scoringSystem: "1-5",
   useMatrix: false,
+  approvalMatrixId: "",
   lifecycle: {
     assignmentDeadline: "",
     reviews: [],
