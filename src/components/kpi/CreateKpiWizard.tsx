@@ -168,11 +168,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<CreateKpiWizardDraft>(() => ({ ...emptyKpiWizardDraft(), ...(initial || {}) }));
 
-  // Re-seed when dialog re-opens with a new "initial" (e.g. copy)
+  // Re-seed when dialog re-opens with a new "initial" (e.g. copy or resume draft)
   useEffect(() => {
     if (open) {
-      setStep(1);
-      setDraft({ ...emptyKpiWizardDraft(), ...(initial || {}) });
+      const seeded = { ...emptyKpiWizardDraft(), ...(initial || {}) };
+      setDraft(seeded);
+      const resumeStep = (initial as any)?.lastStep;
+      setStep(typeof resumeStep === "number" && resumeStep >= 1 && resumeStep <= TOTAL_STEPS ? resumeStep : 1);
     }
   }, [open, initial]);
 
