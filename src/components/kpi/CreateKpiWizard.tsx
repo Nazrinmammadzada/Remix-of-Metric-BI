@@ -6,7 +6,7 @@ import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  Search, ClipboardList, Save, Power,
+  Search, ClipboardList, Save, Power, X,
 } from "lucide-react";
 import { toast } from "sonner";
 
