@@ -245,6 +245,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const validateHedef = (t: WizardHedef): string | null => {
     if (!t.name.trim()) return "Hədəf adı boşdur";
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
+    if (!t.scoreLimit || t.scoreLimit <= 0) return "Qiymətləndirmə balı daxil edilməlidir";
     if (["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type)) {
       if (t.min === "" || t.max === "") return `${t.type}: Min və Max tələb olunur`;
       if (Number(t.min) > Number(t.max)) return `${t.type}: Min Max-dan kiçik olmalıdır`;
@@ -253,6 +254,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (t.type === "Zaman" && (!t.timeStart || !t.timeEnd)) return "Zaman: tarix aralığı tələb olunur";
     if (t.type === "İcra" && !t.freeInput.trim()) return "İcra: dəyər tələb olunur";
     if (t.type === "Fərdi İnkişaf" && !t.freeInput.trim()) return "Fərdi İnkişaf: dəyər tələb olunur";
+    if (!t.evaluator) return `"${t.name || "Hədəf"}" üçün Qiymətləndirici seçilməlidir`;
     return null;
   };
 
