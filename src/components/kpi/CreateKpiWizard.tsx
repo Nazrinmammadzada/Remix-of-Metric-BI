@@ -923,7 +923,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2 pt-4 border-t border-border mt-4">
+        <div className="flex items-center justify-between gap-2 pt-3 border-t border-border mt-3">
           <button type="button" onClick={() => step > 1 && setStep(step - 1)} disabled={step === 1}
             className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground disabled:opacity-40">
             <ChevronLeft className="w-4 h-4" /> Geri
