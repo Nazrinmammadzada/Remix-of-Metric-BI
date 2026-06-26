@@ -27,6 +27,9 @@ import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
+import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStore";
+import { enqueueApproval } from "@/lib/approvalsStore";
+import { getCurrentEmployeeId } from "@/lib/scope";
 
 interface EvaluatorPerson { name: string; weight: number; }
 interface EvaluatorConfig {
