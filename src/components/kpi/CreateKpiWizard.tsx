@@ -332,7 +332,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); else onOpenChange(true); }}>
-      <DialogContent className="max-w-6xl w-[97vw] max-h-[94vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="w-5 h-5 text-primary" />
