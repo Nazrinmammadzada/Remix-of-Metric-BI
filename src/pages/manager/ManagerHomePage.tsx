@@ -44,11 +44,16 @@ const ManagerHomePage = () => {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <FancyStatCard icon={Users} label="Komanda üzvləri" value={teamData.length} accent="primary" />
-          <FancyStatCard icon={Target} label="Aktiv KPI" value={12} accent="violet" />
-          <FancyStatCard icon={Trophy} label="Orta Performans" value={`${avg}%`} accent="emerald" />
-          <FancyStatCard icon={Gift} label="Bu ay bonus" value="3.2K AZN" accent="amber" />
+          <FancyStatCard icon={Users} label="Komanda üzvləri" value={teamMembers} accent="primary" />
+          <FancyStatCard icon={Target} label="Aktiv KPI" value={activeKpis} accent="violet" />
+          <FancyStatCard icon={Trophy} label="Təsdiq gözləyir" value={pendingApprovals} accent="amber" />
+          <FancyStatCard icon={Gift} label="Bu ay bonus" value="3.2K AZN" accent="emerald" />
         </div>
+
+        <div className="mb-6">
+          <SharedKpiPanel title="Komandama aid KPI kartları" />
+        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <FancyCard title="Komanda performansı" subtitle="Cari ay" className="lg:col-span-2">
