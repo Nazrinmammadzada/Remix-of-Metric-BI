@@ -780,40 +780,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           {/* ===== STEP 3: TƏYİNATLAR ===== */}
           {step === 3 && (
             <div className="space-y-5">
-              {/* KPI-ni təyin edən */}
-              <div className="rounded-lg border border-border bg-card/40 p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-foreground">KPI-ni təyin edən</h3>
-                <div className="flex gap-2">
-                  {([
-                    { v: "self" as const, t: "Özüm" },
-                    { v: "other" as const, t: "Digər əməkdaş" },
-                  ]).map(o => {
-                    const active = draft.createdBy === o.v;
-                    return (
-                      <button key={o.v} type="button"
-                        onClick={() => update({ createdBy: o.v, createdByEmployee: o.v === "self" ? "" : draft.createdByEmployee })}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium ${active ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
-                        {o.t}
-                      </button>
-                    );
-                  })}
-                </div>
-                {draft.createdBy === "other" && (
-                  <div>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                      <input value={empSearch} onChange={e => setEmpSearch(e.target.value)}
-                        placeholder="Əməkdaş adı ilə axtarın..."
-                        className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded bg-background" />
-                    </div>
-                    <select value={draft.createdByEmployee} onChange={e => update({ createdByEmployee: e.target.value })}
-                      className="w-full mt-2 px-2.5 py-2 text-sm border border-border rounded bg-background">
-                      <option value="">— Aktiv əməkdaş seçin —</option>
-                      {filteredEmployees.map(e => <option key={e.id} value={e.label}>{e.label}</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
+              {/* KPI-ni təyin edən artıq 2-ci addımdadır */}
 
               {/* Qiymətləndiricilər */}
               <div className="rounded-lg border border-border bg-card/40 p-4 space-y-3">
