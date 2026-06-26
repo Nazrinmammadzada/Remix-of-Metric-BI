@@ -73,7 +73,7 @@ export interface WizardLifecycleReview {
   end: string;
 }
 
-export type WizardAction = "draft" | "create" | "create_active";
+export type WizardAction = "draft" | "submit" | "create_active";
 
 export interface CreateKpiWizardDraft {
   name: string;
@@ -83,6 +83,7 @@ export interface CreateKpiWizardDraft {
   endDate: string;
   scoringSystem: string; // 1-5 / 1-10 / Digər
   useMatrix: boolean;
+  approvalMatrixId: string;
 
   lifecycle: {
     assignmentDeadline: string;
@@ -99,6 +100,7 @@ export interface CreateKpiWizardDraft {
   assignTargets: WizardAssignTarget[];
 
   action?: WizardAction;
+  lastStep?: number;
 }
 
 export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
