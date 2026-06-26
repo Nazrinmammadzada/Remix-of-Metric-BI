@@ -181,7 +181,11 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
                 {notifications.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Bildiriş yoxdur</p>
                 ) : notifications.map(n => (
-                  <div key={n.id} className={`p-3 border-b border-border hover:bg-secondary cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}>
+                  <div
+                    key={n.id}
+                    onClick={() => { if (n.link) { navigate(n.link); setShowNotif(false); } }}
+                    className={`p-3 border-b border-border hover:bg-secondary cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}
+                  >
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">{notifIcon(n.type)}</div>
                       <div className="flex-1 min-w-0">
@@ -195,8 +199,12 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
                 ))}
               </div>
               <div className="p-2 border-t border-border">
-                <button className="w-full text-center text-xs text-primary hover:underline py-1">Hamısını gör</button>
+                <button
+                  onClick={() => meId && markAllRead(meId)}
+                  className="w-full text-center text-xs text-primary hover:underline py-1"
+                >Hamısını oxunmuş et</button>
               </div>
+
             </div>
           )}
         </div>
