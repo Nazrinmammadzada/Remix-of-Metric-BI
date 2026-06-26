@@ -603,7 +603,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     </div>
 
                     {/* Type-specific eval fields */}
-                    <div className="rounded-md bg-secondary/30 border border-border/60 p-3">
+                    <div className="rounded-md bg-secondary/30 border border-border/60 p-2">
                       <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Qiymətləndirmə — {t.type}</div>
 
                       {showMinMax && (
