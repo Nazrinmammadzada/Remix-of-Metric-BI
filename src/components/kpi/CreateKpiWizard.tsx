@@ -795,11 +795,24 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           Bu hədəf üzrə cascade tətbiq olunsun
                         </label>
                         {t.cascading && (
-                          <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
-                            className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                            <option value="">— Cascade Matrix seçin —</option>
-                            {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
-                          </select>
+                          <>
+                            <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
+                              className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                              <option value="">— Cascade Matrix seçin —</option>
+                              {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
+                            </select>
+                            {t.cascadeMatrix && draft.targets.filter(x => CASCADE_TYPES.includes(x.type)).length > 1 && (
+                              <button type="button"
+                                onClick={() => {
+                                  const count = draft.targets.filter(x => CASCADE_TYPES.includes(x.type)).length;
+                                  applyCascadeToAll(t.cascadeMatrix);
+                                  toast.success(`Cascade matrisi bütün uyğun hədəflərə tətbiq edildi (${count})`);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
+                                ⤵ Bütün cascade-uyğun hədəflərə tətbiq et
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     )}
