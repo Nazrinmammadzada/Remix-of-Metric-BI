@@ -850,6 +850,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <td className="py-2 px-2">
                                 <div className="flex items-center gap-1">
                                   <button
+                                    onClick={(e) => { e.stopPropagation(); openDetail(card); }}
+                                    title="Bax"
+                                    className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                  {st.status !== "aktiv" && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setEditingCardId(card.id); setShowCreate(true); setCreateStep(1); }}
+                                      title="Redaktə et"
+                                      className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openWizard({
