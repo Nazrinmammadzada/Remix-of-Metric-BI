@@ -729,13 +729,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   return (
     <div className="min-h-screen">
       <Header title="KPİ-lar" />
-      {onBack && (
-        <div className="px-6 pt-4">
-          <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
-            ← Geri
-          </button>
-        </div>
-      )}
       <main className="p-6 pb-24">
         <PageHero
           badge="KPİ İdarəetməsi"
@@ -762,12 +755,23 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <button onClick={() => setViewMode("card")} title="Kart görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "card" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
                 <button onClick={() => setViewMode("list")} title="Siyahı görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><List className="w-4 h-4" /></button>
               </div>
-              <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                <Plus className="w-4 h-4" /> Yeni KPI
-              </button>
             </div>
           }
         />
+
+        {(onBack || true) && (
+          <div className="flex items-center gap-2 mb-4">
+            {onBack && (
+              <button onClick={onBack} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary text-foreground">
+                ← Geri
+              </button>
+            )}
+            <button onClick={() => { setEditingCardId(null); setWizardOpen(true); }} className="ml-auto inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+              <Plus className="w-4 h-4" /> Yeni KPI
+            </button>
+          </div>
+        )}
+
 
         {!forcedKartView && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
