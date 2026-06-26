@@ -446,6 +446,39 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       const next = await mod.fetchAllStatuses();
       setStatusMap(next);
     } catch {}
+
+    // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===
+    try {
+      const ownerId = getCurrentEmployeeId(user) || "e1";
+      const sharedStatus = nextStatus === "tesdiq_gozlenilir" ? "tesdiq_gozlenilir"
+        : nextStatus === "aktiv" ? "aktiv"
+        : nextStatus === "imtina" ? "imtina"
+        : "natamam";
+      const sharedId = `legacy-${id}`;
+      const shared = buildSharedCardFromDraft(d, {
+        id: sharedId,
+        numericId: id,
+        ownerId,
+        status: sharedStatus,
+        matrixId: d.useMatrix ? (d.approvalMatrixId || null) : null,
+      });
+      upsertSharedKpiCard(shared);
+      // If submitted to a matrix, push to approval queue so MANAGER sees it.
+      if (action === "submit" && d.useMatrix && d.approvalMatrixId) {
+        // Demo: the Sales manager (e8) acts as approver. Real implementation would
+        // resolve approver employee ids from the selected matrix steps.
+        enqueueApproval({
+          kpiCardId: sharedId,
+          kpiName: shared.name,
+          matrixId: d.approvalMatrixId,
+          approverIds: ["e8"],
+          createdBy: ownerId,
+        });
+      }
+    } catch (err) {
+      // non-fatal — cross-panel sync is best-effort
+      console.warn("shared kpi sync failed", err);
+    }
   };
 
 
