@@ -299,9 +299,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         if (first) toast.error(first);
         else if (totalWeight !== 100) toast.error(`Hədəf çəkilərinin cəmi 100% olmalıdır (hazırda ${totalWeight}%)`);
         else toast.error("Ən az bir hədəf əlavə edin");
-      } else if (step === 3) {
-        if (draft.evaluators.length > 1 && evalWeight !== 100) toast.error(`Qiymətləndirici çəkilərinin cəmi 100% olmalıdır (hazırda ${evalWeight}%)`);
-        else toast.error("Təyinat məlumatlarını tamamlayın");
       }
       return;
     }
