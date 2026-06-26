@@ -1,7 +1,9 @@
 import { Search, Bell, Moon, Sun, LogOut, Mail, Building2, Users as UsersIcon, CheckCircle2, AlertCircle, Clock, Globe, Shield } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useNotificationsFor, markAllRead } from "@/lib/notificationsStore";
+import { getCurrentEmployeeId } from "@/lib/scope";
 
 interface HeaderProps {
   title: string;
@@ -9,12 +11,13 @@ interface HeaderProps {
 }
 
 interface Notification {
-  id: number;
+  id: string;
   title: string;
   message: string;
   time: string;
   type: "approval" | "kpi" | "system";
   read: boolean;
+  link?: string;
 }
 
 const Header = ({ title, showVersion = true }: HeaderProps) => {
@@ -38,18 +41,23 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
   const now = new Date();
   const dateStr = `${now.getFullYear()} M${String(now.getMonth() + 1).padStart(2, '0')} ${now.getDate()}, ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]}`;
 
-  // Role-based notifications
-  const notifications: Notification[] = user?.role === "HR" ? [
-    { id: 1, title: "Yeni KPI Təsdiq Tələbi", message: "Samir Həsənov tərəfindən yeni KPI təsdiqə göndərildi", time: "5 dəq əvvəl", type: "approval", read: false },
-    { id: 2, title: "Aylıq Hesabat Hazırdır", message: "Mart ayı üzrə KPI hesabatı yaradıldı", time: "2 saat əvvəl", type: "kpi", read: false },
-    { id: 3, title: "Komanda Performansı", message: "Satış komandası hədəfi 95% yerinə yetirib", time: "Dünən", type: "system", read: true },
-  ] : [
-    { id: 1, title: "KPI Təsdiq Edildi", message: "Aylıq Satış Hədəfi KPI-niz HR tərəfindən təsdiq edildi", time: "10 dəq əvvəl", type: "approval", read: false },
-    { id: 2, title: "Yeni KPI Təyin Edildi", message: "Sizə yeni KPI təyin edildi: Müştəri Əldə Etmə", time: "1 saat əvvəl", type: "kpi", read: false },
-    { id: 3, title: "Performans Yeniləndi", message: "Cari progress: 84% (Yaşıl Zona)", time: "Dünən", type: "system", read: true },
-  ];
+  // Live notifications scoped to the current user.
+  const meId = getCurrentEmployeeId(user);
+  const liveNotifs = useNotificationsFor(meId);
+  const notifications: Notification[] = useMemo(() => liveNotifs.map(n => ({
+    id: n.id,
+    title: n.title,
+    message: n.body || "",
+    time: new Date(n.createdAt).toLocaleString("az-AZ", { hour: "2-digit", minute: "2-digit" }),
+    type: n.type === "approval_request" || n.type === "approval_result" ? "approval"
+      : n.type === "goal_assigned" || n.type === "execution_update" ? "kpi"
+      : "system",
+    read: n.read,
+    link: n.link,
+  })), [liveNotifs]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
 
   useEffect(() => {
     if (dark) document.documentElement.classList.add("dark");
