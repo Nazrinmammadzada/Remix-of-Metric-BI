@@ -3,6 +3,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Users, Target, Trophy, Gift, Sparkles, TrendingUp } from "lucide-react";
 import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
+import { useApprovals } from "@/lib/approvalsStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { getCurrentEmployeeId, getVisibleApprovals, getVisibleKpiCards, getVisibleTeams } from "@/lib/scope";
+import { useMemo } from "react";
 
 const teamData = [
   { name: "Aysel", value: 92 },
@@ -14,7 +19,18 @@ const teamData = [
 
 const ManagerHomePage = () => {
   const { user } = useAuth();
+  const approvals = useApprovals();
+  const cards = useSharedKpiCards();
+  const meId = getCurrentEmployeeId(user);
+  const visibleApprovals = useMemo(() => getVisibleApprovals(user, approvals), [user, approvals]);
+  const visibleCards = useMemo(() => getVisibleKpiCards(user, cards), [user, cards]);
+  const teams = useMemo(() => getVisibleTeams(user), [user]);
+  const teamMembers = teams.reduce((acc, t) => acc + t.memberIds.length, 0);
+  const pendingApprovals = visibleApprovals.filter(a => a.status === "pending"
+    && meId && a.decisions[meId]?.decision === "pending").length;
+  const activeKpis = visibleCards.filter(c => c.status === "aktiv").length;
   const avg = Math.round(teamData.reduce((s, t) => s + t.value, 0) / teamData.length);
+
 
   return (
     <div className="min-h-screen">
@@ -28,11 +44,16 @@ const ManagerHomePage = () => {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <FancyStatCard icon={Users} label="Komanda üzvləri" value={teamData.length} accent="primary" />
-          <FancyStatCard icon={Target} label="Aktiv KPI" value={12} accent="violet" />
-          <FancyStatCard icon={Trophy} label="Orta Performans" value={`${avg}%`} accent="emerald" />
-          <FancyStatCard icon={Gift} label="Bu ay bonus" value="3.2K AZN" accent="amber" />
+          <FancyStatCard icon={Users} label="Komanda üzvləri" value={teamMembers} accent="primary" />
+          <FancyStatCard icon={Target} label="Aktiv KPI" value={activeKpis} accent="violet" />
+          <FancyStatCard icon={Trophy} label="Təsdiq gözləyir" value={pendingApprovals} accent="amber" />
+          <FancyStatCard icon={Gift} label="Bu ay bonus" value="3.2K AZN" accent="emerald" />
         </div>
+
+        <div className="mb-6">
+          <SharedKpiPanel title="Komandama aid KPI kartları" />
+        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <FancyCard title="Komanda performansı" subtitle="Cari ay" className="lg:col-span-2">

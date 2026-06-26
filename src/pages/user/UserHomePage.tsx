@@ -4,6 +4,7 @@ import { TrendingUp, Target, CheckCircle, Clock, Sparkles } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { AIChatSection } from "@/components/ai/AIChatSection";
+import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
 
 const chartData = [
   { month: "Yan", value: 72 }, { month: "Fev", value: 76 }, { month: "Mar", value: 80 },
@@ -39,6 +40,11 @@ const UserHomePage = () => {
           <FancyStatCard icon={Clock} label="Gözləyən" value={myKpis.filter(k => k.status === "pending").length} accent="amber" />
           <FancyStatCard icon={TrendingUp} label="Orta Performans" value={`${avg}%`} accent="violet" />
         </div>
+
+        <div className="mb-6">
+          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe />
+        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <FancyCard title="Performans Dinamikası" subtitle="Son 6 ay" className="lg:col-span-2">

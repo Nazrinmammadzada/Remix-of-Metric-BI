@@ -27,6 +27,9 @@ import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
+import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStore";
+import { enqueueApproval } from "@/lib/approvalsStore";
+import { getCurrentEmployeeId } from "@/lib/scope";
 
 interface EvaluatorPerson { name: string; weight: number; }
 interface EvaluatorConfig {
@@ -443,6 +446,39 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       const next = await mod.fetchAllStatuses();
       setStatusMap(next);
     } catch {}
+
+    // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===
+    try {
+      const ownerId = getCurrentEmployeeId(user) || "e1";
+      const sharedStatus: "natamam" | "tesdiq_gozlenilir" | "aktiv" =
+        nextStatus === "tesdiq_gozlenilir" ? "tesdiq_gozlenilir"
+        : nextStatus === "aktiv" ? "aktiv"
+        : "natamam";
+      const sharedId = `legacy-${id}`;
+      const shared = buildSharedCardFromDraft(d, {
+        id: sharedId,
+        numericId: id,
+        ownerId,
+        status: sharedStatus,
+        matrixId: d.useMatrix ? (d.approvalMatrixId || null) : null,
+      });
+      upsertSharedKpiCard(shared);
+      // If submitted to a matrix, push to approval queue so MANAGER sees it.
+      if (action === "submit" && d.useMatrix && d.approvalMatrixId) {
+        // Demo: the Sales manager (e8) acts as approver. Real implementation would
+        // resolve approver employee ids from the selected matrix steps.
+        enqueueApproval({
+          kpiCardId: sharedId,
+          kpiName: shared.name,
+          matrixId: d.approvalMatrixId,
+          approverIds: ["e8"],
+          createdBy: ownerId,
+        });
+      }
+    } catch (err) {
+      // non-fatal — cross-panel sync is best-effort
+      console.warn("shared kpi sync failed", err);
+    }
   };
 
 
