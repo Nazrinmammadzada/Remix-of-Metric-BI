@@ -27,6 +27,11 @@ export interface WizardHedef {
   name: string;
   type: HedefType;
   weight: number;
+  scoreLimit: number; // Qiymətləndirmə balı (per-target)
+
+  // Per-target qiymətləndirici və təyin edici (əməkdaş)
+  evaluator: string;
+  assigner: string;
 
   // Type-specific evaluation
   min: string;
