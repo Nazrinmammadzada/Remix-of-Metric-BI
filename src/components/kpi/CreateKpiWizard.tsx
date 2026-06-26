@@ -526,19 +526,9 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </div>
                 {draft.createdBy === "other" && (
-                  <div className="grid grid-cols-12 gap-2">
-                    <div className="col-span-12 md:col-span-5 relative">
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                      <input value={empSearch} onChange={e => setEmpSearch(e.target.value)}
-                        placeholder="Əməkdaş adı ilə axtarın..."
-                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" />
-                    </div>
-                    <select value={draft.createdByEmployee} onChange={e => update({ createdByEmployee: e.target.value })}
-                      className="col-span-12 md:col-span-7 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                      <option value="">— Aktiv əməkdaş seçin —</option>
-                      {filteredEmployees.map(e => <option key={e.id} value={e.label}>{e.label}</option>)}
-                    </select>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Hər hədəfin daxilində "Təyin edici" düyməsi ilə fərqli əməkdaşlar təyin edə bilərsiniz.
+                  </p>
                 )}
                 {draft.createdBy === "self" && (
                   <p className="text-[11px] text-muted-foreground italic">Özüm təyin etdiyim üçün hər hədəfdə "Təyin edici" düyməsi qeyri-aktivdir.</p>
