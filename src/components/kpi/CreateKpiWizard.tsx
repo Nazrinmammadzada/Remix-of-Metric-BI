@@ -630,29 +630,62 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     <div className="rounded-md bg-secondary/30 border border-border/60 p-2">
                       <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Qiymətləndirmə — {t.type}</div>
 
-                      {showMinMax && (
-                        <div className="grid grid-cols-12 gap-2">
-                          <div className="col-span-6 md:col-span-4">
-                            <label className="text-[11px] text-muted-foreground">Min *</label>
-                            <input type="number" value={t.min} onChange={e => updHedef(t.id, { min: e.target.value })}
-                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          <div className="col-span-6 md:col-span-4">
-                            <label className="text-[11px] text-muted-foreground">Max *</label>
-                            <input type="number" value={t.max} onChange={e => updHedef(t.id, { max: e.target.value })}
-                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          {t.type === "Məbləğ" && (
-                            <div className="col-span-12 md:col-span-4">
-                              <label className="text-[11px] text-muted-foreground">Valyuta</label>
-                              <select value={t.currency} onChange={e => updHedef(t.id, { currency: e.target.value as WizardHedef["currency"] })}
-                                className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
-                                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                              </select>
+                      {showMinMax && (() => {
+                        const ranges = t.ranges && t.ranges.length > 0
+                          ? t.ranges
+                          : [{ id: crypto.randomUUID(), min: t.min, max: t.max, score: String(t.scoreLimit ?? "") }];
+                        const setRanges = (rs: typeof ranges) => updHedef(t.id, { ranges: rs, min: rs[0]?.min || "", max: rs[0]?.max || "" });
+                        return (
+                          <div className="space-y-1.5">
+                            {t.type === "Məbləğ" && (
+                              <div className="flex items-center justify-end gap-2">
+                                <label className="text-[11px] text-muted-foreground">Valyuta</label>
+                                <select value={t.currency} onChange={e => updHedef(t.id, { currency: e.target.value as WizardHedef["currency"] })}
+                                  className="px-2 py-1 text-xs border border-border rounded bg-background">
+                                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-12 gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
+                              <div className="col-span-3">Min *</div>
+                              <div className="col-span-3">Max *</div>
+                              <div className="col-span-3">Bal *{scoreMax !== undefined && <span className="normal-case"> (1-{scoreMax})</span>}</div>
+                              <div className="col-span-3 text-right">Əməl.</div>
                             </div>
-                          )}
-                        </div>
-                      )}
+                            {ranges.map((r, idx) => (
+                              <div key={r.id} className="grid grid-cols-12 gap-1.5 items-center">
+                                <input type="number" value={r.min} placeholder="0"
+                                  onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, min: e.target.value } : x))}
+                                  className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                <input type="number" value={r.max} placeholder="0"
+                                  onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, max: e.target.value } : x))}
+                                  className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                <input type="number" value={r.score} placeholder="0" min={1} max={scoreMax}
+                                  onChange={e => {
+                                    let v = e.target.value;
+                                    if (scoreMax !== undefined && Number(v) > scoreMax) v = String(scoreMax);
+                                    setRanges(ranges.map(x => x.id === r.id ? { ...x, score: v } : x));
+                                  }}
+                                  className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                <div className="col-span-3 flex justify-end">
+                                  {ranges.length > 1 && (
+                                    <button type="button" onClick={() => setRanges(ranges.filter(x => x.id !== r.id))}
+                                      className="p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            <button type="button"
+                              onClick={() => setRanges([...ranges, { id: crypto.randomUUID(), min: "", max: "", score: "" }])}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-dashed border-primary/50 text-primary hover:bg-primary/10">
+                              <Plus className="w-3.5 h-3.5" /> Aralıq əlavə et (Min / Max / Bal)
+                            </button>
+                          </div>
+                        );
+                      })()}
+
 
                       {t.type === "İcra" && (
                         <input value={t.freeInput} onChange={e => updHedef(t.id, { freeInput: e.target.value })}
