@@ -276,9 +276,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
       return `Qiymətləndirmə balı ${scoreMax}-dən böyük ola bilməz (bal sistemi: ${draft.scoringSystem})`;
     }
     if (["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type)) {
-      if (t.min === "" || t.max === "") return `${t.type}: Min və Max tələb olunur`;
-      if (Number(t.min) > Number(t.max)) return `${t.type}: Min Max-dan kiçik olmalıdır`;
+      const rs = t.ranges && t.ranges.length > 0 ? t.ranges : [{ id: "x", min: t.min, max: t.max, score: String(t.scoreLimit ?? "") }];
+      for (let i = 0; i < rs.length; i++) {
+        const r = rs[i];
+        if (r.min === "" || r.max === "" || r.score === "") return `${t.type}: Aralıq #${i + 1} — Min, Max və Bal tələb olunur`;
+        if (Number(r.min) > Number(r.max)) return `${t.type}: Aralıq #${i + 1} — Min Max-dan kiçik olmalıdır`;
+        if (scoreMax !== undefined && Number(r.score) > scoreMax) return `${t.type}: Aralıq #${i + 1} — Bal ${scoreMax}-dən böyük ola bilməz`;
+      }
     }
+
     if (t.type === "Səriştə" && !t.competencyMatrix) return "Səriştə: Competency Matrix seçilməlidir";
     if (t.type === "Zaman" && (!t.timeStart || !t.timeEnd)) return "Zaman: tarix aralığı tələb olunur";
     if (t.type === "İcra" && !t.freeInput.trim()) return "İcra: dəyər tələb olunur";
