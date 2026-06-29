@@ -39,7 +39,7 @@ export interface WizardHedef {
   max: string;
   currency: "AZN" | "USD" | "EUR";
   /** Birdən çox qiymət aralığı (min/max/bal). Boş olduqda min/max istifadə olunur. */
-  ranges?: { id: string; min: string; max: string; score: string }[];
+  ranges?: { id: string; min: string; max: string; score: string; weight: string }[];
   competencyMatrix: string;
   freeInput: string;
   booleanYes: number;
