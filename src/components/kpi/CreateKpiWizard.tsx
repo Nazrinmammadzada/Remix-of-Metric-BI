@@ -690,9 +690,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         );
                       })()}
 
-                          </div>
-                        );
-                      })()}
+
 
 
                       {t.type === "İcra" && (
