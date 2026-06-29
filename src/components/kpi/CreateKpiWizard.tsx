@@ -38,6 +38,8 @@ export interface WizardHedef {
   min: string;
   max: string;
   currency: "AZN" | "USD" | "EUR";
+  /** Birdən çox qiymət aralığı (min/max/bal). Boş olduqda min/max istifadə olunur. */
+  ranges?: { id: string; min: string; max: string; score: string }[];
   competencyMatrix: string;
   freeInput: string;
   booleanYes: number;
@@ -49,6 +51,7 @@ export interface WizardHedef {
   cascading: boolean;
   cascadeMatrix: string;
 }
+
 
 export type AssigneeKind = "Şəxs" | "Komanda" | "Struktur" | "Vəzifə";
 
