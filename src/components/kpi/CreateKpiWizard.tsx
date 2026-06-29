@@ -39,7 +39,7 @@ export interface WizardHedef {
   max: string;
   currency: "AZN" | "USD" | "EUR";
   /** Birdən çox qiymət aralığı (min/max/bal). Boş olduqda min/max istifadə olunur. */
-  ranges?: { id: string; min: string; max: string; score: string }[];
+  ranges?: { id: string; min: string; max: string; score: string; weight: string }[];
   competencyMatrix: string;
   freeInput: string;
   booleanYes: number;
@@ -139,7 +139,7 @@ const emptyHedef = (): WizardHedef => ({
   min: "",
   max: "",
   currency: "AZN",
-  ranges: [{ id: crypto.randomUUID(), min: "", max: "", score: "" }],
+  ranges: [{ id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }],
   competencyMatrix: "",
 
   freeInput: "",
@@ -633,8 +633,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       {showMinMax && (() => {
                         const ranges = t.ranges && t.ranges.length > 0
                           ? t.ranges
-                          : [{ id: crypto.randomUUID(), min: t.min, max: t.max, score: String(t.scoreLimit ?? "") }];
-                        const setRanges = (rs: typeof ranges) => updHedef(t.id, { ranges: rs, min: rs[0]?.min || "", max: rs[0]?.max || "" });
+                          : [{ id: crypto.randomUUID(), min: t.min, max: t.max, score: String(t.scoreLimit ?? ""), weight: String(t.weight ?? "") }];
+                        const setRanges = (rs: NonNullable<WizardHedef["ranges"]>) => updHedef(t.id, { ranges: rs, min: rs[0]?.min || "", max: rs[0]?.max || "" });
                         return (
                           <div className="space-y-1.5">
                             {t.type === "Məbləğ" && (
@@ -649,10 +649,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                             <div className="grid grid-cols-12 gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
                               <div className="col-span-3">Min *</div>
                               <div className="col-span-3">Max *</div>
-                              <div className="col-span-3">Bal *{scoreMax !== undefined && <span className="normal-case"> (1-{scoreMax})</span>}</div>
-                              <div className="col-span-3 text-right">Əməl.</div>
+                              <div className="col-span-2">Bal *{scoreMax !== undefined && <span className="normal-case"> (1-{scoreMax})</span>}</div>
+                              <div className="col-span-2">Çəki %</div>
+                              <div className="col-span-2 text-right">Əməl.</div>
                             </div>
-                            {ranges.map((r, idx) => (
+                            {ranges.map((r) => (
                               <div key={r.id} className="grid grid-cols-12 gap-1.5 items-center">
                                 <input type="number" value={r.min} placeholder="0"
                                   onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, min: e.target.value } : x))}
@@ -666,8 +667,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                                     if (scoreMax !== undefined && Number(v) > scoreMax) v = String(scoreMax);
                                     setRanges(ranges.map(x => x.id === r.id ? { ...x, score: v } : x));
                                   }}
-                                  className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
-                                <div className="col-span-3 flex justify-end">
+                                  className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                <input type="number" value={r.weight} placeholder="0" min={0} max={100}
+                                  onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, weight: e.target.value } : x))}
+                                  className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                <div className="col-span-2 flex justify-end">
                                   {ranges.length > 1 && (
                                     <button type="button" onClick={() => setRanges(ranges.filter(x => x.id !== r.id))}
                                       className="p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
@@ -678,13 +682,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                               </div>
                             ))}
                             <button type="button"
-                              onClick={() => setRanges([...ranges, { id: crypto.randomUUID(), min: "", max: "", score: "" }])}
+                              onClick={() => setRanges([...ranges, { id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }])}
                               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-dashed border-primary/50 text-primary hover:bg-primary/10">
-                              <Plus className="w-3.5 h-3.5" /> Aralıq əlavə et (Min / Max / Bal)
+                              <Plus className="w-3.5 h-3.5" /> Aralıq əlavə et (Min / Max / Bal / Çəki)
                             </button>
                           </div>
                         );
                       })()}
+
+
 
 
                       {t.type === "İcra" && (
