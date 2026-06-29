@@ -139,7 +139,7 @@ const emptyHedef = (): WizardHedef => ({
   min: "",
   max: "",
   currency: "AZN",
-  ranges: [{ id: crypto.randomUUID(), min: "", max: "", score: "" }],
+  ranges: [{ id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }],
   competencyMatrix: "",
 
   freeInput: "",
