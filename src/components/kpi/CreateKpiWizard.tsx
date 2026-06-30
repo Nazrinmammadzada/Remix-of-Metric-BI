@@ -513,7 +513,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   const handleNext = () => {
     if (!canNext) {
-      if (step === 1) toast.error("Bütün tələb olunan sahələri doldurun");
+      if (step === 1) toast.error("Bütün tələb olunan sahələri (lifecycle tarixləri daxil) doldurun");
       else if (step === 2) {
         const first = draft.targets.map(validateHedef).find(Boolean);
         if (first) toast.error(first);
