@@ -864,9 +864,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
             {kartView === "kart1" && forcedKartView === "kart1" ? (() => {
               // Status-based table for "Kartlar üzrə"
-              const STATUS_LABELS = { natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv" } as const;
+              const STATUS_LABELS = { natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv" } as const;
               const STATUS_STYLES: Record<string, string> = {
-                natamam: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
+                natamam: "bg-muted text-muted-foreground border-border",
                 tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
                 imtina: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
                 aktiv: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
@@ -951,7 +951,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                         const next = await mod.fetchAllStatuses();
                                         setStatusMap(next);
                                       } catch {}
-                                      toast.success("Kart kopyalandı (Natamam)");
+                                      toast.success("Kart kopyalandı (Qaralama)");
                                     }}
                                     title="Kopyala"
                                     className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -1223,7 +1223,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Təyin edənlər — Natamam</DialogTitle>
+            <DialogTitle>Təyin edənlər — Qaralama</DialogTitle>
           </DialogHeader>
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);

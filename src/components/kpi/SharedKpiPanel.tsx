@@ -69,7 +69,7 @@ export default function SharedKpiPanel({ title = "Sizə aid KPI kartları", empt
                       : card.status === "imtina" ? "bg-rose-500/15 text-rose-700"
                       : "bg-amber-500/15 text-amber-700"
                     }`}>
-                      {card.status === "aktiv" ? "Aktiv" : card.status === "tesdiq_gozlenilir" ? "Təsdiq gözləyir" : card.status === "imtina" ? "İmtina" : "Natamam"}
+                      {card.status === "aktiv" ? "Aktiv" : card.status === "tesdiq_gozlenilir" ? "Təsdiq gözləyir" : card.status === "imtina" ? "İmtina" : "Qaralama"}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
