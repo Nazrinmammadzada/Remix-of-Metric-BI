@@ -228,13 +228,14 @@ const quarterRange = (year: number, q: 1 | 2 | 3 | 4): [string, string] => {
 
 // ============ MULTI-SELECT (search) ============
 function MultiSelectDropdown({
-  options, selected, onChange, placeholder, ariaLabel,
+  options, selected, onChange, placeholder, ariaLabel, disabled,
 }: {
   options: { value: string; label: string }[];
   selected: string[];
   onChange: (v: string[]) => void;
   placeholder: string;
   ariaLabel?: string;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -250,8 +251,9 @@ function MultiSelectDropdown({
       <button
         type="button"
         aria-label={ariaLabel}
-        onClick={() => setOpen(o => !o)}
-        className="w-full min-h-[36px] px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background flex items-center justify-between gap-2"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen(o => !o)}
+        className="w-full min-h-[36px] px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background flex items-center justify-between gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span className={selected.length ? "text-foreground" : "text-muted-foreground"}>
           {selected.length ? `${selected.length} seçildi` : placeholder}
