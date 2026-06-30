@@ -994,56 +994,75 @@ function Step2Targets({
   applyAssignerToAll: (n: string) => void;
 }) {
   // Unified picker for "vahid təyinedici / qiymətləndirici"
+  const [unifiedOpen, setUnifiedOpen] = useState(false);
   const [unifiedAssigner, setUnifiedAssigner] = useState<string>("");
   const [unifiedEvaluators, setUnifiedEvaluators] = useState<WizardEvaluatorRef[]>([]);
   const [scoreDlgFor, setScoreDlgFor] = useState<string | null>(null);
+  const [assignerPickerFor, setAssignerPickerFor] = useState<string | null>(null);
+  const [evalPickerFor, setEvalPickerFor] = useState<string | null>(null);
 
   const scoreDlgTarget = draft.targets.find(t => t.id === scoreDlgFor) || null;
 
   return (
     <div className="space-y-3">
-      {/* Vahid seçim panel */}
-      <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2.5">
-        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5 text-primary" /> Vahid seçim (bütün hədəflərə tətbiq)
+      {/* Vahid seçim — şəkil 1 stilində */}
+      <div className="rounded-xl border border-sky-200 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-900 px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-foreground">Sub-kpi-lar, qiymətləndirici və təyin edicilər</h3>
+          <div className="flex items-center gap-3 text-xs">
+            <span className={`font-medium ${totalWeight === 100 ? "text-emerald-600" : "text-amber-600"}`}>Toplam çəki: {totalWeight}%</span>
+            <button type="button" onClick={addHedef} className="text-primary font-medium hover:underline">+ Yeni</button>
+          </div>
         </div>
-        <div className="grid grid-cols-12 gap-2">
-          <div className="col-span-12 md:col-span-6">
-            <label className="text-[11px] text-muted-foreground">Vahid Təyin edici</label>
-            <div className="flex gap-1.5 mt-0.5">
+        <div className="rounded-lg bg-white dark:bg-background border border-sky-100 dark:border-sky-900 px-3 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <UserPlus className="w-4 h-4 text-sky-600" />
+            Vahid şəxs (bütün sub-KPI-lar üçün)
+          </div>
+          <button type="button" onClick={() => setUnifiedOpen(o => !o)}
+            className="px-4 py-1.5 text-sm rounded-full border border-border bg-background hover:bg-secondary">
+            Seç
+          </button>
+        </div>
+        {unifiedOpen && (
+          <div className="mt-2.5 rounded-lg bg-white dark:bg-background border border-sky-100 dark:border-sky-900 p-3 space-y-3">
+            <div>
+              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici</label>
               <select value={unifiedAssigner} onChange={e => setUnifiedAssigner(e.target.value)}
-                className="flex-1 px-2 py-1.5 text-xs border border-border rounded bg-background">
-                <option value="">— Seçin —</option>
+                className="w-full mt-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                <option value="">— Əməkdaş seçin —</option>
                 {employeeOptions.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) — faiz cəmi 100%</label>
+              <UnifiedEvaluatorsEditor
+                employeeOptions={employeeOptions}
+                evaluators={unifiedEvaluators}
+                onChange={setUnifiedEvaluators}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button type="button" onClick={() => setUnifiedOpen(false)}
+                className="px-3 py-1.5 text-xs rounded border border-border bg-card">Ləğv et</button>
               <button type="button"
-                disabled={!unifiedAssigner || draft.targets.length === 0}
-                onClick={() => { applyAssignerToAll(unifiedAssigner); toast.success(`Təyin edici ${draft.targets.length} hədəfə tətbiq edildi`); }}
-                className="px-2.5 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
-                Tətbiq et
+                disabled={draft.targets.length === 0 || (!unifiedAssigner && unifiedEvaluators.length === 0)}
+                onClick={() => {
+                  if (unifiedEvaluators.length > 1) {
+                    const sum = unifiedEvaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+                    if (sum !== 100) { toast.error(`Qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+                  }
+                  if (unifiedAssigner) applyAssignerToAll(unifiedAssigner);
+                  if (unifiedEvaluators.length > 0) applyEvaluatorsToAll(unifiedEvaluators);
+                  toast.success(`${draft.targets.length} hədəfə tətbiq edildi`);
+                  setUnifiedOpen(false);
+                }}
+                className="px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
+                Hamısına tətbiq et
               </button>
             </div>
           </div>
-          <div className="col-span-12 md:col-span-6">
-            <label className="text-[11px] text-muted-foreground">Vahid Qiymətləndirici(lər)</label>
-            <UnifiedEvaluatorsEditor
-              employeeOptions={employeeOptions}
-              evaluators={unifiedEvaluators}
-              onChange={setUnifiedEvaluators}
-            />
-            <button type="button"
-              disabled={unifiedEvaluators.length === 0 || draft.targets.length === 0}
-              onClick={() => {
-                const sum = unifiedEvaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
-                if (unifiedEvaluators.length > 1 && sum !== 100) { toast.error(`Qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
-                applyEvaluatorsToAll(unifiedEvaluators);
-                toast.success(`Qiymətləndirici(lər) ${draft.targets.length} hədəfə tətbiq edildi`);
-              }}
-              className="w-full mt-1.5 px-2.5 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
-              Bütün hədəflərə tətbiq et
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
