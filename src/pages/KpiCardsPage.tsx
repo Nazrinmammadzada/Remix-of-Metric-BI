@@ -1223,7 +1223,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Təyin edənlər — Natamam</DialogTitle>
+            <DialogTitle>Təyin edənlər — Qaralama</DialogTitle>
           </DialogHeader>
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);
