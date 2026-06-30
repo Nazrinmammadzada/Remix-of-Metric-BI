@@ -490,9 +490,14 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   // Step gate (for "Növbəti")
   const canNext = useMemo(() => {
     switch (step) {
-      case 1:
+      case 1: {
+        const lc = draft.lifecycle;
+        const lifecycleOk = !!lc.assignmentStart && !!lc.assignmentEnd
+          && !!lc.evaluationStart && !!lc.evaluationEnd
+          && !!lc.bonusStart && !!lc.bonusEnd;
         return !!draft.name.trim() && !!draft.frequency && !!draft.startDate && !!draft.endDate
-          && draft.endDate >= draft.startDate && !!draft.scoringSystem;
+          && draft.endDate >= draft.startDate && !!draft.scoringSystem && lifecycleOk;
+      }
       case 2:
         return draft.targets.length > 0 && totalWeight === 100
           && draft.targets.every(t => validateHedef(t) === null);
