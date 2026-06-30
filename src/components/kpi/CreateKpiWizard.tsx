@@ -1154,139 +1154,75 @@ function Step2Targets({
               </div>
             </div>
 
-            {/* Type-specific eval fields — disabled when "other" */}
-            {!disabled && (
-              <div className="rounded-md bg-secondary/30 border border-border/60 p-2">
-                <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Qiymətləndirmə — {t.type}</div>
-
-                {showMinMax && !isScoreDescType && (() => {
-                  const ranges = t.ranges && t.ranges.length > 0
-                    ? t.ranges
-                    : [{ id: crypto.randomUUID(), min: t.min, max: t.max, score: String(t.scoreLimit ?? ""), weight: String(t.weight ?? "") }];
-                  const setRanges = (rs: NonNullable<WizardHedef["ranges"]>) => updHedef(t.id, { ranges: rs, min: rs[0]?.min || "", max: rs[0]?.max || "" });
-                  return (
-                    <div className="space-y-1.5">
-                      {t.type === "Məbləğ" && (
-                        <div className="flex items-center justify-end gap-2">
-                          <label className="text-[11px] text-muted-foreground">Valyuta</label>
-                          <select value={t.currency} onChange={e => updHedef(t.id, { currency: e.target.value as WizardHedef["currency"] })}
-                            className="px-2 py-1 text-xs border border-border rounded bg-background">
-                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-12 gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
-                        <div className="col-span-3">Min *</div>
-                        <div className="col-span-3">Max *</div>
-                        <div className="col-span-2">Bal *{scoreMax !== undefined && <span className="normal-case"> (1-{scoreMax})</span>}</div>
-                        <div className="col-span-2">Çəki %</div>
-                        <div className="col-span-2 text-right">Əməl.</div>
-                      </div>
-                      {ranges.map((r) => (
-                        <div key={r.id} className="grid grid-cols-12 gap-1.5 items-center">
-                          <input type="number" value={r.min} placeholder="0"
-                            onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, min: e.target.value } : x))}
-                            className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
-                          <input type="number" value={r.max} placeholder="0"
-                            onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, max: e.target.value } : x))}
-                            className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
-                          <input type="number" value={r.score} placeholder="0" min={1} max={scoreMax}
-                            onChange={e => {
-                              let v = e.target.value;
-                              if (scoreMax !== undefined && Number(v) > scoreMax) v = String(scoreMax);
-                              setRanges(ranges.map(x => x.id === r.id ? { ...x, score: v } : x));
-                            }}
-                            className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
-                          <input type="number" value={r.weight} placeholder="0" min={0} max={100}
-                            onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, weight: e.target.value } : x))}
-                            className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
-                          <div className="col-span-2 flex justify-end">
-                            {ranges.length > 1 && (
-                              <button type="button" onClick={() => setRanges(ranges.filter(x => x.id !== r.id))}
-                                className="p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      <button type="button"
-                        onClick={() => setRanges([...ranges, { id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }])}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-dashed border-primary/50 text-primary hover:bg-primary/10">
-                        <Plus className="w-3.5 h-3.5" /> Aralıq əlavə et (Min / Max / Bal / Çəki)
-                      </button>
-                    </div>
-                  );
-                })()}
-
-                {isScoreDescType && (
-                  <p className="text-[11px] text-muted-foreground italic">
-                    Bu növ üçün aralıq əlavə etmək mümkün deyil. <strong>"Qiymətlər"</strong> düyməsinə klik edib yalnız bal və izah daxil edin.
-                  </p>
-                )}
-
-                {t.type === "Səriştə" && (
-                  <select value={t.competencyMatrix} onChange={e => updHedef(t.id, { competencyMatrix: e.target.value })}
-                    className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                    <option value="">— Competency Matrix seçin —</option>
-                    <option value="Liderlik">Liderlik</option>
-                    <option value="Texniki Səriştə">Texniki Səriştə</option>
-                    <option value="Kommunikasiya">Kommunikasiya</option>
-                    <option value="Komanda işi">Komanda işi</option>
-                  </select>
-                )}
-
-                {t.type === "Boolean" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[11px] text-muted-foreground">Bəli =</label>
-                      <input type="number" value={t.booleanYes} onChange={e => updHedef(t.id, { booleanYes: Number(e.target.value) })}
-                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-muted-foreground">Xeyr =</label>
-                      <input type="number" value={t.booleanNo} onChange={e => updHedef(t.id, { booleanNo: Number(e.target.value) })}
-                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                    </div>
+            {/* Qiymətləndirici / Təyin edici — image-2 stilində dashed pill buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Qiymətləndirici seç */}
+              <div className="flex flex-col gap-1">
+                <button type="button"
+                  onClick={() => setEvalPickerFor(evalPickerFor === t.id ? null : t.id)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border-2 border-dashed border-indigo-400 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30">
+                  <UserPlus className="w-4 h-4" /> Qiymətləndirici seç
+                  {t.evaluators.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-indigo-100 text-indigo-700">{t.evaluators.length}</span>}
+                </button>
+                {t.evaluators.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {t.evaluators.map(ev => (
+                      <span key={ev.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-indigo-50 text-indigo-700 rounded">
+                        {ev.name.split(" — ")[0]}{t.evaluators.length > 1 && ` (${ev.weight}%)`}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>
-            )}
 
-            {/* Qiymətləndiricilər + Təyin edici */}
-            <div className="rounded-md border border-border/60 p-2 bg-background/40 space-y-2">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Məsuliyyət</div>
-
-              {/* Təyin edici */}
+              {/* Təyin edici seç — only when "other" */}
               {isOther && (
-                <div>
-                  <label className="text-[11px] text-muted-foreground">Təyin edici *</label>
-                  <div className="flex gap-1.5 mt-0.5">
-                    <select value={t.assigner} onChange={e => updHedef(t.id, { assigner: e.target.value })}
-                      className="flex-1 px-2 py-1.5 text-xs border border-border rounded bg-background">
-                      <option value="">— Əməkdaş seçin —</option>
-                      {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                    {t.assigner && (
-                      <button type="button" onClick={() => updHedef(t.id, { assigner: "" })}
-                        className="px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
+                <div className="flex flex-col gap-1">
+                  <button type="button"
+                    onClick={() => setAssignerPickerFor(assignerPickerFor === t.id ? null : t.id)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border-2 border-dashed border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30">
+                    <UserPlus className="w-4 h-4" /> Təyin edici seç
+                    {t.assigner && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+                  {t.assigner && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-amber-50 text-amber-700 rounded w-fit">
+                      {t.assigner.split(" — ")[0]}
+                      <X className="w-3 h-3 cursor-pointer" onClick={() => updHedef(t.id, { assigner: "" })} />
+                    </span>
+                  )}
                 </div>
               )}
+            </div>
 
-              {/* Qiymətləndiricilər */}
-              <div>
-                <label className="text-[11px] text-muted-foreground">Qiymətləndirici(lər) {isOther && "*"} {t.evaluators.length > 1 && <span className="text-amber-600">— faiz cəmi 100% olmalıdır</span>}</label>
+            {/* Qiymətləndirici inline picker */}
+            {evalPickerFor === t.id && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 dark:bg-indigo-950/20 p-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) {t.evaluators.length > 1 && <span className="text-amber-600">— faiz cəmi 100%</span>}</span>
+                  <button type="button" onClick={() => setEvalPickerFor(null)} className="text-[11px] text-primary hover:underline">Bağla</button>
+                </div>
                 <UnifiedEvaluatorsEditor
                   employeeOptions={employeeOptions}
                   evaluators={t.evaluators}
                   onChange={(evs) => updHedef(t.id, { evaluators: evs, evaluator: evs[0]?.name || "" })}
                 />
               </div>
-            </div>
+            )}
+
+            {/* Təyin edici inline picker */}
+            {isOther && assignerPickerFor === t.id && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50/40 dark:bg-amber-950/20 p-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici *</span>
+                  <button type="button" onClick={() => setAssignerPickerFor(null)} className="text-[11px] text-primary hover:underline">Bağla</button>
+                </div>
+                <select value={t.assigner} onChange={e => updHedef(t.id, { assigner: e.target.value })}
+                  className="w-full px-2 py-1.5 text-xs border border-border rounded bg-background">
+                  <option value="">— Əməkdaş seçin —</option>
+                  {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            )}
 
             {/* Cascade */}
             {showCascade && !disabled && (
