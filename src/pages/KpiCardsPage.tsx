@@ -951,7 +951,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                         const next = await mod.fetchAllStatuses();
                                         setStatusMap(next);
                                       } catch {}
-                                      toast.success("Kart kopyalandı (Natamam)");
+                                      toast.success("Kart kopyalandı (Qaralama)");
                                     }}
                                     title="Kopyala"
                                     className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
