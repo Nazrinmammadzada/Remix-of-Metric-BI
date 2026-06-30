@@ -452,38 +452,36 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
     if (t.createdBy === "other") {
       if (!t.assigner) return `"${t.name}" üçün Təyin edici seçilməlidir`;
-      if (t.evaluators.length === 0) return `"${t.name}" üçün ən az 1 Qiymətləndirici seçin`;
-      const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
-      if (t.evaluators.length > 1 && sum !== 100) return `"${t.name}": qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`;
-      return null; // other fields are filled by the assigner later
     }
-    if (!t.scoreLimit || t.scoreLimit <= 0) return "Qiymətləndirmə balı daxil edilməlidir";
-    if (scoreMax !== undefined && t.scoreLimit > scoreMax) {
-      return `Qiymət. balı ${scoreMax}-dən böyük ola bilməz`;
-    }
-    if (["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type)) {
-      const rs = t.ranges && t.ranges.length > 0 ? t.ranges : [{ id: "x", min: t.min, max: t.max, score: String(t.scoreLimit ?? ""), weight: "" }];
-      for (let i = 0; i < rs.length; i++) {
-        const r = rs[i];
-        if (r.min === "" || r.max === "" || r.score === "") return `${t.type}: Aralıq #${i + 1} — Min, Max və Bal tələb olunur`;
-        if (Number(r.min) > Number(r.max)) return `${t.type}: Aralıq #${i + 1} — Min Max-dan kiçik olmalıdır`;
-        if (scoreMax !== undefined && Number(r.score) > scoreMax) return `${t.type}: Aralıq #${i + 1} — Bal ${scoreMax}-dən böyük ola bilməz`;
-      }
-    }
-    if (t.type === "Səriştə" && !t.competencyMatrix) return "Səriştə: Competency Matrix seçilməlidir";
-    if (SCORE_DESC_TYPES.includes(t.type)) {
-      const required = scoreMax === 10 ? [10, 4] : [5, 2];
-      const sd = t.scoreDescriptions || [];
-      for (const r of required) {
-        const row = sd.find(x => Number(x.score) === r);
-        if (!row || !row.description.trim()) return `${t.type}: ${r} balın izahı məcburidir`;
-        if (t.type === "Zaman" && (!row.timeStart || !row.timeEnd)) return `Zaman: ${r} balı üçün zaman aralığı tələb olunur`;
-      }
-    }
+    if (t.evaluators.length === 0) return `"${t.name}" üçün ən az 1 Qiymətləndirici seçin`;
     if (t.evaluators.length > 1) {
       const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
       if (sum !== 100) return `"${t.name}": qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`;
     }
+    if (t.createdBy === "other") return null;
+
+    // === Qiymətlər (məcburi 5/2 və ya 10/4) — bütün hədəf növləri ===
+    const max = scoreMax || 5;
+    const required = max === 10 ? [10, 4] : [max, 2];
+    const sd = t.scoreDescriptions || [];
+    const isTime = t.type === "Zaman";
+    const needsRanges = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
+
+    for (const r of required) {
+      const row = sd.find(x => Number(x.score) === r);
+      if (!row) return `"${t.name}" üçün ${r} balı tələb olunur — "Qiymətlər" düyməsini açın`;
+      if (isTime) {
+        if (!row.timeStart || !row.timeEnd) return `"${t.name}" Zaman: ${r} balı üçün zaman aralığı tələb olunur`;
+      } else if (needsRanges) {
+        if (row.description === undefined || row.description === "") {
+          // description field reused for "min-max" string e.g. "6-10"
+          return `"${t.name}": ${r} balı üçün Min/Max daxil edilməlidir`;
+        }
+      } else {
+        if (!row.description.trim()) return `"${t.name}": ${r} balının izahı məcburidir`;
+      }
+    }
+    if (t.type === "Səriştə" && !t.competencyMatrix) return `"${t.name}": Competency Matrix seçilməlidir`;
     return null;
   };
 
