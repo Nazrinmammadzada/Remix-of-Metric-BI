@@ -2,12 +2,14 @@ import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getEmployees } from "@/lib/orgStore";
+import { getStructures, type OrgStructure } from "@/lib/orgStore";
+import { getTeams, addTeam } from "@/lib/teamsStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
-import { getApprovalMatrices, type ApprovalMatrix } from "@/lib/matrixStore";
+import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  Search, ClipboardList, Save, Power, X, Send,
+  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,22 +25,43 @@ export const HEDEF_TYPES: HedefType[] = [
 
 export const CASCADE_TYPES: HedefType[] = ["Məbləğ", "Say", "Faiz", "Nisbət"];
 
+/** Types that DO NOT allow range definitions — only score+description rows. */
+const SCORE_DESC_TYPES: HedefType[] = ["İcra", "Fərdi İnkişaf", "Zaman"];
+
+export interface WizardScoreDesc {
+  id: string;
+  score: number;
+  description: string;
+  timeStart?: string;
+  timeEnd?: string;
+}
+
+export interface WizardEvaluatorRef { id: string; name: string; weight: number }
+
+export type TargetCreatedBy = "self" | "other";
+
 export interface WizardHedef {
   id: string;
   name: string;
   type: HedefType;
   weight: number;
-  scoreLimit: number; // Qiymətləndirmə balı (per-target)
+  scoreLimit: number;
 
-  // Per-target qiymətləndirici və təyin edici (əməkdaş)
-  evaluator: string;
+  /** Bu hədəfi kim təyin edir */
+  createdBy: TargetCreatedBy;
+
+  /** Birdən çox qiymətləndirici (faiz bölgüsü ilə) */
+  evaluators: WizardEvaluatorRef[];
+  /** Təyin edici (digər əməkdaş seçildikdə) */
   assigner: string;
 
-  // Type-specific evaluation
+  /** Back-compat: tək qiymətləndirici adı (1-ci evaluator-un adı) */
+  evaluator: string;
+
+  // Type-specific eval
   min: string;
   max: string;
   currency: "AZN" | "USD" | "EUR";
-  /** Birdən çox qiymət aralığı (min/max/bal). Boş olduqda min/max istifadə olunur. */
   ranges?: { id: string; min: string; max: string; score: string; weight: string }[];
   competencyMatrix: string;
   freeInput: string;
@@ -47,56 +70,66 @@ export interface WizardHedef {
   timeStart: string;
   timeEnd: string;
 
-  // Cascade (yalnız Məbləğ/Say/Faiz/Nisbət üçün)
+  /** Score-description rows for İcra/Fərdi İnkişaf/Zaman və qiymət popup-u */
+  scoreDescriptions?: WizardScoreDesc[];
+
   cascading: boolean;
   cascadeMatrix: string;
 }
 
-
 export type AssigneeKind = "Şəxs" | "Komanda" | "Struktur" | "Vəzifə";
 
-export interface WizardAssignTarget {
-  id: string;
-  kind: AssigneeKind;
-  value: string;
-}
-
-export interface WizardEvaluator {
-  id: string;
-  name: string;
-  weight: number;
-}
+export interface WizardAssignTarget { id: string; kind: AssigneeKind; value: string }
+export interface WizardEvaluator { id: string; name: string; weight: number }
 
 export type CreatedBy = "self" | "other";
 
-export interface WizardLifecycleReview {
-  id: string;
-  name: string;
-  start: string;
-  end: string;
-}
+export interface WizardLifecycleReview { id: string; name: string; start: string; end: string }
 
 export type WizardAction = "draft" | "submit" | "create_active";
 
 export interface CreateKpiWizardDraft {
   name: string;
   mode: "individual" | "bulk";
-  frequency: string; // Aylıq / Rüblük / 6 Aylıq / İllik / Custom
+  /** Fərdi mode: çoxlu əməkdaş (multi-select) */
+  individualEmployees: string[];
+  /** Toplu mode: hər kateqoriya üçün çoxlu seçim */
+  bulkSelections: {
+    teams: string[];
+    structures: string[];
+    positions: string[];
+    persons: string[];
+  };
+
+  frequency: string;
+  /** Rüblük: il və rüb */
+  quarterYear: number;
+  quarter: 1 | 2 | 3 | 4;
   startDate: string;
   endDate: string;
-  scoringSystem: string; // 1-5 / 1-10 / Digər
+
+  scoringSystem: string;
   useMatrix: boolean;
   approvalMatrixId: string;
 
   lifecycle: {
+    /** KPI təyin olunması */
+    assignmentStart: string;
+    assignmentEnd: string;
+    /** Köhnə fieldin saxlanması üçün back-compat */
     assignmentDeadline: string;
-    reviews: WizardLifecycleReview[];
+    /** KPI qiymətləndirilməsi */
     evaluationStart: string;
     evaluationEnd: string;
+    /** Bonusun hesablanması */
+    bonusStart: string;
+    bonusEnd: string;
+    reviews: WizardLifecycleReview[];
   };
 
   targets: WizardHedef[];
 
+  // back-compat
   createdBy: CreatedBy;
   createdByEmployee: string;
   evaluators: WizardEvaluator[];
@@ -109,17 +142,25 @@ export interface CreateKpiWizardDraft {
 export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
   name: "",
   mode: "individual",
+  individualEmployees: [],
+  bulkSelections: { teams: [], structures: [], positions: [], persons: [] },
   frequency: "Aylıq",
+  quarterYear: new Date().getFullYear(),
+  quarter: 1,
   startDate: "",
   endDate: "",
   scoringSystem: "1-5",
   useMatrix: false,
   approvalMatrixId: "",
   lifecycle: {
+    assignmentStart: "",
+    assignmentEnd: "",
     assignmentDeadline: "",
-    reviews: [],
     evaluationStart: "",
     evaluationEnd: "",
+    bonusStart: "",
+    bonusEnd: "",
+    reviews: [],
   },
   targets: [],
   createdBy: "self",
@@ -134,6 +175,8 @@ const emptyHedef = (): WizardHedef => ({
   type: "Məbləğ",
   weight: 0,
   scoreLimit: 5,
+  createdBy: "self",
+  evaluators: [],
   evaluator: "",
   assigner: "",
   min: "",
@@ -141,12 +184,12 @@ const emptyHedef = (): WizardHedef => ({
   currency: "AZN",
   ranges: [{ id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }],
   competencyMatrix: "",
-
   freeInput: "",
   booleanYes: 5,
   booleanNo: 2,
   timeStart: "",
   timeEnd: "",
+  scoreDescriptions: [],
   cascading: false,
   cascadeMatrix: "",
 });
@@ -162,6 +205,135 @@ const PERIODS = ["Aylıq", "Rüblük", "6 Aylıq", "İllik", "Custom"];
 const SCORING = ["1-5", "1-10", "Digər"];
 const CURRENCIES: WizardHedef["currency"][] = ["AZN", "USD", "EUR"];
 
+// ============ DATE HELPERS ============
+const toISO = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+const addMonths = (iso: string, months: number): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const target = new Date(d.getFullYear(), d.getMonth() + months, d.getDate());
+  return toISO(target);
+};
+const quarterRange = (year: number, q: 1 | 2 | 3 | 4): [string, string] => {
+  const startMonth = (q - 1) * 3;
+  const start = new Date(year, startMonth, 1);
+  const end = new Date(year, startMonth + 3, 0);
+  return [toISO(start), toISO(end)];
+};
+
+// ============ MULTI-SELECT (search) ============
+function MultiSelectDropdown({
+  options, selected, onChange, placeholder, ariaLabel,
+}: {
+  options: { value: string; label: string }[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+  ariaLabel?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return options;
+    return options.filter(o => o.label.toLowerCase().includes(s));
+  }, [q, options]);
+  const toggle = (v: string) =>
+    onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={() => setOpen(o => !o)}
+        className="w-full min-h-[36px] px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background flex items-center justify-between gap-2"
+      >
+        <span className={selected.length ? "text-foreground" : "text-muted-foreground"}>
+          {selected.length ? `${selected.length} seçildi` : placeholder}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg">
+          <div className="p-1.5 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                autoFocus value={q} onChange={e => setQ(e.target.value)}
+                placeholder="Axtar..."
+                className="w-full pl-7 pr-2 py-1.5 text-xs border border-border rounded bg-background"
+              />
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground text-center">Nəticə yoxdur</div>
+            ) : filtered.map(o => {
+              const sel = selected.includes(o.value);
+              return (
+                <button key={o.value} type="button"
+                  onClick={() => toggle(o.value)}
+                  className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center justify-between hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
+                  <span className="truncate">{o.label}</span>
+                  {sel && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-between px-2 py-1 border-t border-border">
+            <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
+            <div className="flex gap-1">
+              {selected.length > 0 && (
+                <button type="button" onClick={() => onChange([])}
+                  className="text-[11px] text-destructive hover:underline px-1">Təmizlə</button>
+              )}
+              <button type="button" onClick={() => setOpen(false)}
+                className="text-[11px] text-primary hover:underline px-1">Bağla</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {selected.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {selected.map(v => {
+            const o = options.find(x => x.value === v);
+            return (
+              <span key={v} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[11px] bg-primary/10 text-primary rounded">
+                {o?.label || v}
+                <X className="w-3 h-3 cursor-pointer" onClick={() => toggle(v)} />
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Recursive helpers for org tree
+const flattenStructures = (nodes: OrgStructure[], parent = ""): { id: string; label: string }[] => {
+  const out: { id: string; label: string }[] = [];
+  for (const n of nodes) {
+    const label = parent ? `${parent} › ${n.name}` : n.name;
+    out.push({ id: String(n.id), label });
+    if (n.children?.length) out.push(...flattenStructures(n.children, label));
+  }
+  return out;
+};
+const flattenPositions = (nodes: OrgStructure[]): { id: string; label: string }[] => {
+  const out: { id: string; label: string }[] = [];
+  for (const n of nodes) {
+    for (const p of n.positions || []) out.push({ id: String(p.id), label: `${p.name} (${n.name})` });
+    if (n.children?.length) out.push(...flattenPositions(n.children));
+  }
+  return out;
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -173,10 +345,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<CreateKpiWizardDraft>(() => ({ ...emptyKpiWizardDraft(), ...(initial || {}) }));
 
-  // Re-seed when dialog re-opens with a new "initial" (e.g. copy or resume draft)
   useEffect(() => {
     if (open) {
       const seeded = { ...emptyKpiWizardDraft(), ...(initial || {}) };
+      // ensure nested defaults
+      seeded.lifecycle = { ...emptyKpiWizardDraft().lifecycle, ...(initial as any)?.lifecycle };
+      seeded.bulkSelections = { ...emptyKpiWizardDraft().bulkSelections, ...(initial as any)?.bulkSelections };
       setDraft(seeded);
       const resumeStep = (initial as any)?.lastStep;
       setStep(typeof resumeStep === "number" && resumeStep >= 1 && resumeStep <= TOTAL_STEPS ? resumeStep : 1);
@@ -185,50 +359,74 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   const scoringExtra = useCatalogValues("scoring_systems", ["1-3 Bal", "Faiz (0-100)"]);
   const cascadeMatrices = useCascadeMatrices();
+
+  // ===== Reference data =====
   const activeEmployees = useMemo(
     () => getEmployees().filter(e => e.active).map(e => ({
-      id: e.id,
+      id: String(e.id),
+      value: `${e.firstName} ${e.lastName}${e.positionName ? " — " + e.positionName : ""}`,
       label: `${e.firstName} ${e.lastName}${e.positionName ? " — " + e.positionName : ""}`,
     })),
     [open],
   );
-  const [empSearch, setEmpSearch] = useState("");
-  const filteredEmployees = useMemo(() => {
-    const q = empSearch.trim().toLowerCase();
-    if (!q) return activeEmployees;
-    return activeEmployees.filter(e => e.label.toLowerCase().includes(q));
-  }, [empSearch, activeEmployees]);
+  const employeeOptions = activeEmployees.map(e => ({ value: e.value, label: e.label }));
 
-  // Per-target picker open state: `${hedefId}:${role}` where role = "eval" | "assign"
-  const [pickerOpen, setPickerOpen] = useState<string | null>(null);
-  const [pickerSearch, setPickerSearch] = useState("");
-  const pickerEmployees = useMemo(() => {
-    const q = pickerSearch.trim().toLowerCase();
-    if (!q) return activeEmployees;
-    return activeEmployees.filter(e => e.label.toLowerCase().includes(q));
-  }, [pickerSearch, activeEmployees]);
+  const teamOptions = useMemo(
+    () => getTeams().map(t => ({ value: t.name, label: `${t.name} (${t.leader})` })),
+    [open],
+  );
+  const structureTree = useMemo(() => getStructures(), [open]);
+  const structureOptions = useMemo(() => flattenStructures(structureTree).map(s => ({ value: s.id, label: s.label })), [structureTree]);
+  const positionOptions = useMemo(() => flattenPositions(structureTree).map(p => ({ value: p.id, label: p.label })), [structureTree]);
 
   const update = (patch: Partial<CreateKpiWizardDraft>) => setDraft(p => ({ ...p, ...patch }));
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
     setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
 
-  // ====== HƏDƏF ======
+  // ===== Frequency-driven date auto-fill =====
+  const setFrequency = (f: string) => {
+    setDraft(p => {
+      const next = { ...p, frequency: f };
+      if (f === "Aylıq" && p.startDate) next.endDate = addMonths(p.startDate, 1);
+      else if (f === "6 Aylıq" && p.startDate) next.endDate = addMonths(p.startDate, 6);
+      else if (f === "İllik" && p.startDate) next.endDate = addMonths(p.startDate, 12);
+      else if (f === "Rüblük") {
+        const [s, e] = quarterRange(p.quarterYear, p.quarter);
+        next.startDate = s; next.endDate = e;
+      }
+      return next;
+    });
+  };
+  const setStartDate = (s: string) => {
+    setDraft(p => {
+      const next: CreateKpiWizardDraft = { ...p, startDate: s };
+      if (p.frequency === "Aylıq") next.endDate = addMonths(s, 1);
+      else if (p.frequency === "6 Aylıq") next.endDate = addMonths(s, 6);
+      else if (p.frequency === "İllik") next.endDate = addMonths(s, 12);
+      return next;
+    });
+  };
+  const setQuarter = (year: number, q: 1 | 2 | 3 | 4) => {
+    const [s, e] = quarterRange(year, q);
+    setDraft(p => ({ ...p, quarterYear: year, quarter: q, startDate: s, endDate: e }));
+  };
+
+  // ===== Targets =====
   const updHedef = (id: string, patch: Partial<WizardHedef>) =>
     setDraft(p => ({ ...p, targets: p.targets.map(t => t.id === id ? { ...t, ...patch } : t) }));
   const addHedef = () => setDraft(p => ({ ...p, targets: [...p.targets, emptyHedef()] }));
   const removeHedef = (id: string) => setDraft(p => ({ ...p, targets: p.targets.filter(t => t.id !== id) }));
-  const applyPersonToAll = (role: "evaluator" | "assigner", name: string) =>
-    setDraft(p => ({ ...p, targets: p.targets.map(t => ({ ...t, [role]: name })) }));
-  const applyCascadeToAll = (matrixName: string) =>
-    setDraft(p => ({
-      ...p,
-      targets: p.targets.map(t =>
-        CASCADE_TYPES.includes(t.type) ? { ...t, cascading: true, cascadeMatrix: matrixName } : t,
-      ),
-    }));
   const totalWeight = useMemo(() => draft.targets.reduce((s, t) => s + (Number(t.weight) || 0), 0), [draft.targets]);
 
-  // ====== REVIEWS ======
+  const applyEvaluatorsToAll = (evs: WizardEvaluatorRef[]) =>
+    setDraft(p => ({
+      ...p,
+      targets: p.targets.map(t => ({ ...t, evaluators: evs.map(e => ({ ...e, id: crypto.randomUUID() })), evaluator: evs[0]?.name || "" })),
+    }));
+  const applyAssignerToAll = (name: string) =>
+    setDraft(p => ({ ...p, targets: p.targets.map(t => ({ ...t, assigner: name, createdBy: name ? "other" : t.createdBy })) }));
+
+  // Reviews
   const addReview = () => updLifecycle({
     reviews: [...draft.lifecycle.reviews, { id: crypto.randomUUID(), name: `Review ${draft.lifecycle.reviews.length + 1}`, start: "", end: "" }],
   });
@@ -237,28 +435,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const removeReview = (id: string) =>
     updLifecycle({ reviews: draft.lifecycle.reviews.filter(r => r.id !== id) });
 
-  // ====== EVALUATORS ======
-  const addEvaluator = () => update({
-    evaluators: [...draft.evaluators, { id: crypto.randomUUID(), name: "", weight: 0 }],
-  });
-  const updEvaluator = (id: string, patch: Partial<WizardEvaluator>) =>
-    update({ evaluators: draft.evaluators.map(e => e.id === id ? { ...e, ...patch } : e) });
-  const removeEvaluator = (id: string) => update({ evaluators: draft.evaluators.filter(e => e.id !== id) });
-  const evalWeight = useMemo(() => draft.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0), [draft.evaluators]);
-
-  // ====== ASSIGN TARGETS ======
-  const allowedKinds: AssigneeKind[] = draft.mode === "individual"
-    ? ["Şəxs", "Komanda", "Struktur", "Vəzifə"]
-    : ["Komanda", "Struktur", "Vəzifə"];
-  const addAssignTarget = () => update({
-    assignTargets: [...draft.assignTargets, { id: crypto.randomUUID(), kind: allowedKinds[0], value: "" }],
-  });
-  const updAssignTarget = (id: string, patch: Partial<WizardAssignTarget>) =>
-    update({ assignTargets: draft.assignTargets.map(a => a.id === id ? { ...a, ...patch } : a) });
-  const removeAssignTarget = (id: string) =>
-    update({ assignTargets: draft.assignTargets.filter(a => a.id !== id) });
-
-  // Scoring system upper bound (1-5 → 5, 1-10 → 10, 1-3 Bal → 3, Faiz (0-100) → 100, Digər → undefined)
+  // Scoring system upper bound
   const scoreMax = useMemo<number | undefined>(() => {
     const s = (draft.scoringSystem || "").toLowerCase();
     const m = s.match(/(\d+)\s*-\s*(\d+)/);
@@ -267,16 +444,23 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     return undefined;
   }, [draft.scoringSystem]);
 
-  // ====== VALIDATION ======
+  // Validation per target — for "Save draft" we don't strictly require everything
   const validateHedef = (t: WizardHedef): string | null => {
     if (!t.name.trim()) return "Hədəf adı boşdur";
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
+    if (t.createdBy === "other") {
+      if (!t.assigner) return `"${t.name}" üçün Təyin edici seçilməlidir`;
+      if (t.evaluators.length === 0) return `"${t.name}" üçün ən az 1 Qiymətləndirici seçin`;
+      const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+      if (t.evaluators.length > 1 && sum !== 100) return `"${t.name}": qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`;
+      return null; // other fields are filled by the assigner later
+    }
     if (!t.scoreLimit || t.scoreLimit <= 0) return "Qiymətləndirmə balı daxil edilməlidir";
     if (scoreMax !== undefined && t.scoreLimit > scoreMax) {
-      return `Qiymətləndirmə balı ${scoreMax}-dən böyük ola bilməz (bal sistemi: ${draft.scoringSystem})`;
+      return `Qiymət. balı ${scoreMax}-dən böyük ola bilməz`;
     }
     if (["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type)) {
-      const rs = t.ranges && t.ranges.length > 0 ? t.ranges : [{ id: "x", min: t.min, max: t.max, score: String(t.scoreLimit ?? "") }];
+      const rs = t.ranges && t.ranges.length > 0 ? t.ranges : [{ id: "x", min: t.min, max: t.max, score: String(t.scoreLimit ?? ""), weight: "" }];
       for (let i = 0; i < rs.length; i++) {
         const r = rs[i];
         if (r.min === "" || r.max === "" || r.score === "") return `${t.type}: Aralıq #${i + 1} — Min, Max və Bal tələb olunur`;
@@ -284,36 +468,36 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         if (scoreMax !== undefined && Number(r.score) > scoreMax) return `${t.type}: Aralıq #${i + 1} — Bal ${scoreMax}-dən böyük ola bilməz`;
       }
     }
-
     if (t.type === "Səriştə" && !t.competencyMatrix) return "Səriştə: Competency Matrix seçilməlidir";
-    if (t.type === "Zaman" && (!t.timeStart || !t.timeEnd)) return "Zaman: tarix aralığı tələb olunur";
-    if (t.type === "İcra" && !t.freeInput.trim()) return "İcra: dəyər tələb olunur";
-    if (t.type === "Fərdi İnkişaf" && !t.freeInput.trim()) return "Fərdi İnkişaf: dəyər tələb olunur";
-    if (draft.createdBy !== "self" && !t.evaluator) return `"${t.name || "Hədəf"}" üçün Qiymətləndirici seçilməlidir`;
+    if (SCORE_DESC_TYPES.includes(t.type)) {
+      const required = scoreMax === 10 ? [10, 4] : [5, 2];
+      const sd = t.scoreDescriptions || [];
+      for (const r of required) {
+        const row = sd.find(x => Number(x.score) === r);
+        if (!row || !row.description.trim()) return `${t.type}: ${r} balın izahı məcburidir`;
+        if (t.type === "Zaman" && (!row.timeStart || !row.timeEnd)) return `Zaman: ${r} balı üçün zaman aralığı tələb olunur`;
+      }
+    }
+    if (t.evaluators.length > 1) {
+      const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+      if (sum !== 100) return `"${t.name}": qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`;
+    }
     return null;
   };
 
+  // Step gate (for "Növbəti")
   const canNext = useMemo(() => {
     switch (step) {
       case 1:
-        return !!draft.name.trim()
-          && !!draft.frequency
-          && !!draft.startDate
-          && !!draft.endDate
-          && draft.endDate >= draft.startDate
-          && !!draft.scoringSystem
-          && !!draft.lifecycle.assignmentDeadline
-          && !!draft.lifecycle.evaluationStart
-          && !!draft.lifecycle.evaluationEnd;
+        return !!draft.name.trim() && !!draft.frequency && !!draft.startDate && !!draft.endDate
+          && draft.endDate >= draft.startDate && !!draft.scoringSystem;
       case 2:
-        return draft.targets.length > 0
-          && totalWeight === 100
-          && draft.targets.every(t => validateHedef(t) === null)
-          && (draft.createdBy === "self" || draft.targets.every(t => !!t.assigner));
+        return draft.targets.length > 0 && totalWeight === 100
+          && draft.targets.every(t => validateHedef(t) === null);
       case 3: return true;
       default: return false;
     }
-  }, [step, draft, totalWeight, evalWeight, scoreMax]);
+  }, [step, draft, totalWeight, scoreMax]);
 
   const close = () => {
     onOpenChange(false);
@@ -334,21 +518,45 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (step < TOTAL_STEPS) setStep(step + 1);
   };
 
+  /** Auto-create a team if Toplu+Şəxs has 2+ people. */
+  const ensureAutoTeam = (d: CreateKpiWizardDraft) => {
+    if (d.mode !== "bulk") return;
+    const persons = d.bulkSelections.persons;
+    if (persons.length < 2) return;
+    const baseName = `${d.name || "KPI"} — Komandası`;
+    const teams = getTeams();
+    if (teams.some(t => t.name === baseName)) return;
+    const newId = Math.max(0, ...teams.map(t => t.id)) + 1;
+    const leader = persons[0];
+    addTeam({
+      id: newId,
+      name: baseName,
+      leader,
+      leaderAvatar: leader.charAt(0).toUpperCase(),
+      kpiResult: 0,
+      branch: "Auto-generated",
+      activeKpi: 0, completedKpi: 0, totalKpi: 1,
+      members: persons.map(p => ({ name: p, role: "Üzv", kpiScore: 0, avatar: p.charAt(0).toUpperCase() })),
+    });
+    toast.success(`Yeni komanda yaradıldı: ${baseName}`);
+  };
+
   const finalize = (action: WizardAction) => {
     if (action === "submit" && draft.useMatrix && !draft.approvalMatrixId) {
-      toast.error("Təsdiqə göndərmək üçün təsdiqləmə matrisini seçin");
+      toast.error("Təyinə göndərmək üçün təsdiqləmə matrisini seçin");
       return;
     }
+    ensureAutoTeam(draft);
     onComplete({ ...draft, action, lastStep: step });
     toast.success(
-      action === "draft" ? "Yadda saxlanıldı (Natamam)"
+      action === "draft" ? "Qaralama (Draft) kimi yadda saxlanıldı"
       : action === "create_active" ? "KPI yaradıldı və aktiv edildi"
-      : "KPI təsdiqə göndərildi",
+      : "KPI təyinə göndərildi",
     );
     close();
   };
 
-  // ====== UI helpers ======
+  // ====== UI ======
   const Field = ({ label, required, children, span = "col-span-12 md:col-span-6" }:
     { label: string; required?: boolean; children: React.ReactNode; span?: string }) => (
     <div className={span}>
@@ -359,7 +567,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); else onOpenChange(true); }}>
-      <DialogContent className="max-w-4xl w-[90vw] max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[92vw] max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -369,7 +577,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         </DialogHeader>
 
         {/* Stepper */}
-        <div className="flex gap-2 mb-4 mt-2">
+        <div className="flex gap-2 mb-3 mt-1">
           {STEPS.map(s => (
             <div key={s.n} className="flex-1">
               <div className={`h-1.5 rounded-full transition-colors ${s.n < step ? "bg-primary" : s.n === step ? "bg-primary/80" : "bg-muted"}`} />
@@ -386,11 +594,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 <Field label="KPI adı" required span="col-span-12">
                   <input autoFocus value={draft.name} onChange={e => update({ name: e.target.value })}
                     placeholder="Məsələn: Aylıq Satış Hədəfi 2026"
-                    className="w-full px-4 py-2.5 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary/40 outline-none" />
+                    className="w-full px-3.5 py-2 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary/40 outline-none" />
                 </Field>
 
-                <Field label="KPI təyinat növü" required>
-                  <div className="grid grid-cols-2 gap-2">
+                <Field label="KPI təyinat növü" required span="col-span-12">
+                  <div className="grid grid-cols-2 gap-2 max-w-md">
                     {([
                       { v: "individual" as const, t: "Fərdi", icon: User },
                       { v: "bulk" as const, t: "Toplu", icon: Users },
@@ -407,24 +615,105 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </Field>
 
-                <Field label="Dövr" required>
-                  <select value={draft.frequency} onChange={e => update({ frequency: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background">
+                {/* INDIVIDUAL: only employee multi-select */}
+                {draft.mode === "individual" && (
+                  <Field label="Əməkdaş seçimi" required span="col-span-12">
+                    <MultiSelectDropdown
+                      options={employeeOptions}
+                      selected={draft.individualEmployees}
+                      onChange={(v) => update({ individualEmployees: v })}
+                      placeholder="Əməkdaş axtarın və seçin..."
+                    />
+                  </Field>
+                )}
+
+                {/* BULK: four side-by-side multi-selects */}
+                {draft.mode === "bulk" && (
+                  <Field label="Toplu təyinat (bir və ya bir neçəsini doldurun)" required span="col-span-12">
+                    <div className="grid grid-cols-12 gap-2">
+                      <div className="col-span-12 md:col-span-3">
+                        <label className="text-[11px] text-muted-foreground">Komanda</label>
+                        <MultiSelectDropdown options={teamOptions} selected={draft.bulkSelections.teams}
+                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, teams: v } })}
+                          placeholder="Komanda seçin" />
+                      </div>
+                      <div className="col-span-12 md:col-span-3">
+                        <label className="text-[11px] text-muted-foreground">Struktur</label>
+                        <MultiSelectDropdown options={structureOptions} selected={draft.bulkSelections.structures}
+                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, structures: v } })}
+                          placeholder="Struktur seçin" />
+                      </div>
+                      <div className="col-span-12 md:col-span-3">
+                        <label className="text-[11px] text-muted-foreground">Vəzifə</label>
+                        <MultiSelectDropdown options={positionOptions} selected={draft.bulkSelections.positions}
+                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, positions: v } })}
+                          placeholder="Vəzifə seçin" />
+                      </div>
+                      <div className="col-span-12 md:col-span-3">
+                        <label className="text-[11px] text-muted-foreground">Şəxs</label>
+                        <MultiSelectDropdown options={employeeOptions} selected={draft.bulkSelections.persons}
+                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, persons: v } })}
+                          placeholder="Şəxs seçin" />
+                      </div>
+                    </div>
+                    {draft.bulkSelections.persons.length >= 2 && (
+                      <p className="text-[11px] text-emerald-600 mt-1.5 flex items-center gap-1">
+                        <Users className="w-3 h-3" /> Yadda saxladıqda bu {draft.bulkSelections.persons.length} şəxs üçün avtomatik yeni komanda yaradılacaq.
+                      </p>
+                    )}
+                  </Field>
+                )}
+
+                <Field label="Dövr" required span="col-span-12 md:col-span-4">
+                  <select value={draft.frequency} onChange={e => setFrequency(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background">
                     {PERIODS.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </Field>
 
-                <Field label="Başlama tarixi" required span="col-span-12 md:col-span-4">
-                  <input type="date" value={draft.startDate} onChange={e => update({ startDate: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background" />
+                {/* Rüblük → il + rüb */}
+                {draft.frequency === "Rüblük" ? (
+                  <>
+                    <Field label="İl" required span="col-span-6 md:col-span-2">
+                      <select value={draft.quarterYear} onChange={e => setQuarter(Number(e.target.value), draft.quarter)}
+                        className="w-full px-2 py-2 text-sm border border-border rounded-lg bg-background">
+                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 1).map(y =>
+                          <option key={y} value={y}>{y}</option>
+                        )}
+                      </select>
+                    </Field>
+                    <Field label="Rüb" required span="col-span-6 md:col-span-2">
+                      <select value={draft.quarter} onChange={e => setQuarter(draft.quarterYear, Number(e.target.value) as 1 | 2 | 3 | 4)}
+                        className="w-full px-2 py-2 text-sm border border-border rounded-lg bg-background">
+                        <option value={1}>I rüb</option>
+                        <option value={2}>II rüb</option>
+                        <option value={3}>III rüb</option>
+                        <option value={4}>IV rüb</option>
+                      </select>
+                    </Field>
+                  </>
+                ) : (
+                  <Field label="Başlama tarixi" required span="col-span-6 md:col-span-3">
+                    <input type="date" value={draft.startDate} onChange={e => setStartDate(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background" />
+                  </Field>
+                )}
+
+                <Field label="Bitmə tarixi" required span="col-span-6 md:col-span-3">
+                  <input
+                    type="date"
+                    value={draft.endDate}
+                    onChange={e => update({ endDate: e.target.value })}
+                    disabled={draft.frequency !== "Custom"}
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background disabled:opacity-70" />
+                  {draft.frequency !== "Custom" && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Dövrə əsasən avtomatik hesablanır</p>
+                  )}
                 </Field>
-                <Field label="Bitmə tarixi" required span="col-span-12 md:col-span-4">
-                  <input type="date" min={draft.startDate || undefined} value={draft.endDate} onChange={e => update({ endDate: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background" />
-                </Field>
+
                 <Field label="Qiymətləndirmə bal sistemi" required span="col-span-12 md:col-span-4">
                   <select value={draft.scoringSystem} onChange={e => update({ scoringSystem: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background">
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background">
                     {[...SCORING, ...scoringExtra.filter(x => !SCORING.includes(x))].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </Field>
@@ -445,30 +734,25 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 </div>
               </div>
 
-              {/* Lifecycle */}
+              {/* ===== Lifecycle ===== */}
               <div className="rounded-lg border border-border bg-card/40 p-3 space-y-3">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">KPI Lifecycle</h3>
                 </div>
 
-                <div className="grid grid-cols-12 gap-3">
-                  <Field label="Assignment Deadline" required span="col-span-12 md:col-span-4">
-                    <input type="date" value={draft.lifecycle.assignmentDeadline}
-                      onChange={e => updLifecycle({ assignmentDeadline: e.target.value })}
-                      className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background" />
-                  </Field>
-                  <Field label="Qiymətləndirmə başlanğıcı" required span="col-span-12 md:col-span-4">
-                    <input type="date" value={draft.lifecycle.evaluationStart}
-                      onChange={e => updLifecycle({ evaluationStart: e.target.value })}
-                      className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background" />
-                  </Field>
-                  <Field label="Qiymətləndirmə bitmə" required span="col-span-12 md:col-span-4">
-                    <input type="date" value={draft.lifecycle.evaluationEnd}
-                      onChange={e => updLifecycle({ evaluationEnd: e.target.value })}
-                      className="w-full px-3 py-1.5 text-sm border border-border rounded-lg bg-background" />
-                  </Field>
-                </div>
+                <LifecycleStage title="KPI təyin olunması"
+                  start={draft.lifecycle.assignmentStart} end={draft.lifecycle.assignmentEnd}
+                  onStart={v => updLifecycle({ assignmentStart: v, assignmentDeadline: v })}
+                  onEnd={v => updLifecycle({ assignmentEnd: v })} />
+                <LifecycleStage title="KPI qiymətləndirilməsi"
+                  start={draft.lifecycle.evaluationStart} end={draft.lifecycle.evaluationEnd}
+                  onStart={v => updLifecycle({ evaluationStart: v })}
+                  onEnd={v => updLifecycle({ evaluationEnd: v })} />
+                <LifecycleStage title="Bonusun hesablanması"
+                  start={draft.lifecycle.bonusStart} end={draft.lifecycle.bonusEnd}
+                  onStart={v => updLifecycle({ bonusStart: v })}
+                  onEnd={v => updLifecycle({ bonusEnd: v })} />
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -513,367 +797,24 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
             </div>
           )}
 
-          {/* ===== STEP 2: HƏDƏFLƏR ===== */}
+          {/* ===== STEP 2 ===== */}
           {step === 2 && (
-            <div className="space-y-3">
-              {/* KPI-ni təyin edən — moved from Step 3 */}
-              <div className="rounded-lg border border-border bg-card/40 p-3 space-y-2">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h3 className="text-sm font-semibold text-foreground">KPI-ni təyin edən</h3>
-                  <div className="flex gap-2">
-                    {([
-                      { v: "self" as const, t: "Özüm təyin edirəm" },
-                      { v: "other" as const, t: "Digər əməkdaş təyin edir" },
-                    ]).map(o => {
-                      const active = draft.createdBy === o.v;
-                      return (
-                        <button key={o.v} type="button"
-                          onClick={() => update({ createdBy: o.v, createdByEmployee: o.v === "self" ? "" : draft.createdByEmployee })}
-                          className={`px-3 py-1.5 rounded-lg border text-xs font-medium ${active ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
-                          {o.t}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                {draft.createdBy === "other" && (
-                  <p className="text-[11px] text-muted-foreground italic">
-                    Hər hədəfin daxilində "Təyin edici" düyməsi ilə fərqli əməkdaşlar təyin edə bilərsiniz.
-                  </p>
-                )}
-                {draft.createdBy === "self" && (
-                  <p className="text-[11px] text-muted-foreground italic">Özüm təyin etdiyim üçün hər hədəfdə "Təyin edici" düyməsi qeyri-aktivdir.</p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">KPI Hədəfləri</h3>
-                  <p className="text-xs text-muted-foreground">9 hədəf növü · ümumi çəki 100% olmalıdır</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${totalWeight === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
-                    Ümumi çəki: {totalWeight}%
-                  </span>
-                  <button type="button" onClick={addHedef} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
-                    <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
-                  </button>
-                </div>
-              </div>
-
-              {draft.targets.length === 0 && (
-                <div className="text-center py-12 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
-                  Hələ hədəf əlavə edilməyib — "Hədəf əlavə et" düyməsindən başlayın.
-                </div>
-              )}
-
-              {draft.targets.map((t, idx) => {
-                const showMinMax = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
-                const showCascade = CASCADE_TYPES.includes(t.type);
-                const evalKey = `${t.id}:eval`;
-                const assignKey = `${t.id}:assign`;
-                const assignerDisabled = draft.createdBy === "self";
-                return (
-                  <div key={t.id} className="relative p-3.5 rounded-xl border-2 border-primary/30 bg-card/60 space-y-2.5 shadow-sm">
-                    <button type="button" title="Sil" onClick={() => removeHedef(t.id)}
-                      className="absolute top-3 right-3 p-1.5 rounded hover:bg-destructive/10 text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-
-                    {/* BÖYÜK BAŞLIQ */}
-                    <div className="flex items-center gap-2 pb-1.5 border-b border-border/60">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-base flex items-center justify-center">
-                        {idx + 1}
-                      </div>
-                      <div>
-                        <div className="text-base font-bold text-foreground">Hədəf #{idx + 1}</div>
-                        <div className="text-xs text-muted-foreground">{t.name || "— Adsız hədəf —"} · {t.type}</div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-12 md:col-span-5">
-                        <label className="text-[11px] text-muted-foreground">Hədəf adı *</label>
-                        <input value={t.name} onChange={e => updHedef(t.id, { name: e.target.value })}
-                          placeholder="Məsələn: Rüblük satış həcmi"
-                          className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                      </div>
-                      <div className="col-span-12 md:col-span-3">
-                        <label className="text-[11px] text-muted-foreground">Hədəf növü *</label>
-                        <select value={t.type} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
-                          className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
-                          {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
-                        </select>
-                      </div>
-                      <div className="col-span-6 md:col-span-2">
-                        <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
-                        <input type="number" min={0} max={100} value={t.weight}
-                          onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
-                          className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                      </div>
-                      <div className="col-span-6 md:col-span-2">
-                        <label className="text-[11px] text-muted-foreground">
-                          Qiymət. balı *{scoreMax !== undefined && <span className="text-muted-foreground/80"> (1-{scoreMax})</span>}
-                        </label>
-                        <input type="number" min={1} max={scoreMax} value={t.scoreLimit}
-                          onChange={e => {
-                            let v = Number(e.target.value);
-                            if (scoreMax !== undefined && v > scoreMax) v = scoreMax;
-                            if (v < 1) v = 1;
-                            updHedef(t.id, { scoreLimit: v });
-                          }}
-                          className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                      </div>
-                    </div>
-
-                    {/* Type-specific eval fields */}
-                    <div className="rounded-md bg-secondary/30 border border-border/60 p-2">
-                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Qiymətləndirmə — {t.type}</div>
-
-                      {showMinMax && (() => {
-                        const ranges = t.ranges && t.ranges.length > 0
-                          ? t.ranges
-                          : [{ id: crypto.randomUUID(), min: t.min, max: t.max, score: String(t.scoreLimit ?? ""), weight: String(t.weight ?? "") }];
-                        const setRanges = (rs: NonNullable<WizardHedef["ranges"]>) => updHedef(t.id, { ranges: rs, min: rs[0]?.min || "", max: rs[0]?.max || "" });
-                        return (
-                          <div className="space-y-1.5">
-                            {t.type === "Məbləğ" && (
-                              <div className="flex items-center justify-end gap-2">
-                                <label className="text-[11px] text-muted-foreground">Valyuta</label>
-                                <select value={t.currency} onChange={e => updHedef(t.id, { currency: e.target.value as WizardHedef["currency"] })}
-                                  className="px-2 py-1 text-xs border border-border rounded bg-background">
-                                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
-                              </div>
-                            )}
-                            <div className="grid grid-cols-12 gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
-                              <div className="col-span-3">Min *</div>
-                              <div className="col-span-3">Max *</div>
-                              <div className="col-span-2">Bal *{scoreMax !== undefined && <span className="normal-case"> (1-{scoreMax})</span>}</div>
-                              <div className="col-span-2">Çəki %</div>
-                              <div className="col-span-2 text-right">Əməl.</div>
-                            </div>
-                            {ranges.map((r) => (
-                              <div key={r.id} className="grid grid-cols-12 gap-1.5 items-center">
-                                <input type="number" value={r.min} placeholder="0"
-                                  onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, min: e.target.value } : x))}
-                                  className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
-                                <input type="number" value={r.max} placeholder="0"
-                                  onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, max: e.target.value } : x))}
-                                  className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
-                                <input type="number" value={r.score} placeholder="0" min={1} max={scoreMax}
-                                  onChange={e => {
-                                    let v = e.target.value;
-                                    if (scoreMax !== undefined && Number(v) > scoreMax) v = String(scoreMax);
-                                    setRanges(ranges.map(x => x.id === r.id ? { ...x, score: v } : x));
-                                  }}
-                                  className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
-                                <input type="number" value={r.weight} placeholder="0" min={0} max={100}
-                                  onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, weight: e.target.value } : x))}
-                                  className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
-                                <div className="col-span-2 flex justify-end">
-                                  {ranges.length > 1 && (
-                                    <button type="button" onClick={() => setRanges(ranges.filter(x => x.id !== r.id))}
-                                      className="p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                            <button type="button"
-                              onClick={() => setRanges([...ranges, { id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }])}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-dashed border-primary/50 text-primary hover:bg-primary/10">
-                              <Plus className="w-3.5 h-3.5" /> Aralıq əlavə et (Min / Max / Bal / Çəki)
-                            </button>
-                          </div>
-                        );
-                      })()}
-
-
-
-
-                      {t.type === "İcra" && (
-                        <input value={t.freeInput} onChange={e => updHedef(t.id, { freeInput: e.target.value })}
-                          placeholder="Sərbəst dəyər"
-                          className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                      )}
-
-                      {t.type === "Səriştə" && (
-                        <div className="space-y-2">
-                          <p className="text-[11px] text-muted-foreground italic">Goal Name və Goal Value bu növ üçün edit edilmir.</p>
-                          <select value={t.competencyMatrix} onChange={e => updHedef(t.id, { competencyMatrix: e.target.value })}
-                            className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                            <option value="">— Competency Matrix seçin —</option>
-                            <option value="Liderlik">Liderlik</option>
-                            <option value="Texniki Səriştə">Texniki Səriştə</option>
-                            <option value="Kommunikasiya">Kommunikasiya</option>
-                            <option value="Komanda işi">Komanda işi</option>
-                          </select>
-                        </div>
-                      )}
-
-                      {t.type === "Fərdi İnkişaf" && (
-                        <input value={t.freeInput} onChange={e => updHedef(t.id, { freeInput: e.target.value })}
-                          placeholder="Sərbəst dəyər"
-                          className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                      )}
-
-                      {t.type === "Boolean" && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[11px] text-muted-foreground">Bəli =</label>
-                            <input type="number" value={t.booleanYes} onChange={e => updHedef(t.id, { booleanYes: Number(e.target.value) })}
-                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          <div>
-                            <label className="text-[11px] text-muted-foreground">Xeyr =</label>
-                            <input type="number" value={t.booleanNo} onChange={e => updHedef(t.id, { booleanNo: Number(e.target.value) })}
-                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                        </div>
-                      )}
-
-                      {t.type === "Zaman" && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[11px] text-muted-foreground">Başlama *</label>
-                            <input type="date" value={t.timeStart} onChange={e => updHedef(t.id, { timeStart: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          <div>
-                            <label className="text-[11px] text-muted-foreground">Bitmə *</label>
-                            <input type="date" value={t.timeEnd} onChange={e => updHedef(t.id, { timeEnd: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* QİYMƏTLƏNDİRİCİ & TƏYİN EDİCİ */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-                      <div className="flex items-center">
-                        <button type="button"
-                          onClick={() => { setPickerOpen(pickerOpen === evalKey ? null : evalKey); setPickerSearch(""); }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 ${t.evaluator ? "rounded-l-full border-r-0" : "rounded-full"} border-2 text-xs font-medium transition ${t.evaluator ? "border-primary bg-primary/10 text-primary" : "border-dashed border-primary/60 text-primary hover:bg-primary/5"}`}>
-                          <UserPlus className="w-3.5 h-3.5" />
-                          {t.evaluator ? `Qiymətləndirici: ${t.evaluator}` : "Qiymətləndirici seç"}
-                        </button>
-                        {t.evaluator && (
-                          <button type="button"
-                            onClick={() => updHedef(t.id, { evaluator: "" })}
-                            title="Sil"
-                            className="px-2 py-1.5 rounded-r-full border-2 border-primary bg-primary/10 text-primary hover:bg-primary/20">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center">
-                        <button type="button"
-                          disabled={assignerDisabled}
-                          onClick={() => { setPickerOpen(pickerOpen === assignKey ? null : assignKey); setPickerSearch(""); }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 ${t.assigner && !assignerDisabled ? "rounded-l-full border-r-0" : "rounded-full"} border-2 text-xs font-medium transition ${assignerDisabled ? "border-border bg-muted text-muted-foreground cursor-not-allowed opacity-60" : t.assigner ? "border-amber-500 bg-amber-500/10 text-amber-700" : "border-dashed border-amber-500/60 text-amber-700 hover:bg-amber-500/5"}`}>
-                          <UserPlus className="w-3.5 h-3.5" />
-                          {assignerDisabled ? "Təyin edici (özüm)" : (t.assigner ? `Təyin edici: ${t.assigner}` : "Təyin edici seç")}
-                        </button>
-                        {t.assigner && !assignerDisabled && (
-                          <button type="button"
-                            onClick={() => updHedef(t.id, { assigner: "" })}
-                            title="Sil"
-                            className="px-2 py-1.5 rounded-r-full border-2 border-amber-500 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* PICKER PANEL */}
-                    {(pickerOpen === evalKey || pickerOpen === assignKey) && (() => {
-                      const role: "evaluator" | "assigner" = pickerOpen === evalKey ? "evaluator" : "assigner";
-                      const roleLabel = role === "evaluator" ? "Qiymətləndirici" : "Təyin edici";
-                      return (
-                        <div className="rounded-lg border border-primary/40 bg-background p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="text-xs font-semibold text-foreground">{roleLabel} seç</div>
-                            <button type="button" onClick={() => setPickerOpen(null)} className="text-[11px] text-muted-foreground hover:text-foreground">Bağla</button>
-                          </div>
-                          <div className="relative">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                            <input autoFocus value={pickerSearch} onChange={e => setPickerSearch(e.target.value)}
-                              placeholder="Əməkdaş adı ilə axtarın..."
-                              className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          <div className="max-h-48 overflow-y-auto border border-border/60 rounded divide-y divide-border/40">
-                            {pickerEmployees.length === 0 && (
-                              <div className="px-3 py-4 text-xs text-muted-foreground text-center">Nəticə tapılmadı</div>
-                            )}
-                            {pickerEmployees.map(emp => {
-                              const selected = (role === "evaluator" ? t.evaluator : t.assigner) === emp.label;
-                              return (
-                                <button key={emp.id} type="button"
-                                  onClick={() => updHedef(t.id, { [role]: emp.label } as Partial<WizardHedef>)}
-                                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-primary/5 ${selected ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}>
-                                  {emp.label}{selected ? " ✓" : ""}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          {(role === "evaluator" ? t.evaluator : t.assigner) && draft.targets.length > 1 && (
-                            <button type="button"
-                              onClick={() => {
-                                const name = role === "evaluator" ? t.evaluator : t.assigner;
-                                applyPersonToAll(role, name);
-                                toast.success(`${roleLabel} bütün hədəflərə tətbiq edildi (${draft.targets.length})`);
-                                setPickerOpen(null);
-                              }}
-                              className="w-full px-3 py-1.5 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
-                              ⤵ Bütün {draft.targets.length} hədəfə tətbiq et
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Cascade — yalnız Məbləğ/Say/Faiz/Nisbət */}
-                    {showCascade && (
-                      <div className="rounded-md border border-border/60 p-3 bg-background/40 space-y-2">
-                        <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                          <input type="checkbox" checked={t.cascading}
-                            onChange={e => updHedef(t.id, { cascading: e.target.checked, cascadeMatrix: e.target.checked ? t.cascadeMatrix : "" })}
-                            className="w-4 h-4" />
-                          <GitBranch className="w-3.5 h-3.5 text-primary" />
-                          Bu hədəf üzrə cascade tətbiq olunsun
-                        </label>
-                        {t.cascading && (
-                          <>
-                            <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
-                              className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                              <option value="">— Cascade Matrix seçin —</option>
-                              {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
-                            </select>
-                            {t.cascadeMatrix && draft.targets.filter(x => CASCADE_TYPES.includes(x.type)).length > 1 && (
-                              <button type="button"
-                                onClick={() => {
-                                  const count = draft.targets.filter(x => CASCADE_TYPES.includes(x.type)).length;
-                                  applyCascadeToAll(t.cascadeMatrix);
-                                  toast.success(`Cascade matrisi bütün uyğun hədəflərə tətbiq edildi (${count})`);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs font-medium rounded border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10">
-                                ⤵ Bütün cascade-uyğun hədəflərə tətbiq et
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <Step2Targets
+              draft={draft}
+              employeeOptions={employeeOptions}
+              cascadeMatrices={cascadeMatrices}
+              scoreMax={scoreMax}
+              totalWeight={totalWeight}
+              update={update}
+              updHedef={updHedef}
+              addHedef={addHedef}
+              removeHedef={removeHedef}
+              applyEvaluatorsToAll={applyEvaluatorsToAll}
+              applyAssignerToAll={applyAssignerToAll}
+            />
           )}
 
-
-          {/* ===== STEP 3: YEKUN VƏ TƏSDİQ ===== */}
+          {/* ===== STEP 3 ===== */}
           {step === 3 && (() => {
             const approvalMatrices = getApprovalMatrices();
             const selectedMatrix = approvalMatrices.find(m => m.id === draft.approvalMatrixId);
@@ -885,12 +826,22 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <SummaryRow label="Dövr" value={draft.frequency} />
                   <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
                   <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
-                  <SummaryRow label="Təsdiqləmə matrisi tələbi" value={draft.useMatrix ? "Bəli" : "Xeyr"} />
+                  <SummaryRow label="Təsdiqləmə matrisi" value={draft.useMatrix ? "Bəli" : "Xeyr"} />
+                  {draft.mode === "individual" && <SummaryRow label="Əməkdaşlar" value={draft.individualEmployees.join(", ") || "—"} />}
+                  {draft.mode === "bulk" && (
+                    <>
+                      {draft.bulkSelections.teams.length > 0 && <SummaryRow label="Komandalar" value={draft.bulkSelections.teams.join(", ")} />}
+                      {draft.bulkSelections.structures.length > 0 && <SummaryRow label="Strukturlar" value={`${draft.bulkSelections.structures.length} seçim`} />}
+                      {draft.bulkSelections.positions.length > 0 && <SummaryRow label="Vəzifələr" value={`${draft.bulkSelections.positions.length} seçim`} />}
+                      {draft.bulkSelections.persons.length > 0 && <SummaryRow label="Şəxslər" value={draft.bulkSelections.persons.join(", ")} />}
+                    </>
+                  )}
                 </SummarySection>
 
                 <SummarySection title="Lifecycle">
-                  <SummaryRow label="Assignment Deadline" value={draft.lifecycle.assignmentDeadline} />
-                  <SummaryRow label="Qiymətləndirmə" value={`${draft.lifecycle.evaluationStart} → ${draft.lifecycle.evaluationEnd}`} />
+                  <SummaryRow label="KPI təyin olunması" value={`${draft.lifecycle.assignmentStart || "—"} → ${draft.lifecycle.assignmentEnd || "—"}`} />
+                  <SummaryRow label="Qiymətləndirmə" value={`${draft.lifecycle.evaluationStart || "—"} → ${draft.lifecycle.evaluationEnd || "—"}`} />
+                  <SummaryRow label="Bonus hesablanması" value={`${draft.lifecycle.bonusStart || "—"} → ${draft.lifecycle.bonusEnd || "—"}`} />
                   <SummaryRow label="Review sayı" value={`${draft.lifecycle.reviews.length}`} />
                 </SummarySection>
 
@@ -904,36 +855,26 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           <span className="text-muted-foreground">{t.type} · {t.weight}%{t.cascading ? ` · cascade (${t.cascadeMatrix})` : ""}</span>
                         </div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">
-                          Qiymətləndirici: <span className="text-foreground">{t.evaluator || "—"}</span>
-                          {" · "}Təyin edici: <span className="text-foreground">{draft.createdBy === "self" ? "Özüm" : (t.assigner || "—")}</span>
+                          Qiymətləndiricilər: <span className="text-foreground">{t.evaluators.map(e => `${e.name}${t.evaluators.length > 1 ? ` (${e.weight}%)` : ""}`).join(", ") || "—"}</span>
+                          {" · "}Təyin edən: <span className="text-foreground">{t.createdBy === "self" ? "Özüm" : (t.assigner || "—")}</span>
                         </div>
                       </div>
                     ))
                   }
                 </SummarySection>
 
-                <SummarySection title="Yaradan">
-                  <SummaryRow label="KPI-ni təyin edən" value={draft.createdBy === "self" ? "Özüm təyin edirəm" : (draft.createdByEmployee || "—")} />
-                </SummarySection>
-
-                {/* Approval matrix selector — yalnız useMatrix aktiv olduqda */}
                 {draft.useMatrix && (
                   <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-primary" />
                       <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə Matrisi seçimi</h3>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      1-ci addımda təsdiqləmə matrisi tətbiq olunmasını seçdiniz. KPI bu matris üzrə təsdiqdən keçəcək.
-                    </p>
                     <select value={draft.approvalMatrixId}
                       onChange={e => update({ approvalMatrixId: e.target.value })}
                       className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
                       <option value="">— Təsdiqləmə matrisi seçin —</option>
                       {approvalMatrices.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.steps.length} addım)
-                        </option>
+                        <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
                       ))}
                     </select>
                     {selectedMatrix && (
@@ -956,30 +897,27 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           </button>
           <div className="text-xs text-muted-foreground">{step} / {TOTAL_STEPS}</div>
           <div className="flex gap-2 flex-wrap justify-end">
-            <button type="button" onClick={close} className="px-4 py-1.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+            <button type="button" onClick={close} className="px-3 py-1.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+            {/* "Yadda saxla" — bütün addımlarda */}
+            <button type="button" onClick={() => finalize("draft")}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary">
+              <Save className="w-4 h-4" /> Yadda saxla
+            </button>
             {step < TOTAL_STEPS ? (
               <button type="button" onClick={handleNext} disabled={!canNext}
                 className="flex items-center gap-1 px-5 py-1.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
                 Növbəti <ChevronRight className="w-4 h-4" />
               </button>
+            ) : draft.useMatrix ? (
+              <button type="button" onClick={() => finalize("submit")}
+                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
+                <Send className="w-4 h-4" /> Təyinə göndər
+              </button>
             ) : (
-              <>
-                <button type="button" onClick={() => finalize("draft")}
-                  className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary">
-                  <Save className="w-4 h-4" /> Yadda saxla
-                </button>
-                {draft.useMatrix ? (
-                  <button type="button" onClick={() => finalize("submit")}
-                    className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium">
-                    <Send className="w-4 h-4" /> Təsdiqə göndər
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => finalize("create_active")}
-                    className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
-                    <Power className="w-4 h-4" /> KPI yarat
-                  </button>
-                )}
-              </>
+              <button type="button" onClick={() => finalize("create_active")}
+                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
+                <Power className="w-4 h-4" /> KPI yarat
+              </button>
             )}
           </div>
         </div>
@@ -988,6 +926,517 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   );
 }
 
+// =========================================================
+// Lifecycle stage sub-component
+// =========================================================
+function LifecycleStage({ title, start, end, onStart, onEnd }: {
+  title: string; start: string; end: string;
+  onStart: (v: string) => void; onEnd: (v: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-12 gap-2 items-end">
+      <div className="col-span-12 md:col-span-4">
+        <label className="text-xs font-medium text-foreground">{title}</label>
+      </div>
+      <div className="col-span-6 md:col-span-4">
+        <label className="text-[11px] text-muted-foreground">Başlama tarixi</label>
+        <input type="date" value={start} onChange={e => onStart(e.target.value)}
+          className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+      </div>
+      <div className="col-span-6 md:col-span-4">
+        <label className="text-[11px] text-muted-foreground">Bitmə tarixi</label>
+        <input type="date" value={end} onChange={e => onEnd(e.target.value)}
+          className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// STEP 2 — Targets
+// =========================================================
+function Step2Targets({
+  draft, employeeOptions, cascadeMatrices, scoreMax, totalWeight,
+  update, updHedef, addHedef, removeHedef, applyEvaluatorsToAll, applyAssignerToAll,
+}: {
+  draft: CreateKpiWizardDraft;
+  employeeOptions: { value: string; label: string }[];
+  cascadeMatrices: { id: string; name: string; scopeType: string }[];
+  scoreMax: number | undefined;
+  totalWeight: number;
+  update: (p: Partial<CreateKpiWizardDraft>) => void;
+  updHedef: (id: string, p: Partial<WizardHedef>) => void;
+  addHedef: () => void;
+  removeHedef: (id: string) => void;
+  applyEvaluatorsToAll: (evs: WizardEvaluatorRef[]) => void;
+  applyAssignerToAll: (n: string) => void;
+}) {
+  // Unified picker for "vahid təyinedici / qiymətləndirici"
+  const [unifiedAssigner, setUnifiedAssigner] = useState<string>("");
+  const [unifiedEvaluators, setUnifiedEvaluators] = useState<WizardEvaluatorRef[]>([]);
+  const [scoreDlgFor, setScoreDlgFor] = useState<string | null>(null);
+
+  const scoreDlgTarget = draft.targets.find(t => t.id === scoreDlgFor) || null;
+
+  return (
+    <div className="space-y-3">
+      {/* Vahid seçim panel */}
+      <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2.5">
+        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5 text-primary" /> Vahid seçim (bütün hədəflərə tətbiq)
+        </div>
+        <div className="grid grid-cols-12 gap-2">
+          <div className="col-span-12 md:col-span-6">
+            <label className="text-[11px] text-muted-foreground">Vahid Təyin edici</label>
+            <div className="flex gap-1.5 mt-0.5">
+              <select value={unifiedAssigner} onChange={e => setUnifiedAssigner(e.target.value)}
+                className="flex-1 px-2 py-1.5 text-xs border border-border rounded bg-background">
+                <option value="">— Seçin —</option>
+                {employeeOptions.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+              </select>
+              <button type="button"
+                disabled={!unifiedAssigner || draft.targets.length === 0}
+                onClick={() => { applyAssignerToAll(unifiedAssigner); toast.success(`Təyin edici ${draft.targets.length} hədəfə tətbiq edildi`); }}
+                className="px-2.5 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
+                Tətbiq et
+              </button>
+            </div>
+          </div>
+          <div className="col-span-12 md:col-span-6">
+            <label className="text-[11px] text-muted-foreground">Vahid Qiymətləndirici(lər)</label>
+            <UnifiedEvaluatorsEditor
+              employeeOptions={employeeOptions}
+              evaluators={unifiedEvaluators}
+              onChange={setUnifiedEvaluators}
+            />
+            <button type="button"
+              disabled={unifiedEvaluators.length === 0 || draft.targets.length === 0}
+              onClick={() => {
+                const sum = unifiedEvaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+                if (unifiedEvaluators.length > 1 && sum !== 100) { toast.error(`Qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+                applyEvaluatorsToAll(unifiedEvaluators);
+                toast.success(`Qiymətləndirici(lər) ${draft.targets.length} hədəfə tətbiq edildi`);
+              }}
+              className="w-full mt-1.5 px-2.5 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
+              Bütün hədəflərə tətbiq et
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">KPI Hədəfləri</h3>
+          <p className="text-xs text-muted-foreground">Ümumi çəki 100% olmalıdır</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${totalWeight === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+            Ümumi çəki: {totalWeight}%
+          </span>
+          <button type="button" onClick={addHedef} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
+            <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
+          </button>
+        </div>
+      </div>
+
+      {draft.targets.length === 0 && (
+        <div className="text-center py-12 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
+          Hələ hədəf əlavə edilməyib — "Hədəf əlavə et" düyməsindən başlayın.
+        </div>
+      )}
+
+      {draft.targets.map((t, idx) => {
+        const isOther = t.createdBy === "other";
+        const disabled = isOther; // disable main fields except assigner/evaluators
+        const showMinMax = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
+        const showCascade = CASCADE_TYPES.includes(t.type);
+        const isScoreDescType = SCORE_DESC_TYPES.includes(t.type);
+
+        return (
+          <div key={t.id} className="relative p-3.5 rounded-xl border-2 border-primary/30 bg-card/60 space-y-2.5 shadow-sm">
+            <button type="button" title="Sil" onClick={() => removeHedef(t.id)}
+              className="absolute top-3 right-3 p-1.5 rounded hover:bg-destructive/10 text-destructive">
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border/60">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-bold text-base flex items-center justify-center">
+                {idx + 1}
+              </div>
+              <div className="flex-1">
+                <div className="text-base font-bold text-foreground">Hədəf #{idx + 1}</div>
+                <div className="text-xs text-muted-foreground">{t.name || "— Adsız hədəf —"} · {t.type}</div>
+              </div>
+              {/* Hədəfi kim təyin edir */}
+              <div className="flex gap-1.5 mr-8">
+                {([
+                  { v: "self" as const, t: "Özüm təyin edirəm" },
+                  { v: "other" as const, t: "Digər əməkdaş təyin edir" },
+                ]).map(o => {
+                  const active = t.createdBy === o.v;
+                  return (
+                    <button key={o.v} type="button"
+                      onClick={() => updHedef(t.id, { createdBy: o.v, assigner: o.v === "self" ? "" : t.assigner })}
+                      className={`px-2 py-1 rounded border text-[11px] font-medium ${active ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
+                      {o.t}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-2">
+              <div className="col-span-12 md:col-span-5">
+                <label className="text-[11px] text-muted-foreground">Hədəf adı *</label>
+                <input value={t.name} disabled={disabled} onChange={e => updHedef(t.id, { name: e.target.value })}
+                  placeholder="Məsələn: Rüblük satış həcmi"
+                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+              </div>
+              <div className="col-span-12 md:col-span-3">
+                <label className="text-[11px] text-muted-foreground">Hədəf növü *</label>
+                <select value={t.type} disabled={disabled} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
+                  className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
+                  {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
+                <input type="number" min={0} max={100} value={t.weight} disabled={disabled}
+                  onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
+                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+              </div>
+              <div className="col-span-6 md:col-span-2 flex items-end">
+                <button type="button" onClick={() => setScoreDlgFor(t.id)}
+                  className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1">
+                  <Star className="w-3.5 h-3.5" /> Qiymətlər
+                </button>
+              </div>
+            </div>
+
+            {/* Type-specific eval fields — disabled when "other" */}
+            {!disabled && (
+              <div className="rounded-md bg-secondary/30 border border-border/60 p-2">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Qiymətləndirmə — {t.type}</div>
+
+                {showMinMax && !isScoreDescType && (() => {
+                  const ranges = t.ranges && t.ranges.length > 0
+                    ? t.ranges
+                    : [{ id: crypto.randomUUID(), min: t.min, max: t.max, score: String(t.scoreLimit ?? ""), weight: String(t.weight ?? "") }];
+                  const setRanges = (rs: NonNullable<WizardHedef["ranges"]>) => updHedef(t.id, { ranges: rs, min: rs[0]?.min || "", max: rs[0]?.max || "" });
+                  return (
+                    <div className="space-y-1.5">
+                      {t.type === "Məbləğ" && (
+                        <div className="flex items-center justify-end gap-2">
+                          <label className="text-[11px] text-muted-foreground">Valyuta</label>
+                          <select value={t.currency} onChange={e => updHedef(t.id, { currency: e.target.value as WizardHedef["currency"] })}
+                            className="px-2 py-1 text-xs border border-border rounded bg-background">
+                            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-12 gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground px-1">
+                        <div className="col-span-3">Min *</div>
+                        <div className="col-span-3">Max *</div>
+                        <div className="col-span-2">Bal *{scoreMax !== undefined && <span className="normal-case"> (1-{scoreMax})</span>}</div>
+                        <div className="col-span-2">Çəki %</div>
+                        <div className="col-span-2 text-right">Əməl.</div>
+                      </div>
+                      {ranges.map((r) => (
+                        <div key={r.id} className="grid grid-cols-12 gap-1.5 items-center">
+                          <input type="number" value={r.min} placeholder="0"
+                            onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, min: e.target.value } : x))}
+                            className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
+                          <input type="number" value={r.max} placeholder="0"
+                            onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, max: e.target.value } : x))}
+                            className="col-span-3 px-2 py-1 text-xs border border-border rounded bg-background" />
+                          <input type="number" value={r.score} placeholder="0" min={1} max={scoreMax}
+                            onChange={e => {
+                              let v = e.target.value;
+                              if (scoreMax !== undefined && Number(v) > scoreMax) v = String(scoreMax);
+                              setRanges(ranges.map(x => x.id === r.id ? { ...x, score: v } : x));
+                            }}
+                            className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
+                          <input type="number" value={r.weight} placeholder="0" min={0} max={100}
+                            onChange={e => setRanges(ranges.map(x => x.id === r.id ? { ...x, weight: e.target.value } : x))}
+                            className="col-span-2 px-2 py-1 text-xs border border-border rounded bg-background" />
+                          <div className="col-span-2 flex justify-end">
+                            {ranges.length > 1 && (
+                              <button type="button" onClick={() => setRanges(ranges.filter(x => x.id !== r.id))}
+                                className="p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      <button type="button"
+                        onClick={() => setRanges([...ranges, { id: crypto.randomUUID(), min: "", max: "", score: "", weight: "" }])}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded border border-dashed border-primary/50 text-primary hover:bg-primary/10">
+                        <Plus className="w-3.5 h-3.5" /> Aralıq əlavə et (Min / Max / Bal / Çəki)
+                      </button>
+                    </div>
+                  );
+                })()}
+
+                {isScoreDescType && (
+                  <p className="text-[11px] text-muted-foreground italic">
+                    Bu növ üçün aralıq əlavə etmək mümkün deyil. <strong>"Qiymətlər"</strong> düyməsinə klik edib yalnız bal və izah daxil edin.
+                  </p>
+                )}
+
+                {t.type === "Səriştə" && (
+                  <select value={t.competencyMatrix} onChange={e => updHedef(t.id, { competencyMatrix: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                    <option value="">— Competency Matrix seçin —</option>
+                    <option value="Liderlik">Liderlik</option>
+                    <option value="Texniki Səriştə">Texniki Səriştə</option>
+                    <option value="Kommunikasiya">Kommunikasiya</option>
+                    <option value="Komanda işi">Komanda işi</option>
+                  </select>
+                )}
+
+                {t.type === "Boolean" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] text-muted-foreground">Bəli =</label>
+                      <input type="number" value={t.booleanYes} onChange={e => updHedef(t.id, { booleanYes: Number(e.target.value) })}
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground">Xeyr =</label>
+                      <input type="number" value={t.booleanNo} onChange={e => updHedef(t.id, { booleanNo: Number(e.target.value) })}
+                        className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Qiymətləndiricilər + Təyin edici */}
+            <div className="rounded-md border border-border/60 p-2 bg-background/40 space-y-2">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Məsuliyyət</div>
+
+              {/* Təyin edici */}
+              {isOther && (
+                <div>
+                  <label className="text-[11px] text-muted-foreground">Təyin edici *</label>
+                  <div className="flex gap-1.5 mt-0.5">
+                    <select value={t.assigner} onChange={e => updHedef(t.id, { assigner: e.target.value })}
+                      className="flex-1 px-2 py-1.5 text-xs border border-border rounded bg-background">
+                      <option value="">— Əməkdaş seçin —</option>
+                      {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    {t.assigner && (
+                      <button type="button" onClick={() => updHedef(t.id, { assigner: "" })}
+                        className="px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Qiymətləndiricilər */}
+              <div>
+                <label className="text-[11px] text-muted-foreground">Qiymətləndirici(lər) {isOther && "*"} {t.evaluators.length > 1 && <span className="text-amber-600">— faiz cəmi 100% olmalıdır</span>}</label>
+                <UnifiedEvaluatorsEditor
+                  employeeOptions={employeeOptions}
+                  evaluators={t.evaluators}
+                  onChange={(evs) => updHedef(t.id, { evaluators: evs, evaluator: evs[0]?.name || "" })}
+                />
+              </div>
+            </div>
+
+            {/* Cascade */}
+            {showCascade && !disabled && (
+              <div className="rounded-md border border-border/60 p-3 bg-background/40 space-y-2">
+                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                  <input type="checkbox" checked={t.cascading}
+                    onChange={e => updHedef(t.id, { cascading: e.target.checked, cascadeMatrix: e.target.checked ? t.cascadeMatrix : "" })}
+                    className="w-4 h-4" />
+                  <GitBranch className="w-3.5 h-3.5 text-primary" />
+                  Bu hədəf üzrə cascade tətbiq olunsun
+                </label>
+                {t.cascading && (
+                  <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                    <option value="">— Cascade Matrix seçin —</option>
+                    {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
+                  </select>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Qiymətlər dialog */}
+      {scoreDlgTarget && (
+        <ScoresDialog
+          target={scoreDlgTarget}
+          scoreMax={scoreMax}
+          onClose={() => setScoreDlgFor(null)}
+          onSave={(rows) => { updHedef(scoreDlgTarget.id, { scoreDescriptions: rows }); setScoreDlgFor(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// =========================================================
+// Evaluators multi-editor
+// =========================================================
+function UnifiedEvaluatorsEditor({ employeeOptions, evaluators, onChange }: {
+  employeeOptions: { value: string; label: string }[];
+  evaluators: WizardEvaluatorRef[];
+  onChange: (e: WizardEvaluatorRef[]) => void;
+}) {
+  const sum = evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+  const add = () => onChange([...evaluators, { id: crypto.randomUUID(), name: "", weight: evaluators.length === 0 ? 100 : 0 }]);
+  return (
+    <div className="space-y-1.5">
+      {evaluators.map(ev => (
+        <div key={ev.id} className="grid grid-cols-12 gap-1.5 items-center">
+          <select value={ev.name}
+            onChange={e => onChange(evaluators.map(x => x.id === ev.id ? { ...x, name: e.target.value } : x))}
+            className="col-span-8 px-2 py-1.5 text-xs border border-border rounded bg-background">
+            <option value="">— Əməkdaş seçin —</option>
+            {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <input type="number" min={0} max={100} value={ev.weight}
+            onChange={e => onChange(evaluators.map(x => x.id === ev.id ? { ...x, weight: Number(e.target.value) } : x))}
+            placeholder="%"
+            className="col-span-3 px-2 py-1.5 text-xs border border-border rounded bg-background" />
+          <button type="button" onClick={() => onChange(evaluators.filter(x => x.id !== ev.id))}
+            className="col-span-1 p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ))}
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={add}
+          className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded border border-dashed border-primary/50 text-primary hover:bg-primary/10">
+          <Plus className="w-3 h-3" /> Qiymətləndirici əlavə et
+        </button>
+        {evaluators.length > 1 && (
+          <span className={`text-[11px] font-medium px-2 py-0.5 rounded ${sum === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+            Cəm: {sum}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// Scores Dialog
+// =========================================================
+function ScoresDialog({ target, scoreMax, onClose, onSave }: {
+  target: WizardHedef;
+  scoreMax: number | undefined;
+  onClose: () => void;
+  onSave: (rows: WizardScoreDesc[]) => void;
+}) {
+  const max = scoreMax || 5;
+  const isTime = target.type === "Zaman";
+  const isScoreDescType = SCORE_DESC_TYPES.includes(target.type);
+
+  const seedRows = useMemo(() => {
+    if (target.scoreDescriptions && target.scoreDescriptions.length > 0) return target.scoreDescriptions;
+    return Array.from({ length: max }, (_, i) => ({ id: crypto.randomUUID(), score: i + 1, description: "", timeStart: "", timeEnd: "" }));
+  }, [target.id, max]);
+
+  const [rows, setRows] = useState<WizardScoreDesc[]>(seedRows);
+
+  useEffect(() => { setRows(seedRows); }, [seedRows]);
+
+  const required = isScoreDescType ? (max === 10 ? [10, 4] : [max, Math.ceil(max * 0.4)]) : [];
+
+  const save = () => {
+    for (const r of required) {
+      const row = rows.find(x => Number(x.score) === r);
+      if (!row || !row.description.trim()) {
+        toast.error(`${r} balı üçün izah məcburidir`); return;
+      }
+      if (isTime && (!row.timeStart || !row.timeEnd)) {
+        toast.error(`Zaman: ${r} balı üçün zaman aralığı tələb olunur`); return;
+      }
+    }
+    onSave(rows);
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Star className="w-5 h-5 text-amber-500" />
+            "{target.name || "Hədəf"}" üçün qiymətlər (1-{max})
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground">
+            {isScoreDescType ? (
+              <>Yalnız bal və izah daxil edilə bilər. <strong>{required.join(" və ")}</strong> ballarının izahı məcburidir; digərləri opsionaldır.</>
+            ) : (
+              <>Hər balın qısa izahını yaza bilərsiniz (opsional).</>
+            )}
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-2">
+          {rows.map((r) => {
+            const isReq = required.includes(Number(r.score));
+            return (
+              <div key={r.id} className={`p-2 rounded border ${isReq ? "border-amber-500/60 bg-amber-500/5" : "border-border"}`}>
+                <div className="grid grid-cols-12 gap-2 items-start">
+                  <div className="col-span-2">
+                    <label className="text-[11px] text-muted-foreground">Bal</label>
+                    <div className="mt-0.5 px-2 py-1.5 text-sm font-bold text-center border border-border rounded bg-background">
+                      {r.score}{isReq && <span className="text-destructive ml-0.5">*</span>}
+                    </div>
+                  </div>
+                  <div className={`${isTime ? "col-span-6" : "col-span-10"}`}>
+                    <label className="text-[11px] text-muted-foreground">İzah {isReq && "*"}</label>
+                    <input value={r.description}
+                      onChange={e => setRows(rows.map(x => x.id === r.id ? { ...x, description: e.target.value } : x))}
+                      placeholder="Bu balı qazanmaq üçün şərt..."
+                      className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                  </div>
+                  {isTime && (
+                    <>
+                      <div className="col-span-2">
+                        <label className="text-[11px] text-muted-foreground">Başlama {isReq && "*"}</label>
+                        <input type="date" value={r.timeStart || ""}
+                          onChange={e => setRows(rows.map(x => x.id === r.id ? { ...x, timeStart: e.target.value } : x))}
+                          className="w-full mt-0.5 px-1 py-1.5 text-xs border border-border rounded bg-background" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="text-[11px] text-muted-foreground">Bitmə {isReq && "*"}</label>
+                        <input type="date" value={r.timeEnd || ""}
+                          onChange={e => setRows(rows.map(x => x.id === r.id ? { ...x, timeEnd: e.target.value } : x))}
+                          className="w-full mt-0.5 px-1 py-1.5 text-xs border border-border rounded bg-background" />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+          <button type="button" onClick={save} className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground flex items-center gap-1">
+            <Save className="w-4 h-4" /> Yadda saxla
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// =========================================================
+// Summary helpers
+// =========================================================
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 text-sm py-0.5">
