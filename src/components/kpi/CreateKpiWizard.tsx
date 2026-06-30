@@ -629,42 +629,57 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </Field>
                 )}
 
-                {/* BULK: four side-by-side multi-selects */}
-                {draft.mode === "bulk" && (
-                  <Field label="Toplu təyinat (bir və ya bir neçəsini doldurun)" required span="col-span-12">
-                    <div className="grid grid-cols-12 gap-2">
-                      <div className="col-span-12 md:col-span-3">
-                        <label className="text-[11px] text-muted-foreground">Komanda</label>
-                        <MultiSelectDropdown options={teamOptions} selected={draft.bulkSelections.teams}
-                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, teams: v } })}
-                          placeholder="Komanda seçin" />
+                {/* BULK: only ONE category at a time */}
+                {draft.mode === "bulk" && (() => {
+                  const bs = draft.bulkSelections;
+                  const activeCat: "teams" | "structures" | "positions" | "persons" | null =
+                    bs.teams.length > 0 ? "teams"
+                    : bs.structures.length > 0 ? "structures"
+                    : bs.positions.length > 0 ? "positions"
+                    : bs.persons.length > 0 ? "persons"
+                    : null;
+                  const dis = (c: typeof activeCat) => activeCat !== null && activeCat !== c;
+                  return (
+                    <Field label="Toplu təyinat (yalnız birini doldurun)" required span="col-span-12">
+                      <div className="grid grid-cols-12 gap-2">
+                        <div className="col-span-12 md:col-span-3">
+                          <label className="text-[11px] text-muted-foreground">Komanda</label>
+                          <MultiSelectDropdown options={teamOptions} selected={bs.teams} disabled={dis("teams")}
+                            onChange={(v) => update({ bulkSelections: { ...bs, teams: v } })}
+                            placeholder="Komanda seçin" />
+                        </div>
+                        <div className="col-span-12 md:col-span-3">
+                          <label className="text-[11px] text-muted-foreground">Struktur</label>
+                          <MultiSelectDropdown options={structureOptions} selected={bs.structures} disabled={dis("structures")}
+                            onChange={(v) => update({ bulkSelections: { ...bs, structures: v } })}
+                            placeholder="Struktur seçin" />
+                        </div>
+                        <div className="col-span-12 md:col-span-3">
+                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
+                          <MultiSelectDropdown options={positionOptions} selected={bs.positions} disabled={dis("positions")}
+                            onChange={(v) => update({ bulkSelections: { ...bs, positions: v } })}
+                            placeholder="Vəzifə seçin" />
+                        </div>
+                        <div className="col-span-12 md:col-span-3">
+                          <label className="text-[11px] text-muted-foreground">Şəxs</label>
+                          <MultiSelectDropdown options={employeeOptions} selected={bs.persons} disabled={dis("persons")}
+                            onChange={(v) => update({ bulkSelections: { ...bs, persons: v } })}
+                            placeholder="Şəxs seçin" />
+                        </div>
                       </div>
-                      <div className="col-span-12 md:col-span-3">
-                        <label className="text-[11px] text-muted-foreground">Struktur</label>
-                        <MultiSelectDropdown options={structureOptions} selected={draft.bulkSelections.structures}
-                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, structures: v } })}
-                          placeholder="Struktur seçin" />
-                      </div>
-                      <div className="col-span-12 md:col-span-3">
-                        <label className="text-[11px] text-muted-foreground">Vəzifə</label>
-                        <MultiSelectDropdown options={positionOptions} selected={draft.bulkSelections.positions}
-                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, positions: v } })}
-                          placeholder="Vəzifə seçin" />
-                      </div>
-                      <div className="col-span-12 md:col-span-3">
-                        <label className="text-[11px] text-muted-foreground">Şəxs</label>
-                        <MultiSelectDropdown options={employeeOptions} selected={draft.bulkSelections.persons}
-                          onChange={(v) => update({ bulkSelections: { ...draft.bulkSelections, persons: v } })}
-                          placeholder="Şəxs seçin" />
-                      </div>
-                    </div>
-                    {draft.bulkSelections.persons.length >= 2 && (
-                      <p className="text-[11px] text-emerald-600 mt-1.5 flex items-center gap-1">
-                        <Users className="w-3 h-3" /> Yadda saxladıqda bu {draft.bulkSelections.persons.length} şəxs üçün avtomatik yeni komanda yaradılacaq.
-                      </p>
-                    )}
-                  </Field>
-                )}
+                      {activeCat && (
+                        <p className="text-[11px] text-muted-foreground mt-1.5">
+                          Yalnız bir kateqoriya seçə bilərsiniz. Dəyişmək üçün cari seçimi təmizləyin.
+                        </p>
+                      )}
+                      {bs.persons.length >= 2 && (
+                        <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1">
+                          <Users className="w-3 h-3" /> Yadda saxladıqda bu {bs.persons.length} şəxs üçün avtomatik yeni komanda yaradılacaq.
+                        </p>
+                      )}
+                    </Field>
+                  );
+                })()}
 
                 <Field label="Dövr" required span="col-span-12 md:col-span-4">
                   <select value={draft.frequency} onChange={e => setFrequency(e.target.value)}
