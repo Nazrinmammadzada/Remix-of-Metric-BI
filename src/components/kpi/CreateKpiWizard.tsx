@@ -1087,9 +1087,7 @@ function Step2Targets({
       {draft.targets.map((t, idx) => {
         const isOther = t.createdBy === "other";
         const disabled = isOther; // disable main fields except assigner/evaluators
-        const showMinMax = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
         const showCascade = CASCADE_TYPES.includes(t.type);
-        const isScoreDescType = SCORE_DESC_TYPES.includes(t.type);
 
         return (
           <div key={t.id} className="relative p-3.5 rounded-xl border-2 border-primary/30 bg-card/60 space-y-2.5 shadow-sm">
