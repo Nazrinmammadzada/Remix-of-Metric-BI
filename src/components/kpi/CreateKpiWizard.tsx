@@ -763,15 +763,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <h3 className="text-sm font-semibold text-foreground">KPI Lifecycle</h3>
                 </div>
 
-                <LifecycleStage title="KPI təyin olunması"
+                <LifecycleStage title="KPI təyin olunması *" required
                   start={draft.lifecycle.assignmentStart} end={draft.lifecycle.assignmentEnd}
                   onStart={v => updLifecycle({ assignmentStart: v, assignmentDeadline: v })}
                   onEnd={v => updLifecycle({ assignmentEnd: v })} />
-                <LifecycleStage title="KPI qiymətləndirilməsi"
+                <LifecycleStage title="KPI qiymətləndirilməsi *" required
                   start={draft.lifecycle.evaluationStart} end={draft.lifecycle.evaluationEnd}
                   onStart={v => updLifecycle({ evaluationStart: v })}
                   onEnd={v => updLifecycle({ evaluationEnd: v })} />
-                <LifecycleStage title="Bonusun hesablanması"
+                <LifecycleStage title="Bonusun hesablanması *" required
                   start={draft.lifecycle.bonusStart} end={draft.lifecycle.bonusEnd}
                   onStart={v => updLifecycle({ bonusStart: v })}
                   onEnd={v => updLifecycle({ bonusEnd: v })} />
