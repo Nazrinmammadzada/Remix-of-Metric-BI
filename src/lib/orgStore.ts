@@ -483,3 +483,140 @@ export const findOccupantsByPosition = (
   return out;
 };
 
+
+// =====================================================================
+// STAR POSITION — Ulduzlu Vəzifə (Kaskadlama üçün)
+// =====================================================================
+// Qayda: Ulduz VƏZİFƏYƏ verilir, şəxsə deyil. Hər struktur vahidində
+// yalnız bir Star Position ola bilər. Vəzifədə oturan əməkdaş dəyişdikdə
+// heç bir mapping yenidən qurulmur — servis avtomatik yeni holder-i tapır.
+
+/** Vəzifəyə ulduz təyin et / sil. Uniqueness həmin struktur daxilində zorlanır. */
+export const setStarPosition = (positionId: number, isStar: boolean) => {
+  const list = cloneStructures(getStructures());
+  findPositionAndMutate(list, positionId, (pos, parent) => {
+    if (isStar) {
+      // Həmin struktur vahidində əvvəlki ulduz(lar)ı söndür
+      parent.positions.forEach(p => {
+        if (p.id !== positionId) p.isStarPosition = false;
+      });
+      pos.isStarPosition = true;
+    } else {
+      pos.isStarPosition = false;
+    }
+  });
+  setStructures(list);
+  return list;
+};
+
+/** Verilmiş struktur vahidindəki Star Position-u tapır (yoxdursa null). */
+export const getStarPositionOfUnit = (unitId: number): OrgPosition | null => {
+  const node = findStructureById(unitId);
+  if (!node) return null;
+  return node.positions.find(p => p.isStarPosition) ?? null;
+};
+
+/** Ulduz vəzifədə oturan əməkdaşı(ları) qaytarır. Vakantdırsa boş massiv. */
+export const getStarHoldersOfUnit = (unitId: number): OrgEmployee[] => {
+  const pos = getStarPositionOfUnit(unitId);
+  if (!pos) return [];
+  const employees = getEmployees();
+  const out: OrgEmployee[] = [];
+  for (const s of pos.slots) {
+    if (s.employeeId != null) {
+      const e = employees.find(x => x.id === s.employeeId);
+      if (e && e.active) out.push(e);
+    }
+  }
+  return out;
+};
+
+/** Vahid holder — birdən çox slot varsa, birincisini qaytarır. */
+export const getStarHolderOfUnit = (unitId: number): OrgEmployee | null =>
+  getStarHoldersOfUnit(unitId)[0] ?? null;
+
+export interface CascadeNode {
+  unitId: number;
+  unitName: string;
+  unitType: string;
+  path: string;
+  starPosition: OrgPosition | null;
+  starHolder: OrgEmployee | null;
+  /** Ulduz vəzifə var, amma boşdursa true — göndəriş bloklanır. */
+  vacant: boolean;
+  /** Struktur vahidində ümumiyyətlə Star Position təyin edilməyibsə true. */
+  missingStar: boolean;
+  children: CascadeNode[];
+}
+
+/** Verilmiş kökdən başlayaraq bütün alt strukturları rekursiv gəzir. */
+export const resolveCascadeChain = (rootUnitId: number): CascadeNode | null => {
+  const root = findStructureById(rootUnitId);
+  if (!root) return null;
+  const build = (node: OrgStructure, pathParts: string[]): CascadeNode => {
+    const path = [...pathParts, node.name].join(" › ");
+    const starPos = node.positions.find(p => p.isStarPosition) ?? null;
+    const holder = starPos ? getStarHolderOfUnit(node.id) : null;
+    return {
+      unitId: node.id,
+      unitName: node.name,
+      unitType: node.type,
+      path,
+      starPosition: starPos,
+      starHolder: holder,
+      vacant: !!starPos && !holder,
+      missingStar: !starPos,
+      children: node.children.map(c => build(c, [...pathParts, node.name])),
+    };
+  };
+  return build(root, []);
+};
+
+/** Bütün kökləri (top-level struktur vahidlərini) zəncir kimi qaytarır. */
+export const resolveAllCascadeChains = (): CascadeNode[] =>
+  getStructures().map(s => resolveCascadeChain(s.id)!).filter(Boolean);
+
+/** Struktur boyunca star saylarını yoxlayır — >1 halı təhlükəlidir. */
+export interface StarValidationIssue {
+  unitId: number;
+  unitName: string;
+  path: string;
+  kind: "missing" | "multiple" | "vacant";
+  detail?: string;
+}
+
+export const validateStarStructure = (): StarValidationIssue[] => {
+  const issues: StarValidationIssue[] = [];
+  const walk = (nodes: OrgStructure[], pathParts: string[]) => {
+    for (const n of nodes) {
+      const path = [...pathParts, n.name].join(" › ");
+      const stars = n.positions.filter(p => p.isStarPosition);
+      if (stars.length > 1) {
+        issues.push({ unitId: n.id, unitName: n.name, path, kind: "multiple", detail: stars.map(s => s.name).join(", ") });
+      } else if (stars.length === 0 && n.positions.length > 0) {
+        issues.push({ unitId: n.id, unitName: n.name, path, kind: "missing" });
+      } else if (stars.length === 1) {
+        const holder = getStarHolderOfUnit(n.id);
+        if (!holder) issues.push({ unitId: n.id, unitName: n.name, path, kind: "vacant", detail: stars[0].name });
+      }
+      walk(n.children, [...pathParts, n.name]);
+    }
+  };
+  walk(getStructures(), []);
+  return issues;
+};
+
+/** KPI hədəfini struktur vahidinə yönləndirmə üçün əməkdaşı tap. */
+export class MissingStarError extends Error {
+  constructor(public unitId: number, public unitName: string) {
+    super(`"${unitName}" strukturunda Ulduzlu Vəzifə təyin edilməyib`);
+  }
+}
+
+export const routeKpiToUnit = (unitId: number): OrgEmployee => {
+  const node = findStructureById(unitId);
+  if (!node) throw new Error("Struktur tapılmadı");
+  const holder = getStarHolderOfUnit(unitId);
+  if (!holder) throw new MissingStarError(unitId, node.name);
+  return holder;
+};
