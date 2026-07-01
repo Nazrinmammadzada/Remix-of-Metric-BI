@@ -452,13 +452,14 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
     if (t.createdBy === "other") {
       if (!t.assigner) return `"${t.name}" üçün Təyin edici seçilməlidir`;
+      // "other" mode: only assigner needed; evaluators & scores are filled by that person later
+      return null;
     }
     if (t.evaluators.length === 0) return `"${t.name}" üçün ən az 1 Qiymətləndirici seçin`;
     if (t.evaluators.length > 1) {
       const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
       if (sum !== 100) return `"${t.name}": qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`;
     }
-    if (t.createdBy === "other") return null;
 
     // === Qiymətlər (məcburi 5/2 və ya 10/4) — bütün hədəf növləri ===
     const max = scoreMax || 5;
