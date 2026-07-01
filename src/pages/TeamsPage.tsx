@@ -413,12 +413,10 @@ const TeamsPage = () => {
                     .map(name => {
                       const p = allPeople.find(x => x.name === name);
                       if (!p) return null;
-                      const isLeader = leaderName === name;
                       return (
-                        <div key={name} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-card border ${isLeader ? "border-warning shadow-sm" : "border-border"}`}>
+                        <div key={name} className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-card border border-border">
                           <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-semibold shrink-0">{p.avatar}</div>
                           <span className="text-xs font-medium text-foreground truncate flex-1">{p.name}</span>
-                          {isLeader && <Star className="w-3 h-3 fill-warning text-warning shrink-0" />}
                           <X className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-destructive shrink-0" onClick={() => toggleMember(name)} />
                         </div>
                       );
