@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { GitBranch, Map, Activity, ArrowUpRight, ChevronLeft, Clock } from "lucide-react";
+import { GitBranch, Map, Activity, ArrowUpRight } from "lucide-react";
 import CascadingPage from "./CascadingPage";
+import CascadeTrackingPage from "./CascadeTrackingPage";
 
 type View = null | "map" | "track";
 
