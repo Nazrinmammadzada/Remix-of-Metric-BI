@@ -622,6 +622,33 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
 
 
+  // Helpers for new columns
+  const getCreatedAtFor = (cardId: number): string => {
+    const st = statusMap[cardId] as any;
+    const s = (st?.updated_at as string | undefined) || undefined;
+    if (s) return s.slice(0, 10);
+    const draft = cardDrafts[cardId];
+    return (draft?.startDate) || "—";
+  };
+  const getAssignKindFor = (cardId: number): "Fərdi" | "Komanda" | "Struktur" | "Vəzifə" => {
+    const draft = cardDrafts[cardId];
+    if (!draft) {
+      // Legacy demo: map to Fərdi/Komanda based on team match
+      const card = kpiCards.find(c => c.id === cardId);
+      if (!card) return "Fərdi";
+      const teams = getTeams();
+      const inTeam = teams.some(t => [t.leader, ...t.members.map(m => m.name)].includes(card.responsible));
+      return inTeam ? "Komanda" : "Fərdi";
+    }
+    if (draft.mode === "individual") return "Fərdi";
+    // bulk mode — introspect selected buckets
+    const b: any = (draft as any).bulk || {};
+    if (b.teamIds?.length) return "Komanda";
+    if (b.structureIds?.length) return "Struktur";
+    if (b.positions?.length) return "Vəzifə";
+    return "Fərdi";
+  };
+
   const filteredCards = kpiCards.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase());
     let matchesTeam = true;
@@ -632,10 +659,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         matchesTeam = memberNames.includes(c.responsible);
       }
     }
-    const matchesStatus = filterStatus === "Hamısı" ||
-      (filterStatus === "Təsdiq gözləyən" && c.approvalStatus === "pending") ||
-      (filterStatus === "Təsdiq edilmiş" && c.approvalStatus === "approved");
-    return matchesSearch && matchesTeam && matchesStatus;
+    const st = getStatusFor(c.id);
+    const STATUS_LBL: Record<string, string> = {
+      natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+      imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
+    };
+    const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
+    const matchesKind = filterAssignKind === "Hamısı" || getAssignKindFor(c.id) === filterAssignKind;
+    return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
   const pickBscFormulaName = (types: string[]) => {
