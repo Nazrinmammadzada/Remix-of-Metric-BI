@@ -494,11 +494,30 @@ export const findOccupantsByPosition = (
 // tapıb hədəfləri onlara yönləndirir; həmin rəhbər öz tabeliyindəki
 // alt strukturlara və şəxslərə hədəfi bölüşdürə bilər.
 
-/** Şəxsə Rəhbər rolu ver / geri götür (yalnız administrator). */
+/** Şəxsə Rəhbər rolu ver / geri götür (yalnız administrator).
+ *  QAYDA: 1 struktur vahidində yalnız 1 rəhbər ola bilər — bu şəxsə rəhbər verildikdə
+ *  həmin struktur vahidindəki digər rəhbərlər avtomatik geri götürülür. */
 export const setStarPerson = (employeeId: number, isStar: boolean) => {
-  const next = getEmployees().map(e =>
-    e.id === employeeId ? { ...e, isStarPerson: isStar } : e,
-  );
+  let next = getEmployees();
+  if (isStar) {
+    const findUnit = (nodes: OrgStructure[]): OrgStructure | null => {
+      for (const n of nodes) {
+        for (const p of n.positions) for (const s of p.slots) if (s.employeeId === employeeId) return n;
+        const r = findUnit(n.children); if (r) return r;
+      }
+      return null;
+    };
+    const unit = findUnit(getStructures());
+    if (unit) {
+      const unitEmpIds = new Set<number>();
+      for (const p of unit.positions) for (const s of p.slots) if (s.employeeId != null) unitEmpIds.add(s.employeeId);
+      next = next.map(e => unitEmpIds.has(e.id) ? { ...e, isStarPerson: e.id === employeeId } : e);
+    } else {
+      next = next.map(e => e.id === employeeId ? { ...e, isStarPerson: true } : e);
+    }
+  } else {
+    next = next.map(e => e.id === employeeId ? { ...e, isStarPerson: false } : e);
+  }
   setEmployees(next);
   return next;
 };
