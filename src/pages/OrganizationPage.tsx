@@ -6,8 +6,9 @@ import {
   Building2, Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   Briefcase, UserPlus, Search, X, Check, KeyRound, ShieldCheck, UserCircle2,
   Eye, Folder, ChevronsLeft, ChevronsRight, ChevronLeft, Filter, Download,
-  Wallet, ArrowUpRight, Network,
+  Wallet, ArrowUpRight, Network, Star,
 } from "lucide-react";
+
 import chrLogo from "@/assets/chr-logo.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
