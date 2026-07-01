@@ -460,7 +460,7 @@ const UserKpiCardsPage = () => {
                     </div>
                     {selectedKpi.subKpis && selectedKpi.subKpis.length > 0 && (
                       <div className="bg-card rounded-lg border border-border p-4">
-                        <h4 className="font-semibold text-foreground mb-3">Sub-KPI-lar</h4>
+                        <h4 className="font-semibold text-foreground mb-3">Hədəflər</h4>
                         <div className="space-y-2">
                           {selectedKpi.subKpis.map(sk => (
                             <div key={sk.id} className="p-2 rounded-lg bg-secondary">
@@ -699,19 +699,19 @@ const UserKpiCardsPage = () => {
 
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-sm font-medium text-foreground">Sub-KPI-lar</label>
+                  <label className="text-sm font-medium text-foreground">Hədəflər</label>
                   <div className="flex items-center gap-3">
                     <span className={`text-xs font-medium ${totalSubWeight > 100 ? 'text-destructive' : 'text-muted-foreground'}`}>Toplam: {totalSubWeight}%</span>
-                    <button onClick={() => setNewKpi(p => ({ ...p, subKpis: [...p.subKpis, { id: Date.now(), name: "", target: "", weight: 0 }] }))} className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-primary text-primary-foreground"><Plus className="w-3 h-3" /> Yeni Sub-KPI</button>
+                    <button onClick={() => setNewKpi(p => ({ ...p, subKpis: [...p.subKpis, { id: Date.now(), name: "", target: "", weight: 0 }] }))} className="flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-primary text-primary-foreground"><Plus className="w-3 h-3" /> Yeni Hədəf</button>
                   </div>
                 </div>
                 {newKpi.subKpis.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-3">Sub-KPI əlavə etmək üçün yuxarıdakı düyməyə klik edin və ya KPI Tipi seçin</p>
+                  <p className="text-xs text-muted-foreground text-center py-3">Hədəf əlavə etmək üçün yuxarıdakı düyməyə klik edin və ya KPI Tipi seçin</p>
                 ) : (
                   <div className="space-y-2">
                     {newKpi.subKpis.map((sk, i) => (
                       <div key={sk.id} className="grid grid-cols-12 gap-2 items-center">
-                        <input value={sk.name} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], name: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Sub-KPI adı" className="col-span-5 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
+                        <input value={sk.name} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], name: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Hədəf adı" className="col-span-5 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
                         <input value={sk.target} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], target: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Hədəf" className="col-span-3 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
                         <div className="col-span-3 flex items-center gap-1">
                           <input type="number" value={sk.weight} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], weight: Number(e.target.value) }; setNewKpi(p => ({ ...p, subKpis: s })); }} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />

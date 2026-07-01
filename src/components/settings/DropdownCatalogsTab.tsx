@@ -149,7 +149,7 @@ const SubKpisTable = ({ rows, onEdit, onDelete }: { rows: SubKpiRow[]; onEdit: (
     <thead>
       <tr className="text-muted-foreground text-left border-b border-border">
         <th className="py-3 w-12 font-medium">No</th>
-        <th className="py-3 font-medium">Sub-KPI Adı</th>
+        <th className="py-3 font-medium">Hədəf Adı</th>
         <th className="py-3 font-medium">Aid KPI</th>
         <th className="py-3 font-medium">Ölçü Vahidi</th>
         <th className="py-3 w-20 font-medium">Çəki</th>
@@ -312,10 +312,10 @@ const SubKpiDialog = ({ open, onClose, state, onSave, parents, unitOptions }: {
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>{state?.mode === "edit" ? "Sub-KPI Redaktə Et" : "Yeni Sub-KPI Yarat"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{state?.mode === "edit" ? "Hədəf Redaktə Et" : "Yeni Hədəf Yarat"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className={labelCls}>Sub-KPI Adı</label>
+            <label className={labelCls}>Hədəf Adı</label>
             <input autoFocus value={form.name || ""} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Məsələn: Online Satış" className={inputCls} />
           </div>
           <div>
@@ -499,7 +499,7 @@ const DropdownCatalogsTab = () => {
   const addLabel = () => {
     if (active?.schema === "target_types") return "Yeni Hədəf Tipi";
     if (active?.schema === "kpi_kinds") return "Yeni KPI Növü";
-    if (active?.schema === "sub_kpis") return "Yeni Sub-KPI";
+    if (active?.schema === "sub_kpis") return "Yeni Hədəf";
     if (active?.schema === "kpi_periods") return "Yeni Dövr";
     return "Dəyər əlavə et";
   };
@@ -659,7 +659,7 @@ const DropdownCatalogsTab = () => {
         onSave={d => {
           if (!active) return;
           const ok = skDialog?.mode === "add" ? addCatalogRow(active.id, d) : updateCatalogRow(active.id, skDialog!.id!, d);
-          if (ok) { refresh(); setSkDialog(null); toast.success(skDialog?.mode === "add" ? "Sub-KPI əlavə edildi" : "Yeniləndi"); }
+          if (ok) { refresh(); setSkDialog(null); toast.success(skDialog?.mode === "add" ? "Hədəf əlavə edildi" : "Yeniləndi"); }
         }}
       />
       <PeriodDialog

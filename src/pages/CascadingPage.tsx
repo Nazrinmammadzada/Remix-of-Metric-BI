@@ -59,7 +59,7 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
             <thead className="bg-secondary/40 text-left text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">KPI Kartı</th>
-                <th className="px-4 py-3 font-medium">Sub-KPI</th>
+                <th className="px-4 py-3 font-medium">Hədəf</th>
                 <th className="px-4 py-3 font-medium">Rəhbər</th>
                 <th className="px-4 py-3 font-medium">Hədəf</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -69,7 +69,7 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
             <tbody>
               {cascadable.length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  Paylaşıla bilən hədəf yoxdur. KPI Set modulunda rəhbər sub-KPI təyin edərkən "Paylaşıla bilər" seçməlidir.
+                  Paylaşıla bilən hədəf yoxdur. KPI Set modulunda rəhbər hədəf təyin edərkən "Paylaşıla bilər" seçməlidir.
                 </td></tr>
               ) : cascadable.map(e => {
                 const assign = assignments.find(a => a.entryId === e.id);

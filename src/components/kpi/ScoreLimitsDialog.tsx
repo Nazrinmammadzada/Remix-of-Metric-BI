@@ -49,11 +49,11 @@ interface Props {
   initial?: LimitSet;
   initialDynamic?: DynamicTier[];
   initialCascadable?: boolean;
-  /** Sub-KPI çəkisi və min/max məhdudiyyəti (KPI Set entry-dən) */
+  /** Hədəf çəkisi və min/max məhdudiyyəti (KPI Set entry-dən) */
   weight?: number;
   weightMin?: number;
   weightMax?: number;
-  /** edit rejimində sub-KPI adı/hədəfi/vahidi də redaktə edilə bilər (KPI Set "Gözləyənlər"). */
+  /** edit rejimində hədəf adı/hədəfi/vahidi də redaktə edilə bilər (KPI Set "Gözləyənlər"). */
   editMeta?: boolean;
   /** view rejimində paylanmış (cascade) məlumatı göstərmək üçün */
   cascadeAssignment?: CascadeAssignment;
@@ -129,7 +129,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sliders className="w-4 h-4 text-primary" />
-            {editMeta ? "Sub-KPI və Qiymət Limitləri" : "Qiymət Limitləri"}
+            {editMeta ? "Hədəf və Qiymət Limitləri" : "Qiymət Limitləri"}
             {mode === "view" && <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">Read-only</span>}
           </DialogTitle>
           {!editMeta && (
@@ -142,7 +142,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
         {editMeta && mode === "edit" && (
           <div className="grid grid-cols-12 gap-2">
             <div className="col-span-12">
-              <label className="text-[11px] text-muted-foreground">Sub-KPI adı</label>
+              <label className="text-[11px] text-muted-foreground">Hədəf adı</label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -200,7 +200,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5">
             <label className="text-[11px] text-muted-foreground block mb-1 flex items-center gap-1">
               <AlertTriangle className="w-3 h-3 text-amber-600" />
-              Sub-KPI çəkisi (%)
+              Hədəf çəkisi (%)
               {(weightMin != null || weightMax != null) && (
                 <span className="ml-1 text-foreground font-medium">
                   — icazə verilən: {weightMin ?? 0}% – {weightMax ?? 100}%
@@ -225,7 +225,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
         {mode === "view" && !initial && !(initialDynamic && initialDynamic.length) ? (
           <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20">
             <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-            <p className="text-xs text-foreground">Bu sub-KPI üçün hələ <span className="font-medium">KPI Set</span> modulundan limit təyin olunmayıb.</p>
+            <p className="text-xs text-foreground">Bu hədəf üçün hələ <span className="font-medium">KPI Set</span> modulundan limit təyin olunmayıb.</p>
           </div>
         ) : useDynamic && mode === "edit" ? (
           <div className="space-y-1.5 max-h-72 overflow-y-auto">

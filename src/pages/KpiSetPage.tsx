@@ -43,7 +43,7 @@ const KpiSetPage = () => {
           badge="KPI Set"
           icon={SlidersHorizontal}
           title="KPI Set"
-          subtitle="Rəhbərə təyin olunmuş və ya HR tərəfindən idarə olunan sub-KPI-lar üçün qiymət limitlərinin müəyyən edilməsi"
+          subtitle="Rəhbərə təyin olunmuş və ya HR tərəfindən idarə olunan hədəf-lar üçün qiymət limitlərinin müəyyən edilməsi"
         />
 
         {/* Tabs */}
@@ -79,7 +79,7 @@ const KpiSetPage = () => {
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Sub-KPI, kart və ya əməkdaş axtar..."
+                placeholder="Hədəf, kart və ya əməkdaş axtar..."
                 className="pl-8 pr-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring w-72"
               />
             </div>
@@ -89,7 +89,7 @@ const KpiSetPage = () => {
               getData={() => ({
                 title: `KPI Set — ${tab === "pending" ? "Gözləyənlər" : "Tamamlanmışlar"}`,
                 fileName: `kpi-set-${tab}`,
-                headers: ["Sub-KPI", "KPI Kartı", "Təyinatçı", "Əməkdaş", "Hədəf", "Vahid", "Status"],
+                headers: ["Hədəf", "KPI Kartı", "Təyinatçı", "Əməkdaş", "Hədəf", "Vahid", "Status"],
                 rows: filtered.map(r => [
                   r.subKpiName, r.cardName,
                   r.ownerType === "manager" ? "Rəhbər" : "HR",
@@ -107,7 +107,7 @@ const KpiSetPage = () => {
                   <th className="px-4 py-3 font-medium">KPI Kartı</th>
                   <th className="px-4 py-3 font-medium">Təyinatçı</th>
                   <th className="px-4 py-3 font-medium">Əməkdaş</th>
-                  {tab === "completed" && <th className="px-4 py-3 font-medium">Sub-KPI</th>}
+                  {tab === "completed" && <th className="px-4 py-3 font-medium">Hədəf</th>}
                   {tab === "completed" && <th className="px-4 py-3 font-medium">Hədəf</th>}
                   {tab === "completed" && <th className="px-4 py-3 font-medium">Vahid</th>}
                   <th className="px-4 py-3 font-medium w-48">Əməliyyatlar</th>
@@ -142,7 +142,7 @@ const KpiSetPage = () => {
                     <td className="px-4 py-2.5">
                       {r.status === "pending" ? (
                         <Button size="sm" onClick={() => setEditing(r)}>
-                          <Sliders className="w-3.5 h-3.5 mr-1" /> Sub-KPI təyin et
+                          <Sliders className="w-3.5 h-3.5 mr-1" /> Hədəf təyin et
                         </Button>
                       ) : (
                         <div className="flex items-center gap-2">

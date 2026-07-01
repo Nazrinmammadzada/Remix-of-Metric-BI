@@ -108,15 +108,15 @@ const SEED: NotificationSetting[] = [
   },
   {
     id: "sub_kpi_assign",
-    title: "Sub-KPI təyin etmə (KPI Set)",
-    description: "Rəhbər KPI Set modulundan sub-KPI təyin etdikdə əməkdaşa bildiriş.",
+    title: "Hədəf təyin etmə (KPI Set)",
+    description: "Rəhbər KPI Set modulundan hədəf təyin etdikdə əməkdaşa bildiriş.",
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
     reminders: [0],
     sendTime: "09:00",
     recipients: ["owner"],
-    template: "Sizə yeni sub-KPI təyin olundu: {sub_kpi_name}.",
+    template: "Sizə yeni hədəf təyin olundu: {sub_kpi_name}.",
   },
   {
     id: "approval_pending",

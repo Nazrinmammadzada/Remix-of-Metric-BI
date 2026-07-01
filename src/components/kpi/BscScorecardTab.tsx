@@ -119,7 +119,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
 
   const ranges = useMemo(() => unitRangesFromTarget(target, unit), [target, unit]);
 
-  // KPI Set entry-lərini sub-KPI kimi birləşdir
+  // KPI Set entry-lərini hədəf kimi birləşdir
   const mergedSubKpis = useMemo(() => {
     const own = kpi.subKpis || [];
     if (!kpi.id) return own.map(s => ({ ...s, _entryId: null as string | null, limits: undefined as LimitSet | undefined }));
@@ -129,7 +129,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
       const e = entries.find(en => en.subKpiId === s.id);
       return { ...s, _entryId: e?.id ?? null, limits: e?.limits, assignerFromSet: e?.assigneeName, unit: s.unit || e?.unit };
     });
-    // KPI Set-də olan, kartda olmayan sub-KPI-lar
+    // KPI Set-də olan, kartda olmayan hədəf-lar
     entries.forEach(e => {
       if (!ownById.has(e.subKpiId) && e.subKpiName) {
         list.push({
@@ -151,7 +151,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
 
   return (
     <div className="space-y-3">
-      {/* Hədəflər (əvvəllər Sub-KPI-lar) — kart daxilində ümumi hədəf yoxdur */}
+      {/* Hədəflər (əvvəllər Hədəflər) — kart daxilində ümumi hədəf yoxdur */}
       {mergedSubKpis.length > 0 && (
         <div className="rounded-lg border border-border bg-card">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">

@@ -1,4 +1,4 @@
-// Cascading store — paylaşıla bilən sub-KPI-ların komandaya bölünməsi.
+// Cascading store — paylaşıla bilən hədəf-ların komandaya bölünməsi.
 // Hər entry KpiSetEntry-yə bağlanır (entryId). Distribution = işçilərə pay.
 // Limitlər istifadəçi tərəfindən manual təyin olunur (auto-suggest YOXDUR).
 import { useEffect, useState } from "react";

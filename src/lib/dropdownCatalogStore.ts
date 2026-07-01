@@ -21,7 +21,7 @@ export interface KpiKindRow {
 }
 export interface SubKpiRow {
   id: string;
-  name: string;          // Sub-KPI adı
+  name: string;          // Hədəf adı
   parent: string;        // Aid Olduğu KPI / Hədəf
   units: string[];       // Ölçü Vahidi (çoxlu)
   weight: number;        // Çəki (%)
@@ -78,10 +78,10 @@ const SEED: DropdownCatalog[] = [
     values: [],
   },
 
-  // Sub-KPI (strukturlaşdırılmış)
+  // Hədəf (strukturlaşdırılmış)
   {
     id: "sub_kpis",
-    name: "Sub-KPI",
+    name: "Hədəf",
     system: true,
     schema: "sub_kpis",
     rows: [
@@ -110,7 +110,7 @@ const SEED: DropdownCatalog[] = [
   { id: "calc_units", name: "Hesablama Vahidləri", system: true, values: [
     "Valyuta (AZN)", "Faiz (%)", "Zaman (Gün)", "Boolean (Hə/Yox)", "Qiymət", "Nisbət",
   ]},
-  { id: "sub_kpi_units", name: "Sub-KPI Ölçü Vahidləri", system: true, values: [
+  { id: "sub_kpi_units", name: "Hədəf Ölçü Vahidləri", system: true, values: [
     "Valyuta (AZN)", "Faiz (%)", "Qiymət", "Zaman (Gün)", "Nisbət", "Boolean (Hə/Yox)",
   ]},
   { id: "frequencies", name: "Tezlik (Period)", system: true, values: [

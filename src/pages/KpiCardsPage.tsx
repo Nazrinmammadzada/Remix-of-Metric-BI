@@ -62,7 +62,7 @@ interface SubKpi {
   /** Təyinedici (assigner) üçün ayrı vahid. Boş olarsa qiymətləndiricinin vahidi istifadə olunur. */
   assignerUnit?: string;
   evaluator?: EvaluatorConfig;
-  /** Sub-KPI-nın təyin ediləcəyini kim həll edir: "self" — KPI sahibi özü, "other" — başqa əməkdaş */
+  /** Hədəf-nın təyin ediləcəyini kim həll edir: "self" — KPI sahibi özü, "other" — başqa əməkdaş */
   assignerMode?: "self" | "other";
   /** "other" rejimində seçilmiş təyin edən şəxs */
   assigner?: string;
@@ -265,7 +265,7 @@ const departmentStructure: Record<string, Record<string, string[]>> = {
 const departments = ["Hamısı", ...Object.keys(departmentStructure)];
 const KPI_TYPE_DEFAULTS = ["Absolut Hədəf", "Faiz Hədəfi", "Trend Hədəfi", "Benchmark", "Say Hədəfi"];
 
-// Sub-KPI options per KPI type — includes per-type unit hint for target field
+// Hədəf options per KPI type — includes per-type unit hint for target field
 const subKpisByType: Record<string, { name: string; defaultWeight: number; unit: string }[]> = {
   "Absolut Hədəf": [
     { name: "Online Satış", defaultWeight: 40, unit: "Valyuta (AZN)" },
@@ -572,15 +572,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       window.removeEventListener("storage", refresh);
     };
   }, []);
-  // Evaluator picker (per sub-KPI)
+  // Evaluator picker (per hədəf)
   const [evaluatorEditingSubId, setEvaluatorEditingSubId] = useState<number | null>(null);
   const [evDraft, setEvDraft] = useState<EvaluatorConfig>({ type: null, persons: [] });
   const [evSearch, setEvSearch] = useState({ person: "", team: "", integration: "" });
-  // Assigner (Təyin edici) picker — per sub-KPI
+  // Assigner (Təyin edici) picker — per hədəf
   const [assignerEditingSubId, setAssignerEditingSubId] = useState<number | null>(null);
   const [assignerDraft, setAssignerDraft] = useState<string>("");
   const [assignerSearch, setAssignerSearch] = useState("");
-  // Vahid şəxs — bütün sub-KPI-lara aid eyni qiymətləndirici/təyin edici
+  // Vahid şəxs — bütün hədəf-lara aid eyni qiymətləndirici/təyin edici
   const [unifiedPerson, setUnifiedPerson] = useState<string>("");
   const [unifiedAssigner, setUnifiedAssigner] = useState<string>("");
   const [unifiedDialogOpen, setUnifiedDialogOpen] = useState(false);
@@ -588,11 +588,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [unifiedDraftAs, setUnifiedDraftAs] = useState<string>("");
   const [unifiedSearchEv, setUnifiedSearchEv] = useState("");
   const [unifiedSearchAs, setUnifiedSearchAs] = useState("");
-  // Yeni sub-KPI yaradılarkən — təyin edən kimdir seçimi
+  // Yeni hədəf yaradılarkən — təyin edən kimdir seçimi
   const [newSubKpiModeOpen, setNewSubKpiModeOpen] = useState(false);
-  // Sub-KPI vahidini (target unit) inline popover ilə dəyişmək
+  // Hədəf vahidini (target unit) inline popover ilə dəyişmək
   const [unitPickerForSubId, setUnitPickerForSubId] = useState<number | null>(null);
-  // Sub-KPI üçün Qiymət Limitləri dialoqu
+  // Hədəf üçün Qiymət Limitləri dialoqu
   const [limitsViewingSubId, setLimitsViewingSubId] = useState<number | null>(null);
 
   /** Hər səviyyə üçün hansı struktur siyahısının göstəriləcəyini hesablayır.
@@ -716,7 +716,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       return {
         ...prev,
         types: newTypes,
-        // Sub-KPI-lar default olaraq gəlməsin; HR əllə əlavə etsin
+        // Hədəflər default olaraq gəlməsin; HR əllə əlavə etsin
         // Default BSC düsturunu avtomatik təyin et (istifadəçi başqasını seçməyibsə)
         selectedFormula: prev.selectedFormula && !prev.selectedFormula.startsWith("BSC GSR") ? prev.selectedFormula : autoFormula,
       };
@@ -771,7 +771,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     toast(`Bu KPI təsdiq edilmişdir. Silinmə üçün ${matrix.approver.name} təsdiqləməlidir. Sorğu göndərildi.`, { duration: 6000, icon: "ℹ️" });
   };
 
-  // "Other" (təyin edən başqasıdır) sub-KPI-ların çəkisi sonra təyin ediləcək — toplamaya daxil etmirik.
+  // "Other" (təyin edən başqasıdır) hədəf-ların çəkisi sonra təyin ediləcək — toplamaya daxil etmirik.
   const totalSubWeight = newKpi.subKpis.filter(sk => sk.assignerMode !== "other").reduce((s, sk) => s + sk.weight, 0);
 
   const months = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
@@ -1456,7 +1456,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       if (merged.length === 0) return null;
                       return (
                       <div className="bg-card rounded-lg border border-border p-4">
-                        <h4 className="font-semibold text-foreground mb-3">Sub-KPI-lar</h4>
+                        <h4 className="font-semibold text-foreground mb-3">Hədəflər</h4>
                         <div className="space-y-2">
                           {merged.map(sk => (
                             <div key={sk.id} className="p-2 rounded-lg bg-secondary">
@@ -1650,7 +1650,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
               {createStep === 1
-                ? "Əsas məlumatlar və sub-KPI-lar"
+                ? "Əsas məlumatlar və hədəf-lar"
                 : createStep === 2
                 ? "KPI Lifecycle — planlama mərhələləri"
                 : "Təsdiqləmə matrisini seçin (opsional)"}
@@ -2044,7 +2044,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 </div>
               </div>
 
-              {/* Sub-KPIs — həmişə göstərilir (HR əllə yaradır) */}
+              {/* Hədəfs — həmişə göstərilir (HR əllə yaradır) */}
               {true && (
                 <div className="border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -2057,12 +2057,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     </div>
                   </div>
 
-                  {/* Vahid şəxs seçimi — qiymətləndirici və təyin edici ayrı-ayrı seçilir, bütün sub-KPI-lara aid */}
+                  {/* Vahid şəxs seçimi — qiymətləndirici və təyin edici ayrı-ayrı seçilir, bütün hədəf-lara aid */}
                   <div className="mb-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Users className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium text-foreground">Vahid şəxs (bütün sub-KPI-lar üçün)</span>
+                        <span className="text-xs font-medium text-foreground">Vahid şəxs (bütün hədəf-lar üçün)</span>
                         {unifiedPerson && (
                           <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground">Qiymət.: {unifiedPerson}</span>
                         )}
@@ -2105,7 +2105,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </DialogHeader>
                       <div className="grid grid-cols-1 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-foreground mb-1 block">Qiymətləndirici (bütün sub-KPI-lar üçün)</label>
+                          <label className="text-xs font-medium text-foreground mb-1 block">Qiymətləndirici (bütün hədəf-lar üçün)</label>
                           <div className="relative mb-1">
                             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <input value={unifiedSearchEv} onChange={e => setUnifiedSearchEv(e.target.value)} placeholder="Axtar..." className="w-full pl-7 pr-2 py-1.5 text-xs border border-border rounded bg-background" />
@@ -2120,7 +2120,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           </div>
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-foreground mb-1 block">Təyin edici (bütün sub-KPI-lar üçün)</label>
+                          <label className="text-xs font-medium text-foreground mb-1 block">Təyin edici (bütün hədəf-lar üçün)</label>
                           <div className="relative mb-1">
                             <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <input value={unifiedSearchAs} onChange={e => setUnifiedSearchAs(e.target.value)} placeholder="Axtar..." className="w-full pl-7 pr-2 py-1.5 text-xs border border-border rounded bg-background" />
@@ -2165,7 +2165,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
                   {newKpi.subKpis.length === 0 ? (
                     <div className="text-xs text-muted-foreground bg-secondary/30 border border-dashed border-border rounded-lg p-4 text-center">
-                      Hələ Sub-KPI yoxdur. "+ Yeni" düyməsi ilə əllə əlavə edin.
+                      Hələ Hədəf yoxdur. "+ Yeni" düyməsi ilə əllə əlavə edin.
                     </div>
                   ) : (
                     <>
@@ -2205,7 +2205,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                             <input
                               value={sk.name}
                               onChange={e => updateSub({ name: e.target.value })}
-                              placeholder="Sub-KPI adı"
+                              placeholder="Hədəf adı"
                               readOnly={lockEdit}
                               title={lockEdit ? "Digər əməkdaş təyin edəcək — redaktə olunmur" : undefined}
                               className={`col-span-4 min-w-0 px-2 py-1.5 text-sm border rounded-lg bg-background ${lockEdit ? "border-dashed border-muted-foreground/30 bg-muted/40 text-muted-foreground cursor-not-allowed" : "border-border"}`}
@@ -2338,14 +2338,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => {
-                  if (newKpi.subKpis.length > 0 && totalSubWeight !== 100) { toast.error("Sub-KPI-ların ümumi çəkisi 100% olmalıdır"); return; }
+                  if (newKpi.subKpis.length > 0 && totalSubWeight !== 100) { toast.error("Hədəflərın ümumi çəkisi 100% olmalıdır"); return; }
                   if (!newKpi.name.trim()) { toast.error("KPI adını daxil edin"); return; }
                   setCreateStep(2);
                 }} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Növbəti (Lifecycle) →</button>
                 <button
                   onClick={() => {
                     if (!newKpi.name.trim()) { toast.error("KPI adını daxil edin"); return; }
-                    if (newKpi.subKpis.length > 0 && totalSubWeight !== 100) { toast.error("Sub-KPI-ların ümumi çəkisi 100% olmalıdır"); return; }
+                    if (newKpi.subKpis.length > 0 && totalSubWeight !== 100) { toast.error("Hədəflərın ümumi çəkisi 100% olmalıdır"); return; }
                     if (editingCardId !== null) {
                       setKpiCards(prev => prev.map(c => c.id === editingCardId ? {
                         ...c,
@@ -2481,7 +2481,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   <button
                     onClick={() => {
                       if (!newKpi.name.trim()) { toast.error("KPI adını daxil edin"); return; }
-                      if (newKpi.subKpis.length > 0 && totalSubWeight !== 100) { toast.error("Sub-KPI-ların ümumi çəkisi 100% olmalıdır"); return; }
+                      if (newKpi.subKpis.length > 0 && totalSubWeight !== 100) { toast.error("Hədəflərın ümumi çəkisi 100% olmalıdır"); return; }
                       const matrix = selectedMatrixId ? savedMatrices.find(x => x.id === selectedMatrixId) : null;
                       const id = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
                       const newCard: KpiCard = {
@@ -2523,11 +2523,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
-      {/* Yeni sub-KPI rejim seçimi (özüm / digər əməkdaş) */}
+      {/* Yeni hədəf rejim seçimi (özüm / digər əməkdaş) */}
       <Dialog open={newSubKpiModeOpen} onOpenChange={(o) => { if (!o) setNewSubKpiModeOpen(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Yeni Sub-KPI — təyin edən kimdir?</DialogTitle>
+            <DialogTitle>Yeni Hədəf — təyin edən kimdir?</DialogTitle>
           </DialogHeader>
           <div className="space-y-2">
             <button
@@ -2559,7 +2559,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               </div>
               <div>
                 <div className="text-sm font-medium text-foreground">Digər əməkdaş təyin edəcək</div>
-                <div className="text-xs text-muted-foreground mt-0.5">Sub-KPI sırasında təyin edici düyməsi görünəcək. Çəki üçün min. / max. dəyər tələb olunur.</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Hədəf sırasında təyin edici düyməsi görünəcək. Çəki üçün min. / max. dəyər tələb olunur.</div>
               </div>
             </button>
           </div>
@@ -2868,7 +2868,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
-      {/* Sub-KPI Qiymət Limitləri — KPI Set modulundan, read-only */}
+      {/* Hədəf Qiymət Limitləri — KPI Set modulundan, read-only */}
       {limitsViewingSubId !== null && (() => {
         const sub = newKpi.subKpis.find(s => s.id === limitsViewingSubId);
         if (!sub) return null;
@@ -2879,7 +2879,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             open={true}
             onOpenChange={(o) => !o && setLimitsViewingSubId(null)}
             mode="view"
-            subKpiName={sub.name || "Sub-KPI"}
+            subKpiName={sub.name || "Hədəf"}
             target={sub.target || "0"}
             unit={sub.unit || "Qiymət"}
             initial={limits}
