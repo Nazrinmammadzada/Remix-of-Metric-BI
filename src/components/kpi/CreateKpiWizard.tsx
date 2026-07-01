@@ -1163,54 +1163,51 @@ function Step2Targets({
               </div>
               <div className="col-span-6 md:col-span-2 flex items-end">
                 <button type="button" onClick={() => setScoreDlgFor(t.id)}
-                  className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1">
+                  disabled={isOther}
+                  title={isOther ? "Digər əməkdaş təyin edir — qiymətləri o dolduracaq" : ""}
+                  className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                   <Star className="w-3.5 h-3.5" /> Qiymətlər
                 </button>
               </div>
             </div>
 
-            {/* Qiymətləndirici / Təyin edici — image-2 stilində dashed pill buttons */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Qiymətləndirici seç */}
-              <div className="flex flex-col gap-1">
-                <button type="button"
-                  onClick={() => setEvalPickerFor(evalPickerFor === t.id ? null : t.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border-2 border-dashed border-indigo-400 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30">
-                  <UserPlus className="w-4 h-4" /> Qiymətləndirici seç
-                  {t.evaluators.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-indigo-100 text-indigo-700">{t.evaluators.length}</span>}
-                </button>
-                {t.evaluators.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {t.evaluators.map(ev => (
-                      <span key={ev.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-indigo-50 text-indigo-700 rounded">
-                        {ev.name.split(" — ")[0]}{t.evaluators.length > 1 && ` (${ev.weight}%)`}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Qiymətləndirici / Təyin edici — minimal inline pill row */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* Qiymətləndirici */}
+              <button type="button"
+                onClick={() => { if (!unifiedEvaluatorsApplied.length) setEvalPickerFor(evalPickerFor === t.id ? null : t.id); }}
+                disabled={unifiedEvaluatorsApplied.length > 0}
+                title={unifiedEvaluatorsApplied.length > 0 ? "Vahid seçimdən təyin edilib" : ""}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full border border-dashed transition ${
+                  unifiedEvaluatorsApplied.length > 0
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-600 cursor-not-allowed opacity-80 dark:bg-indigo-950/30"
+                    : "border-indigo-400 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                }`}>
+                <UserPlus className="w-3 h-3" />
+                Qiymətləndirici
+                {t.evaluators.length > 0 && <span className="ml-0.5 truncate max-w-[140px]">: {t.evaluators.map(e => e.name.split(" — ")[0]).join(", ")}</span>}
+              </button>
 
-              {/* Təyin edici seç — only when "other" */}
+              {/* Təyin edici — only when "other" */}
               {isOther && (
-                <div className="flex flex-col gap-1">
-                  <button type="button"
-                    onClick={() => setAssignerPickerFor(assignerPickerFor === t.id ? null : t.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border-2 border-dashed border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30">
-                    <UserPlus className="w-4 h-4" /> Təyin edici seç
-                    {t.assigner && <Check className="w-3.5 h-3.5 text-emerald-600" />}
-                  </button>
-                  {t.assigner && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-amber-50 text-amber-700 rounded w-fit">
-                      {t.assigner.split(" — ")[0]}
-                      <X className="w-3 h-3 cursor-pointer" onClick={() => updHedef(t.id, { assigner: "" })} />
-                    </span>
-                  )}
-                </div>
+                <button type="button"
+                  onClick={() => { if (!unifiedAssignerApplied) setAssignerPickerFor(assignerPickerFor === t.id ? null : t.id); }}
+                  disabled={!!unifiedAssignerApplied}
+                  title={unifiedAssignerApplied ? "Vahid seçimdən təyin edilib" : ""}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full border border-dashed transition ${
+                    unifiedAssignerApplied
+                      ? "border-amber-300 bg-amber-50 text-amber-700 cursor-not-allowed opacity-80 dark:bg-amber-950/30"
+                      : "border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                  }`}>
+                  <UserPlus className="w-3 h-3" />
+                  Təyin edici
+                  {t.assigner && <span className="ml-0.5 truncate max-w-[140px]">: {t.assigner.split(" — ")[0]}</span>}
+                </button>
               )}
             </div>
 
             {/* Qiymətləndirici inline picker */}
-            {evalPickerFor === t.id && (
+            {evalPickerFor === t.id && !unifiedEvaluatorsApplied.length && (
               <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 dark:bg-indigo-950/20 p-2.5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) {t.evaluators.length > 1 && <span className="text-amber-600">— faiz cəmi 100%</span>}</span>
@@ -1225,7 +1222,7 @@ function Step2Targets({
             )}
 
             {/* Təyin edici inline picker */}
-            {isOther && assignerPickerFor === t.id && (
+            {isOther && assignerPickerFor === t.id && !unifiedAssignerApplied && (
               <div className="rounded-lg border border-amber-200 bg-amber-50/40 dark:bg-amber-950/20 p-2.5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici *</span>
