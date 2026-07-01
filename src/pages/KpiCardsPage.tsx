@@ -319,7 +319,21 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const positionOptions = getPositions();
   const [kpiCards, setKpiCards] = useState<KpiCard[]>(() => {
     const deleted = getDeletedKpiIds();
-    return initialKpiCards.filter(c => !deleted.includes(c.id));
+    const base = initialKpiCards.filter(c => !deleted.includes(c.id));
+    // Demo: give a few employees multiple KPI cards for "Əməkdaşlar üzrə" view
+    const maxId = Math.max(0, ...base.map(c => c.id));
+    const clone = (src: KpiCard, id: number, patch: Partial<KpiCard>): KpiCard => ({ ...src, id, ...patch });
+    const samir = base.find(c => c.responsible === "Samir Həsənov");
+    const farid = base.find(c => c.responsible === "Farid Həsənov");
+    const extras: KpiCard[] = [];
+    if (samir) {
+      extras.push(clone(samir, maxId + 1, { name: "Rüblük Satış Artımı", progress: 72, target: "1.2M", current: "0.9M" }));
+      extras.push(clone(samir, maxId + 2, { name: "Müştəri Məmnuniyyəti", progress: 88, target: "90%", current: "82%", unit: "%" }));
+    }
+    if (farid) {
+      extras.push(clone(farid, maxId + 3, { name: "Yeni Kanal İnkişafı", progress: 55, target: "3", current: "1.5", unit: "kanal" }));
+    }
+    return [...base, ...extras];
   });
 
   // Sync deletions from Approval Matrix module
