@@ -67,19 +67,11 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
             {!current ? (
               <div className="p-12 text-center text-sm text-muted-foreground">Ana hədəf seçin</div>
             ) : (
-              <TreeNode node={current} depth={0} onDistribute={setDistributeNode} defaultOpen />
+              <TreeNode node={current} depth={0} defaultOpen />
             )}
           </section>
         </div>
       </main>
-
-      {distributeNode && (
-        <CascadeDistributeDialog
-          open={!!distributeNode}
-          onOpenChange={(o) => !o && setDistributeNode(null)}
-          existingNode={distributeNode}
-        />
-      )}
     </div>
   );
 };
