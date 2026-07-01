@@ -736,10 +736,37 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
     `${e.firstName} ${e.lastName} ${e.fin}`.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const handleToggleStar = () => {
+    if (!current) return;
+    const next = !current.isStarPerson;
+    setStarPerson(current.id, next);
+    if (next) {
+      toast.success(`⭐ ${current.firstName} ${current.lastName} — Rəhbər rolu təyin edildi`);
+    } else {
+      toast.info(`${current.firstName} ${current.lastName} — Rəhbər rolu geri götürüldü`);
+    }
+  };
+
+  const isStar = !!current?.isStarPerson;
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20">
+    <div className={`flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 ${isStar ? "bg-amber-500/5" : ""}`}>
       <span className="text-xs text-muted-foreground w-6">{index}.</span>
-      <UserCircle2 className="w-4 h-4 text-muted-foreground" />
+      {current ? (
+        <button
+          onClick={handleToggleStar}
+          title={isStar ? "Rəhbər rolunu ləğv et" : "Bu şəxsə Rəhbər rolu ver (kaskadlama)"}
+          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all shrink-0 ${
+            isStar
+              ? "bg-amber-400 text-white shadow-sm hover:bg-amber-500"
+              : "bg-secondary text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+          }`}
+        >
+          <Star className={`w-3.5 h-3.5 ${isStar ? "fill-white" : ""}`} />
+        </button>
+      ) : (
+        <UserCircle2 className="w-4 h-4 text-muted-foreground" />
+      )}
       <div className="flex-1 min-w-0">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
