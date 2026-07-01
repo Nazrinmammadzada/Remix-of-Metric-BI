@@ -6,7 +6,7 @@ import {
   Building2, Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   Briefcase, UserPlus, Search, X, Check, KeyRound, ShieldCheck, UserCircle2,
   Eye, Folder, ChevronsLeft, ChevronsRight, ChevronLeft, Filter, Download,
-  Wallet, ArrowUpRight, Network, Star,
+  Wallet, ArrowUpRight, Network, Crown,
 } from "lucide-react";
 
 import chrLogo from "@/assets/chr-logo.jpeg";
