@@ -432,6 +432,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const action = d.action || "draft";
     const editingId = wizardEditingId;
     const id = editingId ?? (Math.max(0, ...kpiCards.map(c => c.id)) + 1);
+    const prevStatus = editingId != null ? statusMap[editingId]?.status : undefined;
+    const wasRejected = prevStatus === "imtina";
     const builtCard: KpiCard = {
       id, name: d.name, icon: Target, zone: "yellow",
       target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
