@@ -1,0 +1,1 @@
+ALTER TYPE public.kpi_card_status_enum ADD VALUE IF NOT EXISTS 'legv_olundu';
