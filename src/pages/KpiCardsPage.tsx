@@ -951,10 +951,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
                           <th className="py-2 px-2">Ad</th>
-                          <th className="py-2 px-2">Tip</th>
-                          <th className="py-2 px-2">Məsul</th>
+                          <th className="py-2 px-2">Təyinat növü</th>
+                          <th className="py-2 px-2">Yaranma tarixi</th>
                           <th className="py-2 px-2">Dövr</th>
-                          <th className="py-2 px-2">Hədəf</th>
                           <th className="py-2 px-2">Progress</th>
                           <th className="py-2 px-2">Status</th>
                           <th className="py-2 px-2">Əməliyyat</th>
@@ -962,22 +961,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </thead>
                       <tbody>
                         {filteredCards.length === 0 ? (
-                          <tr><td colSpan={8} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
+                          <tr><td colSpan={7} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
                         ) : filteredCards.map(card => {
                           const st = getStatusFor(card.id);
+                          const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
                           return (
                             <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
                               <td className="py-2 px-2 font-medium text-foreground">{card.name}</td>
-                              <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
-                              <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
+                              <td className="py-2 px-2 text-muted-foreground text-xs">{getAssignKindFor(card.id)}</td>
+                              <td className="py-2 px-2 text-muted-foreground text-xs">{getCreatedAtFor(card.id)}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
-                              <td className="py-2 px-2">{card.target} {card.unit}</td>
                               <td className="py-2 px-2">{card.progress}%</td>
                               <td className="py-2 px-2">
                                 <button
                                   onClick={() => st.status === "natamam" && setStatusDialogCardId(card.id)}
                                   className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center ${STATUS_STYLES[st.status]} ${st.status === "natamam" ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
-                                  title={st.status === "natamam" ? "Təyin edənləri gör" : ""}
+                                  title={st.status === "natamam" ? "Təyin edənləri gör" : (st.status === "imtina" ? `İmtina səbəbi: ${reason}` : "")}
                                 >
                                   {STATUS_LABELS[st.status]}
                                 </button>
