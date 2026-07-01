@@ -437,7 +437,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [filterGroup, setFilterGroup] = useState("Hamısı");
   const [filterTeamId, setFilterTeamId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("Hamısı");
-  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Toplu" | "Komanda" | "Struktur" | "Vəzifə">("Hamısı");
+  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Toplu">("Hamısı");
+  const [filterBulkKind, setFilterBulkKind] = useState<"Hamısı" | "Komanda" | "Struktur" | "Vəzifə" | "Şəxs">("Hamısı");
   // zone filter removed
   const [searchText, setSearchText] = useState("");
   const [hoveredMinTarget, setHoveredMinTarget] = useState<number | null>(null);
