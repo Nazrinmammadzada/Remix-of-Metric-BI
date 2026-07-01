@@ -1082,20 +1082,6 @@ function Step2Targets({
       </Dialog>
 
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">KPI Hədəfləri</h3>
-          <p className="text-xs text-muted-foreground">Ümumi çəki 100% olmalıdır</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${totalWeight === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
-            Ümumi çəki: {totalWeight}%
-          </span>
-          <button type="button" onClick={addHedef} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
-            <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
-          </button>
-        </div>
-      </div>
 
       {draft.targets.length === 0 && (
         <div className="text-center py-12 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
