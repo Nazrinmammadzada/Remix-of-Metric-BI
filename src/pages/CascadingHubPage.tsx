@@ -65,24 +65,5 @@ const HubCard = ({
   </button>
 );
 
-const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => (
-  <div className="min-h-screen">
-    <Header title="Cascading" />
-    <main className="p-6 pb-24">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" /> Geri
-      </button>
-      <PageHero badge="Cascading" icon={Activity} title="Kaskad İzləmə" subtitle="Kaskad zəncirləri üzrə hədəflərin icra vəziyyəti" />
-      <div className="rounded-3xl border border-dashed border-border bg-card p-16 text-center">
-        <Clock className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-1">Tezliklə</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">Bu bölmənin məzmunu tələblər dəqiqləşdikdən sonra əlavə olunacaq.</p>
-      </div>
-    </main>
-  </div>
-);
 
 export default CascadingHubPage;
