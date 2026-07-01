@@ -18,7 +18,7 @@ import {
   getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
   assignSlot, removeSlot, removePosition, removeStructure, renameStructure, getAssignedEmployeeIds,
-  setStarPosition, getStarHolderOfUnit,
+  setStarPerson,
   type OrgEmployee, type OrgStructure, type OrgPosition,
 } from "@/lib/orgStore";
 
@@ -642,16 +642,6 @@ const PositionCard = ({ position, structureId, structureName }: { position: OrgP
     toast.success("Vəzifə silindi");
   };
 
-  const handleToggleStar = () => {
-    const next = !position.isStarPosition;
-    setStarPosition(position.id, next);
-    if (next) {
-      toast.success(`⭐ "${position.name}" — "${structureName}" strukturunun Ulduzlu Vəzifəsi kimi təyin edildi`);
-    } else {
-      toast.info(`"${position.name}" artıq Ulduzlu Vəzifə deyil`);
-    }
-  };
-
   const handleAddSlots = () => {
     const n = Math.max(1, Math.min(100, Number(slotCount) || 1));
     addSlot(position.id, n, slotFraction);
@@ -661,33 +651,11 @@ const PositionCard = ({ position, structureId, structureName }: { position: OrgP
     setSlotFraction(1);
   };
 
-  const starHolder = position.isStarPosition ? getStarHolderOfUnit(structureId) : null;
-  const isStar = !!position.isStarPosition;
-
   return (
-    <div className={`rounded-xl border ${isStar ? "border-amber-400/60 ring-1 ring-amber-400/40" : "border-border"} bg-card overflow-hidden`}>
-      <div className={`flex items-center gap-3 px-4 py-3 border-b border-border ${isStar ? "bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-transparent" : "bg-muted/30"}`}>
-        <button
-          onClick={handleToggleStar}
-          title={isStar ? "Ulduzlu Vəzifəni ləğv et" : "Bu vəzifəni Ulduzlu Vəzifə et (kaskadlama rəhbəri)"}
-          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all shrink-0 ${
-            isStar
-              ? "bg-amber-400 text-white shadow-sm hover:bg-amber-500"
-              : "bg-secondary text-muted-foreground hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10"
-          }`}
-        >
-          <Star className={`w-4 h-4 ${isStar ? "fill-white" : ""}`} />
-        </button>
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
         <Briefcase className="w-4 h-4 text-amber-600" />
-        <span className="font-medium text-foreground flex-1">
-          {position.name}
-          {isStar && (
-            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 align-middle">
-              ⭐ Ulduzlu Vəzifə
-              {starHolder ? <span className="opacity-70">· {starHolder.firstName} {starHolder.lastName}</span> : <span className="text-red-600 dark:text-red-400">· Vakant</span>}
-            </span>
-          )}
-        </span>
+        <span className="font-medium text-foreground flex-1">{position.name}</span>
         <span className="text-xs text-muted-foreground">{position.slots.length} ştat</span>
         <button
           onClick={() => setShowAddSlot(true)}
@@ -768,10 +736,37 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
     `${e.firstName} ${e.lastName} ${e.fin}`.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const handleToggleStar = () => {
+    if (!current) return;
+    const next = !current.isStarPerson;
+    setStarPerson(current.id, next);
+    if (next) {
+      toast.success(`⭐ ${current.firstName} ${current.lastName} — Rəhbər rolu təyin edildi`);
+    } else {
+      toast.info(`${current.firstName} ${current.lastName} — Rəhbər rolu geri götürüldü`);
+    }
+  };
+
+  const isStar = !!current?.isStarPerson;
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20">
+    <div className={`flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 ${isStar ? "bg-amber-500/5" : ""}`}>
       <span className="text-xs text-muted-foreground w-6">{index}.</span>
-      <UserCircle2 className="w-4 h-4 text-muted-foreground" />
+      {current ? (
+        <button
+          onClick={handleToggleStar}
+          title={isStar ? "Rəhbər rolunu ləğv et" : "Bu şəxsə Rəhbər rolu ver (kaskadlama)"}
+          className={`w-6 h-6 rounded-md flex items-center justify-center transition-all shrink-0 ${
+            isStar
+              ? "bg-amber-400 text-white shadow-sm hover:bg-amber-500"
+              : "bg-secondary text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+          }`}
+        >
+          <Star className={`w-3.5 h-3.5 ${isStar ? "fill-white" : ""}`} />
+        </button>
+      ) : (
+        <UserCircle2 className="w-4 h-4 text-muted-foreground" />
+      )}
       <div className="flex-1 min-w-0">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>

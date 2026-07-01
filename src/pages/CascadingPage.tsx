@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { GitBranch, ChevronLeft, Star, AlertTriangle, CheckCircle2, User2, Building2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   resolveAllCascadeChains,
   validateStarStructure,
@@ -28,16 +27,16 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
   }, []);
 
   const stats = useMemo(() => {
-    let total = 0, withStar = 0, vacant = 0, missing = 0;
+    let total = 0, withStar = 0, multi = 0, missing = 0;
     const walk = (n: CascadeNode) => {
       total++;
-      if (n.starPosition) withStar++;
-      if (n.vacant) vacant++;
+      if (n.starHolder) withStar++;
+      if (n.multipleStars) multi++;
       if (n.missingStar) missing++;
       n.children.forEach(walk);
     };
     chains.forEach(walk);
-    return { total, withStar, vacant, missing };
+    return { total, withStar, multi, missing };
   }, [chains]);
 
   return (
@@ -53,18 +52,18 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
           </button>
         )}
         <PageHero
-          badge="Star Position Cascading"
+          badge="Rəhbər rolu (Star Person)"
           icon={GitBranch}
           title="Kaskadlama Xəritəsi"
-          subtitle="KPI hədəfləri təşkilati struktur və Ulduzlu Vəzifə (Star Position) məntiqi əsasında avtomatik yönləndirilir. Ayrıca matris yaradılmır — ulduz vəzifədə oturan şəxs dəyişdikdə kaskadlama avtomatik yeni rəhbərə keçir."
+          subtitle="KPI hədəfləri təşkilati struktur və Rəhbər rolu (⭐) daşıyan şəxslər əsasında avtomatik və rekursiv şəkildə yönləndirilir. Rəhbər rolu vəzifəyə deyil, birbaşa şəxsə verilir — status daşıyan şəxs dəyişdikdə kaskadlama avtomatik yenilənir."
         />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="Struktur vahidi" value={stats.total} tone="neutral" icon={Building2} />
-          <StatCard label="Ulduzlu Vəzifə var" value={stats.withStar} tone="ok" icon={Star} />
-          <StatCard label="Vakant Ulduz" value={stats.vacant} tone="warn" icon={AlertTriangle} />
-          <StatCard label="Ulduz təyin edilməyib" value={stats.missing} tone="danger" icon={AlertTriangle} />
+          <StatCard label="Rəhbər təyin edilib" value={stats.withStar} tone="ok" icon={Star} />
+          <StatCard label="Birdən çox rəhbər" value={stats.multi} tone="warn" icon={AlertTriangle} />
+          <StatCard label="Rəhbər təyin edilməyib" value={stats.missing} tone="danger" icon={AlertTriangle} />
         </div>
 
         {/* Issues */}
@@ -79,10 +78,9 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
                 <li key={`${i.unitId}-${i.kind}`} className="flex items-start gap-2">
                   <span className={`mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
                     i.kind === "multiple" ? "bg-red-500/15 text-red-700 dark:text-red-300" :
-                    i.kind === "vacant"   ? "bg-amber-500/15 text-amber-700 dark:text-amber-300" :
                                              "bg-slate-500/15 text-slate-700 dark:text-slate-300"
                   }`}>
-                    {i.kind === "multiple" ? "Birdən çox ulduz" : i.kind === "vacant" ? "Vakant" : "Ulduz yoxdur"}
+                    {i.kind === "multiple" ? "Birdən çox rəhbər" : "Rəhbər yoxdur"}
                   </span>
                   <span className="text-foreground">{i.path}</span>
                   {i.detail && <span className="text-muted-foreground">— {i.detail}</span>}
@@ -90,7 +88,7 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
               ))}
             </ul>
             <p className="text-xs text-muted-foreground mt-3">
-              Ulduzlu Vəzifə təyin etmək üçün <b>Təşkilat → Struktur kataloqu → Ştat cədvəli</b>-nə keçin və vəzifənin yanındakı ⭐ düyməsinə klik edin.
+              Rəhbər rolu təyin etmək üçün <b>Təşkilat → Struktur kataloqu → Ştat cədvəli</b>-nə keçin və əməkdaşın yanındakı ⭐ düyməsinə klik edin. Rəhbər rolu birbaşa şəxsə verilir.
             </p>
           </div>
         )}
@@ -118,7 +116,7 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
         )}
 
         <p className="text-[11px] text-muted-foreground mt-6">
-          ⭐ Ulduz VƏZİFƏYƏ verilir, şəxsə yox. Vəzifədə oturan əməkdaş dəyişdikdə kaskadlama avtomatik yeni rəhbərə keçir — heç bir manual mapping tələb olunmur.
+          ⭐ Rəhbər rolu ŞƏXSƏ verilir — vəzifəyə deyil. Sistem strukturdan tabelikləri avtomatik oxuyur; rəhbər rolu daşıyan alt-rəhbərlər öz alt strukturlarına eyni qayda ilə hədəfləri rekursiv bölüşdürə bilər.
         </p>
       </main>
     </div>
@@ -141,12 +139,12 @@ const StatCard = ({ label, value, tone, icon: Icon }: { label: string; value: nu
 
 const TreeRow = ({ node, depth }: { node: CascadeNode; depth: number }) => {
   const holder = node.starHolder;
-  const state: "ok" | "vacant" | "missing" =
-    node.missingStar ? "missing" : node.vacant ? "vacant" : "ok";
+  const state: "ok" | "multi" | "missing" =
+    node.missingStar ? "missing" : node.multipleStars ? "multi" : "ok";
   const stateStyle =
-    state === "ok"      ? "border-emerald-500/40 bg-emerald-500/5" :
-    state === "vacant"  ? "border-amber-500/40 bg-amber-500/5" :
-                          "border-red-500/40 bg-red-500/5";
+    state === "ok"    ? "border-emerald-500/40 bg-emerald-500/5" :
+    state === "multi" ? "border-amber-500/40 bg-amber-500/5" :
+                        "border-red-500/40 bg-red-500/5";
   return (
     <div style={{ marginLeft: depth * 24 }} className="relative">
       {depth > 0 && (
@@ -154,7 +152,7 @@ const TreeRow = ({ node, depth }: { node: CascadeNode; depth: number }) => {
       )}
       <div className={`flex items-center gap-3 rounded-xl border ${stateStyle} px-3 py-2 mb-2`}>
         <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-          state === "ok" ? "bg-amber-400 text-white" : state === "vacant" ? "bg-amber-200 text-amber-700" : "bg-red-500/20 text-red-600"
+          state === "ok" ? "bg-amber-400 text-white" : state === "multi" ? "bg-amber-200 text-amber-700" : "bg-red-500/20 text-red-600"
         }`}>
           <Star className={`w-4 h-4 ${state === "ok" ? "fill-white" : ""}`} />
         </div>
@@ -165,17 +163,21 @@ const TreeRow = ({ node, depth }: { node: CascadeNode; depth: number }) => {
           </div>
           <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
             {state === "missing" ? (
-              <span className="text-red-600 dark:text-red-400">Ulduzlu Vəzifə təyin edilməyib — kaskadlama bloklanır</span>
-            ) : state === "vacant" ? (
+              <span className="text-red-600 dark:text-red-400">Rəhbər rolu daşıyan şəxs yoxdur — kaskadlama bloklanır</span>
+            ) : state === "multi" ? (
               <span className="text-amber-700 dark:text-amber-300">
-                <b>{node.starPosition!.name}</b> — vakant (əməkdaş təyin olunmayıb)
+                Birdən çox rəhbər: {node.starHolders.map(h => `${h.firstName} ${h.lastName}`).join(", ")}
               </span>
             ) : (
               <>
                 <User2 className="w-3 h-3" />
                 <span className="text-foreground">{holder!.firstName} {holder!.lastName}</span>
-                <span className="opacity-60">·</span>
-                <span>{node.starPosition!.name}</span>
+                {holder!.positionName && (
+                  <>
+                    <span className="opacity-60">·</span>
+                    <span>{holder!.positionName}</span>
+                  </>
+                )}
                 <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-1" />
               </>
             )}

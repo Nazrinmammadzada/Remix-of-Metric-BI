@@ -14,6 +14,9 @@ export interface OrgEmployee {
   structurePath?: string; // e.g. "İnsan Resursları › İşə qəbul şöbəsi"
   positionName?: string;
   salary?: number;
+  /** Rəhbər rolu — bu şəxs KPI hədəflərini qəbul edə və tabeliyindəkilərə bölüşdürə bilər.
+   *  Ulduz VƏZİFƏYƏ deyil, birbaşa ŞƏXSƏ verilir. */
+  isStarPerson?: boolean;
 }
 
 export type OrgSlotFraction = 1 | 0.75 | 0.5 | 0.25;
@@ -29,8 +32,6 @@ export interface OrgPosition {
   id: number;
   name: string;
   slots: OrgSlot[];
-  /** Star Position — həmin struktur vahidində rəhbər vəzifədir (kaskadlama yönləndirir). */
-  isStarPosition?: boolean;
 }
 
 
@@ -47,17 +48,17 @@ const STORAGE_STRUCTURES = "kpi_org_structures_v3";
 
 const seedEmployees: OrgEmployee[] = [
   { id: 1, firstName: "Günel", lastName: "Əlizadə", fatherName: "Vüqar", fin: "1A2B3C4", phone: "+994501234567", email: "hr@kpi.az", active: true,
-    structurePath: "İnsan Resursları › İdarəetmə Şöbəsi", positionName: "HR Direktoru", salary: 4200 },
+    structurePath: "İnsan Resursları › İdarəetmə Şöbəsi", positionName: "HR Direktoru", salary: 4200, isStarPerson: true },
   { id: 2, firstName: "Nigar", lastName: "Hüseynova", fatherName: "Elxan", fin: "2B3C4D5", phone: "+994501234568", email: "nigar@kpi.az", active: true,
-    structurePath: "Maliyyə Departamenti › İdarəetmə Şöbəsi", positionName: "CFO", salary: 5000 },
+    structurePath: "Maliyyə Departamenti › İdarəetmə Şöbəsi", positionName: "CFO", salary: 5000, isStarPerson: true },
   { id: 3, firstName: "Samir", lastName: "Həsənov", fatherName: "Rauf", fin: "3C4D5E6", phone: "+994501234569", email: "user@kpi.az", active: true,
-    structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Şöbə Müdiri", salary: 2800 },
+    structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Şöbə Müdiri", salary: 2800, isStarPerson: true },
   { id: 4, firstName: "Leyla", lastName: "Məmmədova", fatherName: "İlqar", fin: "4D5E6F7", phone: "+994501234570", email: "leyla@kpi.az", active: true,
     structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Satış Mütəxəssisi", salary: 1800 },
   { id: 5, firstName: "Rəşad", lastName: "Əliyev", fatherName: "Tahir", fin: "5E6F7G8", phone: "+994501234571", email: "reshad@kpi.az", active: true,
     structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Satış Mütəxəssisi", salary: 1800 },
   { id: 6, firstName: "Farid", lastName: "Həsənov", fatherName: "Akif", fin: "6F7G8H9", phone: "+994501234572", email: "farid@kpi.az", active: true,
-    structurePath: "Satış Departamenti › İdarəetmə Şöbəsi", positionName: "Departament Direktoru", salary: 4500 },
+    structurePath: "Satış Departamenti › İdarəetmə Şöbəsi", positionName: "Departament Direktoru", salary: 4500, isStarPerson: true },
   { id: 7, firstName: "Emin", lastName: "Məmmədov", fatherName: "Səxavət", fin: "7G8H9I0", phone: "+994501234573", email: "emin@kpi.az", active: true,
     structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Satış Mütəxəssisi", salary: 1700 },
   { id: 8, firstName: "Kamran", lastName: "Quliyev", fatherName: "Zaur", fin: "8H9I0J1", phone: "+994501234574", email: "kamran@kpi.az", active: true,
@@ -73,7 +74,7 @@ const seedStructures: OrgStructure[] = [
         id: 1010, type: "Şöbə", name: "İdarəetmə Şöbəsi",
         positions: [
           {
-            id: 2001, name: "Departament Direktoru", isStarPosition: true,
+            id: 2001, name: "Departament Direktoru",
             slots: [{ id: 3001, employeeId: 6, salary: 4500, fraction: 1 }],
           },
 
@@ -84,7 +85,7 @@ const seedStructures: OrgStructure[] = [
         id: 1002, type: "Şöbə", name: "Bakı Satış Şöbəsi",
         positions: [
           {
-            id: 2002, name: "Şöbə Müdiri", isStarPosition: true,
+            id: 2002, name: "Şöbə Müdiri",
             slots: [{ id: 3002, employeeId: 3, salary: 2800, fraction: 1 }],
           },
 
@@ -109,7 +110,7 @@ const seedStructures: OrgStructure[] = [
         id: 1011, type: "Şöbə", name: "İdarəetmə Şöbəsi",
         positions: [
           {
-            id: 2004, name: "HR Direktoru", isStarPosition: true,
+            id: 2004, name: "HR Direktoru",
             slots: [{ id: 3006, employeeId: 1, salary: 4200, fraction: 1 }],
           },
 
@@ -126,7 +127,7 @@ const seedStructures: OrgStructure[] = [
         id: 1012, type: "Şöbə", name: "İdarəetmə Şöbəsi",
         positions: [
           {
-            id: 2005, name: "CFO", isStarPosition: true,
+            id: 2005, name: "CFO",
             slots: [{ id: 3007, employeeId: 2, salary: 5000, fraction: 1 }],
           },
 
@@ -485,53 +486,44 @@ export const findOccupantsByPosition = (
 
 
 // =====================================================================
-// STAR POSITION — Ulduzlu Vəzifə (Kaskadlama üçün)
+// STAR PERSON — Rəhbər rolu (Kaskadlama üçün)
 // =====================================================================
-// Qayda: Ulduz VƏZİFƏYƏ verilir, şəxsə deyil. Hər struktur vahidində
-// yalnız bir Star Position ola bilər. Vəzifədə oturan əməkdaş dəyişdikdə
-// heç bir mapping yenidən qurulmur — servis avtomatik yeni holder-i tapır.
+// Qayda: Rəhbər rolu (⭐) VƏZİFƏYƏ deyil, birbaşa ŞƏXSƏ verilir.
+// Şəxs vəzifəsindən asılı olmayaraq bu statusu daşıyır. Kaskadlama
+// zamanı sistem hər struktur vahidində Rəhbər rolu daşıyan şəxsləri
+// tapıb hədəfləri onlara yönləndirir; həmin rəhbər öz tabeliyindəki
+// alt strukturlara və şəxslərə hədəfi bölüşdürə bilər.
 
-/** Vəzifəyə ulduz təyin et / sil. Uniqueness həmin struktur daxilində zorlanır. */
-export const setStarPosition = (positionId: number, isStar: boolean) => {
-  const list = cloneStructures(getStructures());
-  findPositionAndMutate(list, positionId, (pos, parent) => {
-    if (isStar) {
-      // Həmin struktur vahidində əvvəlki ulduz(lar)ı söndür
-      parent.positions.forEach(p => {
-        if (p.id !== positionId) p.isStarPosition = false;
-      });
-      pos.isStarPosition = true;
-    } else {
-      pos.isStarPosition = false;
-    }
-  });
-  setStructures(list);
-  return list;
+/** Şəxsə Rəhbər rolu ver / geri götür (yalnız administrator). */
+export const setStarPerson = (employeeId: number, isStar: boolean) => {
+  const next = getEmployees().map(e =>
+    e.id === employeeId ? { ...e, isStarPerson: isStar } : e,
+  );
+  setEmployees(next);
+  return next;
 };
 
-/** Verilmiş struktur vahidindəki Star Position-u tapır (yoxdursa null). */
-export const getStarPositionOfUnit = (unitId: number): OrgPosition | null => {
-  const node = findStructureById(unitId);
-  if (!node) return null;
-  return node.positions.find(p => p.isStarPosition) ?? null;
-};
+/** Şəxs Rəhbər rolu daşıyırmı? */
+export const isStarPerson = (employeeId: number): boolean =>
+  !!getEmployees().find(e => e.id === employeeId)?.isStarPerson;
 
-/** Ulduz vəzifədə oturan əməkdaşı(ları) qaytarır. Vakantdırsa boş massiv. */
+/** Verilmiş struktur vahidinin slotlarında oturan Rəhbər rolu daşıyan şəxsləri qaytarır. */
 export const getStarHoldersOfUnit = (unitId: number): OrgEmployee[] => {
-  const pos = getStarPositionOfUnit(unitId);
-  if (!pos) return [];
+  const node = findStructureById(unitId);
+  if (!node) return [];
   const employees = getEmployees();
   const out: OrgEmployee[] = [];
-  for (const s of pos.slots) {
-    if (s.employeeId != null) {
+  for (const pos of node.positions) {
+    for (const s of pos.slots) {
+      if (s.employeeId == null) continue;
       const e = employees.find(x => x.id === s.employeeId);
-      if (e && e.active) out.push(e);
+      if (e && e.active && e.isStarPerson && !out.find(o => o.id === e.id)) out.push(e);
     }
   }
   return out;
 };
 
-/** Vahid holder — birdən çox slot varsa, birincisini qaytarır. */
+/** Vahid holder — birdən çox olsa, birincisini qaytarır. */
 export const getStarHolderOfUnit = (unitId: number): OrgEmployee | null =>
   getStarHoldersOfUnit(unitId)[0] ?? null;
 
@@ -540,12 +532,12 @@ export interface CascadeNode {
   unitName: string;
   unitType: string;
   path: string;
-  starPosition: OrgPosition | null;
   starHolder: OrgEmployee | null;
-  /** Ulduz vəzifə var, amma boşdursa true — göndəriş bloklanır. */
-  vacant: boolean;
-  /** Struktur vahidində ümumiyyətlə Star Position təyin edilməyibsə true. */
+  starHolders: OrgEmployee[];
+  /** Rəhbər rolu bu struktur vahidində təyin edilməyibsə true — kaskadlama bloklanır. */
   missingStar: boolean;
+  /** Bu unit-də bir neçə rəhbər varsa (>1) — administratora xəbərdarlıq. */
+  multipleStars: boolean;
   children: CascadeNode[];
 }
 
@@ -555,17 +547,16 @@ export const resolveCascadeChain = (rootUnitId: number): CascadeNode | null => {
   if (!root) return null;
   const build = (node: OrgStructure, pathParts: string[]): CascadeNode => {
     const path = [...pathParts, node.name].join(" › ");
-    const starPos = node.positions.find(p => p.isStarPosition) ?? null;
-    const holder = starPos ? getStarHolderOfUnit(node.id) : null;
+    const holders = getStarHoldersOfUnit(node.id);
     return {
       unitId: node.id,
       unitName: node.name,
       unitType: node.type,
       path,
-      starPosition: starPos,
-      starHolder: holder,
-      vacant: !!starPos && !holder,
-      missingStar: !starPos,
+      starHolder: holders[0] ?? null,
+      starHolders: holders,
+      missingStar: holders.length === 0,
+      multipleStars: holders.length > 1,
       children: node.children.map(c => build(c, [...pathParts, node.name])),
     };
   };
@@ -576,12 +567,12 @@ export const resolveCascadeChain = (rootUnitId: number): CascadeNode | null => {
 export const resolveAllCascadeChains = (): CascadeNode[] =>
   getStructures().map(s => resolveCascadeChain(s.id)!).filter(Boolean);
 
-/** Struktur boyunca star saylarını yoxlayır — >1 halı təhlükəlidir. */
+/** Struktur boyunca rəhbər sayını yoxlayır. */
 export interface StarValidationIssue {
   unitId: number;
   unitName: string;
   path: string;
-  kind: "missing" | "multiple" | "vacant";
+  kind: "missing" | "multiple";
   detail?: string;
 }
 
@@ -590,14 +581,17 @@ export const validateStarStructure = (): StarValidationIssue[] => {
   const walk = (nodes: OrgStructure[], pathParts: string[]) => {
     for (const n of nodes) {
       const path = [...pathParts, n.name].join(" › ");
-      const stars = n.positions.filter(p => p.isStarPosition);
-      if (stars.length > 1) {
-        issues.push({ unitId: n.id, unitName: n.name, path, kind: "multiple", detail: stars.map(s => s.name).join(", ") });
-      } else if (stars.length === 0 && n.positions.length > 0) {
-        issues.push({ unitId: n.id, unitName: n.name, path, kind: "missing" });
-      } else if (stars.length === 1) {
-        const holder = getStarHolderOfUnit(n.id);
-        if (!holder) issues.push({ unitId: n.id, unitName: n.name, path, kind: "vacant", detail: stars[0].name });
+      const totalSlots = n.positions.reduce((sum, p) => sum + p.slots.filter(s => s.employeeId != null).length, 0);
+      if (totalSlots > 0) {
+        const holders = getStarHoldersOfUnit(n.id);
+        if (holders.length === 0) {
+          issues.push({ unitId: n.id, unitName: n.name, path, kind: "missing" });
+        } else if (holders.length > 1) {
+          issues.push({
+            unitId: n.id, unitName: n.name, path, kind: "multiple",
+            detail: holders.map(h => `${h.firstName} ${h.lastName}`).join(", "),
+          });
+        }
       }
       walk(n.children, [...pathParts, n.name]);
     }
@@ -606,10 +600,10 @@ export const validateStarStructure = (): StarValidationIssue[] => {
   return issues;
 };
 
-/** KPI hədəfini struktur vahidinə yönləndirmə üçün əməkdaşı tap. */
+/** KPI hədəfini struktur vahidinə yönləndirmə üçün Rəhbər rolu daşıyan şəxsi tap. */
 export class MissingStarError extends Error {
   constructor(public unitId: number, public unitName: string) {
-    super(`"${unitName}" strukturunda Ulduzlu Vəzifə təyin edilməyib`);
+    super(`"${unitName}" strukturunda Rəhbər rolu təyin edilməyib`);
   }
 }
 
@@ -620,3 +614,24 @@ export const routeKpiToUnit = (unitId: number): OrgEmployee => {
   if (!holder) throw new MissingStarError(unitId, node.name);
   return holder;
 };
+
+/** Rəhbərin bu struktur vahidində (və alt strukturlarında) idarə etdiyi bütün şəxsləri qaytarır — özündən başqa. */
+export const getSubordinatesOfStarHolder = (employeeId: number, unitId: number): OrgEmployee[] => {
+  const node = findStructureById(unitId);
+  if (!node) return [];
+  const employees = getEmployees();
+  const out: OrgEmployee[] = [];
+  const walk = (n: OrgStructure) => {
+    for (const pos of n.positions) {
+      for (const s of pos.slots) {
+        if (s.employeeId == null || s.employeeId === employeeId) continue;
+        const e = employees.find(x => x.id === s.employeeId);
+        if (e && e.active && !out.find(o => o.id === e.id)) out.push(e);
+      }
+    }
+    n.children.forEach(walk);
+  };
+  walk(node);
+  return out;
+};
+
