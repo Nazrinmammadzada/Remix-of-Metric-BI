@@ -155,7 +155,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
       {mergedSubKpis.length > 0 && (
         <div className="rounded-lg border border-border bg-card">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-            <p className="text-xs font-medium text-foreground">Sub-KPI-lar ({mergedSubKpis.length})</p>
+            <p className="text-xs font-medium text-foreground">Hədəflər ({mergedSubKpis.length})</p>
             <span className="text-[10px] text-muted-foreground">Açmaq üçün klikləyin — qiymət limitləri görünəcək</span>
           </div>
           <div className="divide-y divide-border">
@@ -176,7 +176,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
                       {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
                       <span className="text-sm font-medium text-foreground truncate">{sk.name}</span>
                       {sk.target && (
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">• Hədəf: {sk.target} {sk.unit || ""}</span>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">• Dəyər: {sk.target} {sk.unit || ""}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -218,37 +218,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
           </div>
         </div>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <div className="rounded-lg border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Hesablama Düsturu</p>
-          <div className="mt-1 text-xs font-mono text-foreground">{formulaText}</div>
-        </div>
-        <div className="rounded-lg border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Nümunə</p>
-          <div className="mt-1 text-xs font-mono text-foreground flex flex-wrap items-center gap-1">
-            <span>{sampleText}</span>
-            <span className={`${tone.text} font-semibold`}>= {gsr.toFixed(0)}%</span>
-            <span className="text-muted-foreground">→ Bal {score}</span>
-          </div>
-        </div>
-        <div className="rounded-lg border border-border bg-secondary/40 px-3 py-2 flex items-start gap-2">
-          <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-          <p className="text-[11px] text-muted-foreground">Bal avtomatik olaraq hədəfin vahidi üzrə aralıqdan asılı təyin edilir.</p>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-border bg-card px-3 py-2 flex items-center gap-3">
-        <Scale className="w-4 h-4 text-primary shrink-0" />
-        <p className="text-xs text-muted-foreground">Ümumi BSC Balı</p>
-        <p className="text-base font-semibold text-foreground tabular-nums">{score.toFixed(2)}<span className="text-xs font-normal text-muted-foreground"> / 5</span></p>
-        <div className="flex-1 min-w-[80px]">
-          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-            <div className={`h-1.5 ${tone.barColor}`} style={{ width: `${Math.min(100, gsrClamped)}%` }} />
-          </div>
-        </div>
-        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${tone.bg} ${tone.text} whitespace-nowrap`}>{tone.label} · {gsr.toFixed(0)}%</span>
-      </div>
     </div>
   );
 }
+
