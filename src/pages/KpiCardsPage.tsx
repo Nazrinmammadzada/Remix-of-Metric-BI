@@ -360,6 +360,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [filterGroup, setFilterGroup] = useState("Hamısı");
   const [filterTeamId, setFilterTeamId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("Hamısı");
+  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Komanda" | "Struktur" | "Vəzifə">("Hamısı");
   // zone filter removed
   const [searchText, setSearchText] = useState("");
   const [hoveredMinTarget, setHoveredMinTarget] = useState<number | null>(null);
