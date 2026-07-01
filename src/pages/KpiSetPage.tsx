@@ -157,6 +157,11 @@ const KpiSetPage = () => {
                             <Eye className="w-4 h-4" />
                           </button>
                           <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>Redaktə</Button>
+                          {r.cascadable && r.ownerType === "manager" && (
+                            <Button size="sm" onClick={() => setCascading(r)} className="gap-1">
+                              <GitBranch className="w-3.5 h-3.5" /> Kaskad et
+                            </Button>
+                          )}
                         </div>
                       )}
                     </td>
