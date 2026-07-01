@@ -496,9 +496,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         return !!draft.name.trim() && !!draft.frequency && !!draft.startDate && !!draft.endDate
           && draft.endDate >= draft.startDate && !!draft.scoringSystem && lifecycleOk;
       }
-      case 2:
-        return draft.targets.length > 0 && totalWeight === 100
+      case 2: {
+        const hasOther = draft.targets.some(t => t.createdBy === "other");
+        const weightOk = hasOther ? true : totalWeight === 100;
+        return draft.targets.length > 0 && weightOk
           && draft.targets.every(t => validateHedef(t) === null);
+      }
       case 3: return true;
       default: return false;
     }
