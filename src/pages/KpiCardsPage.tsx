@@ -1428,21 +1428,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
               {detailTab === "general" && (
                 <>
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="bg-secondary rounded-lg p-3"><p className="text-xs text-muted-foreground">Hədəf</p><p className="text-xl font-bold text-destructive mt-1">{selectedKpi.target} {selectedKpi.unit}</p></div>
-                    <div className="bg-zone-green-bg rounded-lg p-3"><p className="text-xs text-muted-foreground">Cari Dəyər</p><p className="text-xl font-bold text-primary mt-1">{selectedKpi.current} {selectedKpi.unit}</p></div>
-                    <div className="bg-accent rounded-lg p-3"><p className="text-xs text-muted-foreground">Progress</p><p className="text-xl font-bold text-success mt-1">{selectedKpi.progress}%</p></div>
-                    <div className="bg-zone-yellow-bg rounded-lg p-3"><p className="text-xs text-muted-foreground">Dövr</p><p className="text-xl font-bold text-destructive mt-1">{selectedKpi.period}</p></div>
-                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-card rounded-lg border border-border p-4">
                       <h4 className="font-semibold text-foreground mb-3">Əsas Məlumatlar</h4>
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between"><span className="text-muted-foreground">Məsul Şəxs:</span><span className="font-medium">{selectedKpi.responsible}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Departament:</span><span className="font-medium">{selectedKpi.department}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Təyinat:</span><span className="font-medium">{getAssignKindFor(selectedKpi.id)}{(() => { const d = cardDrafts[selectedKpi.id]; if (!d) return ""; const parts: string[] = []; if (d.bulk?.teamIds?.length) parts.push(`Komandalar: ${d.bulk.teamIds.length}`); if (d.bulk?.positions?.length) parts.push(`Vəzifələr: ${d.bulk.positions.length}`); if (d.bulk?.structureIds?.length) parts.push(`Strukturlar: ${d.bulk.structureIds.length}`); if (d.bulk?.employeeIds?.length) parts.push(`Şəxs: ${d.bulk.employeeIds.length}`); return parts.length ? ` — ${parts.join(", ")}` : ""; })()}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Başlama:</span><span className="font-medium">{selectedKpi.startDate}</span></div>
                         <div className="flex justify-between"><span className="text-muted-foreground">Bitmə:</span><span className="font-medium">{selectedKpi.endDate}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Tezlik:</span><span className="font-medium">{selectedKpi.frequency}</span></div>
                       </div>
                     </div>
                     {(() => {
@@ -1468,17 +1461,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 {sk.weight ? <span className="text-xs text-muted-foreground">Çəki: {sk.weight}%</span> : null}
                               </div>
                               <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Hədəf: {sk.target}{sk.unit ? ` (${sk.unit})` : ""}</span>
-                                <span>{sk._fromSet ? `Təyinatçı: ${sk._assignee}` : `Cari: ${sk.current || "—"}`}</span>
+                                <span>Dəyər: {sk.target}{sk.unit ? ` (${sk.unit})` : ""}</span>
+                                <span>{sk._fromSet ? `Təyin edici: ${sk._assignee}` : ""}</span>
                               </div>
                               {sk.evaluator?.type && (
                                 <div className="text-[11px] text-muted-foreground mt-1">
                                   Qiymətləndirici ({sk.evaluator.type}): {sk.evaluator.type === "self" ? "Özü" : sk.evaluator.type === "integration" ? `${sk.evaluator.integrationName} (${sk.evaluator.integrationWeight ?? 100}%)` : sk.evaluator.persons.map((p: any) => `${p.name} ${p.weight}%`).join(", ")}
-                                </div>
-                              )}
-                              {sk.progress !== undefined && (
-                                <div className="w-full bg-muted rounded-full h-1.5">
-                                  <div className="bg-primary rounded-full h-1.5" style={{ width: `${sk.progress}%` }} />
                                 </div>
                               )}
                             </div>
@@ -1487,12 +1475,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </div>
                       );
                     })()}
-                    {(!selectedKpi.subKpis || selectedKpi.subKpis.length === 0) && (
-                      <div className="bg-card rounded-lg border border-border p-4">
-                        <h4 className="font-semibold text-foreground mb-3">Qeyd</h4>
-                        <p className="text-sm text-muted-foreground">Son ayda müsbət dinamika müşahidə olunur.</p>
-                      </div>
-                    )}
                   </div>
                 </>
               )}
