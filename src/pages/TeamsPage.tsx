@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, Star, ChevronDown, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, ChevronDown, Sparkles, ArrowLeft } from "lucide-react";
 
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -145,13 +145,9 @@ const TeamsPage = () => {
       toast.error("Ən azı bir üzv seçin");
       return;
     }
-    if (!leaderName) {
-      toast.error("Komanda lideri seçin (ulduz iconuna klikləyin)");
-      return;
-    }
-    const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leaderName);
-    const leader = allPeople.find(p => p.name === leaderName);
+    const leader = allPeople.find(p => p.name === selectedMembers[0]);
     if (!leader) return;
+    const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leader.name);
     const branch = subStructures[0] || structures[0] || "Mərkəzi Filial";
     const team: Team = {
       id: Date.now(),
@@ -373,7 +369,7 @@ const TeamsPage = () => {
                   {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground mb-2">⭐ ulduz iconuna klikləməklə həmin üzvü komanda lideri təyin edin.</p>
+              <p className="text-[11px] text-muted-foreground mb-2">Komanda üzvlərini seçin.</p>
               <div className="relative mb-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input value={memberListSearch} onChange={e => setMemberListSearch(e.target.value)} placeholder="Üzv axtar..." className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
@@ -381,7 +377,6 @@ const TeamsPage = () => {
               <div className="space-y-1 max-h-56 overflow-y-auto border border-border rounded-lg p-1.5">
                 {filteredCandidates.map((p) => {
                   const checked = selectedMembers.includes(p.name);
-                  const isLeader = leaderName === p.name;
                   return (
                     <div key={p.name} className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${checked ? "border-primary bg-primary/5" : "border-transparent hover:bg-secondary"}`}>
                       <div onClick={() => toggleMember(p.name)} className="flex items-center gap-3 flex-1 cursor-pointer">
@@ -391,16 +386,6 @@ const TeamsPage = () => {
                           <p className="text-xs text-muted-foreground truncate">{p.role}</p>
                         </div>
                       </div>
-                      {checked && (
-                        <button
-                          type="button"
-                          onClick={() => setLeaderName(isLeader ? "" : p.name)}
-                          title={isLeader ? "Liderlikdən çıxar" : "Komanda lideri təyin et"}
-                          className="p-1.5 rounded-md hover:bg-warning/10 transition-colors"
-                        >
-                          <Star className={`w-4 h-4 ${isLeader ? "fill-warning text-warning" : "text-muted-foreground"}`} />
-                        </button>
-                      )}
                       <div onClick={() => toggleMember(p.name)} className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer ${checked ? "bg-primary border-primary" : "border-border"}`}>
                         {checked && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
@@ -428,12 +413,10 @@ const TeamsPage = () => {
                     .map(name => {
                       const p = allPeople.find(x => x.name === name);
                       if (!p) return null;
-                      const isLeader = leaderName === name;
                       return (
-                        <div key={name} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-card border ${isLeader ? "border-warning shadow-sm" : "border-border"}`}>
+                        <div key={name} className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-card border border-border">
                           <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-semibold shrink-0">{p.avatar}</div>
                           <span className="text-xs font-medium text-foreground truncate flex-1">{p.name}</span>
-                          {isLeader && <Star className="w-3 h-3 fill-warning text-warning shrink-0" />}
                           <X className="w-3 h-3 cursor-pointer text-muted-foreground hover:text-destructive shrink-0" onClick={() => toggleMember(name)} />
                         </div>
                       );

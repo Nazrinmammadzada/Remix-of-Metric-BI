@@ -6,7 +6,7 @@ import {
   Building2, Users, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
   Briefcase, UserPlus, Search, X, Check, KeyRound, ShieldCheck, UserCircle2,
   Eye, Folder, ChevronsLeft, ChevronsRight, ChevronLeft, Filter, Download,
-  Wallet, ArrowUpRight, Network, Star,
+  Wallet, ArrowUpRight, Network, Crown,
 } from "lucide-react";
 
 import chrLogo from "@/assets/chr-logo.jpeg";
@@ -762,7 +762,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
               : "bg-secondary text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
           }`}
         >
-          <Star className={`w-3.5 h-3.5 ${isStar ? "fill-white" : ""}`} />
+          <Crown className={`w-3.5 h-3.5 ${isStar ? "fill-white" : ""}`} />
         </button>
       ) : (
         <UserCircle2 className="w-4 h-4 text-muted-foreground" />
