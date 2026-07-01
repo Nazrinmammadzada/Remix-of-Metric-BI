@@ -1479,37 +1479,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 </>
               )}
 
-              {detailTab === "details" && (
-                <div className="space-y-4">
-                  <div className="bg-card rounded-lg border border-border p-4">
-                    <h4 className="font-semibold text-foreground mb-3">KPI Təsviri</h4>
-                    <p className="text-sm text-muted-foreground">{selectedKpi.description}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-card rounded-lg border border-border p-4">
-                      <h4 className="font-semibold text-foreground mb-3">Hesablama Məlumatları</h4>
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">KPI Tipi:</span><span className="font-medium">{selectedKpi.type}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Formula:</span><span className="font-medium font-mono text-xs">{selectedKpi.formula}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Çəki:</span><span className="font-medium">{selectedKpi.weight}%</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Min. Hədəf:</span><span className="font-medium">{selectedKpi.minTarget}%</span></div>
-                      </div>
-                    </div>
-                    <div className="bg-card rounded-lg border border-border p-4">
-                      <h4 className="font-semibold text-foreground mb-3">Əlavə Parametrlər</h4>
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Departament:</span><span className="font-medium">{selectedKpi.department}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Dövr:</span><span className="font-medium">{selectedKpi.period}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Tezlik:</span><span className="font-medium">{selectedKpi.frequency}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Vahid:</span><span className="font-medium">{selectedKpi.unit || "Faiz"}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Status:</span>
-                          <span className="px-2 py-0.5 text-xs rounded-full bg-secondary text-foreground">{selectedKpi.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {detailTab === "history" && (
                 <div className="bg-card rounded-lg border border-border p-4">
