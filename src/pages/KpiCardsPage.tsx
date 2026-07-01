@@ -1024,18 +1024,39 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="KPI adı ilə axtar..." className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
               </div>
             </div>
-            <div className="min-w-[160px]">
+            <div className="min-w-[140px]">
               <label className="text-[11px] text-muted-foreground">Təyinat növü</label>
-              <select value={filterAssignKind} onChange={e => { const v = e.target.value as any; setFilterAssignKind(v); if (v !== "Komanda") setFilterTeamId(null); }} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+              <select
+                value={filterAssignKind}
+                onChange={e => {
+                  const v = e.target.value as "Hamısı" | "Fərdi" | "Toplu";
+                  setFilterAssignKind(v);
+                  if (v !== "Toplu") { setFilterBulkKind("Hamısı"); setFilterTeamId(null); }
+                }}
+                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              >
                 <option>Hamısı</option>
                 <option>Fərdi</option>
                 <option>Toplu</option>
-                <option>Komanda</option>
-                <option>Struktur</option>
-                <option>Vəzifə</option>
               </select>
             </div>
-            {filterAssignKind === "Komanda" && (
+            {filterAssignKind === "Toplu" && (
+              <div className="min-w-[150px]">
+                <label className="text-[11px] text-muted-foreground">Toplu növü</label>
+                <select
+                  value={filterBulkKind}
+                  onChange={e => { const v = e.target.value as any; setFilterBulkKind(v); if (v !== "Komanda") setFilterTeamId(null); }}
+                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                >
+                  <option>Hamısı</option>
+                  <option>Komanda</option>
+                  <option>Struktur</option>
+                  <option>Vəzifə</option>
+                  <option>Şəxs</option>
+                </select>
+              </div>
+            )}
+            {filterAssignKind === "Toplu" && filterBulkKind === "Komanda" && (
               <div className="min-w-[180px]">
                 <label className="text-[11px] text-muted-foreground">Komanda</label>
                 <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
@@ -1052,7 +1073,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <option>Ləğv olundu</option>
               </select>
             </div>
-            <button onClick={() => { resetFilters(); setFilterAssignKind("Hamısı"); }} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
+            <button onClick={() => { resetFilters(); setFilterAssignKind("Hamısı"); setFilterBulkKind("Hamısı"); }} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
           </div>
         )}
 
