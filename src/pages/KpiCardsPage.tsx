@@ -890,18 +890,32 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="KPI adı ilə axtar..." className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
               </div>
             </div>
+            <div className="min-w-[160px]">
+              <label className="text-[11px] text-muted-foreground">Təyinat növü</label>
+              <select value={filterAssignKind} onChange={e => setFilterAssignKind(e.target.value as any)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+                <option>Hamısı</option>
+                <option>Fərdi</option>
+                <option>Komanda</option>
+                <option>Struktur</option>
+                <option>Vəzifə</option>
+              </select>
+            </div>
             <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Komanda</label>
               <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
             </div>
-            <div className="min-w-[160px]">
+            <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
-                {kpiStatusOptions.map(s => <option key={s}>{s}</option>)}
+                <option>Qaralama</option>
+                <option>Təsdiq gözlənilir</option>
+                <option>İmtina</option>
+                <option>Aktiv</option>
+                <option>Ləğv olundu</option>
               </select>
             </div>
-            <button onClick={resetFilters} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
+            <button onClick={() => { resetFilters(); setFilterAssignKind("Hamısı"); }} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
           </div>
         )}
 
