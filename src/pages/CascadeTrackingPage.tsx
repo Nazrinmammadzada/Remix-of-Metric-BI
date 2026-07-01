@@ -13,7 +13,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
   const roots = useMemo(() => nodes.filter(n => n.parentId === null), [nodes]);
   const [activeRoot, setActiveRoot] = useState<string | null>(roots[0]?.id || null);
   const [q, setQ] = useState("");
-  const [distributeNode, setDistributeNode] = useState<CascadeTreeNode | null>(null);
+  
 
   const filtered = roots.filter(r => !q || r.goalName.toLowerCase().includes(q.toLowerCase()) || r.cardName.toLowerCase().includes(q.toLowerCase()));
   const current = nodes.find(n => n.id === activeRoot);
