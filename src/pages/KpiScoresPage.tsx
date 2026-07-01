@@ -85,7 +85,7 @@ const KpiScoresPage = () => {
 
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [month, setMonth] = useState<string>("May");
-  const [selectedCards, setSelectedCards] = useState<string[]>([]);
+  const [selectedCards, setSelectedCards] = useState<string[]>([...KPI_CARDS]);
   const [cardSearch, setCardSearch] = useState("");
   const [cardOpen, setCardOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
