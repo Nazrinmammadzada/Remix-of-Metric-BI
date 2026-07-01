@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { SlidersHorizontal, Search, Sliders, Hourglass, CheckCircle2, User as UserIcon, Eye } from "lucide-react";
+import { SlidersHorizontal, Search, Sliders, Hourglass, CheckCircle2, User as UserIcon, Eye, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportMenu from "@/components/common/ExportMenu";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
+import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import {
   useKpiSet,
   setEntryLimits,
