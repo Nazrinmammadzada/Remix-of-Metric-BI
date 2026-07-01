@@ -136,7 +136,7 @@ const App = () => {
             <Route element={<RouteGuard requiredRole="MANAGER"><ManagerLayout /></RouteGuard>}>
               <Route path="/manager" element={<ManagerHomePage />} />
               <Route path="/manager/sistem-tesdiq" element={<ApprovalsPage />} />
-              <Route path="/manager/mesul-kartlar" element={<KpiCardsPage />} />
+              <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
               <Route path="/manager/komandam" element={<TeamsPage />} />
               <Route path="/manager/kpi-izleme" element={<GoalTrackingPage />} />
               <Route path="/manager/neticelerim" element={<KpiScoresPage />} />
