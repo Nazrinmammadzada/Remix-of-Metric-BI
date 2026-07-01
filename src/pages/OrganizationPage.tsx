@@ -604,8 +604,9 @@ const StaffModal = ({ node, onClose }: { node: OrgStructure | null; onClose: () 
             <p className="text-sm text-center text-muted-foreground py-6">Nəticə yoxdur</p>
           )}
           {filteredPositions.map(pos => (
-            <PositionCard key={pos.id} position={pos} />
+            <PositionCard key={pos.id} position={pos} structureId={node!.id} structureName={node!.name} />
           ))}
+
         </div>
 
         {showAddPos && (
