@@ -228,6 +228,74 @@ const initialKpiCards: KpiCard[] = [
     isPersonal: true,
     frozen: false,
   },
+  // İmtina — tam dolu, redaktə edildikdə wizard bütün məlumatlarla açılır
+  {
+    id: 9, name: "Müştəri Şikayətlərinin Azaldılması", icon: AlertTriangle, zone: "red", target: "50", current: "72", unit: "şikayət", progress: 45, minTarget: 70,
+    responsible: "Nigar Hüseynova", period: "2026 - Rüblük", type: "Say Hədəfi", formula: "Hədəf / Faktiki × 100", generalTarget: "50 şikayət",
+    department: "Müştəri Xidmətləri", group: "CRM Qrupu", subdivision: "CRM Şöbəsi",
+    startDate: "01.01.2026", endDate: "30.06.2026", frequency: "Rüblük", weight: 20, approvalStatus: "pending",
+    description: "Müştəri şikayətlərinin ümumi sayının azaldılması üzrə KPI. Departament Direktoru tərəfindən imtina olunub.",
+    team: [
+      { name: "Nigar Hüseynova", role: "CRM Meneceri", avatar: "N" },
+      { name: "Leyla Həsənova", role: "Müştəri Xidmətləri", avatar: "L" },
+    ],
+    history: [
+      { date: "Fevral 2026", value: "72 şikayət", change: -5 },
+      { date: "Yanvar 2026", value: "76 şikayət", change: -2 },
+    ],
+    subKpis: [
+      { id: 1, name: "Şikayət sayının azaldılması", target: "50", weight: 60, current: "72", progress: 45, unit: "şikayət" },
+      { id: 2, name: "Cavab müddəti (saat)", target: "24", weight: 40, current: "36", progress: 60, unit: "saat" },
+    ],
+  },
+  {
+    id: 10, name: "Marketinq Kampaniyalarının ROI-si", icon: TrendingUp, zone: "red", target: "150%", current: "95%", unit: "%", progress: 63, minTarget: 80,
+    responsible: "Emin Məmmədov", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Gəlir / Xərc × 100", generalTarget: "150%",
+    department: "Marketinq", group: "Rəqəmsal Marketinq Qrupu", subdivision: "Marketinq Şöbəsi",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 15, approvalStatus: "pending",
+    description: "Marketinq kampaniyalarının qaytarılan investisiya nisbəti. HR Direktoru tərəfindən imtina olunub.",
+    team: [
+      { name: "Emin Məmmədov", role: "Marketinq Meneceri", avatar: "E" },
+      { name: "Günel Əlizadə", role: "Rəqəmsal Marketinq", avatar: "G" },
+      { name: "Orxan Məmmədov", role: "Kontent Menecer", avatar: "O" },
+    ],
+    history: [
+      { date: "Mart 2026", value: "95%", change: 5 },
+      { date: "Fevral 2026", value: "90%", change: -3 },
+    ],
+    subKpis: [
+      { id: 1, name: "Rəqəmsal reklam ROI", target: "180%", weight: 50, current: "110%", progress: 61, unit: "%" },
+      { id: 2, name: "SMM kampaniyaları ROI", target: "120%", weight: 30, current: "85%", progress: 71, unit: "%" },
+      { id: 3, name: "Email marketinq ROI", target: "140%", weight: 20, current: "90%", progress: 64, unit: "%" },
+    ],
+  },
+  // Natamam (qaralama) — dolu məlumatla, redaktə edildikdə davam etmək mümkündür
+  {
+    id: 11, name: "Yeni İşçi Adaptasiyası", icon: UserCheck, zone: "yellow", target: "90%", current: "0%", unit: "%", progress: 0, minTarget: 80,
+    responsible: "Leyla Həsənova", period: "2026 - Rüblük", type: "Faiz Hədəfi", formula: "Uğurla adaptasiya / Ümumi × 100", generalTarget: "90%",
+    department: "HR", group: "HR Qrupu", subdivision: "HR Şöbəsi",
+    startDate: "01.04.2026", endDate: "30.06.2026", frequency: "Rüblük", weight: 10, approvalStatus: "pending",
+    description: "Yeni işə qəbul olunan əməkdaşların ilk 3 aylıq adaptasiya göstəricisi (qaralama).",
+    team: [{ name: "Leyla Həsənova", role: "HR Menecer", avatar: "L" }],
+    history: [],
+    subKpis: [
+      { id: 1, name: "Onboarding tamamlanma", target: "100%", weight: 50, current: "0%", progress: 0, unit: "%" },
+      { id: 2, name: "3 ay ərzində qalma nisbəti", target: "90%", weight: 50, current: "0%", progress: 0, unit: "%" },
+    ],
+  },
+  {
+    id: 12, name: "İT İnfrastruktur Yenilənməsi", icon: Settings2, zone: "yellow", target: "10", current: "0", unit: "server", progress: 0, minTarget: 70,
+    responsible: "Kamran Quliyev", period: "2026 - İllik", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 server",
+    department: "İT", group: "İT Qrupu", subdivision: "İT Şöbəsi",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "İllik", weight: 12, approvalStatus: "pending",
+    description: "Serverlərin yenilənməsi layihəsi (qaralama).",
+    team: [{ name: "Kamran Quliyev", role: "İT Menecer", avatar: "K" }],
+    history: [],
+    subKpis: [
+      { id: 1, name: "Server konfiqurasiyası", target: "10", weight: 60, current: "0", progress: 0, unit: "server" },
+      { id: 2, name: "Miqrasiya testi", target: "10", weight: 40, current: "0", progress: 0, unit: "test" },
+    ],
+  },
 ];
 
 // Integration → exchangeable data fields (per system)
