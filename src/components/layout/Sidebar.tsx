@@ -14,7 +14,7 @@ const navItems = [
   { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow },
   { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge },
   { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardCheck },
-  { path: "/kpi-set", label: "KPI Set", icon: SlidersHorizontal },
+  
   { path: "/cascading", label: "Cascading", icon: GitBranch },
   { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck },
   { path: "/hesabat", label: "Hesabatlar", icon: BarChart3 },
@@ -65,7 +65,7 @@ const Sidebar = () => {
               "/teskilati-struktur": "organization",
               "/kpi-kartlari": "kpi",
               "/kpi-qiymetleri": "kpi_scores",
-              "/kpi-set": "kpi_set",
+              
               "/hedef-tayin-izleme": "goal_tracking",
               "/kpi-lifecycle": "kpi_lifecycle",
               "/cascading": "cascading",

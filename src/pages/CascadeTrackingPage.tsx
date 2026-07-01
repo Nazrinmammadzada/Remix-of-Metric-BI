@@ -1,10 +1,10 @@
-// Kaskad İzləmə — Cascading aktiv hədəflərin real-vaxt ağac görünüşü.
+// Kaskad İzləmə — YALNIZ İZLƏMƏ. Bölgü/redaktə burada aparılmır — rəhbər öz
+// "Məsul olduğum kartlar" ekranından bölgünü edir.
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { Activity, ChevronLeft, ChevronRight, ChevronDown, Crown, Search, GitBranch, CheckCircle2, Clock, AlertTriangle, Circle } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, ChevronDown, Crown, Search, CheckCircle2, Clock, AlertTriangle, Circle } from "lucide-react";
 import { useCascadeTree, getChildren, distributedOf, remainingOf, statusOf, type CascadeTreeNode, type CascadeStatus } from "@/lib/cascadeTreeStore";
-import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 
@@ -13,7 +13,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
   const roots = useMemo(() => nodes.filter(n => n.parentId === null), [nodes]);
   const [activeRoot, setActiveRoot] = useState<string | null>(roots[0]?.id || null);
   const [q, setQ] = useState("");
-  const [distributeNode, setDistributeNode] = useState<CascadeTreeNode | null>(null);
+  
 
   const filtered = roots.filter(r => !q || r.goalName.toLowerCase().includes(q.toLowerCase()) || r.cardName.toLowerCase().includes(q.toLowerCase()));
   const current = nodes.find(n => n.id === activeRoot);
@@ -67,24 +67,16 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
             {!current ? (
               <div className="p-12 text-center text-sm text-muted-foreground">Ana hədəf seçin</div>
             ) : (
-              <TreeNode node={current} depth={0} onDistribute={setDistributeNode} defaultOpen />
+              <TreeNode node={current} depth={0} defaultOpen />
             )}
           </section>
         </div>
       </main>
-
-      {distributeNode && (
-        <CascadeDistributeDialog
-          open={!!distributeNode}
-          onOpenChange={(o) => !o && setDistributeNode(null)}
-          existingNode={distributeNode}
-        />
-      )}
     </div>
   );
 };
 
-const TreeNode = ({ node, depth, onDistribute, defaultOpen }: { node: CascadeTreeNode; depth: number; onDistribute: (n: CascadeTreeNode) => void; defaultOpen?: boolean }) => {
+const TreeNode = ({ node, depth, defaultOpen }: { node: CascadeTreeNode; depth: number; defaultOpen?: boolean }) => {
   const [open, setOpen] = useState(!!defaultOpen);
   const kids = getChildren(node.id);
   const st = statusOf(node.id);
@@ -119,17 +111,11 @@ const TreeNode = ({ node, depth, onDistribute, defaultOpen }: { node: CascadeTre
             <Metric label="Bölüşdürülüb" val={`${fmt(dist)}`} accent={dist > 0 ? "text-primary" : ""} />
             <Metric label="Qalıq" val={`${fmt(rem)}`} accent={rem === 0 ? "text-emerald-600" : "text-amber-600"} />
             <StatusBadge status={st} />
-            {node.isStar && kids.length === 0 && (
-              <button onClick={() => onDistribute(node)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90">
-                <GitBranch className="w-3.5 h-3.5" /> Kaskad et
-              </button>
-            )}
           </div>
         </div>
       </div>
 
-      {open && kids.map(k => <TreeNode key={k.id} node={k} depth={depth + 1} onDistribute={onDistribute} defaultOpen />)}
+      {open && kids.map(k => <TreeNode key={k.id} node={k} depth={depth + 1} defaultOpen />)}
     </div>
   );
 };

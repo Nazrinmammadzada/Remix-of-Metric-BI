@@ -14,7 +14,7 @@ import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
 import KpiHubPage from "./pages/KpiHubPage";
 import KpiScoresPage from "./pages/KpiScoresPage";
-import KpiSetPage from "./pages/KpiSetPage";
+import ManagerResponsibleCardsPage from "./pages/manager/ManagerResponsibleCardsPage";
 import KpiLifecyclePage from "./pages/KpiLifecyclePage";
 import CascadeMatrixPage from "./pages/CascadeMatrixPage";
 import CascadingPage from "./pages/CascadingPage";
@@ -95,7 +95,7 @@ const App = () => {
               <Route path="/hr" element={<HomePage />} />
               <Route path="/kpi-kartlari" element={<KpiHubPage />} />
               <Route path="/kpi-qiymetleri" element={<KpiScoresPage />} />
-              <Route path="/kpi-set" element={<KpiSetPage />} />
+              
               <Route path="/hedef-tayin-izleme" element={<GoalTrackingPage />} />
               <Route path="/kpi-lifecycle" element={<KpiLifecyclePage />} />
               <Route path="/cascading" element={<CascadingHubPage />} />
@@ -136,7 +136,7 @@ const App = () => {
             <Route element={<RouteGuard requiredRole="MANAGER"><ManagerLayout /></RouteGuard>}>
               <Route path="/manager" element={<ManagerHomePage />} />
               <Route path="/manager/sistem-tesdiq" element={<ApprovalsPage />} />
-              <Route path="/manager/mesul-kartlar" element={<KpiCardsPage />} />
+              <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
               <Route path="/manager/komandam" element={<TeamsPage />} />
               <Route path="/manager/kpi-izleme" element={<GoalTrackingPage />} />
               <Route path="/manager/neticelerim" element={<KpiScoresPage />} />

@@ -152,14 +152,6 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "respond", label: "Cavab vermək" },
     { key: "close", label: "Bağlamaq" },
   ]},
-  { key: "kpi_set", label: "KPI Set", actions: [
-    { key: "view", label: "Baxış" },
-    { key: "assign_sub_kpi", label: "Hədəf təyin etmək (ad, hədəf, vahid)" },
-    { key: "set_limits", label: "Qiymət limitlərini təyin etmək" },
-    { key: "mark_cascadable", label: "Paylaşıla bilən kimi işarələmək" },
-    { key: "edit", label: "Redaktə etmək" },
-    { key: "export", label: "Export" },
-  ]},
   { key: "kpi_lifecycle", label: "KPI Lifecycle", actions: [
     { key: "view", label: "Baxış" },
     { key: "view_detail", label: "Kart üzrə detalı görmək" },
