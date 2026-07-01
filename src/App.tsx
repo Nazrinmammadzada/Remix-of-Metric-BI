@@ -14,7 +14,7 @@ import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
 import KpiHubPage from "./pages/KpiHubPage";
 import KpiScoresPage from "./pages/KpiScoresPage";
-import KpiSetPage from "./pages/KpiSetPage";
+import ManagerResponsibleCardsPage from "./pages/manager/ManagerResponsibleCardsPage";
 import KpiLifecyclePage from "./pages/KpiLifecyclePage";
 import CascadeMatrixPage from "./pages/CascadeMatrixPage";
 import CascadingPage from "./pages/CascadingPage";
