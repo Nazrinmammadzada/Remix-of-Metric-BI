@@ -65,7 +65,7 @@ const Sidebar = () => {
               "/teskilati-struktur": "organization",
               "/kpi-kartlari": "kpi",
               "/kpi-qiymetleri": "kpi_scores",
-              "/kpi-set": "kpi_set",
+              
               "/hedef-tayin-izleme": "goal_tracking",
               "/kpi-lifecycle": "kpi_lifecycle",
               "/cascading": "cascading",
