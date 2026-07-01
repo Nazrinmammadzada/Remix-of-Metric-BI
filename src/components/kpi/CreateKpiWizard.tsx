@@ -1084,8 +1084,13 @@ function Step2Targets({
 
 
       {draft.targets.length === 0 && (
-        <div className="text-center py-12 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
-          Hələ hədəf əlavə edilməyib — "Hədəf əlavə et" düyməsindən başlayın.
+        <div className="text-center py-8 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
+          Hələ hədəf əlavə edilməyib.
+          <div className="mt-3">
+            <button type="button" onClick={addHedef} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
+              <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
+            </button>
+          </div>
         </div>
       )}
 
