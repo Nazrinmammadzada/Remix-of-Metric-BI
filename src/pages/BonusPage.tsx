@@ -68,15 +68,24 @@ const MISSING_BY_LABEL: Record<string, string[]> = {
 interface CalcRow { employee: Employee; achievement: number | null; bonus: number | null; }
 
 const BonusPage = () => {
-  const [periodicity, setPeriodicity] = useState<Periodicity | "">("");
+  const [periodicity, setPeriodicity] = useState<Periodicity | "">("monthly");
   const [weekDate, setWeekDate] = useState<Date | undefined>();
-  const [year, setYear] = useState<string>("");
-  const [month, setMonth] = useState<string>("");
+  const [year, setYear] = useState<string>("2026");
+  const [month, setMonth] = useState<string>("5");
   const [quarter, setQuarter] = useState<string>("");
   const [half, setHalf] = useState<string>("");
   const [range, setRange] = useState<{ from?: Date; to?: Date }>({});
-  const [result, setResult] = useState<CalcRow[] | null>(null);
-  const [usedLabel, setUsedLabel] = useState<string>("");
+  // Default auto-calculated view — May 2026 (has full data)
+  const defaultLabel = "May 2026";
+  const defaultRows: CalcRow[] = employees.map(emp => {
+    const allScored = emp.subKpis.every(s => s.score !== null);
+    if (!allScored) return { employee: emp, achievement: null, bonus: null };
+    const achievement = emp.subKpis.reduce((sum, sk) => sum + (sk.score! * sk.weight), 0) / 100;
+    const bonus = (emp.baseSalary * emp.targetBonusPct * achievement) / 10000;
+    return { employee: emp, achievement, bonus };
+  });
+  const [result, setResult] = useState<CalcRow[] | null>(defaultRows);
+  const [usedLabel, setUsedLabel] = useState<string>(defaultLabel);
   const [errorOpen, setErrorOpen] = useState(false);
   const [missingEmployees, setMissingEmployees] = useState<{ emp: Employee; missing: SubKpi[] }[]>([]);
   const [detailEmp, setDetailEmp] = useState<CalcRow | null>(null);
