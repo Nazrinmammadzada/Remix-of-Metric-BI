@@ -43,107 +43,146 @@ export interface OrgStructure {
   positions: OrgPosition[];
 }
 
-const STORAGE_EMPLOYEES = "kpi_org_employees_v2";
-const STORAGE_STRUCTURES = "kpi_org_structures_v3";
+const STORAGE_EMPLOYEES = "kpi_org_employees_v3";
+const STORAGE_STRUCTURES = "kpi_org_structures_v4";
+
+// ---------- Seed: 40 employees ----------
+// 12 leaders + 8 rank-and-file assigned = 20 in slots; 20 unassigned bench.
+const mkEmp = (
+  id: number,
+  firstName: string,
+  lastName: string,
+  fatherName: string,
+  email: string,
+  extras: Partial<OrgEmployee> = {},
+): OrgEmployee => ({
+  id, firstName, lastName, fatherName,
+  fin: `FIN${String(id).padStart(5, "0")}`,
+  phone: `+9945012${String(34500 + id).padStart(5, "0")}`,
+  email, active: true, ...extras,
+});
 
 const seedEmployees: OrgEmployee[] = [
-  { id: 1, firstName: "Günel", lastName: "Əlizadə", fatherName: "Vüqar", fin: "1A2B3C4", phone: "+994501234567", email: "hr@kpi.az", active: true,
-    structurePath: "İnsan Resursları › İdarəetmə Şöbəsi", positionName: "HR Direktoru", salary: 4200, isStarPerson: true },
-  { id: 2, firstName: "Nigar", lastName: "Hüseynova", fatherName: "Elxan", fin: "2B3C4D5", phone: "+994501234568", email: "nigar@kpi.az", active: true,
-    structurePath: "Maliyyə Departamenti › İdarəetmə Şöbəsi", positionName: "CFO", salary: 5000, isStarPerson: true },
-  { id: 3, firstName: "Samir", lastName: "Həsənov", fatherName: "Rauf", fin: "3C4D5E6", phone: "+994501234569", email: "user@kpi.az", active: true,
-    structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Şöbə Müdiri", salary: 2800, isStarPerson: true },
-  { id: 4, firstName: "Leyla", lastName: "Məmmədova", fatherName: "İlqar", fin: "4D5E6F7", phone: "+994501234570", email: "leyla@kpi.az", active: true,
-    structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Satış Mütəxəssisi", salary: 1800 },
-  { id: 5, firstName: "Rəşad", lastName: "Əliyev", fatherName: "Tahir", fin: "5E6F7G8", phone: "+994501234571", email: "reshad@kpi.az", active: true,
-    structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Satış Mütəxəssisi", salary: 1800 },
-  { id: 6, firstName: "Farid", lastName: "Həsənov", fatherName: "Akif", fin: "6F7G8H9", phone: "+994501234572", email: "farid@kpi.az", active: true,
-    structurePath: "Satış Departamenti › İdarəetmə Şöbəsi", positionName: "Departament Direktoru", salary: 4500, isStarPerson: true },
-  { id: 7, firstName: "Emin", lastName: "Məmmədov", fatherName: "Səxavət", fin: "7G8H9I0", phone: "+994501234573", email: "emin@kpi.az", active: true,
-    structurePath: "Satış Departamenti › Bakı Satış Şöbəsi", positionName: "Satış Mütəxəssisi", salary: 1700 },
-  { id: 8, firstName: "Kamran", lastName: "Quliyev", fatherName: "Zaur", fin: "8H9I0J1", phone: "+994501234574", email: "kamran@kpi.az", active: true,
-    structurePath: "Maliyyə Departamenti › Mühasibatlıq Şöbəsi", positionName: "Maliyyə Mütəxəssisi", salary: 1900 },
+  // --- Leaders (Rəhbər rolu) ---
+  mkEmp(1,  "Günel",   "Əlizadə",    "Vüqar",    "hr@kpi.az",         { structurePath: "İnsan Resursları Departamenti", positionName: "HR Direktoru",           salary: 4500, isStarPerson: true }),
+  mkEmp(2,  "Nigar",   "Hüseynova",  "Elxan",    "nigar@kpi.az",      { structurePath: "Maliyyə Departamenti",         positionName: "Maliyyə Direktoru (CFO)",  salary: 5000, isStarPerson: true }),
+  mkEmp(3,  "Samir",   "Həsənov",    "Rauf",     "user@kpi.az",       { structurePath: "Satış Departamenti",           positionName: "Satış Direktoru",          salary: 4800, isStarPerson: true }),
+  mkEmp(4,  "Elçin",   "Rəhimov",    "Tofiq",    "elchin@kpi.az",     { structurePath: "Marketinq Departamenti",       positionName: "Marketinq Direktoru",      salary: 4600, isStarPerson: true }),
+  mkEmp(5,  "Rəşad",   "Əliyev",     "Tahir",    "reshad@kpi.az",     { structurePath: "Satış Departamenti › Bakı Satış Şöbəsi",              positionName: "Şöbə Müdiri", salary: 3000, isStarPerson: true }),
+  mkEmp(6,  "Leyla",   "Məmmədova",  "İlqar",    "leyla@kpi.az",      { structurePath: "Satış Departamenti › Regional Satış Şöbəsi",          positionName: "Şöbə Müdiri", salary: 3000, isStarPerson: true }),
+  mkEmp(7,  "Kamran",  "Quliyev",    "Zaur",     "kamran@kpi.az",     { structurePath: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",  positionName: "Şöbə Müdiri", salary: 2900, isStarPerson: true }),
+  mkEmp(8,  "Aynur",   "Cəfərova",   "Elşən",    "aynur@kpi.az",      { structurePath: "Marketinq Departamenti › Brend Şöbəsi",               positionName: "Şöbə Müdiri", salary: 2900, isStarPerson: true }),
+  mkEmp(9,  "Fərid",   "Həsənov",    "Akif",     "farid@kpi.az",      { structurePath: "İnsan Resursları Departamenti › İşə Qəbul Şöbəsi",    positionName: "Şöbə Müdiri", salary: 2800, isStarPerson: true }),
+  mkEmp(10, "Aygün",   "İbrahimova", "Səxavət",  "aygun@kpi.az",      { structurePath: "İnsan Resursları Departamenti › Təlim və İnkişaf Şöbəsi", positionName: "Şöbə Müdiri", salary: 2800, isStarPerson: true }),
+  mkEmp(11, "Turan",   "Nəsibov",    "Ramiz",    "turan@kpi.az",      { structurePath: "Maliyyə Departamenti › Mühasibatlıq Şöbəsi",          positionName: "Şöbə Müdiri", salary: 2900, isStarPerson: true }),
+  mkEmp(12, "Sevinc",  "Ağayeva",    "Vasif",    "sevinc@kpi.az",     { structurePath: "Maliyyə Departamenti › Büdcə və Planlaşdırma Şöbəsi", positionName: "Şöbə Müdiri", salary: 2900, isStarPerson: true }),
+
+  // --- Assigned rank-and-file (1 per şöbə) ---
+  mkEmp(13, "Emin",    "Məmmədov",   "Səxavət",  "emin@kpi.az",       { structurePath: "Satış Departamenti › Bakı Satış Şöbəsi",              positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  mkEmp(14, "Nərmin",  "Vəliyeva",   "Rüstəm",   "nermin@kpi.az",     { structurePath: "Satış Departamenti › Regional Satış Şöbəsi",          positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  mkEmp(15, "Orxan",   "Bayramov",   "Cavid",    "orxan@kpi.az",      { structurePath: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",  positionName: "Marketinq Mütəxəssisi",  salary: 1900 }),
+  mkEmp(16, "Aytac",   "Kərimova",   "Elmar",    "aytac@kpi.az",      { structurePath: "Marketinq Departamenti › Brend Şöbəsi",               positionName: "Brend Mütəxəssisi",      salary: 1900 }),
+  mkEmp(17, "Leyla",   "Həsənova",   "Sabir",    "leylah@kpi.az",     { structurePath: "İnsan Resursları Departamenti › İşə Qəbul Şöbəsi",    positionName: "İşə Qəbul Mütəxəssisi",  salary: 1700 }),
+  mkEmp(18, "Cavid",   "Mustafayev", "Fərid",    "cavid@kpi.az",      { structurePath: "İnsan Resursları Departamenti › Təlim və İnkişaf Şöbəsi", positionName: "L&D Mütəxəssisi",   salary: 1700 }),
+  mkEmp(19, "Səbinə",  "Cəfərova",   "Nəsir",    "sebine@kpi.az",     { structurePath: "Maliyyə Departamenti › Mühasibatlıq Şöbəsi",          positionName: "Mühasib",                salary: 1900 }),
+  mkEmp(20, "Sənan",   "Əhmədov",    "Bəhmən",   "senan@kpi.az",      { structurePath: "Maliyyə Departamenti › Büdcə və Planlaşdırma Şöbəsi", positionName: "Maliyyə Analitiki",      salary: 1900 }),
+
+  // --- Bench (20 unassigned, active) ---
+  mkEmp(21, "Ceyhun",  "Abbasov",    "Rəhim",    "ceyhun@kpi.az"),
+  mkEmp(22, "Nəzrin",  "Qurbanova",  "Fəxrəddin","nezrin@kpi.az"),
+  mkEmp(23, "Tural",   "Abbasov",    "Vüsal",    "tural@kpi.az"),
+  mkEmp(24, "Günay",   "Salmanova",  "Xəyal",    "gunay@kpi.az"),
+  mkEmp(25, "Ramil",   "Səfərov",    "Tofiq",    "ramil@kpi.az"),
+  mkEmp(26, "Ülviyyə", "Nəbiyeva",   "Zaur",     "ulviyye@kpi.az"),
+  mkEmp(27, "Elvin",   "Quliyev",    "Elgün",    "elvin@kpi.az"),
+  mkEmp(28, "Günel",   "İsmayılova", "Rövşən",   "gunel2@kpi.az"),
+  mkEmp(29, "Vüsal",   "Mirzəyev",   "Kamal",    "vusal@kpi.az"),
+  mkEmp(30, "Nərgiz",  "Əhmədova",   "Aslan",    "nergiz@kpi.az"),
+  mkEmp(31, "Toğrul",  "Kərimov",    "Elşad",    "togrul@kpi.az"),
+  mkEmp(32, "Nurlan",  "Bağırov",    "Yusif",    "nurlan@kpi.az"),
+  mkEmp(33, "Aynurə",  "Rəsulova",   "Tapdıq",   "aynure@kpi.az"),
+  mkEmp(34, "Rufət",   "Zeynalov",   "Ceyhun",   "rufet@kpi.az"),
+  mkEmp(35, "Xəyalə",  "Süleymanova","Mahir",    "xeyale@kpi.az"),
+  mkEmp(36, "Anar",    "Mehdiyev",   "İsmayıl",  "anar@kpi.az"),
+  mkEmp(37, "Sara",    "Babayeva",   "Rasim",    "sara@kpi.az"),
+  mkEmp(38, "İlkin",   "Nəsirov",    "Vahid",    "ilkin@kpi.az"),
+  mkEmp(39, "Konul",   "Əsgərova",   "Firdovsi", "konul@kpi.az"),
+  mkEmp(40, "Zaur",    "Talıbov",    "Nazim",    "zaur@kpi.az"),
 ];
+
+// Slot / position id counters
+let __sid = 4000;
+const nextSlotId = () => ++__sid;
+let __pid = 5000;
+const nextPosId = () => ++__pid;
+
+const mkSlot = (employeeId: number | null, salary: number | null): OrgSlot => ({
+  id: nextSlotId(), employeeId, salary, fraction: 1,
+});
+
+/** Build a şöbə with 1 leader (müdir) + N mütəxəssis (1 assigned, rest vacant). */
+const mkSobe = (
+  id: number,
+  name: string,
+  mudirEmpId: number,
+  mudirSalary: number,
+  mutexPositionName: string,
+  mutexAssignedEmpId: number,
+  mutexAssignedSalary: number,
+  mutexVacantCount: number,
+): OrgStructure => ({
+  id, type: "Şöbə", name, children: [],
+  positions: [
+    { id: nextPosId(), name: "Şöbə Müdiri", slots: [mkSlot(mudirEmpId, mudirSalary)] },
+    {
+      id: nextPosId(), name: mutexPositionName,
+      slots: [
+        mkSlot(mutexAssignedEmpId, mutexAssignedSalary),
+        ...Array.from({ length: mutexVacantCount }, () => mkSlot(null, null)),
+      ],
+    },
+  ],
+});
 
 const seedStructures: OrgStructure[] = [
   {
     id: 1001, type: "Departament", name: "Satış Departamenti",
-    positions: [],
+    positions: [
+      { id: nextPosId(), name: "Satış Direktoru", slots: [mkSlot(3, 4800)] },
+    ],
     children: [
-      {
-        id: 1010, type: "Şöbə", name: "İdarəetmə Şöbəsi",
-        positions: [
-          {
-            id: 2001, name: "Departament Direktoru",
-            slots: [{ id: 3001, employeeId: 6, salary: 4500, fraction: 1 }],
-          },
-
-        ],
-        children: [],
-      },
-      {
-        id: 1002, type: "Şöbə", name: "Bakı Satış Şöbəsi",
-        positions: [
-          {
-            id: 2002, name: "Şöbə Müdiri",
-            slots: [{ id: 3002, employeeId: 3, salary: 2800, fraction: 1 }],
-          },
-
-          {
-            id: 2003, name: "Satış Mütəxəssisi",
-            slots: [
-              { id: 3003, employeeId: 4, salary: 1800, fraction: 1 },
-              { id: 3004, employeeId: 5, salary: 1800, fraction: 1 },
-              { id: 3005, employeeId: 7, salary: 1700, fraction: 1 },
-            ],
-          },
-        ],
-        children: [],
-      },
+      mkSobe(1010, "Bakı Satış Şöbəsi",      5, 3000, "Satış Mütəxəssisi", 13, 1800, 3),
+      mkSobe(1011, "Regional Satış Şöbəsi",  6, 3000, "Satış Mütəxəssisi", 14, 1800, 3),
     ],
   },
   {
-    id: 1003, type: "Departament", name: "İnsan Resursları",
-    positions: [],
+    id: 1002, type: "Departament", name: "Marketinq Departamenti",
+    positions: [
+      { id: nextPosId(), name: "Marketinq Direktoru", slots: [mkSlot(4, 4600)] },
+    ],
     children: [
-      {
-        id: 1011, type: "Şöbə", name: "İdarəetmə Şöbəsi",
-        positions: [
-          {
-            id: 2004, name: "HR Direktoru",
-            slots: [{ id: 3006, employeeId: 1, salary: 4200, fraction: 1 }],
-          },
-
-        ],
-        children: [],
-      },
+      mkSobe(1012, "Rəqəmsal Marketinq Şöbəsi", 7, 2900, "Marketinq Mütəxəssisi", 15, 1900, 3),
+      mkSobe(1013, "Brend Şöbəsi",              8, 2900, "Brend Mütəxəssisi",      16, 1900, 3),
+    ],
+  },
+  {
+    id: 1003, type: "Departament", name: "İnsan Resursları Departamenti",
+    positions: [
+      { id: nextPosId(), name: "HR Direktoru", slots: [mkSlot(1, 4500)] },
+    ],
+    children: [
+      mkSobe(1014, "İşə Qəbul Şöbəsi",           9,  2800, "İşə Qəbul Mütəxəssisi", 17, 1700, 2),
+      mkSobe(1015, "Təlim və İnkişaf Şöbəsi",    10, 2800, "L&D Mütəxəssisi",       18, 1700, 2),
     ],
   },
   {
     id: 1004, type: "Departament", name: "Maliyyə Departamenti",
-    positions: [],
+    positions: [
+      { id: nextPosId(), name: "Maliyyə Direktoru (CFO)", slots: [mkSlot(2, 5000)] },
+    ],
     children: [
-      {
-        id: 1012, type: "Şöbə", name: "İdarəetmə Şöbəsi",
-        positions: [
-          {
-            id: 2005, name: "CFO",
-            slots: [{ id: 3007, employeeId: 2, salary: 5000, fraction: 1 }],
-          },
-
-        ],
-        children: [],
-      },
-      {
-        id: 1013, type: "Şöbə", name: "Mühasibatlıq Şöbəsi",
-        positions: [
-          {
-            id: 2006, name: "Maliyyə Mütəxəssisi",
-            slots: [{ id: 3008, employeeId: 8, salary: 1900, fraction: 1 }],
-          },
-        ],
-        children: [],
-      },
+      mkSobe(1016, "Mühasibatlıq Şöbəsi",             11, 2900, "Mühasib",           19, 1900, 2),
+      mkSobe(1017, "Büdcə və Planlaşdırma Şöbəsi",    12, 2900, "Maliyyə Analitiki", 20, 1900, 2),
     ],
   },
 ];
