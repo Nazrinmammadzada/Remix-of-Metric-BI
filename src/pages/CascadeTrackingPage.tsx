@@ -1,10 +1,10 @@
-// Kaskad İzləmə — Cascading aktiv hədəflərin real-vaxt ağac görünüşü.
+// Kaskad İzləmə — YALNIZ İZLƏMƏ. Bölgü/redaktə burada aparılmır — rəhbər öz
+// "Məsul olduğum kartlar" ekranından bölgünü edir.
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { Activity, ChevronLeft, ChevronRight, ChevronDown, Crown, Search, GitBranch, CheckCircle2, Clock, AlertTriangle, Circle } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, ChevronDown, Crown, Search, CheckCircle2, Clock, AlertTriangle, Circle } from "lucide-react";
 import { useCascadeTree, getChildren, distributedOf, remainingOf, statusOf, type CascadeTreeNode, type CascadeStatus } from "@/lib/cascadeTreeStore";
-import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 
