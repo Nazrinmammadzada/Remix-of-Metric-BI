@@ -3,7 +3,6 @@ import { Info, MoreHorizontal, Send } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from "recharts";
 
 export const KPI_EXTRA_TABS = [
-  ["performance", "Performans Analitikası"],
   ["comments", "Şərhlər"],
 ] as const;
 
@@ -17,17 +16,7 @@ interface Props {
   tab: KpiExtraTabKey;
 }
 
-const trend = [
-  { m: "Okt 2025", f: 2.4, h: 5 },
-  { m: "Noy 2025", f: 2.9, h: 5 },
-  { m: "Dek 2025", f: 3.3, h: 5 },
-  { m: "Yan 2026", f: 3.6, h: 5 },
-  { m: "Fev 2026", f: 3.9, h: 5 },
-  { m: "Mar 2026", f: 4.2, h: 5 },
-];
-
 export default function KpiExtraTabContent({ kpi, tab }: Props) {
-  if (tab === "performance") return <Performance kpi={kpi} />;
   if (tab === "comments") return <Comments />;
   return null;
 }
