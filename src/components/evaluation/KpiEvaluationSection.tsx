@@ -77,7 +77,7 @@ export const KpiEvaluationSection = ({ assigneeId }: Props) => {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Kartdakı sub-KPI sayı</p>
+          <p className="text-xs text-muted-foreground">Kartdakı hədəf sayı</p>
           <p className="text-2xl font-bold text-foreground mt-1">{items.length}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
@@ -99,7 +99,7 @@ export const KpiEvaluationSection = ({ assigneeId }: Props) => {
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-muted-foreground">
               <tr>
-                <th className="text-left px-4 py-3 font-medium">Sub-KPI</th>
+                <th className="text-left px-4 py-3 font-medium">Hədəf</th>
                 <th className="text-right px-4 py-3 font-medium">Hədəf</th>
                 <th className="text-right px-4 py-3 font-medium">Faktiki</th>
                 <th className="text-right px-4 py-3 font-medium">İcra %</th>
@@ -164,7 +164,7 @@ export const KpiEvaluationSection = ({ assigneeId }: Props) => {
               {items.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
-                    Sizin KPI kartınızda sub-KPI yoxdur.
+                    Sizin KPI kartınızda hədəf yoxdur.
                   </td>
                 </tr>
               )}
@@ -296,7 +296,7 @@ const KpiEvalDialog = ({ item, onClose }: { item: SubKpi; onClose: () => void })
               ({item.weight}% ÷ 100) × {score} bal = <span className="text-blue-700 font-semibold">{((item.weight / 100) * score).toFixed(2)}</span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Bu sub-KPI-nın yekun kartdakı çəkili balına töhfəsi yuxarıdakı düsturla hesablanır. Bütün sub-KPI-ların çəkili balları toplandıqda kartın ümumi balı alınır.
+              Bu hədəf-nın yekun kartdakı çəkili balına töhfəsi yuxarıdakı düsturla hesablanır. Bütün hədəf-ların çəkili balları toplandıqda kartın ümumi balı alınır.
             </p>
           </div>
 

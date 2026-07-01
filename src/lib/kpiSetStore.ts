@@ -1,6 +1,6 @@
 // KPI Set modulu — KPI kartında rəhbərə təyin olunmuş (delegated) və ya HR-in özünün təyin etdiyi
-// sub-KPI-lar üçün QİYMƏT LİMİTLƏRİNİN müəyyən edilməsi.
-// Hər sətir bir sub-KPI-ya uyğundur və 5 səviyyəli aralıq saxlayır (l1..l5).
+// hədəf-lar üçün QİYMƏT LİMİTLƏRİNİN müəyyən edilməsi.
+// Hər sətir bir hədəf-ya uyğundur və 5 səviyyəli aralıq saxlayır (l1..l5).
 // Limitlər təyin olunduqda status "completed" olur, əks halda "pending".
 
 import { useEffect, useState } from "react";
@@ -34,13 +34,13 @@ export interface KpiSetEntry {
   unit: string;
   assigneeId?: number;
   assigneeName: string;
-  /** Sub-KPI-nı kim təyin edir: HR (özü) və ya rəhbər */
+  /** Hədəf-nı kim təyin edir: HR (özü) və ya rəhbər */
   ownerType: "manager" | "hr";
   status: "pending" | "completed";
   limits?: LimitSet;
   /** Dinamik aralıq (qeyri-default bal şablonu istifadə olunduqda) */
   dynamicLimits?: DynamicTier[];
-  /** Sub-KPI-nın çəkisi (%). Min/Max məhdudiyyəti varsa, weight bu aralıqda olmalıdır. */
+  /** Hədəf-nın çəkisi (%). Min/Max məhdudiyyəti varsa, weight bu aralıqda olmalıdır. */
   weight?: number;
   weightMin?: number;
   weightMax?: number;
@@ -54,7 +54,7 @@ const KEY = "kpi_set_entries_v3";
 const EVT = "kpi-set-updated";
 
 const SEED: KpiSetEntry[] = [
-  // ---- Gözləyənlər (rəhbər sub-KPI adını, hədəfini, vahidi və limiti təyin edəcək) ----
+  // ---- Gözləyənlər (rəhbər hədəf adını, hədəfini, vahidi və limiti təyin edəcək) ----
   {
     id: "ks-1",
     cardId: 1,
@@ -174,7 +174,7 @@ export const setEntryLimits = (id: string, limits: LimitSet) => {
   persist(load().map(e => (e.id === id ? { ...e, limits, status: "completed", updatedAt: Date.now() } : e)));
 };
 
-/** Rəhbərin pending entry üçün sub-KPI ad/hədəf/vahid/limit/cascadable/çəki/dinamik aralıq təyin etməsi. */
+/** Rəhbərin pending entry üçün hədəf ad/hədəf/vahid/limit/cascadable/çəki/dinamik aralıq təyin etməsi. */
 export const setEntryDetails = (
   id: string,
   patch: {
@@ -192,7 +192,7 @@ export const setEntryDetails = (
 };
 
 
-/** Bir KPI kartına aid bütün KPI Set entry-ləri (tamamlanmışlar — sub-KPI kimi göstərmək üçün). */
+/** Bir KPI kartına aid bütün KPI Set entry-ləri (tamamlanmışlar — hədəf kimi göstərmək üçün). */
 export const getEntriesForCard = (cardId: number): KpiSetEntry[] =>
   load().filter(e => e.cardId === cardId);
 

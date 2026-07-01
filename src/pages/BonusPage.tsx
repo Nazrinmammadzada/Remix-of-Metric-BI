@@ -134,7 +134,7 @@ const BonusPage = () => {
     if (missingIds.length > 0) {
       const missing = employees.filter(e => missingIds.includes(e.id)).map(emp => ({
         emp,
-        missing: emp.subKpis.slice(0, 1), // first sub-KPI is "missing"
+        missing: emp.subKpis.slice(0, 1), // first hədəf is "missing"
       }));
       setMissingEmployees(missing);
       setUsedLabel(label);
@@ -336,7 +336,7 @@ const BonusPage = () => {
               <TableRow>
                 <TableHead>Əməkdaş</TableHead>
                 <TableHead>Departament</TableHead>
-                <TableHead>Çatışmayan Sub-KPI</TableHead>
+                <TableHead>Çatışmayan Hədəf</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -383,7 +383,7 @@ const BonusPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sub-KPI</TableHead>
+                    <TableHead>Hədəf</TableHead>
                     <TableHead>Qiymətləndirən</TableHead>
                     <TableHead className="text-right">Çəki</TableHead>
                     <TableHead className="text-right">Qiymət (1-5)</TableHead>

@@ -29,7 +29,7 @@ const initialKpiTypes = [
   { id: 3, name: "Vaxt KPI-ları", category: "Əməliyyat KPI ları", unit: "Gün/Saat, Nisbət", active: false, usedIn: "" },
 ];
 
-// Sub-KPI data (matching KPI creation)
+// Hədəf data (matching KPI creation)
 const SUB_KPI_UNIT_DEFAULTS = ["Valyuta (AZN)", "Faiz (%)", "Ədəd", "Zaman (Gün)", "Nisbət", "Say (Hə/Yox)"];
 
 const initialSubKpis = [
@@ -154,7 +154,7 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
   ]},
   { key: "kpi_set", label: "KPI Set", actions: [
     { key: "view", label: "Baxış" },
-    { key: "assign_sub_kpi", label: "Sub-KPI təyin etmək (ad, hədəf, vahid)" },
+    { key: "assign_sub_kpi", label: "Hədəf təyin etmək (ad, hədəf, vahid)" },
     { key: "set_limits", label: "Qiymət limitlərini təyin etmək" },
     { key: "mark_cascadable", label: "Paylaşıla bilən kimi işarələmək" },
     { key: "edit", label: "Redaktə etmək" },
@@ -390,7 +390,7 @@ const SettingsPage = () => {
 
   const handleDeleteSubKpi = (sk: typeof initialSubKpis[0]) => {
     if (sk.usedIn) {
-      toast.error(`Bu Sub-KPI hal-hazırda "${sk.usedIn}" KPI-sinin tərkibində işlədilir`);
+      toast.error(`Bu Hədəf hal-hazırda "${sk.usedIn}" KPI-sinin tərkibində işlədilir`);
       return;
     }
     setDeleteConfirm({ type: "subKpi", id: sk.id, name: sk.name });
@@ -690,12 +690,12 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create/Edit Sub-KPI Dialog */}
+      {/* Create/Edit Hədəf Dialog */}
       <Dialog open={showCreateSubKpi} onOpenChange={setShowCreateSubKpi}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingSubKpi ? "Sub-KPI Redaktə Et" : "Yeni Sub-KPI Yarat"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingSubKpi ? "Hədəf Redaktə Et" : "Yeni Hədəf Yarat"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><label className="text-sm font-medium text-foreground">Sub-KPI Adı</label><input value={newSubKpi.name} onChange={e => setNewSubKpi(p => ({ ...p, name: e.target.value }))} placeholder="Məsələn: Online Satış" className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
+            <div><label className="text-sm font-medium text-foreground">Hədəf Adı</label><input value={newSubKpi.name} onChange={e => setNewSubKpi(p => ({ ...p, name: e.target.value }))} placeholder="Məsələn: Online Satış" className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
             <div><label className="text-sm font-medium text-foreground">Aid Olduğu KPI</label>
               <div className="relative mt-1">
                 <div onClick={() => setShowSubKpiKpiDropdown(!showSubKpiKpiDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">

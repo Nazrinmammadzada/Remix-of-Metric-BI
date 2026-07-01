@@ -1,5 +1,5 @@
-// İstifadəçinin KPI kartı (bir ədəd) daxilində ona təyin olunmuş sub-KPI-lar.
-// Hər sub-KPI: ad, hədəf, faktiki, ölçü vahidi, çəki, status (qiymətləndirilib / gözləyir),
+// İstifadəçinin KPI kartı (bir ədəd) daxilində ona təyin olunmuş hədəf-lar.
+// Hər hədəf: ad, hədəf, faktiki, ölçü vahidi, çəki, status (qiymətləndirilib / gözləyir),
 // və əlavə qiymətləndirmə sahələri (çətinliklər, dəstəkləyici sübut, növbəti dövr planı).
 
 import { useEffect, useState } from "react";

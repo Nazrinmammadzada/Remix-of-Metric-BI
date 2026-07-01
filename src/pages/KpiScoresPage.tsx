@@ -41,7 +41,7 @@ const scoreFor = (empId: number, cardIdx: number, year: number, mIdx: number) =>
   return Math.round(base * 10) / 10;
 };
 
-// Hər sub-KPI üçün 1–3 qiymətləndirici (çəki + bal) — bəzilərində 2+ qiymətləndirici olur.
+// Hər hədəf üçün 1–3 qiymətləndirici (çəki + bal) — bəzilərində 2+ qiymətləndirici olur.
 const evaluatorsFor = (empId: number, cardIdx: number): { name: string; role: string; weight: number; score: number }[] => {
   const count = ((empId + cardIdx) % 3) + 1; // 1, 2 və ya 3
   const picks: { name: string; role: string; weight: number; score: number }[] = [];
