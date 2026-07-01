@@ -1500,3 +1500,131 @@ function SummarySection({ title, children }: { title: string; children: React.Re
     </div>
   );
 }
+
+// =========================================================
+// Qiymətləndirici seçim dialoqu — 4 tab (Şəxs / Komanda / Özü / İnteqrasiya)
+// =========================================================
+const INTEGRATION_SOURCES = ["CRM", "ERP", "SIEM", "CHR", "1C", "Bitrix24", "Jira"];
+
+function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
+  target: WizardHedef;
+  employeeOptions: { value: string; label: string }[];
+  onClose: () => void;
+  onSave: (evs: WizardEvaluatorRef[]) => void;
+}) {
+  const initialTab: "person" | "team" | "self" | "integration" = (() => {
+    const first = target.evaluators[0]?.name || "";
+    if (first.startsWith("[Komanda]")) return "team";
+    if (first === "[Özü]") return "self";
+    if (first.startsWith("[İnteqrasiya]")) return "integration";
+    return "person";
+  })();
+  const [tab, setTab] = useState<"person" | "team" | "self" | "integration">(initialTab);
+  const [personEvs, setPersonEvs] = useState<WizardEvaluatorRef[]>(
+    initialTab === "person" ? target.evaluators : []
+  );
+  const teams = useMemo(() => getTeams(), []);
+  const [teamName, setTeamName] = useState<string>(
+    initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "") || "") : ""
+  );
+  const [integration, setIntegration] = useState<string>(
+    initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
+  );
+
+  const save = () => {
+    if (tab === "person") {
+      if (personEvs.length === 0) { toast.error("Ən azı bir qiymətləndirici seçin"); return; }
+      if (personEvs.length > 1) {
+        const sum = personEvs.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+        if (sum !== 100) { toast.error(`Faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+      }
+      onSave(personEvs);
+    } else if (tab === "team") {
+      if (!teamName) { toast.error("Komanda seçin"); return; }
+      onSave([{ id: crypto.randomUUID(), name: `[Komanda] ${teamName}`, weight: 100 }]);
+    } else if (tab === "self") {
+      onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
+    } else {
+      if (!integration) { toast.error("İnteqrasiya mənbəyi seçin"); return; }
+      onSave([{ id: crypto.randomUUID(), name: `[İnteqrasiya] ${integration}`, weight: 100 }]);
+    }
+  };
+
+  const tabs: { key: typeof tab; label: string }[] = [
+    { key: "person", label: "Şəxs" },
+    { key: "team", label: "Komanda" },
+    { key: "self", label: "Özü" },
+    { key: "integration", label: "İnteqrasiya" },
+  ];
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-indigo-600" />
+            Qiymətləndirici seçimi — "{target.name || "Hədəf"}"
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex gap-1 border-b border-border">
+          {tabs.map(t => (
+            <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              className={`px-3 py-1.5 text-xs font-medium border-b-2 transition ${
+                tab === t.key ? "border-indigo-500 text-indigo-600" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="min-h-[140px] py-2">
+          {tab === "person" && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                Qiymətləndirici(lər){personEvs.length > 1 && <span className="text-amber-600"> — faiz cəmi 100%</span>}
+              </div>
+              <UnifiedEvaluatorsEditor
+                employeeOptions={employeeOptions}
+                evaluators={personEvs}
+                onChange={setPersonEvs}
+              />
+            </div>
+          )}
+          {tab === "team" && (
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Komanda</label>
+              <select value={teamName} onChange={e => setTeamName(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                <option value="">— Komanda seçin —</option>
+                {teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+              </select>
+              <p className="text-[11px] text-muted-foreground">Seçilmiş komandanın bütün üzvləri qiymətləndirici sayılacaq.</p>
+            </div>
+          )}
+          {tab === "self" && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/20 p-3 text-sm text-foreground">
+              Bu hədəfi <strong>əməkdaşın özü</strong> qiymətləndirəcək (self-evaluation).
+            </div>
+          )}
+          {tab === "integration" && (
+            <div className="space-y-1.5">
+              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">İnteqrasiya mənbəyi</label>
+              <select value={integration} onChange={e => setIntegration(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                <option value="">— Sistem seçin —</option>
+                {INTEGRATION_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <p className="text-[11px] text-muted-foreground">Bal xarici sistemdən avtomatik oxunacaq.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 text-xs rounded border border-border bg-card">Ləğv et</button>
+          <button type="button" onClick={save} className="px-3 py-1.5 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700">Yadda saxla</button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
