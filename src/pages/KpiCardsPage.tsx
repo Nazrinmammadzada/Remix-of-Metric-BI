@@ -1018,7 +1018,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   >
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
-                                  {st.status === "natamam" && (
+                                  {st.status === "imtina" && (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!confirm(`"${card.name}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
+                                        try {
+                                          await upsertStatus({ card_id: card.id, status: "legv_olundu" as any, use_matrix: false, submitted_for_approval: false, assignees: [] });
+                                          const mod = await import("@/lib/kpiCardStatusStore");
+                                          const next = await mod.fetchAllStatuses();
+                                          setStatusMap(next);
+                                        } catch {}
+                                        toast.success("Kart ləğv olundu");
+                                        // Notify original assigners about cancellation
+                                        try {
+                                          const nmod = await import("@/lib/notificationsStore");
+                                          const draft = cardDrafts[card.id];
+                                          const assigners = new Set<string>();
+                                          draft?.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
+                                          assigners.forEach(a => nmod.pushNotification?.({
+                                            toEmployeeName: a, kind: "info",
+                                            message: `"${card.name}" KPI kartı HR tərəfindən tamamən ləğv olundu.`
+                                          } as any));
+                                        } catch {}
+                                      }}
+                                      title="Ləğv et"
+                                      className="p-1.5 rounded border border-slate-500/40 hover:bg-slate-500/10 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                     <button
                                       onClick={async (e) => {
                                         e.stopPropagation();
