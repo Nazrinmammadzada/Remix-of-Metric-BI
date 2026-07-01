@@ -631,7 +631,7 @@ const FRACTION_OPTIONS: { value: 1 | 0.75 | 0.5 | 0.25; label: string }[] = [
   { value: 0.25, label: "0.25 ştat" },
 ];
 
-const PositionCard = ({ position }: { position: OrgPosition }) => {
+const PositionCard = ({ position, structureId, structureName }: { position: OrgPosition; structureId: number; structureName: string }) => {
   const [showAddSlot, setShowAddSlot] = useState(false);
   const [slotCount, setSlotCount] = useState(1);
   const [slotFraction, setSlotFraction] = useState<1 | 0.75 | 0.5 | 0.25>(1);
@@ -640,6 +640,16 @@ const PositionCard = ({ position }: { position: OrgPosition }) => {
     if (!confirm(`"${position.name}" vəzifəsini silmək istəyirsiniz?`)) return;
     removePosition(position.id);
     toast.success("Vəzifə silindi");
+  };
+
+  const handleToggleStar = () => {
+    const next = !position.isStarPosition;
+    setStarPosition(position.id, next);
+    if (next) {
+      toast.success(`⭐ "${position.name}" — "${structureName}" strukturunun Ulduzlu Vəzifəsi kimi təyin edildi`);
+    } else {
+      toast.info(`"${position.name}" artıq Ulduzlu Vəzifə deyil`);
+    }
   };
 
   const handleAddSlots = () => {
@@ -651,11 +661,33 @@ const PositionCard = ({ position }: { position: OrgPosition }) => {
     setSlotFraction(1);
   };
 
+  const starHolder = position.isStarPosition ? getStarHolderOfUnit(structureId) : null;
+  const isStar = !!position.isStarPosition;
+
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-b border-border">
+    <div className={`rounded-xl border ${isStar ? "border-amber-400/60 ring-1 ring-amber-400/40" : "border-border"} bg-card overflow-hidden`}>
+      <div className={`flex items-center gap-3 px-4 py-3 border-b border-border ${isStar ? "bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-transparent" : "bg-muted/30"}`}>
+        <button
+          onClick={handleToggleStar}
+          title={isStar ? "Ulduzlu Vəzifəni ləğv et" : "Bu vəzifəni Ulduzlu Vəzifə et (kaskadlama rəhbəri)"}
+          className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all shrink-0 ${
+            isStar
+              ? "bg-amber-400 text-white shadow-sm hover:bg-amber-500"
+              : "bg-secondary text-muted-foreground hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10"
+          }`}
+        >
+          <Star className={`w-4 h-4 ${isStar ? "fill-white" : ""}`} />
+        </button>
         <Briefcase className="w-4 h-4 text-amber-600" />
-        <span className="font-medium text-foreground flex-1">{position.name}</span>
+        <span className="font-medium text-foreground flex-1">
+          {position.name}
+          {isStar && (
+            <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 align-middle">
+              ⭐ Ulduzlu Vəzifə
+              {starHolder ? <span className="opacity-70">· {starHolder.firstName} {starHolder.lastName}</span> : <span className="text-red-600 dark:text-red-400">· Vakant</span>}
+            </span>
+          )}
+        </span>
         <span className="text-xs text-muted-foreground">{position.slots.length} ştat</span>
         <button
           onClick={() => setShowAddSlot(true)}
@@ -667,6 +699,7 @@ const PositionCard = ({ position }: { position: OrgPosition }) => {
           <Trash2 className="w-3.5 h-3.5 text-destructive" />
         </button>
       </div>
+
       <div className="divide-y divide-border">
         {position.slots.length === 0 ? (
           <p className="px-4 py-4 text-xs text-muted-foreground text-center">Heç bir ştat yoxdur</p>
