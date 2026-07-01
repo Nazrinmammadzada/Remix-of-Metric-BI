@@ -505,6 +505,23 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       // non-fatal — cross-panel sync is best-effort
       console.warn("shared kpi sync failed", err);
     }
+
+    // === Notify təyinedicilər when HR edits a previously-rejected card ===
+    if (wasRejected) {
+      try {
+        const nmod = await import("@/lib/notificationsStore");
+        const assigners = new Set<string>();
+        d.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
+        const msg = action === "submit"
+          ? `"${d.name}" KPI kartı HR tərəfindən düzəliş edildi və yenidən təsdiqə göndərildi.`
+          : action === "create_active"
+          ? `"${d.name}" KPI kartı HR tərəfindən düzəliş edildi və aktivləşdirildi.`
+          : `"${d.name}" KPI kartı HR tərəfindən düzəliş edildi (qaralama).`;
+        assigners.forEach(a => nmod.pushNotification?.({
+          toEmployeeName: a, kind: "info", message: msg,
+        } as any));
+      } catch {}
+    }
   };
 
 
