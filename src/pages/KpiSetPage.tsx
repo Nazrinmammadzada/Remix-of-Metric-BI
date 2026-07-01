@@ -215,6 +215,20 @@ const KpiSetPage = () => {
           cascadeAssignment={getAssignmentByEntry(viewing.id)}
         />
       )}
+      {cascading && (
+        <CascadeDistributeDialog
+          open={!!cascading}
+          onOpenChange={(o) => !o && setCascading(null)}
+          bootstrap={{
+            cardName: cascading.cardName,
+            goalName: cascading.subKpiName || cascading.cardName,
+            unit: cascading.unit,
+            assigneeName: cascading.assigneeName,
+            assigneeId: cascading.assigneeId,
+            limit: parseFloat(String(cascading.target).replace(/[^\d.\-]/g, "")) || 0,
+          }}
+        />
+      )}
 
     </div>
   );
