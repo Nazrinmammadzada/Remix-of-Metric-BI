@@ -369,7 +369,7 @@ const TeamsPage = () => {
                   {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground mb-2">⭐ ulduz iconuna klikləməklə həmin üzvü komanda lideri təyin edin.</p>
+              <p className="text-[11px] text-muted-foreground mb-2">Komanda üzvlərini seçin.</p>
               <div className="relative mb-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <input value={memberListSearch} onChange={e => setMemberListSearch(e.target.value)} placeholder="Üzv axtar..." className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
@@ -377,7 +377,6 @@ const TeamsPage = () => {
               <div className="space-y-1 max-h-56 overflow-y-auto border border-border rounded-lg p-1.5">
                 {filteredCandidates.map((p) => {
                   const checked = selectedMembers.includes(p.name);
-                  const isLeader = leaderName === p.name;
                   return (
                     <div key={p.name} className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${checked ? "border-primary bg-primary/5" : "border-transparent hover:bg-secondary"}`}>
                       <div onClick={() => toggleMember(p.name)} className="flex items-center gap-3 flex-1 cursor-pointer">
@@ -387,16 +386,6 @@ const TeamsPage = () => {
                           <p className="text-xs text-muted-foreground truncate">{p.role}</p>
                         </div>
                       </div>
-                      {checked && (
-                        <button
-                          type="button"
-                          onClick={() => setLeaderName(isLeader ? "" : p.name)}
-                          title={isLeader ? "Liderlikdən çıxar" : "Komanda lideri təyin et"}
-                          className="p-1.5 rounded-md hover:bg-warning/10 transition-colors"
-                        >
-                          <Star className={`w-4 h-4 ${isLeader ? "fill-warning text-warning" : "text-muted-foreground"}`} />
-                        </button>
-                      )}
                       <div onClick={() => toggleMember(p.name)} className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer ${checked ? "bg-primary border-primary" : "border-border"}`}>
                         {checked && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
