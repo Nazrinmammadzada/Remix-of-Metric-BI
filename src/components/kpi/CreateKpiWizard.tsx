@@ -1250,6 +1250,15 @@ function Step2Targets({
         );
       })}
 
+      {draft.targets.length > 0 && (
+        <div className="flex justify-end pt-1">
+          <button type="button" onClick={addHedef} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-dashed border-primary/40 text-primary hover:bg-primary/5">
+            <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
+          </button>
+        </div>
+      )}
+
+
       {/* Qiymətlər dialog */}
       {scoreDlgTarget && (
         <ScoresDialog
