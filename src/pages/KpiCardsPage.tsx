@@ -226,7 +226,7 @@ const initialKpiCards: KpiCard[] = [
     team: [{ name: "Tural İsmayılov", role: "Proses Analitik", avatar: "T" }],
     history: [{ date: "Dekabr 2025", value: "3 Layihə", change: 0 }],
     isPersonal: true,
-    frozen: true,
+    frozen: false,
   },
 ];
 
