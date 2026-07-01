@@ -1236,19 +1236,14 @@ function Step2Targets({
               )}
             </div>
 
-            {/* Qiymətləndirici inline picker */}
+            {/* Qiymətləndirici — 4-tab Dialog (Şəxs / Komanda / Özü / İnteqrasiya) */}
             {evalPickerFor === t.id && !unifiedEvaluatorsApplied.length && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 dark:bg-indigo-950/20 p-2.5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) {t.evaluators.length > 1 && <span className="text-amber-600">— faiz cəmi 100%</span>}</span>
-                  <button type="button" onClick={() => setEvalPickerFor(null)} className="text-[11px] text-primary hover:underline">Bağla</button>
-                </div>
-                <UnifiedEvaluatorsEditor
-                  employeeOptions={employeeOptions}
-                  evaluators={t.evaluators}
-                  onChange={(evs) => updHedef(t.id, { evaluators: evs, evaluator: evs[0]?.name || "" })}
-                />
-              </div>
+              <EvaluatorPickerDialog
+                target={t}
+                employeeOptions={employeeOptions}
+                onClose={() => setEvalPickerFor(null)}
+                onSave={(evs) => { updHedef(t.id, { evaluators: evs, evaluator: evs[0]?.name || "" }); setEvalPickerFor(null); }}
+              />
             )}
 
             {/* Təyin edici inline picker */}
