@@ -228,6 +228,74 @@ const initialKpiCards: KpiCard[] = [
     isPersonal: true,
     frozen: false,
   },
+  // İmtina — tam dolu, redaktə edildikdə wizard bütün məlumatlarla açılır
+  {
+    id: 9, name: "Müştəri Şikayətlərinin Azaldılması", icon: AlertTriangle, zone: "red", target: "50", current: "72", unit: "şikayət", progress: 45, minTarget: 70,
+    responsible: "Nigar Hüseynova", period: "2026 - Rüblük", type: "Say Hədəfi", formula: "Hədəf / Faktiki × 100", generalTarget: "50 şikayət",
+    department: "Müştəri Xidmətləri", group: "CRM Qrupu", subdivision: "CRM Şöbəsi",
+    startDate: "01.01.2026", endDate: "30.06.2026", frequency: "Rüblük", weight: 20, approvalStatus: "pending",
+    description: "Müştəri şikayətlərinin ümumi sayının azaldılması üzrə KPI. Departament Direktoru tərəfindən imtina olunub.",
+    team: [
+      { name: "Nigar Hüseynova", role: "CRM Meneceri", avatar: "N" },
+      { name: "Leyla Həsənova", role: "Müştəri Xidmətləri", avatar: "L" },
+    ],
+    history: [
+      { date: "Fevral 2026", value: "72 şikayət", change: -5 },
+      { date: "Yanvar 2026", value: "76 şikayət", change: -2 },
+    ],
+    subKpis: [
+      { id: 1, name: "Şikayət sayının azaldılması", target: "50", weight: 60, current: "72", progress: 45, unit: "şikayət" },
+      { id: 2, name: "Cavab müddəti (saat)", target: "24", weight: 40, current: "36", progress: 60, unit: "saat" },
+    ],
+  },
+  {
+    id: 10, name: "Marketinq Kampaniyalarının ROI-si", icon: TrendingUp, zone: "red", target: "150%", current: "95%", unit: "%", progress: 63, minTarget: 80,
+    responsible: "Emin Məmmədov", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Gəlir / Xərc × 100", generalTarget: "150%",
+    department: "Marketinq", group: "Rəqəmsal Marketinq Qrupu", subdivision: "Marketinq Şöbəsi",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 15, approvalStatus: "pending",
+    description: "Marketinq kampaniyalarının qaytarılan investisiya nisbəti. HR Direktoru tərəfindən imtina olunub.",
+    team: [
+      { name: "Emin Məmmədov", role: "Marketinq Meneceri", avatar: "E" },
+      { name: "Günel Əlizadə", role: "Rəqəmsal Marketinq", avatar: "G" },
+      { name: "Orxan Məmmədov", role: "Kontent Menecer", avatar: "O" },
+    ],
+    history: [
+      { date: "Mart 2026", value: "95%", change: 5 },
+      { date: "Fevral 2026", value: "90%", change: -3 },
+    ],
+    subKpis: [
+      { id: 1, name: "Rəqəmsal reklam ROI", target: "180%", weight: 50, current: "110%", progress: 61, unit: "%" },
+      { id: 2, name: "SMM kampaniyaları ROI", target: "120%", weight: 30, current: "85%", progress: 71, unit: "%" },
+      { id: 3, name: "Email marketinq ROI", target: "140%", weight: 20, current: "90%", progress: 64, unit: "%" },
+    ],
+  },
+  // Natamam (qaralama) — dolu məlumatla, redaktə edildikdə davam etmək mümkündür
+  {
+    id: 11, name: "Yeni İşçi Adaptasiyası", icon: UserCheck, zone: "yellow", target: "90%", current: "0%", unit: "%", progress: 0, minTarget: 80,
+    responsible: "Leyla Həsənova", period: "2026 - Rüblük", type: "Faiz Hədəfi", formula: "Uğurla adaptasiya / Ümumi × 100", generalTarget: "90%",
+    department: "HR", group: "HR Qrupu", subdivision: "HR Şöbəsi",
+    startDate: "01.04.2026", endDate: "30.06.2026", frequency: "Rüblük", weight: 10, approvalStatus: "pending",
+    description: "Yeni işə qəbul olunan əməkdaşların ilk 3 aylıq adaptasiya göstəricisi (qaralama).",
+    team: [{ name: "Leyla Həsənova", role: "HR Menecer", avatar: "L" }],
+    history: [],
+    subKpis: [
+      { id: 1, name: "Onboarding tamamlanma", target: "100%", weight: 50, current: "0%", progress: 0, unit: "%" },
+      { id: 2, name: "3 ay ərzində qalma nisbəti", target: "90%", weight: 50, current: "0%", progress: 0, unit: "%" },
+    ],
+  },
+  {
+    id: 12, name: "İT İnfrastruktur Yenilənməsi", icon: Settings2, zone: "yellow", target: "10", current: "0", unit: "server", progress: 0, minTarget: 70,
+    responsible: "Kamran Quliyev", period: "2026 - İllik", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 server",
+    department: "İT", group: "İT Qrupu", subdivision: "İT Şöbəsi",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "İllik", weight: 12, approvalStatus: "pending",
+    description: "Serverlərin yenilənməsi layihəsi (qaralama).",
+    team: [{ name: "Kamran Quliyev", role: "İT Menecer", avatar: "K" }],
+    history: [],
+    subKpis: [
+      { id: 1, name: "Server konfiqurasiyası", target: "10", weight: 60, current: "0", progress: 0, unit: "server" },
+      { id: 2, name: "Miqrasiya testi", target: "10", weight: 40, current: "0", progress: 0, unit: "test" },
+    ],
+  },
 ];
 
 // Integration → exchangeable data fields (per system)
@@ -369,7 +437,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [filterGroup, setFilterGroup] = useState("Hamısı");
   const [filterTeamId, setFilterTeamId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("Hamısı");
-  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Toplu" | "Komanda" | "Struktur" | "Vəzifə">("Hamısı");
+  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Toplu">("Hamısı");
+  const [filterBulkKind, setFilterBulkKind] = useState<"Hamısı" | "Komanda" | "Struktur" | "Vəzifə" | "Şəxs">("Hamısı");
   // zone filter removed
   const [searchText, setSearchText] = useState("");
   const [hoveredMinTarget, setHoveredMinTarget] = useState<number | null>(null);
@@ -418,15 +487,46 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const saved = cardDrafts[cardId];
     if (saved) {
       openWizard(saved, cardId);
-    } else {
-      const card = kpiCards.find(c => c.id === cardId);
-      openWizard(card ? {
-        name: card.name,
-        frequency: card.frequency || "Aylıq",
-        startDate: card.startDate || "",
-        endDate: card.endDate || "",
-      } : undefined, cardId);
+      return;
     }
+    const card = kpiCards.find(c => c.id === cardId);
+    if (!card) { openWizard(undefined, cardId); return; }
+    // Build a rich fallback draft from card + its subKpis so imtina/natamam
+    // cards open fully populated for editing.
+    const targets = (card.subKpis || []).map((sk, i) => ({
+      id: `t-${cardId}-${sk.id ?? i}`,
+      name: sk.name,
+      type: "Məbləğ" as const,
+      weight: sk.weight || 0,
+      scoreLimit: 5,
+      targetValue: String(sk.target ?? ""),
+      createdBy: "self" as const,
+      evaluators: [{ id: `ev-${cardId}-${i}`, name: card.responsible, weight: 100 }],
+      evaluator: card.responsible,
+      assigner: card.responsible,
+      min: "", max: "", currency: "AZN" as const,
+      ranges: [{ id: `r-${cardId}-${i}`, min: "0", max: String(sk.target ?? "100"), score: "5", weight: "100" }],
+      competencyMatrix: "", freeInput: "",
+      booleanYes: 5, booleanNo: 2,
+      timeStart: "", timeEnd: "",
+      scoreDescriptions: [],
+      cascading: false, cascadeMatrix: "",
+    }));
+    openWizard({
+      name: card.name,
+      mode: "individual",
+      individualEmployees: [card.responsible],
+      bulkSelections: { teams: [], structures: [], positions: [], persons: [] },
+      frequency: card.frequency || "Aylıq",
+      startDate: card.startDate || "",
+      endDate: card.endDate || "",
+      scoringSystem: "1-5",
+      useMatrix: true,
+      approvalMatrixId: "matrix-standard",
+      targets: targets as any,
+      createdBy: "self",
+      createdByEmployee: card.responsible,
+    } as any, cardId);
   };
   const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
     const action = d.action || "draft";
@@ -542,6 +642,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     6: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: true }, { name: "Tural İsmayılov", ok: false }] },
     7: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", assignees: [{ name: "Leyla Məmmədova", ok: true }] },
     8: { status: "aktiv", assignees: [{ name: "Tural İsmayılov", ok: true }] },
+    9: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", rejection_reason: "Hədəf dəyəri çox aşağıdır — yenidən nəzərdən keçirilməlidir.", assignees: [{ name: "Nigar Hüseynova", ok: true }, { name: "Leyla Həsənova", ok: false }] } as any,
+    10: { status: "imtina", use_matrix: true, rejected_by: "HR Direktoru", rejection_reason: "Qiymətləndirici seçimi tələblərə uyğun deyil.", assignees: [{ name: "Emin Məmmədov", ok: true }, { name: "Günel Əlizadə", ok: false }] } as any,
+    11: { status: "natamam", use_matrix: false, assignees: [{ name: "Leyla Həsənova", ok: false }] },
+    12: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: false }] },
   };
   const getStatusFor = (cardId: number) => {
     const remote = statusMap[cardId];
@@ -695,7 +799,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
     const kind = getAssignKindFor(c.id);
-    const matchesKind = filterAssignKind === "Hamısı" || (filterAssignKind === "Toplu" ? kind !== "Fərdi" : kind === filterAssignKind);
+    let matchesKind = true;
+    if (filterAssignKind === "Fərdi") matchesKind = kind === "Fərdi";
+    else if (filterAssignKind === "Toplu") {
+      matchesKind = kind !== "Fərdi";
+      if (matchesKind && filterBulkKind !== "Hamısı") {
+        matchesKind = kind === filterBulkKind || (filterBulkKind === "Şəxs" && kind === "Fərdi");
+      }
+    }
     return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
@@ -920,18 +1031,39 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="KPI adı ilə axtar..." className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
               </div>
             </div>
-            <div className="min-w-[160px]">
+            <div className="min-w-[140px]">
               <label className="text-[11px] text-muted-foreground">Təyinat növü</label>
-              <select value={filterAssignKind} onChange={e => { const v = e.target.value as any; setFilterAssignKind(v); if (v !== "Komanda") setFilterTeamId(null); }} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+              <select
+                value={filterAssignKind}
+                onChange={e => {
+                  const v = e.target.value as "Hamısı" | "Fərdi" | "Toplu";
+                  setFilterAssignKind(v);
+                  if (v !== "Toplu") { setFilterBulkKind("Hamısı"); setFilterTeamId(null); }
+                }}
+                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+              >
                 <option>Hamısı</option>
                 <option>Fərdi</option>
                 <option>Toplu</option>
-                <option>Komanda</option>
-                <option>Struktur</option>
-                <option>Vəzifə</option>
               </select>
             </div>
-            {filterAssignKind === "Komanda" && (
+            {filterAssignKind === "Toplu" && (
+              <div className="min-w-[150px]">
+                <label className="text-[11px] text-muted-foreground">Toplu növü</label>
+                <select
+                  value={filterBulkKind}
+                  onChange={e => { const v = e.target.value as any; setFilterBulkKind(v); if (v !== "Komanda") setFilterTeamId(null); }}
+                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                >
+                  <option>Hamısı</option>
+                  <option>Komanda</option>
+                  <option>Struktur</option>
+                  <option>Vəzifə</option>
+                  <option>Şəxs</option>
+                </select>
+              </div>
+            )}
+            {filterAssignKind === "Toplu" && filterBulkKind === "Komanda" && (
               <div className="min-w-[180px]">
                 <label className="text-[11px] text-muted-foreground">Komanda</label>
                 <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
@@ -948,7 +1080,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <option>Ləğv olundu</option>
               </select>
             </div>
-            <button onClick={() => { resetFilters(); setFilterAssignKind("Hamısı"); }} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
+            <button onClick={() => { resetFilters(); setFilterAssignKind("Hamısı"); setFilterBulkKind("Hamısı"); }} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
           </div>
         )}
 
@@ -1048,11 +1180,26 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         if (!confirm(`"${card.name}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
+                                        // Optimistic local update — ensures seed cards (which have no DB row) flip status immediately
+                                        setStatusMap(prev => ({
+                                          ...prev,
+                                          [card.id]: {
+                                            ...(prev[card.id] || {}),
+                                            card_id: card.id,
+                                            status: "legv_olundu",
+                                            use_matrix: false,
+                                            submitted_for_approval: false,
+                                            rejected_by: null,
+                                            rejected_at: null,
+                                            assignees: [],
+                                            updated_at: new Date().toISOString(),
+                                          } as any,
+                                        }));
                                         try {
                                           await upsertStatus({ card_id: card.id, status: "legv_olundu" as any, use_matrix: false, submitted_for_approval: false, assignees: [] });
                                           const mod = await import("@/lib/kpiCardStatusStore");
                                           const next = await mod.fetchAllStatuses();
-                                          setStatusMap(next);
+                                          setStatusMap(prev => ({ ...prev, ...next }));
                                         } catch {}
                                         toast.success("Kart ləğv olundu");
                                         // Notify original assigners about cancellation
@@ -1546,33 +1693,43 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 const ownIds = new Set(own.map(s => s.id));
                 const extras = entries
                   .filter(e => e.subKpiName && !ownIds.has(e.subKpiId))
-                  .map(e => ({ id: e.subKpiId, name: e.subKpiName, assignee: e.assigneeName, isSet: true }));
-                const merged = [
-                  ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || "—", isSet: false })),
+                  .map(e => ({ id: e.subKpiId, name: e.subKpiName, assignee: e.assigneeName, isSet: true as const }));
+                let merged = [
+                  ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || selectedKpi.responsible || "—", isSet: false as const })),
                   ...extras,
                 ];
+                // Fallback: hər kartın minimum 1 hədəfi olmalıdır — sintez et
+                if (merged.length === 0) {
+                  merged = [{ id: 1, name: selectedKpi.name, assignee: selectedKpi.responsible || "—", isSet: false as const }];
+                }
+                const cardStatus = getStatusFor(selectedKpi.id).status;
+                const isActive = cardStatus === "aktiv";
+                const isDraft = cardStatus === "natamam";
                 return (
                   <div className="bg-card rounded-lg border border-border p-4">
                     <h4 className="font-semibold text-foreground mb-4">Hədəf Set Statusu</h4>
-                    {merged.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Bu kartda hədəf yoxdur.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {merged.map((h, idx) => (
+                    <div className="space-y-2">
+                      {merged.map((h, idx) => {
+                        // Status per row derives from KPI card status:
+                        //  aktiv → Tamamlanıb (yaşıl), natamam → Natamam (bozu), digərləri → Set edilib/Gözləyir seed məntiqi
+                        const badge = isActive
+                          ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Tamamlanıb" }
+                          : isDraft
+                          ? { cls: "bg-muted text-muted-foreground border-border", icon: <Clock className="w-3 h-3" />, text: "Natamam" }
+                          : h.isSet
+                          ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Set edilib" }
+                          : { cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: <Clock className="w-3 h-3" />, text: "Gözləyir" };
+                        return (
                           <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{h.name}</p>
                               <p className="text-xs text-muted-foreground">Təyin edən: {h.assignee || "—"}</p>
                             </div>
-                            {h.isSet ? (
-                              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Set edilib</span>
-                            ) : (
-                              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Gözləyir</span>
-                            )}
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
