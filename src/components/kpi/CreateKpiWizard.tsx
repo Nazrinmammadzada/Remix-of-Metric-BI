@@ -46,6 +46,8 @@ export interface WizardHedef {
   type: HedefType;
   weight: number;
   scoreLimit: number;
+  /** İşçinin çatmalı olduğu hədəf dəyəri (növə uyğun formatda saxlanır) */
+  targetValue: string;
 
   /** Bu hədəfi kim təyin edir */
   createdBy: TargetCreatedBy;
