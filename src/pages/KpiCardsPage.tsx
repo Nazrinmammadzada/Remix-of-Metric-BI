@@ -675,7 +675,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
-    const matchesKind = filterAssignKind === "Hamısı" || getAssignKindFor(c.id) === filterAssignKind;
+    const kind = getAssignKindFor(c.id);
+    const matchesKind = filterAssignKind === "Hamısı" || (filterAssignKind === "Toplu" ? kind !== "Fərdi" : kind === filterAssignKind);
     return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
