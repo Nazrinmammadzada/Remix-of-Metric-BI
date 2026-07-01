@@ -145,13 +145,9 @@ const TeamsPage = () => {
       toast.error("Ən azı bir üzv seçin");
       return;
     }
-    if (!leaderName) {
-      toast.error("Komanda lideri seçin (ulduz iconuna klikləyin)");
-      return;
-    }
-    const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leaderName);
-    const leader = allPeople.find(p => p.name === leaderName);
+    const leader = allPeople.find(p => p.name === selectedMembers[0]);
     if (!leader) return;
+    const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leader.name);
     const branch = subStructures[0] || structures[0] || "Mərkəzi Filial";
     const team: Team = {
       id: Date.now(),
