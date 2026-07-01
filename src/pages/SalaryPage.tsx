@@ -48,11 +48,11 @@ const SalaryPage = () => {
   // Tabs
   const [activeTab, setActiveTab] = useState<"base" | "uploads">("base");
 
-  // Period selectors — start empty so table is empty by default
-  const [year, setYear] = useState<string>("");
-  const [month, setMonth] = useState<string>("");
-  const [appliedYear, setAppliedYear] = useState<number | null>(null);
-  const [appliedMonth, setAppliedMonth] = useState<Month | null>(null);
+  // Period selectors — default to a period with data so the table is pre-filled
+  const [year, setYear] = useState<string>("2026");
+  const [month, setMonth] = useState<string>("Yanvar");
+  const [appliedYear, setAppliedYear] = useState<number | null>(2026);
+  const [appliedMonth, setAppliedMonth] = useState<Month | null>("Yanvar");
 
   const [showAdd, setShowAdd] = useState(false);
   const [operatorView, setOperatorView] = useState<AggRow | null>(null);
