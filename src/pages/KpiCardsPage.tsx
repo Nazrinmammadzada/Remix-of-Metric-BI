@@ -486,15 +486,46 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const saved = cardDrafts[cardId];
     if (saved) {
       openWizard(saved, cardId);
-    } else {
-      const card = kpiCards.find(c => c.id === cardId);
-      openWizard(card ? {
-        name: card.name,
-        frequency: card.frequency || "Aylıq",
-        startDate: card.startDate || "",
-        endDate: card.endDate || "",
-      } : undefined, cardId);
+      return;
     }
+    const card = kpiCards.find(c => c.id === cardId);
+    if (!card) { openWizard(undefined, cardId); return; }
+    // Build a rich fallback draft from card + its subKpis so imtina/natamam
+    // cards open fully populated for editing.
+    const targets = (card.subKpis || []).map((sk, i) => ({
+      id: `t-${cardId}-${sk.id ?? i}`,
+      name: sk.name,
+      type: "Məbləğ" as const,
+      weight: sk.weight || 0,
+      scoreLimit: 5,
+      targetValue: String(sk.target ?? ""),
+      createdBy: "self" as const,
+      evaluators: [{ id: `ev-${cardId}-${i}`, name: card.responsible, weight: 100 }],
+      evaluator: card.responsible,
+      assigner: card.responsible,
+      min: "", max: "", currency: "AZN" as const,
+      ranges: [{ id: `r-${cardId}-${i}`, min: "0", max: String(sk.target ?? "100"), score: "5", weight: "100" }],
+      competencyMatrix: "", freeInput: "",
+      booleanYes: 5, booleanNo: 2,
+      timeStart: "", timeEnd: "",
+      scoreDescriptions: [],
+      cascading: false, cascadeMatrix: "",
+    }));
+    openWizard({
+      name: card.name,
+      mode: "individual",
+      individualEmployees: [card.responsible],
+      bulkSelections: { teams: [], structures: [], positions: [], persons: [] },
+      frequency: card.frequency || "Aylıq",
+      startDate: card.startDate || "",
+      endDate: card.endDate || "",
+      scoringSystem: "1-5",
+      useMatrix: true,
+      approvalMatrixId: "matrix-standard",
+      targets: targets as any,
+      createdBy: "self",
+      createdByEmployee: card.responsible,
+    } as any, cardId);
   };
   const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
     const action = d.action || "draft";
