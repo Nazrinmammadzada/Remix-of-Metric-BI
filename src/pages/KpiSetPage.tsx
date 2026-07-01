@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { SlidersHorizontal, Search, Sliders, Hourglass, CheckCircle2, User as UserIcon, Eye } from "lucide-react";
+import { SlidersHorizontal, Search, Sliders, Hourglass, CheckCircle2, User as UserIcon, Eye, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ExportMenu from "@/components/common/ExportMenu";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
+import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import {
   useKpiSet,
   setEntryLimits,
@@ -22,6 +23,7 @@ const KpiSetPage = () => {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<KpiSetEntry | null>(null);
   const [viewing, setViewing] = useState<KpiSetEntry | null>(null);
+  const [cascading, setCascading] = useState<KpiSetEntry | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -155,6 +157,11 @@ const KpiSetPage = () => {
                             <Eye className="w-4 h-4" />
                           </button>
                           <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>Redaktə</Button>
+                          {r.cascadable && r.ownerType === "manager" && (
+                            <Button size="sm" onClick={() => setCascading(r)} className="gap-1">
+                              <GitBranch className="w-3.5 h-3.5" /> Kaskad et
+                            </Button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -206,6 +213,20 @@ const KpiSetPage = () => {
           weightMin={viewing.weightMin}
           weightMax={viewing.weightMax}
           cascadeAssignment={getAssignmentByEntry(viewing.id)}
+        />
+      )}
+      {cascading && (
+        <CascadeDistributeDialog
+          open={!!cascading}
+          onOpenChange={(o) => !o && setCascading(null)}
+          bootstrap={{
+            cardName: cascading.cardName,
+            goalName: cascading.subKpiName || cascading.cardName,
+            unit: cascading.unit,
+            assigneeName: cascading.assigneeName,
+            assigneeId: cascading.assigneeId,
+            limit: parseFloat(String(cascading.target).replace(/[^\d.\-]/g, "")) || 0,
+          }}
         />
       )}
 
