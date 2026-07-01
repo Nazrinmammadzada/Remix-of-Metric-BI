@@ -143,7 +143,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 3, name: "Müştəri Əldə Etmə", icon: Users, zone: "green", target: "500", current: "485", unit: "Müştəri", progress: 97, minTarget: 75,
-    responsible: "Emin Məmmədov", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Yeni Müştəri / Hədəf × 100", generalTarget: "500 Müştəri",
+    responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Yeni Müştəri / Hədəf × 100", generalTarget: "500 Müştəri",
     department: "Marketinq", group: "Rəqəmsal Marketinq Qrupu", subdivision: "Marketinq Şöbəsi",
     startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 20, approvalStatus: "approved",
     description: "Yeni müştərilərin cəlb edilməsi üzrə hədəf.",
@@ -193,7 +193,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 6, name: "Əməliyyat Effektivliyi", icon: Settings2, zone: "green", target: "90%", current: "88%", unit: "", progress: 98, minTarget: 70,
-    responsible: "Kamran Quliyev", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Effektiv Əməliyyat / Ümumi × 100", generalTarget: "90%",
+    responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Effektiv Əməliyyat / Ümumi × 100", generalTarget: "90%",
     department: "Əməliyyatlar", group: "Əməliyyat Qrupu", subdivision: "Əməliyyat Şöbəsi",
     startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 5, approvalStatus: "pending",
     description: "Əməliyyat proseslərinin effektivlik göstəricisi.",
@@ -209,7 +209,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 7, name: "Fərdi: Şəxsi İnkişaf Planı", icon: UserCheck, zone: "green", target: "10", current: "8", unit: "Modul", progress: 80, minTarget: 70,
-    responsible: "Leyla Məmmədova", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 Modul",
+    responsible: "Leyla Həsənova", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 Modul",
     department: "Satış Departamenti", group: "Bakı Satış Qrupu", subdivision: "Satış Şöbəsi",
     startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 10, approvalStatus: "approved",
     description: "Əməkdaşın fərdi inkişaf modulları üzrə tamamlama göstəricisi.",
@@ -219,7 +219,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 8, name: "Fərdi: Layihə Töhfəsi (Arxiv)", icon: UserCheck, zone: "yellow", target: "5", current: "3", unit: "Layihə", progress: 60, minTarget: 60,
-    responsible: "Tural İsmayılov", period: "2025 - İllik", type: "Say Hədəfi", formula: "Tamamlanan Layihə / Hədəf × 100", generalTarget: "5 Layihə",
+    responsible: "Leyla Həsənova", period: "2025 - İllik", type: "Say Hədəfi", formula: "Tamamlanan Layihə / Hədəf × 100", generalTarget: "5 Layihə",
     department: "Əməliyyatlar", group: "Əməliyyat Qrupu", subdivision: "Əməliyyat Şöbəsi",
     startDate: "01.01.2025", endDate: "31.12.2025", frequency: "İllik", weight: 8, approvalStatus: "approved",
     description: "İşdən çıxmış əməkdaşın fərdi KPI kartı — status dondurulmuşdur.",
