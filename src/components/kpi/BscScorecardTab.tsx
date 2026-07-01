@@ -151,56 +151,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm border-b border-border pb-3">
-        <div className="flex items-center gap-2"><Target className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-muted-foreground">Perspektiv:</span><span className="font-medium text-foreground">{perspective}</span></div>
-        <div className="flex items-center gap-2"><span className="text-muted-foreground">Çəki:</span><span className="font-medium text-foreground">{kpi.weight}%</span></div>
-        <div className="flex items-center gap-2 min-w-0"><span className="text-muted-foreground">KPI:</span><span className="font-medium text-foreground truncate">{kpi.name}</span></div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-        <div className="rounded-lg border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Hədəf</p>
-          <p className="text-lg font-semibold text-foreground tabular-nums mt-0.5">{fmt(target)} <span className="text-[11px] font-normal text-muted-foreground">{unit}</span></p>
-        </div>
-        <div className="rounded-lg border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Nəticə</p>
-          <p className="text-lg font-semibold text-foreground tabular-nums mt-0.5">{fmt(actual)} <span className="text-[11px] font-normal text-muted-foreground">{unit}</span></p>
-        </div>
-        <div className="rounded-lg border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">İcra Faizi (GSR)</p>
-          <p className={`text-lg font-semibold tabular-nums mt-0.5 ${tone.text}`}>{gsr.toFixed(0)}%</p>
-          <div className="w-full bg-muted rounded-full h-1 mt-1.5 overflow-hidden">
-            <div className={`h-1 ${tone.barColor}`} style={{ width: `${Math.min(100, gsrClamped)}%` }} />
-          </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card px-3 py-2">
-          <p className="text-[11px] text-muted-foreground">Bal</p>
-          <p className="text-lg font-semibold text-foreground tabular-nums mt-0.5">{score}<span className="text-xs font-normal text-muted-foreground"> / 5</span></p>
-          <span className={`inline-block mt-0.5 px-1.5 py-0 text-[10px] font-medium rounded ${tone.bg} ${tone.text}`}>{scoreLabels[score]}</span>
-        </div>
-      </div>
-
-      {/* Şkala — vahidə görə */}
-      <div className="rounded-lg border border-border bg-card p-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-medium text-muted-foreground">Qiymətləndirmə Şkalası</p>
-          <span className="text-[10px] text-muted-foreground">Vahid: <span className="font-medium text-foreground">{unit || "%"}</span></span>
-        </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          {ranges.map(r => {
-            const isActive = score === r.score;
-            return (
-              <div key={r.score} className={`rounded-md px-2 py-1.5 text-center ${isActive ? "ring-1 ring-primary bg-primary/5" : "bg-background border border-border"}`}>
-                <p className="text-[10px] text-muted-foreground tabular-nums">{r.rangeText}</p>
-                <div className={`mx-auto mt-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${isActive ? "bg-primary text-primary-foreground" : r.tone}`}>{r.score}</div>
-                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{r.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sub-KPI-ların açılan siyahısı */}
+      {/* Hədəflər (əvvəllər Sub-KPI-lar) — kart daxilində ümumi hədəf yoxdur */}
       {mergedSubKpis.length > 0 && (
         <div className="rounded-lg border border-border bg-card">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
