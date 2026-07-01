@@ -14,6 +14,9 @@ export interface OrgEmployee {
   structurePath?: string; // e.g. "İnsan Resursları › İşə qəbul şöbəsi"
   positionName?: string;
   salary?: number;
+  /** Rəhbər rolu — bu şəxs KPI hədəflərini qəbul edə və tabeliyindəkilərə bölüşdürə bilər.
+   *  Ulduz VƏZİFƏYƏ deyil, birbaşa ŞƏXSƏ verilir. */
+  isStarPerson?: boolean;
 }
 
 export type OrgSlotFraction = 1 | 0.75 | 0.5 | 0.25;
