@@ -1261,24 +1261,28 @@ function Step2Targets({
               </div>
             )}
 
-            {/* Cascade */}
-            {showCascade && !disabled && (
-              <div className="rounded-md border border-border/60 p-3 bg-background/40 space-y-2">
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <input type="checkbox" checked={t.cascading}
-                    onChange={e => updHedef(t.id, { cascading: e.target.checked, cascadeMatrix: e.target.checked ? t.cascadeMatrix : "" })}
-                    className="w-4 h-4" />
-                  <GitBranch className="w-3.5 h-3.5 text-primary" />
-                  Bu hədəf üzrə cascade tətbiq olunsun
-                </label>
-                {t.cascading && (
-                  <select value={t.cascadeMatrix} onChange={e => updHedef(t.id, { cascadeMatrix: e.target.value })}
-                    className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                    <option value="">— Cascade Matrix seçin —</option>
-                    {cascadeMatrices.map(m => <option key={m.id} value={m.name}>{m.name} ({m.scopeType})</option>)}
-                  </select>
-                )}
-              </div>
+            {/* Cascade (C) — yalnız bölünə bilən tiplər üçün */}
+            {!disabled && (
+              showCascade ? (
+                <div className="rounded-md border border-primary/30 p-3 bg-primary/5 space-y-1.5">
+                  <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                    <input type="checkbox" checked={t.cascading}
+                      onChange={e => updHedef(t.id, { cascading: e.target.checked, cascadeMatrix: "" })}
+                      className="w-4 h-4" />
+                    <GitBranch className="w-3.5 h-3.5 text-primary" />
+                    <b>C — Kaskadlana bilər</b>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground pl-6 leading-relaxed">
+                    Aktiv olduqda bu hədəf <b>Ana Hədəf</b> hesab olunur və təyin edici <b>Rəhbər (⭐)</b> tərəfindən tabelikdəki əməkdaşlar arasında bölüşdürülə bilər.
+                    Cascading Matrix tələb olunmur — təşkilati struktur avtomatik istifadə olunur.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-md border border-dashed border-border/60 p-2.5 bg-secondary/20 text-[11px] text-muted-foreground flex items-start gap-2">
+                  <GitBranch className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span><b>C (Kaskadlama)</b> yalnız bölünə bilən tiplər üçün mümkündür: <i>Məbləğ, Say, Faiz, Nisbət</i>. Cari tip ({t.type}) bölünə bilmir.</span>
+                </div>
+              )
             )}
           </div>
         );
