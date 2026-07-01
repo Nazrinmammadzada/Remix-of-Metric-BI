@@ -610,6 +610,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     6: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: true }, { name: "Tural İsmayılov", ok: false }] },
     7: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", assignees: [{ name: "Leyla Məmmədova", ok: true }] },
     8: { status: "aktiv", assignees: [{ name: "Tural İsmayılov", ok: true }] },
+    9: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", rejection_reason: "Hədəf dəyəri çox aşağıdır — yenidən nəzərdən keçirilməlidir.", assignees: [{ name: "Nigar Hüseynova", ok: true }, { name: "Leyla Həsənova", ok: false }] } as any,
+    10: { status: "imtina", use_matrix: true, rejected_by: "HR Direktoru", rejection_reason: "Qiymətləndirici seçimi tələblərə uyğun deyil.", assignees: [{ name: "Emin Məmmədov", ok: true }, { name: "Günel Əlizadə", ok: false }] } as any,
+    11: { status: "natamam", use_matrix: false, assignees: [{ name: "Leyla Həsənova", ok: false }] },
+    12: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: false }] },
   };
   const getStatusFor = (cardId: number) => {
     const remote = statusMap[cardId];
