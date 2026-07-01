@@ -1048,6 +1048,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                       <X className="w-3.5 h-3.5" />
                                     </button>
                                   )}
+                                  {st.status === "natamam" && (
                                     <button
                                       onClick={async (e) => {
                                         e.stopPropagation();
