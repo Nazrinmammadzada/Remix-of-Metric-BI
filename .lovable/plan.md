@@ -1,86 +1,84 @@
-# KPI Kartı və Modul Təkmilləşdirmələri Planı
+# Ulduzlu Vəzifə (Star Position) əsaslı Kaskadlama
 
-Bu böyük tələb 4 əsas hissəyə bölünür. Aşağıdakı ardıcıllıqla implementasiya olunacaq.
+## Məqsəd
+Kaskadlama matrisini tamamilə silib, KPI hədəflərinin təşkilati struktur və **vəzifəyə** bağlı "Ulduz" atributu əsasında avtomatik yönləndirilməsini təmin etmək. Ulduz heç vaxt şəxsə bağlanmır — yalnız vəzifəyə. Vəzifədə oturan şəxs dəyişdikdə heç bir manual iş görülməməlidir.
 
-## 1. KPI Yaratma Wizard – 2-ci Addım (Hədəflər)
+## Data Modeli (dinamik, hardcode-suz)
 
-- **Hədəf növünə uyğun dəyər sahəsi əlavə et:**
-  - Növ seçildikdən sonra `Hədəf dəyəri` sahəsi görünsün.
-  - `Məbləğ` → rəqəm + valyuta seçimi
-  - `Faiz` → 0-100 rəqəm
-  - `Rəqəm/Say` → sərbəst rəqəm
-  - `Vaxt/Müddət` → gün/saat
-  - `Keyfiyyət/Mətn` → mətn sahəsi
-- **Təyin edici məntiqi:** "Özüm təyin edirəm" → HR dəyəri yazır (aktiv). "Digər əməkdaş" → sahə deaktivdir (təyin edici sonradan yazacaq).
+**StructureUnit** (rekursiv, istənilən dərinlik):
+- `id`, `name`, `parentId?`, `level` (yalnız görüntü üçün etiket, məntiqdə yox), `order`
 
-## 2. KPI Kartları Cədvəli (KpiCardsPage)
+**Position** (vəzifə):
+- `id`, `title`, `structureUnitId`, `isStarPosition: boolean`
+- Qayda: `structureUnitId` üzrə yalnız **bir** `isStarPosition=true` ola bilər.
 
-- **İmtina data:** 2 hazır `imtina` statuslu kart əlavə et — hər biri bütün sahələr (hədəflər, təyin edici, qiymətləndirici, matris) ilə dolu; redaktə açıldıqda wizard tam məlumatla açılsın.
-- **Təyinat növü seçimləri:** `Komanda / Fərdi` → **`Toplu / Fərdi`**. Wizardda `Toplu` seçildikdə: Struktur / Vəzifə / Şəxs / Komanda alt seçimlər.
-- **Filterlər:** "Komanda axtarış" filterini sil. Təyinat növü filterinə əsasən dinamik sub-filter göstər (məs: Toplu-Komanda seçildikdə komanda dropdown-u).
-- **Ləğv məntiqi:** İmtina kartını "Ləğv et" edəndə status `imtina` deyil, `legv_olundu` olsun.
+**Employee** (mövcud model genişlənir):
+- `positionId` (əvvəlki `department/team` sahələri saxlanılır, amma rəhbərlik məntiqi buradan **çıxarılır**).
+- Employee-də heç bir `isManager / isStar / managerId` sahəsi məntiq üçün istifadə olunmayacaq — hesablanır.
 
-## 3. Qiymətləndirici Seçim Dialoqu (ilk versiya bərpası)
+## Əsas servis: `starCascadeService`
 
-`ScoreLimitsDialog` / evaluator seçici 4 tab-lı görünüşə qaytarılacaq:
-- **Komanda daxili** — cari kartın komandası üzvləri
-- **Konkret şəxs** — bütün aktiv əməkdaşlar (axtarışla)
-- **Özü** — kartın sahibi
-- **İnteqrasiya** — sistem inteqrasiyaları (CRM, ERP, HRIS və s.)
+Sırf pure funksiyalar (test edilə bilən), heç bir səviyyə adı yazılmır:
 
-Hər tab-ın daxili mock data ilə doldurulacaq.
+- `getStarPositionOfUnit(unitId)` → Position | null
+- `getStarHolderOfUnit(unitId)` → Employee | null (star vəzifədə oturan şəxs)
+- `getChildUnits(unitId)` → StructureUnit[]
+- `resolveCascadeChain(rootUnitId)` → rekursiv walk: hər səviyyədə star holder + child unit-lər → ağac
+- `routeKpiToUnit(unitId)` → star holder tapılmasa `MissingStarError` atır (validasiya)
+- `validateStructure()` → hər unit üzrə star sayını yoxlayır (0 və ya >1 halında xəbərdarlıq)
 
-## 4. Default Data (boş cədvəllər probleminin həlli)
+Bütün kaskadlama (KPI kartı yaradılışı, cascading səhifəsi, manager panel scoping) bu tək servisi çağırır. `CascadeMatrix` və `cascadeMatrixStore` işlətmir.
 
-Aşağıdakı səhifələrə default (bugünkü / cari dövr) seçimi ilə cədvəl dolu gəlsin:
-- `SalaryPage` (əməkhaqqı bazası) — cari ay default seçili
-- `KpiScoresPage` (KPI nəticələri) — cari rüb default
-- `BonusPage` (Bonuslar) — cari il default
-- Boş `mockData` massivlərinə seed əlavə et (əgər lazımdırsa).
+## UI dəyişiklikləri
 
-## 5. "Sub-KPI" → "Hədəf" Terminologiya Dəyişikliyi (bütün modullarda)
+### 1) Struktur / Vəzifələr ekranı (Təşkilat modulu)
+Hər struktur vahidində vəzifə siyahısı göstərilir. Hər vəzifə sətrində:
+- Solda ⭐ ikon (aktiv: qızıl-sarı dolu, deaktiv: kənarlıqlı boz).
+- Bir kliklə toggle olur; həmin unit üzrə əvvəlki star avtomatik söndürülür (tək star qaydası servis səviyyəsində zorlanır, toast: "Ulduzlu vəzifə köçürüldü").
+- Star vəzifədə oturan əməkdaşın adı badge kimi göstərilir (boşdursa "Vakant — kaskadlama dayandırılıb" xəbərdarlığı).
 
-- `BscScorecardTab`, `KpiExtraTabs`, `KpiSetPage`, `EvaluationPage`, `KpiEvaluationSection`, `LifecycleDetailDialog` və digər istifadələr rename olunsun.
+### 2) Cascading modulu (`CascadingPage`)
+Manual matris tam silinir. Səhifə "Kaskadlama xəritəsi"nə çevrilir:
+- Root struktur seçilir → ağac (tree) formasında zəncir göstərilir: hər node = struktur vahidi + star vəzifə + hazırkı star holder.
+- Boş star olan node qırmızı işarələnir, "Ulduzlu vəzifə təyin et" düyməsi ilə birbaşa struktur ekranına yönləndirir.
+- Yalnız oxu — heç bir manual assignment yoxdur.
 
-## 6. Kart Daxili (Detail Modal) — Bütün Tab-lar
+### 3) KPI wizard (təyinat addımı)
+- "Toplu → Struktur" seçimində istifadəçi yalnız struktur vahidini seçir; sistem `routeKpiToUnit` ilə star holder-i özü tapıb göstərir (read-only chip: "Yönləndiriləcək: <ad> — <vəzifə>").
+- Star yoxdursa "Yarat"/"Təsdiqə göndər" düymələri deaktiv olur və izahat verilir.
+- "Rəhbər əl ilə seç" seçimi tamamilə silinir.
 
-**Ümumi (Overview) tab:**
-- Kart hədəfləri siyahısı (ad, çəki, dəyər, təyin edici, qiymətləndirici)
-- Məsul şəxs = kartı yaradan profil (departament göstərmə)
-- Təyinatın həm növü, həm konkret adı (məs: "Toplu — Satış Departamenti")
-- Ümumi hədəf / cari dəyər sil
-- Tezlik sahəsi sil
-- **Detallar tab** tamamilə sil
+### 4) Cascade Matrix menyu bəndi
+Sidebar-dan `Cascade Matrisi` linki gizlədilir, `cascadeMatrixStore` istifadə yerlərində yeni servisə yönləndirici shim qoyulur (geriyə uyğunluq üçün mövcud KPI kartlarını sındırmamaq üçün).
 
-**Balanced Scorecard tab:**
-- Sil: Perspektiv, Çəki, KPI adı sətri
-- Sil: Hədəf/Nəticə/İcra Faizi/Bal kartları
-- Sil: Qiymətləndirmə şkalası, Hesablama düsturu, Nümunə, Ümumi BSC Balı
-- Saxla: "Sub-KPI-lar" bölməsi → adı **"Hədəflər"** olsun, hər hədəfin ballarını göstər (limits necə var elə).
+## Miqrasiya (mock data)
+`src/data/mockExtras.ts` yenilənir:
+- Hər `MockTeam` / `MockStructure` üçün star position obyekti seed edilir (məs. "Satış Direktoru", "IT Direktoru" və s. — struktura görə).
+- Mövcud `managerId / leaderId` sahələri seed skriptində star holder-dən **hesablanır**, kod ilə yazılmır.
 
-**Performans Analitikası tab:** tamamilə sil.
+## Validasiya
+- Struktur ekranında canlı yoxlama: hər unit-də star sayı badge-i (`⭐ 1/1` yaşıl, `⚠ 0/1` sarı).
+- KPI göndərilməzdən əvvəl `resolveCascadeChain` çağırılır; hər hansı node-da star yoxdursa göndəriş bloklanır və problemli unit-lərin siyahısı toast-da göstərilir.
 
-**Tarixçə tab:** Kartın kiçik hədəflərinə (targets) uyğun məlumat göstər — ümumi hədəf üzərində deyil.
+## Fayllar
+Yeni:
+- `src/lib/positionsStore.ts` — vəzifələr + `isStarPosition` toggle
+- `src/lib/starCascadeService.ts` — bütün rekursiv məntiq
+- `src/components/org/StarPositionToggle.tsx`
+- `src/components/cascading/CascadeTreeView.tsx`
 
-**Komanda tab → "KPI Üzvləri":** ad dəyiş, məzmun dəyiş. Kartın qəbul edicilərini və qiymətləndiricilərini göstər — bəzi kartlarda eyni vəzifəlilər, bəzilərində müxtəlif rollu üzvlər olacaq (mock differentiation).
+Dəyişən:
+- `src/pages/CascadingPage.tsx` — matris silinir, tree view
+- `src/pages/OrganizationPage.tsx` + Struktur kart görünüşü — vəzifə siyahısı + ⭐ toggle
+- `src/components/kpi/CreateKpiWizard.tsx` — struktur seçimində avtomatik routing
+- `src/components/layout/Sidebar.tsx` — "Cascade Matrisi" gizlədilir
+- `src/data/mockExtras.ts` — seed star positions
 
-**Status tab → "Təsdiqləmə Zənciri":** ad dəyiş (məzmun matrix zənciri qalır).
+Silinən istifadə (fayl özü qalır, referans kəsilir):
+- `src/lib/cascadeMatrixStore.ts` (deprecated shim)
+- `src/pages/CascadeMatrixPage.tsx` (route gizlədilir)
 
-**Yeni Status tab əlavə et:** hər hədəf üzrə kimin `set` etdiyi (təyin edici) və kimin hələ set etmədiyini, cari statusuna görə (natamam / gözləyir / təsdiqlənib / imtina) göstər.
+## Genişlənə bilənlik
+Yeni səviyyə/şirkət/vəzifə əlavə etmək üçün heç bir kod dəyişikliyi lazım deyil — yalnız `structureUnits` və `positions` seed/DB-yə yazılır, `isStarPosition` işarələnir, servis avtomatik marşrutu yenidən hesablayır.
 
-## 7. Modullararası Sinxronizasiya
-
-`kpiCardStore`, `sharedKpiCards`, `kpiEvaluationStore`, `salaryStore`, `bonusStore` üzərində `useEffect + storage event` yenilənməsini yoxla — bir moduldakı əlavə/silmə digərində əks olunsun (əsasən artıq var, çatışmayan yerləri bağla).
-
-## Texniki Detallar
-
-- Yeni status enum dəyəri: `legv_olundu` (`kpiCardStatusStore.ts`).
-- `CreateKpiWizard` – `WizardHedef` interfeysinə `targetValue: string`, `targetUnit?: string` əlavə et.
-- `BscScorecardTab` – trim və rename.
-- `KpiExtraTabs` – tab siyahısını yenilə: Ümumi | BSC | Hədəflər (yeni) | Set Statusu (yeni) | KPI Üzvləri | Təsdiqləmə Zənciri | Tarixçə. (Detallar və Performans Analitikası silinir.)
-- Filterlər `KpiCardsPage` daxilində conditional dropdown-a çevrilir.
-- İmtina seed data `kpiCardStore` seed-ə əlavə olunur.
-
-## Sual
-
-Bu 7 hissə çox həcmlidir. Hamısını bir dəfəyə tətbiq edim, yoxsa (a) Wizard + Cədvəl + İmtina data, (b) Detail Modal tabları, (c) Digər modullar default data — deyə mərhələlərlə addım-addım gedim ki, siz hər addımdan sonra yoxlaya biləsiniz?
+Təsdiq edin, tətbiq edim.
