@@ -501,6 +501,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   // === KPI card status (Natamam / Təsdiq gözlənilir / İmtina / Aktiv) ===
   const [statusMap, setStatusMap] = useState<Record<number, import("@/lib/kpiCardStatusStore").KpiCardStatusRow>>({});
   const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
+  const [employeeDrilldown, setEmployeeDrilldown] = useState<string | null>(null);
   useEffect(() => {
     import("@/lib/kpiCardStatusStore").then(m => m.fetchAllStatuses().then(setStatusMap));
   }, []);
