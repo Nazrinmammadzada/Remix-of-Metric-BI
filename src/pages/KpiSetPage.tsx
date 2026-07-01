@@ -23,6 +23,7 @@ const KpiSetPage = () => {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<KpiSetEntry | null>(null);
   const [viewing, setViewing] = useState<KpiSetEntry | null>(null);
+  const [cascading, setCascading] = useState<KpiSetEntry | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
