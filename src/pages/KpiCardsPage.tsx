@@ -1693,33 +1693,43 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 const ownIds = new Set(own.map(s => s.id));
                 const extras = entries
                   .filter(e => e.subKpiName && !ownIds.has(e.subKpiId))
-                  .map(e => ({ id: e.subKpiId, name: e.subKpiName, assignee: e.assigneeName, isSet: true }));
-                const merged = [
-                  ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || "—", isSet: false })),
+                  .map(e => ({ id: e.subKpiId, name: e.subKpiName, assignee: e.assigneeName, isSet: true as const }));
+                let merged = [
+                  ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || selectedKpi.responsible || "—", isSet: false as const })),
                   ...extras,
                 ];
+                // Fallback: hər kartın minimum 1 hədəfi olmalıdır — sintez et
+                if (merged.length === 0) {
+                  merged = [{ id: 1, name: selectedKpi.name, assignee: selectedKpi.responsible || "—", isSet: false as const }];
+                }
+                const cardStatus = getStatusFor(selectedKpi.id).status;
+                const isActive = cardStatus === "aktiv";
+                const isDraft = cardStatus === "natamam";
                 return (
                   <div className="bg-card rounded-lg border border-border p-4">
                     <h4 className="font-semibold text-foreground mb-4">Hədəf Set Statusu</h4>
-                    {merged.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">Bu kartda hədəf yoxdur.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {merged.map((h, idx) => (
+                    <div className="space-y-2">
+                      {merged.map((h, idx) => {
+                        // Status per row derives from KPI card status:
+                        //  aktiv → Tamamlanıb (yaşıl), natamam → Natamam (bozu), digərləri → Set edilib/Gözləyir seed məntiqi
+                        const badge = isActive
+                          ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Tamamlanıb" }
+                          : isDraft
+                          ? { cls: "bg-muted text-muted-foreground border-border", icon: <Clock className="w-3 h-3" />, text: "Natamam" }
+                          : h.isSet
+                          ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Set edilib" }
+                          : { cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: <Clock className="w-3 h-3" />, text: "Gözləyir" };
+                        return (
                           <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{h.name}</p>
                               <p className="text-xs text-muted-foreground">Təyin edən: {h.assignee || "—"}</p>
                             </div>
-                            {h.isSet ? (
-                              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Set edilib</span>
-                            ) : (
-                              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Gözləyir</span>
-                            )}
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
