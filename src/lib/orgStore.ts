@@ -32,8 +32,6 @@ export interface OrgPosition {
   id: number;
   name: string;
   slots: OrgSlot[];
-  /** Star Position — həmin struktur vahidində rəhbər vəzifədir (kaskadlama yönləndirir). */
-  isStarPosition?: boolean;
 }
 
 
