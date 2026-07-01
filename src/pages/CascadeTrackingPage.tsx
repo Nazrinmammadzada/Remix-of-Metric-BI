@@ -76,7 +76,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
   );
 };
 
-const TreeNode = ({ node, depth, onDistribute, defaultOpen }: { node: CascadeTreeNode; depth: number; onDistribute: (n: CascadeTreeNode) => void; defaultOpen?: boolean }) => {
+const TreeNode = ({ node, depth, defaultOpen }: { node: CascadeTreeNode; depth: number; defaultOpen?: boolean }) => {
   const [open, setOpen] = useState(!!defaultOpen);
   const kids = getChildren(node.id);
   const st = statusOf(node.id);
@@ -111,17 +111,11 @@ const TreeNode = ({ node, depth, onDistribute, defaultOpen }: { node: CascadeTre
             <Metric label="Bölüşdürülüb" val={`${fmt(dist)}`} accent={dist > 0 ? "text-primary" : ""} />
             <Metric label="Qalıq" val={`${fmt(rem)}`} accent={rem === 0 ? "text-emerald-600" : "text-amber-600"} />
             <StatusBadge status={st} />
-            {node.isStar && kids.length === 0 && (
-              <button onClick={() => onDistribute(node)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90">
-                <GitBranch className="w-3.5 h-3.5" /> Kaskad et
-              </button>
-            )}
           </div>
         </div>
       </div>
 
-      {open && kids.map(k => <TreeNode key={k.id} node={k} depth={depth + 1} onDistribute={onDistribute} defaultOpen />)}
+      {open && kids.map(k => <TreeNode key={k.id} node={k} depth={depth + 1} defaultOpen />)}
     </div>
   );
 };
