@@ -46,6 +46,8 @@ export interface WizardHedef {
   type: HedefType;
   weight: number;
   scoreLimit: number;
+  /** İşçinin çatmalı olduğu hədəf dəyəri (növə uyğun formatda saxlanır) */
+  targetValue: string;
 
   /** Bu hədəfi kim təyin edir */
   createdBy: TargetCreatedBy;
@@ -175,6 +177,7 @@ const emptyHedef = (): WizardHedef => ({
   type: "Məbləğ",
   weight: 0,
   scoreLimit: 5,
+  targetValue: "",
   createdBy: "self",
   evaluators: [],
   evaluator: "",
@@ -1151,6 +1154,42 @@ function Step2Targets({
                 <input type="number" min={0} max={100} value={t.weight} disabled={disabled}
                   onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
                   className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+              </div>
+              <div className="col-span-12 md:col-span-3">
+                <label className="text-[11px] text-muted-foreground">
+                  Hədəf dəyəri {isOther ? <span className="text-amber-600">(təyin edən dolduracaq)</span> : "*"}
+                </label>
+                <div className="mt-0.5 flex gap-1">
+                  {(t.type === "Boolean") ? (
+                    <select value={t.targetValue} disabled={isOther}
+                      onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                      className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
+                      <option value="">— Seçin —</option>
+                      <option value="Bəli">Bəli</option>
+                      <option value="Xeyr">Xeyr</option>
+                    </select>
+                  ) : (t.type === "Səriştə" || t.type === "İcra" || t.type === "Fərdi İnkişaf") ? (
+                    <input value={t.targetValue} disabled={isOther}
+                      onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                      placeholder="Hədəf təsviri"
+                      className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                  ) : (
+                    <>
+                      <input type="number" value={t.targetValue} disabled={isOther}
+                        onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                        placeholder={t.type === "Faiz" ? "0-100" : t.type === "Zaman" ? "Gün / saat" : "0"}
+                        className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                      {t.type === "Məbləğ" && (
+                        <select value={t.currency} disabled={isOther}
+                          onChange={e => updHedef(t.id, { currency: e.target.value as any })}
+                          className="px-1.5 py-1.5 text-xs border border-border rounded bg-background disabled:opacity-60">
+                          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      )}
+                      {t.type === "Faiz" && <span className="px-2 py-1.5 text-xs text-muted-foreground">%</span>}
+                    </>
+                  )}
+                </div>
               </div>
               <div className="col-span-6 md:col-span-2 flex items-end">
                 <button type="button" onClick={() => setScoreDlgFor(t.id)}

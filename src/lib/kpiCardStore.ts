@@ -192,5 +192,53 @@ function seedCards(): SharedKpiCard[] {
       history: [{ ts: now, actor: "e2", action: "created:aktiv" }],
       createdAt: now, updatedAt: now,
     },
+    {
+      id: "seed-4",
+      numericId: 1004,
+      name: "Müştəri Şikayətlərinin Azaldılması",
+      ownerId: "e2",
+      evaluatorIds: ["e2", "e8"],
+      assigneeIds: ["e6", "e9"],
+      structureIds: ["s_it"],
+      teamIds: ["t_it_core"],
+      matrixId: "matrix-standard",
+      status: "imtina",
+      rejectedReason: "Hədəf dəyəri çox aşağıdır — yenidən nəzərdən keçirilməlidir.",
+      startDate: "2026-01-01", endDate: "2026-06-30", frequency: "Rüblük", scoringSystem: "1-5",
+      targets: [
+        { id: "tg-4a", name: "Şikayət sayının azaldılması", type: "Say", weight: 60, scoreLimit: 5 },
+        { id: "tg-4b", name: "Cavab müddəti", type: "Zaman", weight: 40, scoreLimit: 5 },
+      ],
+      execution: {},
+      history: [
+        { ts: now, actor: "e1", action: "created:tesdiq_gozlenilir" },
+        { ts: now, actor: "Departament Direktoru", action: "status:imtina", note: "Hədəf dəyəri çox aşağıdır — yenidən nəzərdən keçirilməlidir." },
+      ],
+      createdAt: now, updatedAt: now,
+    },
+    {
+      id: "seed-5",
+      numericId: 1005,
+      name: "Marketinq Kampaniyalarının ROI-si",
+      ownerId: "e8",
+      evaluatorIds: ["e8"],
+      assigneeIds: ["e4", "e11"],
+      structureIds: ["s_marketing"],
+      teamIds: ["t_marketing"],
+      matrixId: "matrix-standard",
+      status: "imtina",
+      rejectedReason: "Qiymətləndirici seçimi tələblərə uyğun deyil.",
+      startDate: "2026-01-01", endDate: "2026-12-31", frequency: "Aylıq", scoringSystem: "1-10",
+      targets: [
+        { id: "tg-5a", name: "ROI faizi", type: "Faiz", weight: 100, scoreLimit: 10 },
+      ],
+      execution: {},
+      history: [
+        { ts: now, actor: "e1", action: "created:tesdiq_gozlenilir" },
+        { ts: now, actor: "HR Direktoru", action: "status:imtina", note: "Qiymətləndirici seçimi tələblərə uyğun deyil." },
+      ],
+      createdAt: now, updatedAt: now,
+    },
   ];
 }
+

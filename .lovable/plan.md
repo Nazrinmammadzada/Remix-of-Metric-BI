@@ -1,51 +1,86 @@
-# KPI Kartları — Kompleks Yeniləmə Planı
+# KPI Kartı və Modul Təkmilləşdirmələri Planı
 
-Aşağıdakı 6 dəyişiklik ayrı-ayrı fayllara toxunur. Hamısını bir turda edəcəm, amma böyük fayllar olduğu üçün sizin təsdiqiniz gərəkdir.
+Bu böyük tələb 4 əsas hissəyə bölünür. Aşağıdakı ardıcıllıqla implementasiya olunacaq.
 
-## 1) Wizard Addım 2 — "Vahid şəxs" panelinin sadələşdirilməsi
-**Fayl:** `src/components/kpi/CreateKpiWizard.tsx`
-- Yuxarı hissədəki "Sub-KPI-lar / Qiymətləndirici / Təyin edici" xülasə kartlarını, "Toplam çəki %"-i və "Yeni +" düyməsini silirik.
-- Yalnız **"Vahid şəxs (bütün hədəflər üçün)"** paneli qalır. "Seç" düyməsi kliklənərkən kiçik popup açılır — orada çəki bölgüsü ilə **Qiymətləndirici(lər)** və **Təyin edici** seçilir.
-- Vahid seçimdə seçilən şəxslər bütün hədəflərə **məcburi default** olur — hədəf səviyyəsində şəxsi dəyişmək mümkün olmur (input disable + tooltip).
+## 1. KPI Yaratma Wizard – 2-ci Addım (Hədəflər)
 
-## 2) Hədəf daxilində qiymətləndirici/təyin edici seçimi — minimal görünüş
-- Hədəfin daxilindəki "Qiymətləndirici seç / Təyin edici seç" bloklarını **inline dropdown chip**-lərinə çeviririk (bir sətir, hər biri dar). Ayrıca panel yer tutmasın.
+- **Hədəf növünə uyğun dəyər sahəsi əlavə et:**
+  - Növ seçildikdən sonra `Hədəf dəyəri` sahəsi görünsün.
+  - `Məbləğ` → rəqəm + valyuta seçimi
+  - `Faiz` → 0-100 rəqəm
+  - `Rəqəm/Say` → sərbəst rəqəm
+  - `Vaxt/Müddət` → gün/saat
+  - `Keyfiyyət/Mətn` → mətn sahəsi
+- **Təyin edici məntiqi:** "Özüm təyin edirəm" → HR dəyəri yazır (aktiv). "Digər əməkdaş" → sahə deaktivdir (təyin edici sonradan yazacaq).
 
-## 3) Yeni "ləğv olundu" statusu + imtina davranışı
-**Fayllar:** `src/lib/kpiCardStatusStore.ts`, `src/pages/KpiCardsPage.tsx`, `src/components/kpi/SharedKpiPanel.tsx`, `src/lib/kpiCardStore.ts`
-- `KpiCardStatus` və `SharedKpiStatus` tiplərinə `"legv_olundu"` əlavə edirik + label ("Ləğv olundu") və qara/tünd stil.
-- **İmtina olunmuş kart**: daxilində imtina səbəbi göstərilir; HR "Redaktə" edə bilər; kart **son halında** görünür (bütün hədəflər/çəkilər/təyinedicilər dolu). Ayrıca "Ləğv et" düyməsi — status `legv_olundu` olur.
-- HR başqa təyinedicinin hədəfini redaktə edərsə, `notificationsStore` üzərindən həmin təyinedicilərə bildiriş göndərilir: `"{KPI ad} kartında yazdığınız {hədəf} hədəfində dəyişiklik olundu"`.
-- **Miqrasiya**: `kpi_card_status_enum`-a `legv_olundu` dəyəri əlavə olunur.
+## 2. KPI Kartları Cədvəli (KpiCardsPage)
 
-## 3b) KPI-lar modulunda status dropdown-u
-- `KpiCardsPage.tsx`-də status filter dropdown-u və cədvəldəki status sütunu eyni 5 dəyəri (Qaralama, Təsdiq gözlənilir, İmtina, Aktiv, Ləğv olundu) göstərsin.
+- **İmtina data:** 2 hazır `imtina` statuslu kart əlavə et — hər biri bütün sahələr (hədəflər, təyin edici, qiymətləndirici, matris) ilə dolu; redaktə açıldıqda wizard tam məlumatla açılsın.
+- **Təyinat növü seçimləri:** `Komanda / Fərdi` → **`Toplu / Fərdi`**. Wizardda `Toplu` seçildikdə: Struktur / Vəzifə / Şəxs / Komanda alt seçimlər.
+- **Filterlər:** "Komanda axtarış" filterini sil. Təyinat növü filterinə əsasən dinamik sub-filter göstər (məs: Toplu-Komanda seçildikdə komanda dropdown-u).
+- **Ləğv məntiqi:** İmtina kartını "Ləğv et" edəndə status `imtina` deyil, `legv_olundu` olsun.
 
-## 4) Kart siyahısı — sütun və filter dəyişiklikləri
-`KpiCardsPage.tsx`:
-- **Silin**: `Tip`, `Məsul`, `Hədəf` sütunları.
-- **Əlavə edin**: `Yaranma tarixi`, `Təyinat növü` (Fərdi / Komanda / Struktur / Vəzifə / Şəxs).
-- **Filter**: hazırkı "yalnız komanda" filteri əvəzinə çoxlu təyinat növü seçimi (bütün mode-lar üçün).
+## 3. Qiymətləndirici Seçim Dialoqu (ilk versiya bərpası)
 
-## 5) Wizard — "digər əməkdaş təyin edir" davranışı
-`CreateKpiWizard.tsx`:
-- Hədəfdə `createdBy === "other"` olduqda **"Qiymətlər" düyməsi disabled** olur.
-- `canNext` funksiyasında: əgər hər hansı hədəf `other`-dirsə, çəki cəmi 100% olmasa da irəli getməyə icazə verilir (yalnız `self` hədəflərin çəki cəmi validasiya edilir).
+`ScoreLimitsDialog` / evaluator seçici 4 tab-lı görünüşə qaytarılacaq:
+- **Komanda daxili** — cari kartın komandası üzvləri
+- **Konkret şəxs** — bütün aktiv əməkdaşlar (axtarışla)
+- **Özü** — kartın sahibi
+- **İnteqrasiya** — sistem inteqrasiyaları (CRM, ERP, HRIS və s.)
 
-## 6) "Əməkdaşlar üzrə" görünüş
-`src/pages/KpiHubPage.tsx` və/və ya yeni `src/components/kpi/EmployeesKpiView.tsx`:
-- Dondurulmuş kartları çıxarırıq; 1-2 nəfərə əlavə mock KPI kartı əlavə edirik ki, ən azı bir neçəsi 2+ karta sahib olsun.
-- Cədvəl: **Şəxs adı**, **Karların sayı**, **Eye ikonu**. Eye kliklənərkən — həmin şəxsə aid bütün kartların siyahısı olan modal açılır, hər sətir "Bax" düyməsi ilə KPI kart detalına yönləndirir.
+Hər tab-ın daxili mock data ilə doldurulacaq.
 
-## 7) Əvvəlki modulların geri qaytarılması
-**Fayllar:** `src/App.tsx`, `src/components/layout/Sidebar.tsx`, `src/lib/modulePermissions.ts`
-- `EvaluationPage` (Qiymətləndirmə) və `KpiSetPage` (KPI Set) route-larını və sidebar bəndlərini bərpa edirik.
+## 4. Default Data (boş cədvəllər probleminin həlli)
 
----
+Aşağıdakı səhifələrə default (bugünkü / cari dövr) seçimi ilə cədvəl dolu gəlsin:
+- `SalaryPage` (əməkhaqqı bazası) — cari ay default seçili
+- `KpiScoresPage` (KPI nəticələri) — cari rüb default
+- `BonusPage` (Bonuslar) — cari il default
+- Boş `mockData` massivlərinə seed əlavə et (əgər lazımdırsa).
 
-## Texniki qeydlər
-- Yeni status enum dəyəri üçün Lovable Cloud miqrasiyası lazımdır (`ALTER TYPE kpi_card_status_enum ADD VALUE 'legv_olundu'`).
-- Bildirişlər üçün mövcud `notificationsStore.ts` istifadə olunur.
-- Vahid seçim məcburiliyi — hədəf field-ləri `disabled` + placeholder mətni ilə göstərilir.
+## 5. "Sub-KPI" → "Hədəf" Terminologiya Dəyişikliyi (bütün modullarda)
 
-Təsdiq edin, dərhal başlayım.
+- `BscScorecardTab`, `KpiExtraTabs`, `KpiSetPage`, `EvaluationPage`, `KpiEvaluationSection`, `LifecycleDetailDialog` və digər istifadələr rename olunsun.
+
+## 6. Kart Daxili (Detail Modal) — Bütün Tab-lar
+
+**Ümumi (Overview) tab:**
+- Kart hədəfləri siyahısı (ad, çəki, dəyər, təyin edici, qiymətləndirici)
+- Məsul şəxs = kartı yaradan profil (departament göstərmə)
+- Təyinatın həm növü, həm konkret adı (məs: "Toplu — Satış Departamenti")
+- Ümumi hədəf / cari dəyər sil
+- Tezlik sahəsi sil
+- **Detallar tab** tamamilə sil
+
+**Balanced Scorecard tab:**
+- Sil: Perspektiv, Çəki, KPI adı sətri
+- Sil: Hədəf/Nəticə/İcra Faizi/Bal kartları
+- Sil: Qiymətləndirmə şkalası, Hesablama düsturu, Nümunə, Ümumi BSC Balı
+- Saxla: "Sub-KPI-lar" bölməsi → adı **"Hədəflər"** olsun, hər hədəfin ballarını göstər (limits necə var elə).
+
+**Performans Analitikası tab:** tamamilə sil.
+
+**Tarixçə tab:** Kartın kiçik hədəflərinə (targets) uyğun məlumat göstər — ümumi hədəf üzərində deyil.
+
+**Komanda tab → "KPI Üzvləri":** ad dəyiş, məzmun dəyiş. Kartın qəbul edicilərini və qiymətləndiricilərini göstər — bəzi kartlarda eyni vəzifəlilər, bəzilərində müxtəlif rollu üzvlər olacaq (mock differentiation).
+
+**Status tab → "Təsdiqləmə Zənciri":** ad dəyiş (məzmun matrix zənciri qalır).
+
+**Yeni Status tab əlavə et:** hər hədəf üzrə kimin `set` etdiyi (təyin edici) və kimin hələ set etmədiyini, cari statusuna görə (natamam / gözləyir / təsdiqlənib / imtina) göstər.
+
+## 7. Modullararası Sinxronizasiya
+
+`kpiCardStore`, `sharedKpiCards`, `kpiEvaluationStore`, `salaryStore`, `bonusStore` üzərində `useEffect + storage event` yenilənməsini yoxla — bir moduldakı əlavə/silmə digərində əks olunsun (əsasən artıq var, çatışmayan yerləri bağla).
+
+## Texniki Detallar
+
+- Yeni status enum dəyəri: `legv_olundu` (`kpiCardStatusStore.ts`).
+- `CreateKpiWizard` – `WizardHedef` interfeysinə `targetValue: string`, `targetUnit?: string` əlavə et.
+- `BscScorecardTab` – trim və rename.
+- `KpiExtraTabs` – tab siyahısını yenilə: Ümumi | BSC | Hədəflər (yeni) | Set Statusu (yeni) | KPI Üzvləri | Təsdiqləmə Zənciri | Tarixçə. (Detallar və Performans Analitikası silinir.)
+- Filterlər `KpiCardsPage` daxilində conditional dropdown-a çevrilir.
+- İmtina seed data `kpiCardStore` seed-ə əlavə olunur.
+
+## Sual
+
+Bu 7 hissə çox həcmlidir. Hamısını bir dəfəyə tətbiq edim, yoxsa (a) Wizard + Cədvəl + İmtina data, (b) Detail Modal tabları, (c) Digər modullar default data — deyə mərhələlərlə addım-addım gedim ki, siz hər addımdan sonra yoxlaya biləsiniz?
