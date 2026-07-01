@@ -55,7 +55,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      kpi_card_status_enum: "natamam" | "tesdiq_gozlenilir" | "imtina" | "aktiv"
+      kpi_card_status_enum:
+        | "natamam"
+        | "tesdiq_gozlenilir"
+        | "imtina"
+        | "aktiv"
+        | "legv_olundu"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -183,7 +188,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      kpi_card_status_enum: ["natamam", "tesdiq_gozlenilir", "imtina", "aktiv"],
+      kpi_card_status_enum: [
+        "natamam",
+        "tesdiq_gozlenilir",
+        "imtina",
+        "aktiv",
+        "legv_olundu",
+      ],
     },
   },
 } as const

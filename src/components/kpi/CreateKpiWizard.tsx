@@ -196,7 +196,7 @@ const emptyHedef = (): WizardHedef => ({
 
 const STEPS = [
   { n: 1, title: "Əsas məlumatlar", sub: "KPI adı, dövr, tarixlər və lifecycle", icon: Sparkles },
-  { n: 2, title: "Hədəflər", sub: "Hədəf növləri, çəkilər, qiymətləndirici və təyin edici", icon: TargetIcon },
+  { n: 2, title: "Hədəflər", sub: "KPI hədəflərini təyin edin", icon: TargetIcon },
   { n: 3, title: "Yekun və təsdiq", sub: "Bütün məlumatları nəzərdən keçirin və yadda saxlayın", icon: ClipboardList },
 ];
 const TOTAL_STEPS = STEPS.length;
@@ -452,13 +452,14 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
     if (t.createdBy === "other") {
       if (!t.assigner) return `"${t.name}" üçün Təyin edici seçilməlidir`;
+      // "other" mode: only assigner needed; evaluators & scores are filled by that person later
+      return null;
     }
     if (t.evaluators.length === 0) return `"${t.name}" üçün ən az 1 Qiymətləndirici seçin`;
     if (t.evaluators.length > 1) {
       const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
       if (sum !== 100) return `"${t.name}": qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`;
     }
-    if (t.createdBy === "other") return null;
 
     // === Qiymətlər (məcburi 5/2 və ya 10/4) — bütün hədəf növləri ===
     const max = scoreMax || 5;
@@ -496,9 +497,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         return !!draft.name.trim() && !!draft.frequency && !!draft.startDate && !!draft.endDate
           && draft.endDate >= draft.startDate && !!draft.scoringSystem && lifecycleOk;
       }
-      case 2:
-        return draft.targets.length > 0 && totalWeight === 100
+      case 2: {
+        const hasOther = draft.targets.some(t => t.createdBy === "other");
+        const weightOk = hasOther ? true : totalWeight === 100;
+        return draft.targets.length > 0 && weightOk
           && draft.targets.every(t => validateHedef(t) === null);
+      }
       case 3: return true;
       default: return false;
     }
@@ -991,39 +995,53 @@ function Step2Targets({
   applyEvaluatorsToAll: (evs: WizardEvaluatorRef[]) => void;
   applyAssignerToAll: (n: string) => void;
 }) {
-  // Unified picker for "vahid təyinedici / qiymətləndirici"
+  // Unified picker for "vahid təyinedici / qiymətləndirici" — Dialog popup
   const [unifiedOpen, setUnifiedOpen] = useState(false);
   const [unifiedAssigner, setUnifiedAssigner] = useState<string>("");
   const [unifiedEvaluators, setUnifiedEvaluators] = useState<WizardEvaluatorRef[]>([]);
+  // Applied markers — once applied, target-level pickers are locked
+  const [unifiedAssignerApplied, setUnifiedAssignerApplied] = useState<string>("");
+  const [unifiedEvaluatorsApplied, setUnifiedEvaluatorsApplied] = useState<WizardEvaluatorRef[]>([]);
   const [scoreDlgFor, setScoreDlgFor] = useState<string | null>(null);
   const [assignerPickerFor, setAssignerPickerFor] = useState<string | null>(null);
   const [evalPickerFor, setEvalPickerFor] = useState<string | null>(null);
 
   const scoreDlgTarget = draft.targets.find(t => t.id === scoreDlgFor) || null;
+  const unifiedActive = !!unifiedAssignerApplied || unifiedEvaluatorsApplied.length > 0;
 
   return (
     <div className="space-y-3">
-      {/* Vahid seçim — şəkil 1 stilində */}
-      <div className="rounded-xl border border-sky-200 bg-sky-50/60 dark:bg-sky-950/20 dark:border-sky-900 px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-foreground">Sub-kpi-lar, qiymətləndirici və təyin edicilər</h3>
-          <div className="flex items-center gap-3 text-xs">
-            <span className={`font-medium ${totalWeight === 100 ? "text-emerald-600" : "text-amber-600"}`}>Toplam çəki: {totalWeight}%</span>
-            <button type="button" onClick={addHedef} className="text-primary font-medium hover:underline">+ Yeni</button>
-          </div>
+      {/* Vahid şəxs (bütün hədəflər üçün) */}
+      <div className="rounded-lg bg-white dark:bg-background border border-sky-200 dark:border-sky-900 px-3 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-foreground">
+          <UserPlus className="w-4 h-4 text-sky-600" />
+          <span className="font-medium">Vahid şəxs</span>
+          <span className="text-xs text-muted-foreground">(bütün hədəflər üçün)</span>
+          {unifiedActive && (
+            <span className="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">Tətbiq edilib</span>
+          )}
         </div>
-        <div className="rounded-lg bg-white dark:bg-background border border-sky-100 dark:border-sky-900 px-3 py-2.5 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-foreground">
-            <UserPlus className="w-4 h-4 text-sky-600" />
-            Vahid şəxs (bütün sub-KPI-lar üçün)
-          </div>
-          <button type="button" onClick={() => setUnifiedOpen(o => !o)}
+        <div className="flex items-center gap-2">
+          {unifiedActive && (
+            <button type="button" onClick={() => {
+              setUnifiedAssignerApplied(""); setUnifiedEvaluatorsApplied([]);
+              setUnifiedAssigner(""); setUnifiedEvaluators([]);
+              toast("Vahid seçim sıfırlandı — indi hər hədəf üçün ayrıca seçim edə bilərsiniz");
+            }} className="px-3 py-1 text-xs rounded-full border border-border bg-background hover:bg-secondary">Sıfırla</button>
+          )}
+          <button type="button" onClick={() => setUnifiedOpen(true)}
             className="px-4 py-1.5 text-sm rounded-full border border-border bg-background hover:bg-secondary">
             Seç
           </button>
         </div>
-        {unifiedOpen && (
-          <div className="mt-2.5 rounded-lg bg-white dark:bg-background border border-sky-100 dark:border-sky-900 p-3 space-y-3">
+      </div>
+
+      <Dialog open={unifiedOpen} onOpenChange={setUnifiedOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><UserPlus className="w-5 h-5 text-sky-600" /> Vahid şəxs seçimi</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici</label>
               <select value={unifiedAssigner} onChange={e => setUnifiedAssigner(e.target.value)}
@@ -1033,54 +1051,46 @@ function Step2Targets({
               </select>
             </div>
             <div>
-              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) — faiz cəmi 100%</label>
+              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) — çəkilər cəmi 100%</label>
               <UnifiedEvaluatorsEditor
                 employeeOptions={employeeOptions}
                 evaluators={unifiedEvaluators}
                 onChange={setUnifiedEvaluators}
               />
             </div>
-            <div className="flex items-center justify-end gap-2">
-              <button type="button" onClick={() => setUnifiedOpen(false)}
-                className="px-3 py-1.5 text-xs rounded border border-border bg-card">Ləğv et</button>
-              <button type="button"
-                disabled={draft.targets.length === 0 || (!unifiedAssigner && unifiedEvaluators.length === 0)}
-                onClick={() => {
-                  if (unifiedEvaluators.length > 1) {
-                    const sum = unifiedEvaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
-                    if (sum !== 100) { toast.error(`Qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
-                  }
-                  if (unifiedAssigner) applyAssignerToAll(unifiedAssigner);
-                  if (unifiedEvaluators.length > 0) applyEvaluatorsToAll(unifiedEvaluators);
-                  toast.success(`${draft.targets.length} hədəfə tətbiq edildi`);
-                  setUnifiedOpen(false);
-                }}
-                className="px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
-                Hamısına tətbiq et
-              </button>
-            </div>
           </div>
-        )}
-      </div>
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+            <button type="button" onClick={() => setUnifiedOpen(false)}
+              className="px-3 py-1.5 text-xs rounded border border-border bg-card">Ləğv et</button>
+            <button type="button"
+              disabled={draft.targets.length === 0 || (!unifiedAssigner && unifiedEvaluators.length === 0)}
+              onClick={() => {
+                if (unifiedEvaluators.length > 1) {
+                  const sum = unifiedEvaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+                  if (sum !== 100) { toast.error(`Qiymətləndiricilərin faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+                }
+                if (unifiedAssigner) { applyAssignerToAll(unifiedAssigner); setUnifiedAssignerApplied(unifiedAssigner); }
+                if (unifiedEvaluators.length > 0) { applyEvaluatorsToAll(unifiedEvaluators); setUnifiedEvaluatorsApplied(unifiedEvaluators); }
+                toast.success(`${draft.targets.length} hədəfə tətbiq edildi`);
+                setUnifiedOpen(false);
+              }}
+              className="px-4 py-1.5 text-xs rounded bg-primary text-primary-foreground disabled:opacity-50">
+              Hamısına tətbiq et
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">KPI Hədəfləri</h3>
-          <p className="text-xs text-muted-foreground">Ümumi çəki 100% olmalıdır</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${totalWeight === 100 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
-            Ümumi çəki: {totalWeight}%
-          </span>
-          <button type="button" onClick={addHedef} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
-            <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
-          </button>
-        </div>
-      </div>
+
 
       {draft.targets.length === 0 && (
-        <div className="text-center py-12 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
-          Hələ hədəf əlavə edilməyib — "Hədəf əlavə et" düyməsindən başlayın.
+        <div className="text-center py-8 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
+          Hələ hədəf əlavə edilməyib.
+          <div className="mt-3">
+            <button type="button" onClick={addHedef} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground">
+              <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
+            </button>
+          </div>
         </div>
       )}
 
@@ -1144,54 +1154,51 @@ function Step2Targets({
               </div>
               <div className="col-span-6 md:col-span-2 flex items-end">
                 <button type="button" onClick={() => setScoreDlgFor(t.id)}
-                  className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1">
+                  disabled={isOther}
+                  title={isOther ? "Digər əməkdaş təyin edir — qiymətləri o dolduracaq" : ""}
+                  className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
                   <Star className="w-3.5 h-3.5" /> Qiymətlər
                 </button>
               </div>
             </div>
 
-            {/* Qiymətləndirici / Təyin edici — image-2 stilində dashed pill buttons */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Qiymətləndirici seç */}
-              <div className="flex flex-col gap-1">
-                <button type="button"
-                  onClick={() => setEvalPickerFor(evalPickerFor === t.id ? null : t.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border-2 border-dashed border-indigo-400 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30">
-                  <UserPlus className="w-4 h-4" /> Qiymətləndirici seç
-                  {t.evaluators.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-indigo-100 text-indigo-700">{t.evaluators.length}</span>}
-                </button>
-                {t.evaluators.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {t.evaluators.map(ev => (
-                      <span key={ev.id} className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-indigo-50 text-indigo-700 rounded">
-                        {ev.name.split(" — ")[0]}{t.evaluators.length > 1 && ` (${ev.weight}%)`}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Qiymətləndirici / Təyin edici — minimal inline pill row */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {/* Qiymətləndirici */}
+              <button type="button"
+                onClick={() => { if (!unifiedEvaluatorsApplied.length) setEvalPickerFor(evalPickerFor === t.id ? null : t.id); }}
+                disabled={unifiedEvaluatorsApplied.length > 0}
+                title={unifiedEvaluatorsApplied.length > 0 ? "Vahid seçimdən təyin edilib" : ""}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full border border-dashed transition ${
+                  unifiedEvaluatorsApplied.length > 0
+                    ? "border-indigo-300 bg-indigo-50 text-indigo-600 cursor-not-allowed opacity-80 dark:bg-indigo-950/30"
+                    : "border-indigo-400 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                }`}>
+                <UserPlus className="w-3 h-3" />
+                Qiymətləndirici
+                {t.evaluators.length > 0 && <span className="ml-0.5 truncate max-w-[140px]">: {t.evaluators.map(e => e.name.split(" — ")[0]).join(", ")}</span>}
+              </button>
 
-              {/* Təyin edici seç — only when "other" */}
+              {/* Təyin edici — only when "other" */}
               {isOther && (
-                <div className="flex flex-col gap-1">
-                  <button type="button"
-                    onClick={() => setAssignerPickerFor(assignerPickerFor === t.id ? null : t.id)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-full border-2 border-dashed border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30">
-                    <UserPlus className="w-4 h-4" /> Təyin edici seç
-                    {t.assigner && <Check className="w-3.5 h-3.5 text-emerald-600" />}
-                  </button>
-                  {t.assigner && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-amber-50 text-amber-700 rounded w-fit">
-                      {t.assigner.split(" — ")[0]}
-                      <X className="w-3 h-3 cursor-pointer" onClick={() => updHedef(t.id, { assigner: "" })} />
-                    </span>
-                  )}
-                </div>
+                <button type="button"
+                  onClick={() => { if (!unifiedAssignerApplied) setAssignerPickerFor(assignerPickerFor === t.id ? null : t.id); }}
+                  disabled={!!unifiedAssignerApplied}
+                  title={unifiedAssignerApplied ? "Vahid seçimdən təyin edilib" : ""}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full border border-dashed transition ${
+                    unifiedAssignerApplied
+                      ? "border-amber-300 bg-amber-50 text-amber-700 cursor-not-allowed opacity-80 dark:bg-amber-950/30"
+                      : "border-amber-500 text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                  }`}>
+                  <UserPlus className="w-3 h-3" />
+                  Təyin edici
+                  {t.assigner && <span className="ml-0.5 truncate max-w-[140px]">: {t.assigner.split(" — ")[0]}</span>}
+                </button>
               )}
             </div>
 
             {/* Qiymətləndirici inline picker */}
-            {evalPickerFor === t.id && (
+            {evalPickerFor === t.id && !unifiedEvaluatorsApplied.length && (
               <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 dark:bg-indigo-950/20 p-2.5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) {t.evaluators.length > 1 && <span className="text-amber-600">— faiz cəmi 100%</span>}</span>
@@ -1206,7 +1213,7 @@ function Step2Targets({
             )}
 
             {/* Təyin edici inline picker */}
-            {isOther && assignerPickerFor === t.id && (
+            {isOther && assignerPickerFor === t.id && !unifiedAssignerApplied && (
               <div className="rounded-lg border border-amber-200 bg-amber-50/40 dark:bg-amber-950/20 p-2.5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici *</span>
@@ -1242,6 +1249,15 @@ function Step2Targets({
           </div>
         );
       })}
+
+      {draft.targets.length > 0 && (
+        <div className="flex justify-end pt-1">
+          <button type="button" onClick={addHedef} className="inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-dashed border-primary/40 text-primary hover:bg-primary/5">
+            <Plus className="w-3.5 h-3.5" /> Hədəf əlavə et
+          </button>
+        </div>
+      )}
+
 
       {/* Qiymətlər dialog */}
       {scoreDlgTarget && (

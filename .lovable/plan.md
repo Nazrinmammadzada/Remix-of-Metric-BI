@@ -1,98 +1,51 @@
-# Modullararası Əlaqə və Panel Scoping Planı
+# KPI Kartları — Kompleks Yeniləmə Planı
 
-Məqsəd: HR (Admin), Rəhbər (Manager) və User (Əməkdaş) panelləri arasında **tək həqiqət mənbəyi** (single source of truth) qurmaq, hər panelin ancaq öz görməli olduğu məlumatı görməsini təmin etmək və modullar arasında dəyişikliklərin real-time əks olunmasını təmin etmək.
+Aşağıdakı 6 dəyişiklik ayrı-ayrı fayllara toxunur. Hamısını bir turda edəcəm, amma böyük fayllar olduğu üçün sizin təsdiqiniz gərəkdir.
 
-## 1. Mərkəzi Data Modeli (mock + persistence)
+## 1) Wizard Addım 2 — "Vahid şəxs" panelinin sadələşdirilməsi
+**Fayl:** `src/components/kpi/CreateKpiWizard.tsx`
+- Yuxarı hissədəki "Sub-KPI-lar / Qiymətləndirici / Təyin edici" xülasə kartlarını, "Toplam çəki %"-i və "Yeni +" düyməsini silirik.
+- Yalnız **"Vahid şəxs (bütün hədəflər üçün)"** paneli qalır. "Seç" düyməsi kliklənərkən kiçik popup açılır — orada çəki bölgüsü ilə **Qiymətləndirici(lər)** və **Təyin edici** seçilir.
+- Vahid seçimdə seçilən şəxslər bütün hədəflərə **məcburi default** olur — hədəf səviyyəsində şəxsi dəyişmək mümkün olmur (input disable + tooltip).
 
-Bütün modullar üçün ortaq `src/lib/` store-ları genişləndiriləcək. Hər biri `localStorage` + custom event ilə işləyir ki, bir paneldə dəyişiklik o biri panelə dərhal yansısın (artıq mövcud pattern, məs. `cascadeMatrixStore`).
+## 2) Hədəf daxilində qiymətləndirici/təyin edici seçimi — minimal görünüş
+- Hədəfin daxilindəki "Qiymətləndirici seç / Təyin edici seç" bloklarını **inline dropdown chip**-lərinə çeviririk (bir sətir, hər biri dar). Ayrıca panel yer tutmasın.
 
-Yeni / yenilənəcək store-lar:
-- `orgStore.ts` — strukturlar (departament/şöbə) + hər birinə bağlı **rəhbər (managerId)** və üzv `employeeIds[]`.
-- `teamsStore.ts` — komandalar + `leaderId` (rəhbər) + `memberIds[]` + `structureId`.
-- `mockData.ts` — hər əməkdaşa `id`, `managerId`, `structureId`, `teamIds[]`, `role` (HR/MANAGER/USER) əlavə.
-- `matrixStore.ts` — Təsdiqləmə Matrisi: hər matris bir neçə **approver** (rəhbər) saxlayır + matrisə bağlı KPI kartları siyahısı.
-- `kpiCardStore.ts` (yeni, mövcud `kpiCardStatusStore`-u tamamlayır) — KPI kartının tam snapshot-u: `ownerId`, `assigneeIds[]`, `evaluatorIds[]`, `matrixId`, `targets[]`, status, lifecycle nöqtəsi.
-- `approvalsStore.ts` — sistem təsdiq queue: kart matrisə göndəriləndə avtomatik bu store-a düşür, matrisdəki rəhbərlər öz panellərində görür.
-- `notificationsStore.ts` — bildiriş feed-i (Hədəf təyini, təsdiq gözləyir, imtina, qəbul və s.).
+## 3) Yeni "ləğv olundu" statusu + imtina davranışı
+**Fayllar:** `src/lib/kpiCardStatusStore.ts`, `src/pages/KpiCardsPage.tsx`, `src/components/kpi/SharedKpiPanel.tsx`, `src/lib/kpiCardStore.ts`
+- `KpiCardStatus` və `SharedKpiStatus` tiplərinə `"legv_olundu"` əlavə edirik + label ("Ləğv olundu") və qara/tünd stil.
+- **İmtina olunmuş kart**: daxilində imtina səbəbi göstərilir; HR "Redaktə" edə bilər; kart **son halında** görünür (bütün hədəflər/çəkilər/təyinedicilər dolu). Ayrıca "Ləğv et" düyməsi — status `legv_olundu` olur.
+- HR başqa təyinedicinin hədəfini redaktə edərsə, `notificationsStore` üzərindən həmin təyinedicilərə bildiriş göndərilir: `"{KPI ad} kartında yazdığınız {hədəf} hədəfində dəyişiklik olundu"`.
+- **Miqrasiya**: `kpi_card_status_enum`-a `legv_olundu` dəyəri əlavə olunur.
 
-## 2. Rol əsaslı Scoping
+## 3b) KPI-lar modulunda status dropdown-u
+- `KpiCardsPage.tsx`-də status filter dropdown-u və cədvəldəki status sütunu eyni 5 dəyəri (Qaralama, Təsdiq gözlənilir, İmtina, Aktiv, Ləğv olundu) göstərsin.
 
-`src/lib/scope.ts` adlı yardımçı:
-- `getVisibleEmployees(user)` — HR: hamısı; MANAGER: `managerId === user.id` olan + öz; USER: yalnız özü.
-- `getVisibleTeams(user)` — HR: hamısı; MANAGER: `leaderId === user.id`; USER: üzv olduğu komandalar.
-- `getVisibleStructures(user)` — analoji.
-- `getVisibleKpiCards(user)` — HR: hamısı; MANAGER: rəhbəri olduğu adamlara aid kartlar + öz kartları + matrisdə approver olduğu kartlar; USER: `assigneeIds` daxilindədirsə.
-- `getVisibleApprovals(user)` — MANAGER: matris approver-i olduğu kartlar; HR: hamısı.
+## 4) Kart siyahısı — sütun və filter dəyişiklikləri
+`KpiCardsPage.tsx`:
+- **Silin**: `Tip`, `Məsul`, `Hədəf` sütunları.
+- **Əlavə edin**: `Yaranma tarixi`, `Təyinat növü` (Fərdi / Komanda / Struktur / Vəzifə / Şəxs).
+- **Filter**: hazırkı "yalnız komanda" filteri əvəzinə çoxlu təyinat növü seçimi (bütün mode-lar üçün).
 
-Bütün səhifə komponentləri data oxuyarkən bu funksiyalardan keçəcək.
+## 5) Wizard — "digər əməkdaş təyin edir" davranışı
+`CreateKpiWizard.tsx`:
+- Hədəfdə `createdBy === "other"` olduqda **"Qiymətlər" düyməsi disabled** olur.
+- `canNext` funksiyasında: əgər hər hansı hədəf `other`-dirsə, çəki cəmi 100% olmasa da irəli getməyə icazə verilir (yalnız `self` hədəflərin çəki cəmi validasiya edilir).
 
-## 3. KPI → Matris → Təsdiq axını
+## 6) "Əməkdaşlar üzrə" görünüş
+`src/pages/KpiHubPage.tsx` və/və ya yeni `src/components/kpi/EmployeesKpiView.tsx`:
+- Dondurulmuş kartları çıxarırıq; 1-2 nəfərə əlavə mock KPI kartı əlavə edirik ki, ən azı bir neçəsi 2+ karta sahib olsun.
+- Cədvəl: **Şəxs adı**, **Karların sayı**, **Eye ikonu**. Eye kliklənərkən — həmin şəxsə aid bütün kartların siyahısı olan modal açılır, hər sətir "Bax" düyməsi ilə KPI kart detalına yönləndirir.
 
-1. HR `CreateKpiWizard`-da matris seçir → kart yaranır, status `tesdiq_gozlenilir` → `approvalsStore.enqueue(cardId, matrixId)`.
-2. Matrisdəki hər rəhbər öz panelində `/manager/sistem-tesdiq` səhifəsində kartı görür (artıq mövcud route, indi data ilə qoşulur).
-3. Rəhbər **Təsdiq** edirsə → kart status `aktiv`; **İmtina** edirsə → `imtina` + səbəb. Hər iki halda HR `/sistem-tesdiq` və KPI cədvəlində dərhal əks olunur (eyni store + event).
-4. Aktiv olduqda `assigneeIds`-dəki user-lər öz `/user/kpi-kartlari` səhifəsində kartı görür və icra statusu (Hədəf təyinlərinin izlənilməsi) verə bilirlər.
+## 7) Əvvəlki modulların geri qaytarılması
+**Fayllar:** `src/App.tsx`, `src/components/layout/Sidebar.tsx`, `src/lib/modulePermissions.ts`
+- `EvaluationPage` (Qiymətləndirmə) və `KpiSetPage` (KPI Set) route-larını və sidebar bəndlərini bərpa edirik.
 
-## 4. Modullar üzrə qoşulmalar
+---
 
-| Modul | HR | Rəhbər | User |
-|---|---|---|---|
-| Təşkilat | bütün struktur idarəsi | yalnız öz şöbə/komanda | — |
-| KPİ-lar | bütün kartlar | öz komandasının + matris approver | yalnız təyin olunduğu |
-| Hədəf izləmə | hamısı | öz tabesindəkilər | yalnız özü; status yeniləyir |
-| KPI lifecycle | hamısı | öz tabe | öz |
-| KPI Nəticələri | hamısı | öz tabe + öz | öz |
-| Cascading | hamısı | yalnız oxu (öz əhatəsi) | — |
-| Təsdiqləmə Matrisi | yaradır/redaktə | seçici (görür kimə düşür) | — |
-| Sistem Təsdiq | hamısı | yalnız matris approver olduğu | yalnız özünə aid |
-| Hesabatlar | hamısı | öz əhatə | öz |
-| Anonim Bildiriş | header sağ; hamısı oxuya bilər (HR only). | göndərir + öz şikayətləri | göndərir |
-| Bonuslar | hamısı | öz tabe + öz | öz |
-| Komandalar | hamısı | öz | yalnız üzv olduğu |
-| Əməkhaqqı | HR-only | (giriş yoxdur) | (yoxdur) |
+## Texniki qeydlər
+- Yeni status enum dəyəri üçün Lovable Cloud miqrasiyası lazımdır (`ALTER TYPE kpi_card_status_enum ADD VALUE 'legv_olundu'`).
+- Bildirişlər üçün mövcud `notificationsStore.ts` istifadə olunur.
+- Vahid seçim məcburiliyi — hədəf field-ləri `disabled` + placeholder mətni ilə göstərilir.
 
-## 5. Mock data
-
-`src/data/mockData.ts` genişləndiriləcək:
-- 3 struktur (Satış, IT, Maliyyə) — hər birinin bir rəhbəri.
-- 3 komanda — hər birinə bir leader (mövcud `manager@kpi.az` Satış rəhbəri olur).
-- 16 əməkdaşın `managerId`/`teamIds` doldurulur.
-- 4 hazır KPI kartı: 2 aktiv (Satış komandasına), 1 təsdiq gözləyən (matrisdə Satış rəhbəri approver), 1 natamam draft.
-- 2 hazır matris: "Satış Matrisi" (approver = Satış rəhbəri), "İT Matrisi".
-
-## 6. Reaktivlik
-
-Hər store mövcud pattern-i izləyir:
-```ts
-const EVT = "xxx-updated";
-save(): window.dispatchEvent(new Event(EVT));
-useStore(): useEffect → addEventListener(EVT) + "storage"
-```
-Beləliklə HR kartı təsdiqə göndərən kimi Rəhbər panelində açıq olan `/manager/sistem-tesdiq` saniyə içində yenilənir.
-
-## 7. Texniki addımlar (faylların əhatəsi)
-
-1. `src/data/mockData.ts` — sahə əlavələri + mock kart/matris seed.
-2. `src/lib/scope.ts` — yeni scoping helper.
-3. `src/lib/kpiCardStore.ts`, `src/lib/approvalsStore.ts`, `src/lib/notificationsStore.ts` — yeni store-lar.
-4. `src/lib/teamsStore.ts`, `src/lib/orgStore.ts`, `src/lib/matrixStore.ts` — leader/approver sahələri.
-5. `CreateKpiWizard.tsx` — submit həqiqi store-a yazır + matris seçildikdə approvals-a göndərir.
-6. `KpiCardsPage`, `UserKpiCardsPage`, `manager/mesul-kartlar` — scoped data oxuyur.
-7. `ApprovalsPage` (HR və Manager üçün eyni komponent, scope ilə fərqlənir).
-8. `GoalTrackingPage`, `KpiLifecyclePage`, `KpiScoresPage`, `BonusPage`, `TeamsPage`, `OrganizationPage`, `WhistleblowerPage` — scope tətbiqi.
-9. `ManagerHomePage`, `UserHomePage`, `HomePage` — dashboard kartları artıq real store-dan oxuyacaq.
-
-## 8. Test ssenarisi (manual)
-
-- HR olaraq KPI yarat → matris "Satış Matrisi" seç → submit.
-- Manager (`manager@kpi.az`) ilə daxil ol → `/manager/sistem-tesdiq`-də kart görünür → Təsdiq et.
-- HR-də status `Aktiv` olur, User panelində assignee öz kartını görür.
-- User `Hədəf izləmə` modulunda icra statusunu yeniləyir → HR və Manager-də dərhal əks olunur.
-
-## 9. Sahə xaricində qalanlar
-
-- Real-time Supabase sync (hələlik localStorage event-ləri kifayətdir; mövcud `kpi_card_status` cədvəli saxlanılır).
-- Yeni Supabase miqrasiyaları (bu addımda yoxdur; sırf frontend store + mock).
-- Səhifələrin vizual yenidən dizaynı — yalnız data bağlantısı.
-
-Təsdiq verirsənsə, dərhal həyata keçirməyə başlayıram.
+Təsdiq edin, dərhal başlayım.

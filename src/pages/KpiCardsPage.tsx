@@ -31,6 +31,15 @@ import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStor
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
+const STATUS_LABELS = { natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
+const STATUS_STYLES: Record<string, string> = {
+  natamam: "bg-muted text-muted-foreground border-border",
+  tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
+  imtina: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
+  aktiv: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  legv_olundu: "bg-slate-800 text-slate-100 border-slate-900",
+};
+
 interface EvaluatorPerson { name: string; weight: number; }
 interface EvaluatorConfig {
   type: "team" | "person" | "self" | "integration" | null;
@@ -134,7 +143,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 3, name: "Müştəri Əldə Etmə", icon: Users, zone: "green", target: "500", current: "485", unit: "Müştəri", progress: 97, minTarget: 75,
-    responsible: "Emin Məmmədov", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Yeni Müştəri / Hədəf × 100", generalTarget: "500 Müştəri",
+    responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Yeni Müştəri / Hədəf × 100", generalTarget: "500 Müştəri",
     department: "Marketinq", group: "Rəqəmsal Marketinq Qrupu", subdivision: "Marketinq Şöbəsi",
     startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 20, approvalStatus: "approved",
     description: "Yeni müştərilərin cəlb edilməsi üzrə hədəf.",
@@ -184,7 +193,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 6, name: "Əməliyyat Effektivliyi", icon: Settings2, zone: "green", target: "90%", current: "88%", unit: "", progress: 98, minTarget: 70,
-    responsible: "Kamran Quliyev", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Effektiv Əməliyyat / Ümumi × 100", generalTarget: "90%",
+    responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Effektiv Əməliyyat / Ümumi × 100", generalTarget: "90%",
     department: "Əməliyyatlar", group: "Əməliyyat Qrupu", subdivision: "Əməliyyat Şöbəsi",
     startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 5, approvalStatus: "pending",
     description: "Əməliyyat proseslərinin effektivlik göstəricisi.",
@@ -200,7 +209,7 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 7, name: "Fərdi: Şəxsi İnkişaf Planı", icon: UserCheck, zone: "green", target: "10", current: "8", unit: "Modul", progress: 80, minTarget: 70,
-    responsible: "Leyla Məmmədova", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 Modul",
+    responsible: "Leyla Həsənova", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 Modul",
     department: "Satış Departamenti", group: "Bakı Satış Qrupu", subdivision: "Satış Şöbəsi",
     startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 10, approvalStatus: "approved",
     description: "Əməkdaşın fərdi inkişaf modulları üzrə tamamlama göstəricisi.",
@@ -210,14 +219,14 @@ const initialKpiCards: KpiCard[] = [
   },
   {
     id: 8, name: "Fərdi: Layihə Töhfəsi (Arxiv)", icon: UserCheck, zone: "yellow", target: "5", current: "3", unit: "Layihə", progress: 60, minTarget: 60,
-    responsible: "Tural İsmayılov", period: "2025 - İllik", type: "Say Hədəfi", formula: "Tamamlanan Layihə / Hədəf × 100", generalTarget: "5 Layihə",
+    responsible: "Leyla Həsənova", period: "2025 - İllik", type: "Say Hədəfi", formula: "Tamamlanan Layihə / Hədəf × 100", generalTarget: "5 Layihə",
     department: "Əməliyyatlar", group: "Əməliyyat Qrupu", subdivision: "Əməliyyat Şöbəsi",
     startDate: "01.01.2025", endDate: "31.12.2025", frequency: "İllik", weight: 8, approvalStatus: "approved",
     description: "İşdən çıxmış əməkdaşın fərdi KPI kartı — status dondurulmuşdur.",
     team: [{ name: "Tural İsmayılov", role: "Proses Analitik", avatar: "T" }],
     history: [{ date: "Dekabr 2025", value: "3 Layihə", change: 0 }],
     isPersonal: true,
-    frozen: true,
+    frozen: false,
   },
 ];
 
@@ -319,7 +328,21 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const positionOptions = getPositions();
   const [kpiCards, setKpiCards] = useState<KpiCard[]>(() => {
     const deleted = getDeletedKpiIds();
-    return initialKpiCards.filter(c => !deleted.includes(c.id));
+    const base = initialKpiCards.filter(c => !deleted.includes(c.id));
+    // Demo: give a few employees multiple KPI cards for "Əməkdaşlar üzrə" view
+    const maxId = Math.max(0, ...base.map(c => c.id));
+    const clone = (src: KpiCard, id: number, patch: Partial<KpiCard>): KpiCard => ({ ...src, id, ...patch });
+    const samir = base.find(c => c.responsible === "Samir Həsənov");
+    const farid = base.find(c => c.responsible === "Farid Həsənov");
+    const extras: KpiCard[] = [];
+    if (samir) {
+      extras.push(clone(samir, maxId + 1, { name: "Rüblük Satış Artımı", progress: 72, target: "1.2M", current: "0.9M" }));
+      extras.push(clone(samir, maxId + 2, { name: "Müştəri Məmnuniyyəti", progress: 88, target: "90%", current: "82%", unit: "%" }));
+    }
+    if (farid) {
+      extras.push(clone(farid, maxId + 3, { name: "Yeni Kanal İnkişafı", progress: 55, target: "3", current: "1.5", unit: "kanal" }));
+    }
+    return [...base, ...extras];
   });
 
   // Sync deletions from Approval Matrix module
@@ -346,6 +369,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [filterGroup, setFilterGroup] = useState("Hamısı");
   const [filterTeamId, setFilterTeamId] = useState<number | null>(null);
   const [filterStatus, setFilterStatus] = useState("Hamısı");
+  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Komanda" | "Struktur" | "Vəzifə">("Hamısı");
   // zone filter removed
   const [searchText, setSearchText] = useState("");
   const [hoveredMinTarget, setHoveredMinTarget] = useState<number | null>(null);
@@ -486,6 +510,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   // === KPI card status (Natamam / Təsdiq gözlənilir / İmtina / Aktiv) ===
   const [statusMap, setStatusMap] = useState<Record<number, import("@/lib/kpiCardStatusStore").KpiCardStatusRow>>({});
   const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
+  const [employeeDrilldown, setEmployeeDrilldown] = useState<string | null>(null);
   useEffect(() => {
     import("@/lib/kpiCardStatusStore").then(m => m.fetchAllStatuses().then(setStatusMap));
   }, []);
@@ -607,6 +632,33 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
 
 
+  // Helpers for new columns
+  const getCreatedAtFor = (cardId: number): string => {
+    const st = statusMap[cardId] as any;
+    const s = (st?.updated_at as string | undefined) || undefined;
+    if (s) return s.slice(0, 10);
+    const draft = cardDrafts[cardId];
+    return (draft?.startDate) || "—";
+  };
+  const getAssignKindFor = (cardId: number): "Fərdi" | "Komanda" | "Struktur" | "Vəzifə" => {
+    const draft = cardDrafts[cardId];
+    if (!draft) {
+      // Legacy demo: map to Fərdi/Komanda based on team match
+      const card = kpiCards.find(c => c.id === cardId);
+      if (!card) return "Fərdi";
+      const teams = getTeams();
+      const inTeam = teams.some(t => [t.leader, ...t.members.map(m => m.name)].includes(card.responsible));
+      return inTeam ? "Komanda" : "Fərdi";
+    }
+    if (draft.mode === "individual") return "Fərdi";
+    // bulk mode — introspect selected buckets
+    const b: any = (draft as any).bulk || {};
+    if (b.teamIds?.length) return "Komanda";
+    if (b.structureIds?.length) return "Struktur";
+    if (b.positions?.length) return "Vəzifə";
+    return "Fərdi";
+  };
+
   const filteredCards = kpiCards.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase());
     let matchesTeam = true;
@@ -617,10 +669,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         matchesTeam = memberNames.includes(c.responsible);
       }
     }
-    const matchesStatus = filterStatus === "Hamısı" ||
-      (filterStatus === "Təsdiq gözləyən" && c.approvalStatus === "pending") ||
-      (filterStatus === "Təsdiq edilmiş" && c.approvalStatus === "approved");
-    return matchesSearch && matchesTeam && matchesStatus;
+    const st = getStatusFor(c.id);
+    const STATUS_LBL: Record<string, string> = {
+      natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+      imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
+    };
+    const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
+    const matchesKind = filterAssignKind === "Hamısı" || getAssignKindFor(c.id) === filterAssignKind;
+    return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
   const pickBscFormulaName = (types: string[]) => {
@@ -844,18 +900,32 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="KPI adı ilə axtar..." className="w-full pl-7 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
               </div>
             </div>
+            <div className="min-w-[160px]">
+              <label className="text-[11px] text-muted-foreground">Təyinat növü</label>
+              <select value={filterAssignKind} onChange={e => setFilterAssignKind(e.target.value as any)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+                <option>Hamısı</option>
+                <option>Fərdi</option>
+                <option>Komanda</option>
+                <option>Struktur</option>
+                <option>Vəzifə</option>
+              </select>
+            </div>
             <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Komanda</label>
               <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
             </div>
-            <div className="min-w-[160px]">
+            <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
-                {kpiStatusOptions.map(s => <option key={s}>{s}</option>)}
+                <option>Qaralama</option>
+                <option>Təsdiq gözlənilir</option>
+                <option>İmtina</option>
+                <option>Aktiv</option>
+                <option>Ləğv olundu</option>
               </select>
             </div>
-            <button onClick={resetFilters} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
+            <button onClick={() => { resetFilters(); setFilterAssignKind("Hamısı"); }} className="px-4 py-2 text-sm rounded-lg border border-border bg-card hover:bg-secondary">Sıfırla</button>
           </div>
         )}
 
@@ -864,13 +934,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
             {kartView === "kart1" && forcedKartView === "kart1" ? (() => {
               // Status-based table for "Kartlar üzrə"
-              const STATUS_LABELS = { natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv" } as const;
-              const STATUS_STYLES: Record<string, string> = {
-                natamam: "bg-muted text-muted-foreground border-border",
-                tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
-                imtina: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
-                aktiv: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
-              };
               return (
                 <div className="bg-card border border-border rounded-2xl p-5">
                   <div className="flex items-center justify-between mb-4 gap-3">
@@ -890,10 +953,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
                           <th className="py-2 px-2">Ad</th>
-                          <th className="py-2 px-2">Tip</th>
-                          <th className="py-2 px-2">Məsul</th>
+                          <th className="py-2 px-2">Təyinat növü</th>
+                          <th className="py-2 px-2">Yaranma tarixi</th>
                           <th className="py-2 px-2">Dövr</th>
-                          <th className="py-2 px-2">Hədəf</th>
                           <th className="py-2 px-2">Progress</th>
                           <th className="py-2 px-2">Status</th>
                           <th className="py-2 px-2">Əməliyyat</th>
@@ -901,22 +963,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </thead>
                       <tbody>
                         {filteredCards.length === 0 ? (
-                          <tr><td colSpan={8} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
+                          <tr><td colSpan={7} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
                         ) : filteredCards.map(card => {
                           const st = getStatusFor(card.id);
+                          const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
                           return (
                             <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
                               <td className="py-2 px-2 font-medium text-foreground">{card.name}</td>
-                              <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
-                              <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
+                              <td className="py-2 px-2 text-muted-foreground text-xs">{getAssignKindFor(card.id)}</td>
+                              <td className="py-2 px-2 text-muted-foreground text-xs">{getCreatedAtFor(card.id)}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
-                              <td className="py-2 px-2">{card.target} {card.unit}</td>
                               <td className="py-2 px-2">{card.progress}%</td>
                               <td className="py-2 px-2">
                                 <button
                                   onClick={() => st.status === "natamam" && setStatusDialogCardId(card.id)}
                                   className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center ${STATUS_STYLES[st.status]} ${st.status === "natamam" ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
-                                  title={st.status === "natamam" ? "Təyin edənləri gör" : ""}
+                                  title={st.status === "natamam" ? "Təyin edənləri gör" : (st.status === "imtina" ? `İmtina səbəbi: ${reason}` : "")}
                                 >
                                   {STATUS_LABELS[st.status]}
                                 </button>
@@ -958,6 +1020,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   >
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
+                                  {st.status === "imtina" && (
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!confirm(`"${card.name}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
+                                        try {
+                                          await upsertStatus({ card_id: card.id, status: "legv_olundu" as any, use_matrix: false, submitted_for_approval: false, assignees: [] });
+                                          const mod = await import("@/lib/kpiCardStatusStore");
+                                          const next = await mod.fetchAllStatuses();
+                                          setStatusMap(next);
+                                        } catch {}
+                                        toast.success("Kart ləğv olundu");
+                                        // Notify original assigners about cancellation
+                                        try {
+                                          const nmod = await import("@/lib/notificationsStore");
+                                          const draft = cardDrafts[card.id];
+                                          const assigners = new Set<string>();
+                                          draft?.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
+                                          assigners.forEach(a => nmod.pushNotification?.({
+                                            toEmployeeName: a, kind: "info",
+                                            message: `"${card.name}" KPI kartı HR tərəfindən tamamən ləğv olundu.`
+                                          } as any));
+                                        } catch {}
+                                      }}
+                                      title="Ləğv et"
+                                      className="p-1.5 rounded border border-slate-500/40 hover:bg-slate-500/10 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                   {st.status === "natamam" && (
                                     <button
                                       onClick={async (e) => {
@@ -1002,56 +1094,57 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center text-sm text-muted-foreground">Filtrə uyğun KPİ tapılmadı</div>;
               }
               return (
-                <div className="space-y-4">
-                  {entries.map(([person, cards]) => {
-                    const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
-                    const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
-                    return (
-                      <div key={person} className="rounded-2xl border border-border bg-card overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 via-secondary/40 to-transparent border-b border-border">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm shadow-sm">{initial}</div>
-                            <div>
-                              <h3 className="font-semibold text-foreground">{person}</h3>
-                              <p className="text-[11px] text-muted-foreground">{cards.length} KPİ · Ortalama progress {avg}%</p>
-                            </div>
-                          </div>
-                          <span className="text-xs px-2.5 py-1 rounded-full bg-card border border-border text-muted-foreground">{cards.length} kart</span>
-                        </div>
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                          {cards.map(card => (
-                            <div key={card.id} onClick={() => openDetail(card)} className={`bg-card rounded-xl p-4 border-2 border-border cursor-pointer hover:shadow-md hover:border-primary/40 transition-shadow ${card.frozen ? "opacity-70" : ""}`}>
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                                  {card.approvalStatus === "approved" ? <CheckCircle2 className="w-4 h-4 text-zone-green-text" /> : <Hourglass className="w-4 h-4 text-zone-yellow-text" />}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                          <th className="py-2 px-2">Əməkdaş</th>
+                          <th className="py-2 px-2 text-center">KPI kartlarının sayı</th>
+                          <th className="py-2 px-2">Ortalama Progress</th>
+                          <th className="py-2 px-2 text-right">Əməliyyat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {entries.map(([person, cards]) => {
+                          const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
+                          const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+                          return (
+                            <tr key={person} className="border-b border-border last:border-0 hover:bg-secondary/40">
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-semibold">{initial}</div>
+                                  <span className="font-medium text-foreground">{person}</span>
                                 </div>
-                                <div className="flex items-center gap-1 flex-wrap justify-end">
-                                  {card.isPersonal && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Fərdi</span>}
-                                  {card.frozen && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">Dondurulmuş</span>}
+                              </td>
+                              <td className="py-2.5 px-2 text-center">
+                                <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">{cards.length}</span>
+                              </td>
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-32 bg-secondary rounded-full h-1.5"><div className="bg-emerald-500 rounded-full h-1.5" style={{ width: `${avg}%` }} /></div>
+                                  <span className="text-xs text-muted-foreground">{avg}%</span>
                                 </div>
-                              </div>
-                              <h4 className="font-semibold text-foreground text-sm mb-2 line-clamp-2">{card.name}</h4>
-                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Hədəf</span>
-                                <span className="font-semibold text-foreground">{card.target} {card.unit}</span>
-                              </div>
-                              <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                                <span>Cari</span>
-                                <span className="font-semibold text-success">{card.current} {card.unit}</span>
-                              </div>
-                              <div className="w-full bg-secondary rounded-full h-2">
-                                <div className="bg-success rounded-full h-2" style={{ width: `${card.progress}%` }} />
-                              </div>
-                              <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground">
-                                <span>{card.period}</span>
-                                <span className="font-semibold text-foreground">{card.progress}%</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+                              </td>
+                              <td className="py-2.5 px-2 text-right">
+                                <button
+                                  onClick={() => setEmployeeDrilldown(person)}
+                                  title="Kartlara bax"
+                                  className="inline-flex items-center gap-1 p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               );
             })() : (() => {
@@ -1219,7 +1312,45 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
       </main>
 
-      {/* Natamam — assignees check/X dialog */}
+      {/* Employee drilldown — list of KPI cards belonging to this person */}
+      <Dialog open={employeeDrilldown !== null} onOpenChange={(o) => !o && setEmployeeDrilldown(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{employeeDrilldown} — KPI kartları</DialogTitle>
+          </DialogHeader>
+          {employeeDrilldown && (() => {
+            const cards = filteredCards.filter(c => (c.responsible || "Təyin olunmayıb") === employeeDrilldown);
+            if (cards.length === 0) return <p className="text-sm text-muted-foreground py-4">Kart tapılmadı.</p>;
+            return (
+              <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
+                {cards.map(card => {
+                  const st = getStatusFor(card.id);
+                  return (
+                    <div key={card.id} className="py-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-medium text-foreground truncate">{card.name}</span>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[st.status]}`}>{STATUS_LABELS[st.status]}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">{card.period} · Hədəf {card.target} {card.unit} · Cari {card.current} {card.unit}</div>
+                        <div className="w-full bg-secondary rounded-full h-1.5 mt-1.5"><div className="bg-emerald-500 rounded-full h-1.5" style={{ width: `${card.progress}%` }} /></div>
+                      </div>
+                      <button
+                        onClick={() => { setEmployeeDrilldown(null); openDetail(card); }}
+                        className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground shrink-0"
+                        title="Bax"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -1264,6 +1395,27 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
           {selectedKpi && (
             <div className="space-y-4">
+              {(() => {
+                const st = getStatusFor(selectedKpi.id);
+                if (st.status !== "imtina") return null;
+                const reason = (st as any).rejection_reason || `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi`;
+                return (
+                  <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-rose-700 dark:text-rose-400">İmtina səbəbi</div>
+                      <div className="text-sm text-foreground mt-0.5">{reason}</div>
+                    </div>
+                    <button
+                      onClick={() => { const id = selectedKpi.id; setSelectedKpi(null); openWizardForEdit(id); }}
+                      className="px-3 py-1.5 text-xs rounded border border-rose-500/40 bg-white dark:bg-background hover:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-medium inline-flex items-center gap-1 shrink-0"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Redaktə et
+                    </button>
+                  </div>
+                );
+              })()}
+
               <div className="flex gap-2 border-b border-border overflow-x-auto">
                 {([["general", "Ümumi"], ["details", "Detallar"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["performance", "Performans Analitikası"], ["history", "Tarixçə"], ["team", "Komanda"], ["comments", "Şərhlər"], ["status", "Status"]] as const).map(([key, label]) => (
                   <button key={key} onClick={() => setDetailTab(key)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>

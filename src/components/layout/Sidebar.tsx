@@ -13,6 +13,8 @@ const navItems = [
   { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target },
   { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow },
   { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge },
+  { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardCheck },
+  { path: "/kpi-set", label: "KPI Set", icon: SlidersHorizontal },
   { path: "/cascading", label: "Cascading", icon: GitBranch },
   { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck },
   { path: "/hesabat", label: "Hesabatlar", icon: BarChart3 },
