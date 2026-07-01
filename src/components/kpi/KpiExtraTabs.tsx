@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Info, MoreHorizontal, Send } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from "recharts";
+
 
 export const KPI_EXTRA_TABS = [
   ["comments", "Şərhlər"],
