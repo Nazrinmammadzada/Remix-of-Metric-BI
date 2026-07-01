@@ -1311,7 +1311,45 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
       </main>
 
-      {/* Natamam — assignees check/X dialog */}
+      {/* Employee drilldown — list of KPI cards belonging to this person */}
+      <Dialog open={employeeDrilldown !== null} onOpenChange={(o) => !o && setEmployeeDrilldown(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{employeeDrilldown} — KPI kartları</DialogTitle>
+          </DialogHeader>
+          {employeeDrilldown && (() => {
+            const cards = filteredCards.filter(c => (c.responsible || "Təyin olunmayıb") === employeeDrilldown);
+            if (cards.length === 0) return <p className="text-sm text-muted-foreground py-4">Kart tapılmadı.</p>;
+            return (
+              <div className="max-h-[60vh] overflow-y-auto divide-y divide-border">
+                {cards.map(card => {
+                  const st = getStatusFor(card.id);
+                  return (
+                    <div key={card.id} className="py-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-medium text-foreground truncate">{card.name}</span>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[st.status]}`}>{STATUS_LABELS[st.status]}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">{card.period} · Hədəf {card.target} {card.unit} · Cari {card.current} {card.unit}</div>
+                        <div className="w-full bg-secondary rounded-full h-1.5 mt-1.5"><div className="bg-emerald-500 rounded-full h-1.5" style={{ width: `${card.progress}%` }} /></div>
+                      </div>
+                      <button
+                        onClick={() => { setEmployeeDrilldown(null); openDetail(card); }}
+                        className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground shrink-0"
+                        title="Bax"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
