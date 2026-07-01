@@ -127,7 +127,7 @@ const seedStructures: OrgStructure[] = [
         id: 1012, type: "Şöbə", name: "İdarəetmə Şöbəsi",
         positions: [
           {
-            id: 2005, name: "CFO", isStarPosition: true,
+            id: 2005, name: "CFO",
             slots: [{ id: 3007, employeeId: 2, salary: 5000, fraction: 1 }],
           },
 
