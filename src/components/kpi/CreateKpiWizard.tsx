@@ -177,6 +177,7 @@ const emptyHedef = (): WizardHedef => ({
   type: "Məbləğ",
   weight: 0,
   scoreLimit: 5,
+  targetValue: "",
   createdBy: "self",
   evaluators: [],
   evaluator: "",
