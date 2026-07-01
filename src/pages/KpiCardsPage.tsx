@@ -1180,11 +1180,26 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         if (!confirm(`"${card.name}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
+                                        // Optimistic local update — ensures seed cards (which have no DB row) flip status immediately
+                                        setStatusMap(prev => ({
+                                          ...prev,
+                                          [card.id]: {
+                                            ...(prev[card.id] || {}),
+                                            card_id: card.id,
+                                            status: "legv_olundu",
+                                            use_matrix: false,
+                                            submitted_for_approval: false,
+                                            rejected_by: null,
+                                            rejected_at: null,
+                                            assignees: [],
+                                            updated_at: new Date().toISOString(),
+                                          } as any,
+                                        }));
                                         try {
                                           await upsertStatus({ card_id: card.id, status: "legv_olundu" as any, use_matrix: false, submitted_for_approval: false, assignees: [] });
                                           const mod = await import("@/lib/kpiCardStatusStore");
                                           const next = await mod.fetchAllStatuses();
-                                          setStatusMap(next);
+                                          setStatusMap(prev => ({ ...prev, ...next }));
                                         } catch {}
                                         toast.success("Kart ləğv olundu");
                                         // Notify original assigners about cancellation
