@@ -1,0 +1,212 @@
+// Cascade Tree Store — Ana Hədəf → Alt Hədəflər zənciri.
+// Hər node bir şəxsə ayrılmış limitdir. Bölgü rekursivdir və heç bir
+// Cascading Matrix tələb etmir; təşkilati struktur `orgStore`-dan alınır.
+import { useEffect, useState } from "react";
+import { getEmployees, isStarPerson } from "@/lib/orgStore";
+
+export interface CascadeTreeNode {
+  id: string;
+  rootId: string;
+  parentId: string | null;
+  /** Root üçün: mənbə KPI kartı adı */
+  cardName: string;
+  /** Root üçün: hədəfin adı */
+  goalName: string;
+  /** Ölçü vahidi (AZN, ədəd, %) */
+  unit: string;
+  assigneeId: number;
+  assigneeName: string;
+  positionName?: string;
+  isStar: boolean;
+  /** Bu şəxsə ayrılmış limit */
+  limit: number;
+  createdAt: number;
+  updatedAt: number;
+  /** Rəhbər bu hədəfi daha aşağı kaskadlamamaq qərarı verib */
+  frozen?: boolean;
+}
+
+const KEY = "cascade_tree_nodes_v1";
+const EVT = "cascade-tree-updated";
+
+const load = (): CascadeTreeNode[] => {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  const seed = seedNodes();
+  localStorage.setItem(KEY, JSON.stringify(seed));
+  return seed;
+};
+
+const persist = (rows: CascadeTreeNode[]) => {
+  localStorage.setItem(KEY, JSON.stringify(rows));
+  window.dispatchEvent(new Event(EVT));
+};
+
+export const getNodes = (): CascadeTreeNode[] => load();
+export const getRoots = (): CascadeTreeNode[] => load().filter(n => n.parentId === null);
+export const getChildren = (id: string): CascadeTreeNode[] => load().filter(n => n.parentId === id);
+export const getNode = (id: string): CascadeTreeNode | undefined => load().find(n => n.id === id);
+
+/** Bir node-un birbaşa alt bölgülərinin cəmi. */
+export const distributedOf = (id: string): number =>
+  getChildren(id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
+
+/** Bir node-a ayrılmış qalıq limit. */
+export const remainingOf = (id: string): number => {
+  const n = getNode(id);
+  if (!n) return 0;
+  return Math.max(0, (Number(n.limit) || 0) - distributedOf(id));
+};
+
+export type CascadeStatus = "wait" | "in_progress" | "problem" | "done";
+
+/** 🟢 done / 🟡 in_progress / 🔴 problem / ⚪ wait */
+export const statusOf = (id: string): CascadeStatus => {
+  const n = getNode(id);
+  if (!n) return "wait";
+  const kids = getChildren(id);
+  const dist = distributedOf(id);
+  if (kids.length === 0) {
+    // son icraçı və ya hələ bölünməyib
+    if (n.frozen) return "done";
+    if (n.limit === 0) return "wait";
+    // Star deyilsə son icraçı sayılır
+    return isStarPerson(n.assigneeId) ? "wait" : "done";
+  }
+  if (dist === 0) return "wait";
+  if (dist >= n.limit) return "done";
+  if (dist < n.limit && n.frozen) return "problem";
+  return "in_progress";
+};
+
+/** Root yarat (HR kartı təyin etmə fazasına keçirəndə çağırılır). */
+export const createRoot = (payload: {
+  cardName: string;
+  goalName: string;
+  unit: string;
+  assigneeId: number;
+  assigneeName: string;
+  positionName?: string;
+  limit: number;
+}): CascadeTreeNode => {
+  const id = crypto.randomUUID();
+  const node: CascadeTreeNode = {
+    id, rootId: id, parentId: null,
+    cardName: payload.cardName,
+    goalName: payload.goalName,
+    unit: payload.unit,
+    assigneeId: payload.assigneeId,
+    assigneeName: payload.assigneeName,
+    positionName: payload.positionName,
+    isStar: isStarPerson(payload.assigneeId),
+    limit: Number(payload.limit) || 0,
+    createdAt: Date.now(), updatedAt: Date.now(),
+  };
+  persist([...load(), node]);
+  return node;
+};
+
+export interface CascadeSliceInput {
+  assigneeId: number;
+  assigneeName: string;
+  positionName?: string;
+  limit: number;
+}
+
+/** Bir node-u alt şəxslər arasında bölüşdürür. Cəm ana limiti keçə bilməz. */
+export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok: boolean; error?: string } => {
+  const parent = getNode(parentId);
+  if (!parent) return { ok: false, error: "Ana hədəf tapılmadı" };
+  const filtered = slices.filter(s => s.assigneeId && Number(s.limit) > 0);
+  const sum = filtered.reduce((s, x) => s + Number(x.limit), 0);
+  if (sum > parent.limit + 0.0001) {
+    return { ok: false, error: `Alt bölgülərin cəmi (${fmt(sum)}) ana hədəfdən (${fmt(parent.limit)}) böyükdür` };
+  }
+  const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
+  const now = Date.now();
+  const newKids: CascadeTreeNode[] = filtered.map(s => ({
+    id: crypto.randomUUID(),
+    rootId: parent.rootId,
+    parentId: parent.id,
+    cardName: parent.cardName,
+    goalName: parent.goalName,
+    unit: parent.unit,
+    assigneeId: s.assigneeId,
+    assigneeName: s.assigneeName,
+    positionName: s.positionName,
+    isStar: isStarPerson(s.assigneeId),
+    limit: Number(s.limit),
+    createdAt: now, updatedAt: now,
+  }));
+  persist([...list, ...newKids]);
+  return { ok: true };
+};
+
+/** Rəhbər hədəfi aşağı bölüşdürməmək qərarı verir — son icraçı kimi qeyd et. */
+export const freezeNode = (id: string, frozen: boolean) => {
+  persist(load().map(n => n.id === id ? { ...n, frozen, updatedAt: Date.now() } : n));
+};
+
+/** Root-un mövcud olub-olmadığını yoxlayır (KpiSet entry üçün id əsasında). */
+export const findRootByGoal = (cardName: string, goalName: string, assigneeId: number): CascadeTreeNode | undefined =>
+  load().find(n => n.parentId === null && n.cardName === cardName && n.goalName === goalName && n.assigneeId === assigneeId);
+
+export const deleteSubtree = (id: string) => {
+  const all = load();
+  const drop = new Set<string>([id]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const n of all) if (n.parentId && drop.has(n.parentId) && !drop.has(n.id)) { drop.add(n.id); changed = true; }
+  }
+  persist(all.filter(n => !drop.has(n.id)));
+};
+
+export const useCascadeTree = (): CascadeTreeNode[] => {
+  const [rows, setRows] = useState<CascadeTreeNode[]>(() => load());
+  useEffect(() => {
+    const h = () => setRows(load());
+    window.addEventListener(EVT, h);
+    window.addEventListener("storage", h);
+    return () => { window.removeEventListener(EVT, h); window.removeEventListener("storage", h); };
+  }, []);
+  return rows;
+};
+
+const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
+
+// ------- Seed (real üçün 1 ana hədəf + 3 səviyyəli bölgü) -------
+function seedNodes(): CascadeTreeNode[] {
+  const emps = getEmployees();
+  const byName = (n: string) => emps.find(e => `${e.firstName} ${e.lastName}` === n);
+  const dir = byName("Samir Həsənov"); // Satış Direktoru ⭐
+  const b1 = byName("Rəşad Əliyev");   // Bakı Satış Şöbə Müdiri ⭐
+  const b2 = byName("Leyla Məmmədova"); // Regional Satış Şöbə Müdiri ⭐
+  if (!dir || !b1 || !b2) return [];
+  const now = Date.now();
+  const root: CascadeTreeNode = {
+    id: "cn-root", rootId: "cn-root", parentId: null,
+    cardName: "İllik Satış Hədəfi 2026", goalName: "Ümumi Satış Həcmi",
+    unit: "AZN",
+    assigneeId: dir.id, assigneeName: `${dir.firstName} ${dir.lastName}`,
+    positionName: dir.positionName, isStar: true,
+    limit: 1_000_000, createdAt: now, updatedAt: now,
+  };
+  const c1: CascadeTreeNode = {
+    id: "cn-c1", rootId: "cn-root", parentId: "cn-root",
+    cardName: root.cardName, goalName: root.goalName, unit: "AZN",
+    assigneeId: b1.id, assigneeName: `${b1.firstName} ${b1.lastName}`,
+    positionName: b1.positionName, isStar: true,
+    limit: 600_000, createdAt: now, updatedAt: now,
+  };
+  const c2: CascadeTreeNode = {
+    id: "cn-c2", rootId: "cn-root", parentId: "cn-root",
+    cardName: root.cardName, goalName: root.goalName, unit: "AZN",
+    assigneeId: b2.id, assigneeName: `${b2.firstName} ${b2.lastName}`,
+    positionName: b2.positionName, isStar: true,
+    limit: 250_000, createdAt: now, updatedAt: now,
+  };
+  return [root, c1, c2];
+}
