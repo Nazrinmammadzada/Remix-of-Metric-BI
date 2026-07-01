@@ -1,84 +1,103 @@
-# Ulduzlu Vəzifə (Star Position) əsaslı Kaskadlama
+# KPI Cascading (Ana Hədəf → Alt Hədəflər) — İcra Planı
 
-## Məqsəd
-Kaskadlama matrisini tamamilə silib, KPI hədəflərinin təşkilati struktur və **vəzifəyə** bağlı "Ulduz" atributu əsasında avtomatik yönləndirilməsini təmin etmək. Ulduz heç vaxt şəxsə bağlanmır — yalnız vəzifəyə. Vəzifədə oturan şəxs dəyişdikdə heç bir manual iş görülməməlidir.
+Bu plan spesifikasiyadakı 13 qaydanın hamısını əhatə edir və mövcud "Rəhbər rolu (Star Person)" konsepsiyası üzərində qurulur — heç bir Cascading Matrix qurulmur.
 
-## Data Modeli (dinamik, hardcode-suz)
+## 1) Data modeli (`src/lib/kpiCardStore.ts`, yeni `src/lib/cascadeTreeStore.ts`)
 
-**StructureUnit** (rekursiv, istənilən dərinlik):
-- `id`, `name`, `parentId?`, `level` (yalnız görüntü üçün etiket, məntiqdə yox), `order`
+Hər `Goal` (hədəf) obyektinə əlavə olunacaq:
 
-**Position** (vəzifə):
-- `id`, `title`, `structureUnitId`, `isStarPosition: boolean`
-- Qayda: `structureUnitId` üzrə yalnız **bir** `isStarPosition=true` ola bilər.
+- `cascadable: boolean` — "C" seçimi (yalnız uyğun tiplər üçün aktiv edilə bilər).
+- `parentGoalId?: string` — parent-child əlaqəsi (kaskadla yaranıbsa).
+- `rootGoalId?: string` — bütün zəncirin kökü (tez axtarış üçün).
+- `numericTarget?: number` — sayısal hədəf (bölgü riyaziyyatı üçün).
+- `assigneePersonId?: string` — hədəfi qəbul edən şəxs.
 
-**Employee** (mövcud model genişlənir):
-- `positionId` (əvvəlki `department/team` sahələri saxlanılır, amma rəhbərlik məntiqi buradan **çıxarılır**).
-- Employee-də heç bir `isManager / isStar / managerId` sahəsi məntiq üçün istifadə olunmayacaq — hesablanır.
+**Uyğun tiplər** (`kpiValidation.ts` üzərində helper):
+- Bölünə bilər: Məbləğ, Say, Faiz, Nisbət, Absolut, Say, Faiz.
+- Bölünə bilməz: Tarix, Vaxt, Bəli/Xeyr, Səriştə, Fərdi inkişaf, Mətn/Trend/Benchmark (bal).
 
-## Əsas servis: `starCascadeService`
+Yeni fayl `cascadeTreeStore.ts`:
+- `getChildren(goalId)`, `getRemaining(goalId)`, `getStatus(goalId)` → 🟢/🟡/🔴/⚪.
+- `distribute(parentId, slices[])` — cəm yoxlanışı, artıq bölgüyə icazə vermir.
+- Event bus (`window.dispatchEvent`) real-time UI üçün.
 
-Sırf pure funksiyalar (test edilə bilən), heç bir səviyyə adı yazılmır:
+## 2) KPI Yaradılması (`CreateKpiWizard.tsx`)
 
-- `getStarPositionOfUnit(unitId)` → Position | null
-- `getStarHolderOfUnit(unitId)` → Employee | null (star vəzifədə oturan şəxs)
-- `getChildUnits(unitId)` → StructureUnit[]
-- `resolveCascadeChain(rootUnitId)` → rekursiv walk: hər səviyyədə star holder + child unit-lər → ağac
-- `routeKpiToUnit(unitId)` → star holder tapılmasa `MissingStarError` atır (validasiya)
-- `validateStructure()` → hər unit üzrə star sayını yoxlayır (0 və ya >1 halında xəbərdarlıq)
+Addım 2 (Hədəflər) blokunda hər hədəf üçün:
 
-Bütün kaskadlama (KPI kartı yaradılışı, cascading səhifəsi, manager panel scoping) bu tək servisi çağırır. `CascadeMatrix` və `cascadeMatrixStore` işlətmir.
+- Yeni **"C — Kaskadlana bilər"** switch (yalnız uyğun tip seçildikdə aktiv, əks halda disabled + tooltip: *"Bu tip bölünə bilmir"*).
+- C aktiv olan hədəf `cascadable=true` ilə saxlanır.
+- `numericTarget` avtomatik parse olunur (`target` sətrindən).
+- Təyin edici Star statuslu deyilsə xəbərdarlıq (blocking deyil, info).
 
-## UI dəyişiklikləri
+## 3) Rəhbərə göndərmə (`kpiSetStore.ts` + `KpiSetPage.tsx`)
 
-### 1) Struktur / Vəzifələr ekranı (Təşkilat modulu)
-Hər struktur vahidində vəzifə siyahısı göstərilir. Hər vəzifə sətrində:
-- Solda ⭐ ikon (aktiv: qızıl-sarı dolu, deaktiv: kənarlıqlı boz).
-- Bir kliklə toggle olur; həmin unit üzrə əvvəlki star avtomatik söndürülür (tək star qaydası servis səviyyəsində zorlanır, toast: "Ulduzlu vəzifə köçürüldü").
-- Star vəzifədə oturan əməkdaşın adı badge kimi göstərilir (boşdursa "Vakant — kaskadlama dayandırılıb" xəbərdarlığı).
+HR "Təyin etmə"-yə keçirdikdən sonra:
+- Kartın `cascadable` hədəfləri Star statuslu təyin edicinin **"Məsul olduğum kartlar"** siyahısında görünür (`ownerType: "manager"` artıq var).
+- Kart üzərində "Ümumi limit: X" chip-i əlavə olunur.
 
-### 2) Cascading modulu (`CascadingPage`)
-Manual matris tam silinir. Səhifə "Kaskadlama xəritəsi"nə çevrilir:
-- Root struktur seçilir → ağac (tree) formasında zəncir göstərilir: hər node = struktur vahidi + star vəzifə + hazırkı star holder.
-- Boş star olan node qırmızı işarələnir, "Ulduzlu vəzifə təyin et" düyməsi ilə birbaşa struktur ekranına yönləndirir.
-- Yalnız oxu — heç bir manual assignment yoxdur.
+## 4) Rəhbərin bölgü axını (yeni `src/components/kpi/CascadeDistributeDialog.tsx`)
 
-### 3) KPI wizard (təyinat addımı)
-- "Toplu → Struktur" seçimində istifadəçi yalnız struktur vahidini seçir; sistem `routeKpiToUnit` ilə star holder-i özü tapıb göstərir (read-only chip: "Yönləndiriləcək: <ad> — <vəzifə>").
-- Star yoxdursa "Yarat"/"Təsdiqə göndər" düymələri deaktiv olur və izahat verilir.
-- "Rəhbər əl ilə seç" seçimi tamamilə silinir.
+Rəhbər Star statuslu hədəfi açanda dialoq açılır:
 
-### 4) Cascade Matrix menyu bəndi
-Sidebar-dan `Cascade Matrisi` linki gizlədilir, `cascadeMatrixStore` istifadə yerlərində yeni servisə yönləndirici shim qoyulur (geriyə uyğunluq üçün mövcud KPI kartlarını sındırmamaq üçün).
+- **Sual:** "Bu hədəfi necə təyin etmək istəyirsiniz?"
+  1. *Mövcud hədəfdən bölərək (Kaskadlama)* — parent-child, limit çıxılır.
+  2. *Yeni müstəqil hədəf* — heç bir bağ yaradılmır (mövcud KPI create axını).
+- Yalnız `cascadable=true` olduqda göstərilir.
+- Kaskad seçildikdə: tabelikdəki əməkdaşlar + alt-Star rəhbərlər siyahısı; hər sətrdə **"Ayrılan məbləğ"** input-u.
+- Real-time hesablama panel:
+  ```
+  Ana Hədəf:      1.000.000
+  Bölüşdürülüb:     850.000
+  Qalıq:            150.000   [🟡]
+  ```
+- Cəm > ana → **Yadda saxla** disabled + qırmızı xəbər.
+- Alt-Star rəhbər seçilibsə, ona verilən hissə də yenidən bölünə bilər (rekursiv).
 
-## Miqrasiya (mock data)
-`src/data/mockExtras.ts` yenilənir:
-- Hər `MockTeam` / `MockStructure` üçün star position obyekti seed edilir (məs. "Satış Direktoru", "IT Direktoru" və s. — struktura görə).
-- Mövcud `managerId / leaderId` sahələri seed skriptində star holder-dən **hesablanır**, kod ilə yazılmır.
+## 5) Rekursiv işləmə
 
-## Validasiya
-- Struktur ekranında canlı yoxlama: hər unit-də star sayı badge-i (`⭐ 1/1` yaşıl, `⚠ 0/1` sarı).
-- KPI göndərilməzdən əvvəl `resolveCascadeChain` çağırılır; hər hansı node-da star yoxdursa göndəriş bloklanır və problemli unit-lərin siyahısı toast-da göstərilir.
+`distribute()` çağırışı hər səviyyədə eyni məntiqi işlədir; child goal `parentGoalId + rootGoalId` alır. UI ağacı `getChildren` ilə tam rekursiv render olur — səviyyə sayı hardcoded deyil.
 
-## Fayllar
-Yeni:
-- `src/lib/positionsStore.ts` — vəzifələr + `isStarPosition` toggle
-- `src/lib/starCascadeService.ts` — bütün rekursiv məntiq
-- `src/components/org/StarPositionToggle.tsx`
-- `src/components/cascading/CascadeTreeView.tsx`
+## 6) Kaskad İzləmə (`CascadingHubPage` → track view)
 
-Dəyişən:
-- `src/pages/CascadingPage.tsx` — matris silinir, tree view
-- `src/pages/OrganizationPage.tsx` + Struktur kart görünüşü — vəzifə siyahısı + ⭐ toggle
-- `src/components/kpi/CreateKpiWizard.tsx` — struktur seçimində avtomatik routing
-- `src/components/layout/Sidebar.tsx` — "Cascade Matrisi" gizlədilir
-- `src/data/mockExtras.ts` — seed star positions
+`CascadeTrackingPage.tsx`-ni işlək tree ilə əvəz edirik:
 
-Silinən istifadə (fayl özü qalır, referans kəsilir):
-- `src/lib/cascadeMatrixStore.ts` (deprecated shim)
-- `src/pages/CascadeMatrixPage.tsx` (route gizlədilir)
+- Sol panel: `cascadable` ana hədəflər siyahısı (search + status chip).
+- Sağ panel: seçilən ana hədəfin **ağac görünüşü** — hər node:
+  - Ad · vəzifə · ⭐ (varsa) · Limit · Bölüşdürülüb · Qalıq · Status rəngli badge.
+  - Yığma/açma (Radix Collapsible).
+- `useSyncExternalStore` + custom event ilə real-vaxt yenilənmə (səhifə refresh olmadan).
 
-## Genişlənə bilənlik
-Yeni səviyyə/şirkət/vəzifə əlavə etmək üçün heç bir kod dəyişikliyi lazım deyil — yalnız `structureUnits` və `positions` seed/DB-yə yazılır, `isStarPosition` işarələnir, servis avtomatik marşrutu yenidən hesablayır.
+## 7) Statuslar helper
 
-Təsdiq edin, tətbiq edim.
+`cascadeTreeStore.getStatus(node)`:
+- Alt yoxdursa və `assignee` varsa → ⚪ Gözləyir (əgər limit heç ayrılmayıbsa) və ya 🟢 Tamamlandı (son icraçı).
+- `remaining === 0 && children.length > 0` → 🟢.
+- `remaining > 0 && distributed > 0` → 🟡.
+- `remaining > 0 && bölgü açılmayıb amma vaxt keçib` (sadə: heç bölgü yoxdursa) → 🔴.
+
+## 8) Genişlənə bilən arxitektura
+
+- Bölünə bilən tiplər siyahısı tək yerdə (`kpiValidation.ts` → `isDivisibleType`).
+- Struktur/rəhbər sorğuları `orgStore` içindəki mövcud helper-lərdən (dəyişməz interfeys) istifadə edir.
+- Bütün cascade state `cascadeTreeStore.ts`-də — yeni səviyyə/şöbə/rol əlavə edildikdə əlavə kod tələb olunmur.
+
+## Faylların dəyişiklik xülasəsi
+
+| Fayl | Əməliyyat |
+|---|---|
+| `src/lib/kpiValidation.ts` | `isDivisibleType(types)` helper əlavə |
+| `src/lib/kpiCardStore.ts` | Goal-a `cascadable/parentGoalId/rootGoalId/numericTarget/assigneePersonId` |
+| `src/lib/cascadeTreeStore.ts` | **YENİ** — tree/limit/status/distribute API + event bus |
+| `src/components/kpi/CreateKpiWizard.tsx` | Hər hədəfə "C" switch + tip yoxlaması |
+| `src/components/kpi/CascadeDistributeDialog.tsx` | **YENİ** — bölgü dialoqu (kaskad vs. müstəqil) |
+| `src/pages/KpiSetPage.tsx` | Star rəhbər üçün "Kaskad et" düyməsi |
+| `src/pages/CascadingHubPage.tsx` | Track kartını real işlək ağaca bağla |
+| `src/pages/CascadeTrackingPage.tsx` | **YENİ** — ağac vizualı + real-time |
+
+## Kənarda saxlanılanlar
+
+- Backend / Supabase sxem dəyişikliyi bu iterasiyada YOXDUR — hər şey mövcud `localStorage` store nümunəsi ilə davam edir (layihənin qalanı ilə uyğun). Cloud sync sonrakı addımdır.
+- Bildiriş göndərmə mövcud `notificationsStore` ilə bağlanır, yeni infrastruktur qurulmur.
+
+Təsdiqlədikdən sonra bütün faylları paralel şəkildə yazacam.
