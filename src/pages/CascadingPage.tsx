@@ -1,39 +1,44 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { GitBranch, Share2, Save, AlertCircle, ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import SearchableSelect from "@/components/common/SearchableSelect";
+import { GitBranch, ChevronLeft, Star, AlertTriangle, CheckCircle2, User2, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useKpiSet,
-  TIER_LABELS,
-  type KpiSetEntry,
-  type LimitTier,
-} from "@/lib/kpiSetStore";
-import {
-  useCascadeMatrices,
-} from "@/lib/cascadeMatrixStore";
-import {
-  getAssignmentByEntry,
-  upsertAssignment,
-  buildSliceFor,
-  emptyLimits,
-  useCascadeAssignments,
-  type CascadeSlice,
-} from "@/lib/cascadingStore";
+  resolveAllCascadeChains,
+  validateStarStructure,
+  type CascadeNode,
+  type StarValidationIssue,
+} from "@/lib/starCascadeService";
 
 const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
-  const allEntries = useKpiSet();
-  const matrices = useCascadeMatrices();
-  const assignments = useCascadeAssignments();
-  const cascadable = useMemo(
-    () => allEntries.filter(e => e.cascadable && e.status === "completed"),
-    [allEntries],
-  );
-  const [editing, setEditing] = useState<KpiSetEntry | null>(null);
+  const [chains, setChains] = useState<CascadeNode[]>(() => resolveAllCascadeChains());
+  const [issues, setIssues] = useState<StarValidationIssue[]>(() => validateStarStructure());
+
+  useEffect(() => {
+    const refresh = () => {
+      setChains(resolveAllCascadeChains());
+      setIssues(validateStarStructure());
+    };
+    window.addEventListener("org-updated", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("org-updated", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    let total = 0, withStar = 0, vacant = 0, missing = 0;
+    const walk = (n: CascadeNode) => {
+      total++;
+      if (n.starPosition) withStar++;
+      if (n.vacant) vacant++;
+      if (n.missingStar) missing++;
+      n.children.forEach(walk);
+    };
+    chains.forEach(walk);
+    return { total, withStar, vacant, missing };
+  }, [chains]);
 
   return (
     <div className="min-h-screen">
@@ -48,249 +53,141 @@ const CascadingPage = ({ onBack }: { onBack?: () => void } = {}) => {
           </button>
         )}
         <PageHero
-          badge="Cascading"
+          badge="Star Position Cascading"
           icon={GitBranch}
-          title="Cascading"
-          subtitle="Paylaşıla bilən hədəflərin cascade matrisinə əsasən komandaya bölüşdürülməsi"
+          title="Kaskadlama Xəritəsi"
+          subtitle="KPI hədəfləri təşkilati struktur və Ulduzlu Vəzifə (Star Position) məntiqi əsasında avtomatik yönləndirilir. Ayrıca matris yaradılmır — ulduz vəzifədə oturan şəxs dəyişdikdə kaskadlama avtomatik yeni rəhbərə keçir."
         />
 
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/40 text-left text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 font-medium">KPI Kartı</th>
-                <th className="px-4 py-3 font-medium">Hədəf</th>
-                <th className="px-4 py-3 font-medium">Rəhbər</th>
-                <th className="px-4 py-3 font-medium">Hədəf</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium w-40 text-right">Əməliyyat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cascadable.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                  Paylaşıla bilən hədəf yoxdur. KPI Set modulunda rəhbər hədəf təyin edərkən "Paylaşıla bilər" seçməlidir.
-                </td></tr>
-              ) : cascadable.map(e => {
-                const assign = assignments.find(a => a.entryId === e.id);
-                return (
-                  <tr key={e.id} className="border-t border-border hover:bg-secondary/30">
-                    <td className="px-4 py-2.5 font-medium text-foreground">{e.cardName}</td>
-                    <td className="px-4 py-2.5">{e.subKpiName}</td>
-                    <td className="px-4 py-2.5">{e.assigneeName}</td>
-                    <td className="px-4 py-2.5">{e.target} {e.unit}</td>
-                    <td className="px-4 py-2.5">
-                      {assign ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                          {assign.slices.length} işçi
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                          Paylanmayıb
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Button size="sm" onClick={() => setEditing(e)}>
-                        Paylaş
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <StatCard label="Struktur vahidi" value={stats.total} tone="neutral" icon={Building2} />
+          <StatCard label="Ulduzlu Vəzifə var" value={stats.withStar} tone="ok" icon={Star} />
+          <StatCard label="Vakant Ulduz" value={stats.vacant} tone="warn" icon={AlertTriangle} />
+          <StatCard label="Ulduz təyin edilməyib" value={stats.missing} tone="danger" icon={AlertTriangle} />
         </div>
-      </main>
 
-      {editing && (
-        <DistributeDialog
-          entry={editing}
-          matrices={matrices}
-          onClose={() => setEditing(null)}
-        />
-      )}
+        {/* Issues */}
+        {issues.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <h3 className="font-medium text-foreground">Diqqət tələb edən struktur vahidləri ({issues.length})</h3>
+            </div>
+            <ul className="space-y-1.5 text-sm">
+              {issues.slice(0, 10).map(i => (
+                <li key={`${i.unitId}-${i.kind}`} className="flex items-start gap-2">
+                  <span className={`mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    i.kind === "multiple" ? "bg-red-500/15 text-red-700 dark:text-red-300" :
+                    i.kind === "vacant"   ? "bg-amber-500/15 text-amber-700 dark:text-amber-300" :
+                                             "bg-slate-500/15 text-slate-700 dark:text-slate-300"
+                  }`}>
+                    {i.kind === "multiple" ? "Birdən çox ulduz" : i.kind === "vacant" ? "Vakant" : "Ulduz yoxdur"}
+                  </span>
+                  <span className="text-foreground">{i.path}</span>
+                  {i.detail && <span className="text-muted-foreground">— {i.detail}</span>}
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-muted-foreground mt-3">
+              Ulduzlu Vəzifə təyin etmək üçün <b>Təşkilat → Struktur kataloqu → Ştat cədvəli</b>-nə keçin və vəzifənin yanındakı ⭐ düyməsinə klik edin.
+            </p>
+          </div>
+        )}
+
+        {/* Cascade Trees */}
+        {chains.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-10 text-center text-muted-foreground">
+            Təşkilati struktur boşdur.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {chains.map(root => (
+              <div key={root.unitId} className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="px-5 py-3 bg-secondary/30 border-b border-border flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  <span className="font-semibold text-foreground">{root.unitName}</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">{root.unitType}</span>
+                </div>
+                <div className="p-4">
+                  <TreeRow node={root} depth={0} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="text-[11px] text-muted-foreground mt-6">
+          ⭐ Ulduz VƏZİFƏYƏ verilir, şəxsə yox. Vəzifədə oturan əməkdaş dəyişdikdə kaskadlama avtomatik yeni rəhbərə keçir — heç bir manual mapping tələb olunmur.
+        </p>
+      </main>
     </div>
   );
 };
 
-const DistributeDialog = ({
-  entry, matrices, onClose,
-}: {
-  entry: KpiSetEntry;
-  matrices: ReturnType<typeof useCascadeMatrices>;
-  onClose: () => void;
-}) => {
-  const existing = getAssignmentByEntry(entry.id);
-  const [matrixId, setMatrixId] = useState<string>(existing?.matrixId ?? matrices[0]?.id ?? "");
-  const [slices, setSlices] = useState<CascadeSlice[]>(existing?.slices ?? []);
-
-  const matrix = matrices.find(m => m.id === matrixId);
-
-  // Matris dəyişdikdə paylaşılan şəxslərə görə slice-ları sinxronlaşdır
-  useEffect(() => {
-    if (!matrix) return;
-    setSlices(prev => {
-      const map = new Map(prev.map(s => [s.assigneeName, s]));
-      return matrix.sharedPersons.map(name => map.get(name) ?? buildSliceFor(name));
-    });
-  }, [matrixId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const totalDistributed = slices.reduce((s, sl) => s + (parseFloat(sl.target) || 0), 0);
-  const parentTarget = parseFloat(entry.target) || 0;
-  const exceeded = totalDistributed > parentTarget;
-
-  const updateSlice = (id: string, patch: Partial<CascadeSlice>) =>
-    setSlices(s => s.map(x => (x.id === id ? { ...x, ...patch } : x)));
-
-  const updateLimit = (sliceId: string, tier: LimitTier, field: "min" | "max", v: number) =>
-    setSlices(s => s.map(x => {
-      if (x.id !== sliceId) return x;
-      return { ...x, limits: { ...x.limits, [tier]: { ...x.limits[tier], [field]: isNaN(v) ? 0 : v } } };
-    }));
-
-  const submit = () => {
-    if (!matrixId) { toast.error("Matris seçin"); return; }
-    if (slices.length === 0) { toast.error("Matris üçün paylaşılan şəxslər yoxdur"); return; }
-    if (slices.some(s => !s.target.trim())) {
-      toast.error("Bütün işçilər üçün hədəf payı tələb olunur"); return;
-    }
-    if (exceeded) {
-      toast.error(`Paylanmış hədəf (${totalDistributed}) ümumi hədəfi (${parentTarget}) keçir`);
-      return;
-    }
-    upsertAssignment({
-      entryId: entry.id,
-      cardName: entry.cardName,
-      subKpiName: entry.subKpiName,
-      parentTarget: entry.target,
-      unit: entry.unit,
-      matrixId,
-      matrixName: matrix?.name,
-      slices,
-      status: "submitted",
-    });
-    toast.success("Paylanma yadda saxlanıldı");
-    onClose();
-  };
-
+const StatCard = ({ label, value, tone, icon: Icon }: { label: string; value: number; tone: "neutral" | "ok" | "warn" | "danger"; icon: any }) => {
+  const cls =
+    tone === "ok"     ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30" :
+    tone === "warn"   ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30" :
+    tone === "danger" ? "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30" :
+                        "bg-secondary text-foreground border-border";
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-primary" />
-            Hədəfi paylaş — {entry.subKpiName}
-          </DialogTitle>
-          <p className="text-xs text-muted-foreground">
-            Ümumi hədəf: <span className="font-semibold text-foreground">{entry.target} {entry.unit}</span> •
-            Paylanmış: <span className={`font-semibold ${exceeded ? "text-destructive" : totalDistributed === parentTarget ? "text-emerald-600" : "text-amber-600"}`}>{totalDistributed} {entry.unit}</span>
-          </p>
-        </DialogHeader>
+    <div className={`rounded-xl border p-3 ${cls}`}>
+      <div className="flex items-center gap-2 text-[11px] opacity-80"><Icon className="w-3.5 h-3.5" /> {label}</div>
+      <div className="text-2xl font-semibold mt-1">{value}</div>
+    </div>
+  );
+};
 
-        <div className="space-y-4">
-          {/* Parent limits (read-only) */}
-          {entry.limits && (
-            <div className="border border-border rounded-lg p-3 bg-secondary/20">
-              <div className="text-xs font-medium text-foreground mb-2">Qiymət limitləri (rəhbər tərəfindən təyin olunub, paylanmış işçilərə də istinad):</div>
-              <div className="grid grid-cols-5 gap-2 text-[11px]">
-                {TIER_LABELS.map(({ tier, label }) => {
-                  const r = entry.limits![tier as LimitTier];
-                  return (
-                    <div key={tier} className="bg-card border border-border rounded p-2 text-center">
-                      <div className="text-muted-foreground">{label}</div>
-                      <div className="font-medium text-foreground">{r.min} – {r.max}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="text-xs text-muted-foreground">Cascade matrisi</label>
-            <SearchableSelect
-              value={matrixId}
-              onChange={setMatrixId}
-              options={matrices.map(m => ({ value: m.id, label: `${m.name} (${m.scopeName})` }))}
-              placeholder="Matris seçin"
-            />
-            {matrix && (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Bu matrisdə {matrix.sharedPersons.length} paylaşılan şəxs var. İşçi siyahısı matrisdən gəlir və bu pəncərədə dəyişdirilə bilməz.
-              </p>
+const TreeRow = ({ node, depth }: { node: CascadeNode; depth: number }) => {
+  const holder = node.starHolder;
+  const state: "ok" | "vacant" | "missing" =
+    node.missingStar ? "missing" : node.vacant ? "vacant" : "ok";
+  const stateStyle =
+    state === "ok"      ? "border-emerald-500/40 bg-emerald-500/5" :
+    state === "vacant"  ? "border-amber-500/40 bg-amber-500/5" :
+                          "border-red-500/40 bg-red-500/5";
+  return (
+    <div style={{ marginLeft: depth * 24 }} className="relative">
+      {depth > 0 && (
+        <span className="absolute -left-4 top-4 w-3 h-px bg-border" aria-hidden />
+      )}
+      <div className={`flex items-center gap-3 rounded-xl border ${stateStyle} px-3 py-2 mb-2`}>
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+          state === "ok" ? "bg-amber-400 text-white" : state === "vacant" ? "bg-amber-200 text-amber-700" : "bg-red-500/20 text-red-600"
+        }`}>
+          <Star className={`w-4 h-4 ${state === "ok" ? "fill-white" : ""}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-foreground truncate">{node.unitName}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">{node.unitType}</span>
+          </div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+            {state === "missing" ? (
+              <span className="text-red-600 dark:text-red-400">Ulduzlu Vəzifə təyin edilməyib — kaskadlama bloklanır</span>
+            ) : state === "vacant" ? (
+              <span className="text-amber-700 dark:text-amber-300">
+                <b>{node.starPosition!.name}</b> — vakant (əməkdaş təyin olunmayıb)
+              </span>
+            ) : (
+              <>
+                <User2 className="w-3 h-3" />
+                <span className="text-foreground">{holder!.firstName} {holder!.lastName}</span>
+                <span className="opacity-60">·</span>
+                <span>{node.starPosition!.name}</span>
+                <CheckCircle2 className="w-3 h-3 text-emerald-600 ml-1" />
+              </>
             )}
           </div>
-
-          {exceeded && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-              <p className="text-xs text-foreground">Paylanmış hədəflərin cəmi ümumi hədəfi keçir. Yadda saxlamaq mümkün deyil.</p>
-            </div>
-          )}
-
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between p-3 bg-secondary/40">
-              <div className="text-sm font-medium">İşçilər və hədəf payı</div>
-              <div className="text-[11px] text-muted-foreground">Limit dəyərlərini manual olaraq daxil edin</div>
-            </div>
-            <div className="divide-y divide-border">
-              {slices.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">Matris seçilməyib və ya boşdur</div>
-              ) : slices.map(s => (
-                <div key={s.id} className="p-3 space-y-2">
-                  <div className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-7">
-                      <label className="text-[11px] text-muted-foreground">İşçi</label>
-                      <div className="px-2 py-1.5 text-sm rounded-md bg-secondary/40 border border-border text-foreground">{s.assigneeName}</div>
-                    </div>
-                    <div className="col-span-5">
-                      <label className="text-[11px] text-muted-foreground">Hədəf ({entry.unit})</label>
-                      <Input type="number" value={s.target} onChange={e => updateSlice(s.id, { target: e.target.value })} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-muted-foreground mb-1">Qiymət limitləri (5→1, manual daxil edilir)</div>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {TIER_LABELS.map(({ tier, label }) => {
-                        const r = s.limits[tier as LimitTier];
-                        return (
-                          <div key={tier} className="border border-border rounded p-1.5 bg-background">
-                            <div className="text-[10px] text-muted-foreground text-center">{label}</div>
-                            <div className="flex items-center gap-1 mt-1">
-                              <input
-                                type="number"
-                                value={r.min}
-                                onChange={e => updateLimit(s.id, tier as LimitTier, "min", Number(e.target.value))}
-                                className="w-full px-1 py-0.5 text-[11px] border border-border rounded bg-background"
-                                placeholder="min"
-                              />
-                              <span className="text-[10px] text-muted-foreground">–</span>
-                              <input
-                                type="number"
-                                value={r.max}
-                                onChange={e => updateLimit(s.id, tier as LimitTier, "max", Number(e.target.value))}
-                                className="w-full px-1 py-0.5 text-[11px] border border-border rounded bg-background"
-                                placeholder="max"
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={onClose}>Ləğv et</Button>
-            <Button onClick={submit} disabled={exceeded}><Save className="w-4 h-4 mr-1" /> Yadda saxla</Button>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+      {node.children.length > 0 && (
+        <div className="border-l border-border ml-4 pl-3">
+          {node.children.map(c => <TreeRow key={c.unitId} node={c} depth={depth + 1} />)}
+        </div>
+      )}
+    </div>
   );
 };
 
