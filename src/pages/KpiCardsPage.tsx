@@ -1092,56 +1092,57 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center text-sm text-muted-foreground">Filtrə uyğun KPİ tapılmadı</div>;
               }
               return (
-                <div className="space-y-4">
-                  {entries.map(([person, cards]) => {
-                    const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
-                    const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
-                    return (
-                      <div key={person} className="rounded-2xl border border-border bg-card overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 via-secondary/40 to-transparent border-b border-border">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-sm shadow-sm">{initial}</div>
-                            <div>
-                              <h3 className="font-semibold text-foreground">{person}</h3>
-                              <p className="text-[11px] text-muted-foreground">{cards.length} KPİ · Ortalama progress {avg}%</p>
-                            </div>
-                          </div>
-                          <span className="text-xs px-2.5 py-1 rounded-full bg-card border border-border text-muted-foreground">{cards.length} kart</span>
-                        </div>
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                          {cards.map(card => (
-                            <div key={card.id} onClick={() => openDetail(card)} className={`bg-card rounded-xl p-4 border-2 border-border cursor-pointer hover:shadow-md hover:border-primary/40 transition-shadow ${card.frozen ? "opacity-70" : ""}`}>
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                                  {card.approvalStatus === "approved" ? <CheckCircle2 className="w-4 h-4 text-zone-green-text" /> : <Hourglass className="w-4 h-4 text-zone-yellow-text" />}
+                <div className="bg-card border border-border rounded-2xl p-5">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-muted-foreground border-b border-border">
+                          <th className="py-2 px-2">Əməkdaş</th>
+                          <th className="py-2 px-2 text-center">KPI kartlarının sayı</th>
+                          <th className="py-2 px-2">Ortalama Progress</th>
+                          <th className="py-2 px-2 text-right">Əməliyyat</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {entries.map(([person, cards]) => {
+                          const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
+                          const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+                          return (
+                            <tr key={person} className="border-b border-border last:border-0 hover:bg-secondary/40">
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-semibold">{initial}</div>
+                                  <span className="font-medium text-foreground">{person}</span>
                                 </div>
-                                <div className="flex items-center gap-1 flex-wrap justify-end">
-                                  {card.isPersonal && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-accent-foreground">Fərdi</span>}
-                                  {card.frozen && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">Dondurulmuş</span>}
+                              </td>
+                              <td className="py-2.5 px-2 text-center">
+                                <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">{cards.length}</span>
+                              </td>
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-32 bg-secondary rounded-full h-1.5"><div className="bg-emerald-500 rounded-full h-1.5" style={{ width: `${avg}%` }} /></div>
+                                  <span className="text-xs text-muted-foreground">{avg}%</span>
                                 </div>
-                              </div>
-                              <h4 className="font-semibold text-foreground text-sm mb-2 line-clamp-2">{card.name}</h4>
-                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Hədəf</span>
-                                <span className="font-semibold text-foreground">{card.target} {card.unit}</span>
-                              </div>
-                              <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                                <span>Cari</span>
-                                <span className="font-semibold text-success">{card.current} {card.unit}</span>
-                              </div>
-                              <div className="w-full bg-secondary rounded-full h-2">
-                                <div className="bg-success rounded-full h-2" style={{ width: `${card.progress}%` }} />
-                              </div>
-                              <div className="flex items-center justify-between mt-2 text-[11px] text-muted-foreground">
-                                <span>{card.period}</span>
-                                <span className="font-semibold text-foreground">{card.progress}%</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
+                              </td>
+                              <td className="py-2.5 px-2 text-right">
+                                <button
+                                  onClick={() => setEmployeeDrilldown(person)}
+                                  title="Kartlara bax"
+                                  className="inline-flex items-center gap-1 p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               );
             })() : (() => {
