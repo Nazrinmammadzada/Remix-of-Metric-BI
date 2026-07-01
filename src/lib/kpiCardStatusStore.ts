@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type KpiCardStatus = "natamam" | "tesdiq_gozlenilir" | "imtina" | "aktiv";
+export type KpiCardStatus = "natamam" | "tesdiq_gozlenilir" | "imtina" | "aktiv" | "legv_olundu";
 
 export interface AssigneeState {
   name: string;
@@ -14,6 +14,7 @@ export interface KpiCardStatusRow {
   submitted_for_approval: boolean;
   rejected_by: string | null;
   rejected_at: string | null;
+  rejection_reason?: string | null;
   assignees: AssigneeState[];
   updated_at: string;
 }
@@ -23,6 +24,7 @@ export const STATUS_LABELS: Record<KpiCardStatus, string> = {
   tesdiq_gozlenilir: "Təsdiq gözlənilir",
   imtina: "İmtina",
   aktiv: "Aktiv",
+  legv_olundu: "Ləğv olundu",
 };
 
 export const STATUS_STYLES: Record<KpiCardStatus, string> = {
