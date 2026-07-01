@@ -902,18 +902,21 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             </div>
             <div className="min-w-[160px]">
               <label className="text-[11px] text-muted-foreground">Təyinat növü</label>
-              <select value={filterAssignKind} onChange={e => setFilterAssignKind(e.target.value as any)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
+              <select value={filterAssignKind} onChange={e => { const v = e.target.value as any; setFilterAssignKind(v); if (v !== "Komanda") setFilterTeamId(null); }} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
                 <option>Fərdi</option>
+                <option>Toplu</option>
                 <option>Komanda</option>
                 <option>Struktur</option>
                 <option>Vəzifə</option>
               </select>
             </div>
-            <div className="min-w-[180px]">
-              <label className="text-[11px] text-muted-foreground">Komanda</label>
-              <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
-            </div>
+            {filterAssignKind === "Komanda" && (
+              <div className="min-w-[180px]">
+                <label className="text-[11px] text-muted-foreground">Komanda</label>
+                <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
+              </div>
+            )}
             <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
