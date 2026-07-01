@@ -31,6 +31,15 @@ import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStor
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
+const STATUS_LABELS = { natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
+const STATUS_STYLES: Record<string, string> = {
+  natamam: "bg-muted text-muted-foreground border-border",
+  tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
+  imtina: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
+  aktiv: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  legv_olundu: "bg-slate-800 text-slate-100 border-slate-900",
+};
+
 interface EvaluatorPerson { name: string; weight: number; }
 interface EvaluatorConfig {
   type: "team" | "person" | "self" | "integration" | null;
