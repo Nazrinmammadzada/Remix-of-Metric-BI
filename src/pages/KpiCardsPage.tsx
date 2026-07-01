@@ -799,7 +799,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
     const kind = getAssignKindFor(c.id);
-    const matchesKind = filterAssignKind === "Hamısı" || (filterAssignKind === "Toplu" ? kind !== "Fərdi" : kind === filterAssignKind);
+    let matchesKind = true;
+    if (filterAssignKind === "Fərdi") matchesKind = kind === "Fərdi";
+    else if (filterAssignKind === "Toplu") {
+      matchesKind = kind !== "Fərdi";
+      if (matchesKind && filterBulkKind !== "Hamısı") {
+        matchesKind = kind === filterBulkKind || (filterBulkKind === "Şəxs" && kind === "Fərdi");
+      }
+    }
     return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
