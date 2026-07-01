@@ -432,6 +432,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const action = d.action || "draft";
     const editingId = wizardEditingId;
     const id = editingId ?? (Math.max(0, ...kpiCards.map(c => c.id)) + 1);
+    const prevStatus = editingId != null ? statusMap[editingId]?.status : undefined;
+    const wasRejected = prevStatus === "imtina";
     const builtCard: KpiCard = {
       id, name: d.name, icon: Target, zone: "yellow",
       target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
@@ -502,6 +504,23 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     } catch (err) {
       // non-fatal — cross-panel sync is best-effort
       console.warn("shared kpi sync failed", err);
+    }
+
+    // === Notify təyinedicilər when HR edits a previously-rejected card ===
+    if (wasRejected) {
+      try {
+        const nmod = await import("@/lib/notificationsStore");
+        const assigners = new Set<string>();
+        d.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
+        const msg = action === "submit"
+          ? `"${d.name}" KPI kartı HR tərəfindən düzəliş edildi və yenidən təsdiqə göndərildi.`
+          : action === "create_active"
+          ? `"${d.name}" KPI kartı HR tərəfindən düzəliş edildi və aktivləşdirildi.`
+          : `"${d.name}" KPI kartı HR tərəfindən düzəliş edildi (qaralama).`;
+        assigners.forEach(a => nmod.pushNotification?.({
+          toEmployeeName: a, kind: "info", message: msg,
+        } as any));
+      } catch {}
     }
   };
 
