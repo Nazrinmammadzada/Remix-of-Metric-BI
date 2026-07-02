@@ -650,7 +650,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     ensureAutoTeam(draft);
     onComplete({ ...draft, action, lastStep: step });
     toast.success(
-      action === "draft" ? "Natamam (Draft) kimi yadda saxlanıldı"
+      action === "draft" ? "Qaralama kimi yadda saxlanıldı"
       : action === "create_active" ? "KPI yaradıldı və aktiv edildi"
       : "KPI təyinə göndərildi",
     );
