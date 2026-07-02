@@ -936,12 +936,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                               >
                                 <option value="">— Şəxs seçin (rəhbər və ya adi əməkdaş) —</option>
                                 <optgroup label="Rəhbər vəzifədə olan şəxslər">
-                                  {emps.filter(e => /direktor|müdir|rəhbər|başçı/i.test(e.position || "")).map(e => (
+                                  {emps.filter(e => /direktor|müdir|rəhbər|başçı/i.test(e.positionName || "")).map(e => (
                                     <option key={`m-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.position}</option>
                                   ))}
                                 </optgroup>
                                 <optgroup label="Adi əməkdaşlar">
-                                  {emps.filter(e => !/direktor|müdir|rəhbər|başçı/i.test(e.position || "")).map(e => (
+                                  {emps.filter(e => !/direktor|müdir|rəhbər|başçı/i.test(e.positionName || "")).map(e => (
                                     <option key={`u-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.position}</option>
                                   ))}
                                 </optgroup>
