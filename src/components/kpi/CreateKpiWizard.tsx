@@ -1394,11 +1394,16 @@ function Step2Targets({
                   <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici *</span>
                   <button type="button" onClick={() => setAssignerPickerFor(null)} className="text-[11px] text-primary hover:underline">Bağla</button>
                 </div>
-                <select value={t.assigner} onChange={e => updHedef(t.id, { assigner: e.target.value })}
-                  className="w-full px-2 py-1.5 text-xs border border-border rounded bg-background">
-                  <option value="">— Əməkdaş seçin —</option>
+                <input
+                  list={`assigner-list-${t.id}`}
+                  value={t.assigner}
+                  onChange={e => updHedef(t.id, { assigner: e.target.value })}
+                  placeholder="Əməkdaş axtar (ad, vəzifə)…"
+                  className="w-full px-2 py-1.5 text-xs border border-border rounded bg-background"
+                />
+                <datalist id={`assigner-list-${t.id}`}>
                   {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                </datalist>
               </div>
             )}
 
