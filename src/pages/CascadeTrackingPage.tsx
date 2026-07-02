@@ -147,7 +147,28 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
           </section>
         </div>
 
+        {/* Tam ekran topologiya */}
+        {fullView && current && (
+          <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
+            <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground truncate">Tam Topologiya — {current.goalName}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Legend />
+                <button onClick={() => setFullView(false)} className="p-2 rounded-lg hover:bg-secondary transition">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-8">
+              <Topology root={current} compact={false} />
+            </div>
+          </div>
+        )}
       </main>
+
     </div>
   );
 };
