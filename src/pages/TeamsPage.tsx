@@ -77,11 +77,15 @@ const TeamsPage = () => {
     return Array.from(new Set(names));
   })();
 
-  const avgPerformance = teams.length ? (teams.reduce((s, t) => s + t.kpiResult, 0) / teams.length).toFixed(1) : "0";
-  const totalMembers = teams.reduce((s, t) => s + t.members.length + 1, 0);
-  const bestTeam = teams.length ? teams.reduce((b, t) => (t.kpiResult > b.kpiResult ? t : b), teams[0]) : null;
+  const scopedTeams = isManager
+    ? teams.filter(t => t.leader === user?.name)
+    : teams;
 
-  const chartData = teams.map(t => ({
+  const avgPerformance = scopedTeams.length ? (scopedTeams.reduce((s, t) => s + t.kpiResult, 0) / scopedTeams.length).toFixed(1) : "0";
+  const totalMembers = scopedTeams.reduce((s, t) => s + t.members.length + 1, 0);
+  const bestTeam = scopedTeams.length ? scopedTeams.reduce((b, t) => (t.kpiResult > b.kpiResult ? t : b), scopedTeams[0]) : null;
+
+  const chartData = scopedTeams.map(t => ({
     name: t.name.length > 12 ? t.name.substring(0, 12) + "..." : t.name,
     "KPI Nəticəsi": t.kpiResult,
     "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
