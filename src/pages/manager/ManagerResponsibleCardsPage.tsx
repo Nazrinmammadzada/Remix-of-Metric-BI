@@ -136,12 +136,11 @@ const ManagerResponsibleCardsPage = () => {
                       <thead className="bg-secondary/30 text-xs text-muted-foreground">
                         <tr>
                           <th className="text-left px-4 py-2 font-medium">Hədəf</th>
-                          <th className="text-left px-4 py-2 font-medium">Əməkdaş</th>
                           <th className="text-right px-4 py-2 font-medium">Limit</th>
                           <th className="text-right px-4 py-2 font-medium">Bölüşdürülüb</th>
                           <th className="text-right px-4 py-2 font-medium">Qalıq</th>
                           <th className="text-left px-4 py-2 font-medium">Status</th>
-                          <th className="text-right px-4 py-2 font-medium w-44">Əməliyyat</th>
+                          <th className="text-right px-4 py-2 font-medium w-32">Əməliyyat</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -161,15 +160,6 @@ const ManagerResponsibleCardsPage = () => {
                                       <GitBranch className="w-3 h-3" /> C
                                     </span>
                                   )}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold">
-                                    {e.assigneeName.split(" ").map(p => p[0]).join("").slice(0, 2)}
-                                  </div>
-                                  <span className="text-foreground">{e.assigneeName}</span>
-                                  {emp?.isStarPerson && <Crown className="w-3.5 h-3.5 text-amber-500" />}
                                 </div>
                               </td>
                               <td className="px-4 py-2.5 text-right text-foreground">
@@ -193,38 +183,23 @@ const ManagerResponsibleCardsPage = () => {
                                 )}
                               </td>
                               <td className="px-4 py-2.5 text-right">
-                                <div className="inline-flex items-center gap-1.5 justify-end">
-                                  {e.status === "pending" ? (
-                                    <button
-                                      onClick={() => setAssignEntry(e)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
-                                    >
-                                      <TargetIcon className="w-3.5 h-3.5" /> Təyin et
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => setAssignEntry(e)}
-                                      title="Redaktə et"
-                                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-border text-xs hover:bg-secondary"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  {e.cascadable && limit > 0 && (
-                                    <button
-                                      onClick={() => setDistribute(e)}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
-                                    >
-                                      <GitBranch className="w-3.5 h-3.5" />
-                                      {root && dist > 0 ? "Bölgünü dəyiş" : "Kaskad et"}
-                                    </button>
-                                  )}
-                                  {e.status === "completed" && !e.cascadable && (
-                                    <span className="text-[11px] text-muted-foreground">—</span>
-                                  )}
-                                </div>
+                                {e.status === "pending" ? (
+                                  <button
+                                    onClick={() => setAssignEntry(e)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
+                                  >
+                                    <TargetIcon className="w-3.5 h-3.5" /> Təyin et
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setAssignEntry(e)}
+                                    title="Redaktə et"
+                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-border text-xs hover:bg-secondary"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </td>
-
                             </tr>
                           );
                         })}
