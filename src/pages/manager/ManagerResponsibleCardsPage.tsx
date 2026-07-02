@@ -35,6 +35,9 @@ const ManagerResponsibleCardsPage = () => {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const [distribute, setDistribute] = useState<KpiSetEntry | null>(null);
+  const [assignEntry, setAssignEntry] = useState<KpiSetEntry | null>(null);
+  const [cascadeConfirm, setCascadeConfirm] = useState<{ entry: KpiSetEntry; value: number; unit: string } | null>(null);
+
 
   // "Rəhbərə məsul olduğu kartlar" — ownerType === "manager"
   const groups = useMemo<CardGroup[]>(() => {
