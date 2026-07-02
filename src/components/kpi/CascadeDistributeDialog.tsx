@@ -1,12 +1,12 @@
-// Kaskadlama bölgü dialoqu — Star rəhbər alt şəxslər arasında limit bölüşdürür.
-// Cascading Matrix YOXDUR — tabelikdəki şəxslər `orgStore`-dan avtomatik alınır.
+// Kaskadlama bölgü dialoqu — Star rəhbər alt şəxslər arasında hədəf dəyərini paylayır.
+// DİQQƏT: Rəhbərin hədəf üçün yazdığı ümumi dəyər HƏR BİR əməkdaşa EYNİLƏ təyin olunur.
+// Bu, Cascade Load bucket-indən TAM AYRIDIR (o, başqa kartdan gələn və bölünən limitdir).
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GitBranch, Crown, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, findStructureById, getStructures } from "@/lib/orgStore";
 import { distribute, getChildren, remainingOf, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-import { availableFor, setAllocated, useCascadeLoad, getAllocated } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
