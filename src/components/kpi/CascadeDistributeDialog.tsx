@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { GitBranch, Crown, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, findStructureById, getStructures } from "@/lib/orgStore";
 import { distribute, getChildren, remainingOf, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { availableFor, setAllocated, useCascadeLoad, getAllocated } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
