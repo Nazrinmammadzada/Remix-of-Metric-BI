@@ -60,8 +60,11 @@ export interface KpiSetEntry {
 }
 
 
-const KEY = "kpi_set_entries_v5";
+const KEY = "kpi_set_entries_v6";
 const EVT = "kpi-set-updated";
+
+// Köhnə versiyaları təmizlə — istifadəçi tərəfindən yaradılan hədəfləri silir.
+try { ["kpi_set_entries_v1","kpi_set_entries_v2","kpi_set_entries_v3","kpi_set_entries_v4","kpi_set_entries_v5"].forEach(k => localStorage.removeItem(k)); } catch {}
 
 const SEED: KpiSetEntry[] = [
   // ============ ELVİN RƏHİMOV (id=4, manager@kpi.az) — Marketinq Departamenti rəhbəri ============
