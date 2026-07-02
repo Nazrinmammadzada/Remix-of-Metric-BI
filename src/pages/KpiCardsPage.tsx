@@ -597,6 +597,29 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       setStatusMap(next);
     } catch {}
 
+    // === Rəhbər üçün pending KpiSetEntry yarat ===
+    // "Digər əməkdaş təyin edir" seçildikdə həmin rəhbər öz "Məsul olduğum kartlar"
+    // modulundan bu hədəfi (ad/dəyər/limit/çəki/cascadable) təyin edir.
+    try {
+      const seen = new Set<string>();
+      (d.targets || []).forEach((t: any) => {
+        if (t.createdBy === "other" && t.assigner && !seen.has(t.assigner)) {
+          seen.add(t.assigner);
+          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === t.assigner);
+          addPendingEntry({
+            cardId: id,
+            cardName: d.name,
+            assigneeName: t.assigner,
+            assigneeId: emp?.id,
+            ownerType: "manager",
+            weightMin: 5,
+            weightMax: 40,
+          });
+        }
+      });
+    } catch (err) { console.warn("pending kpi set seed failed", err); }
+
+
     // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===
     try {
       const ownerId = getCurrentEmployeeId(user) || "e1";
