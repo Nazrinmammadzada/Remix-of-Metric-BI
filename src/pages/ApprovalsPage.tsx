@@ -314,4 +314,92 @@ const ApprovalsPage = () => {
   );
 };
 
+const InfoRow = ({ k, v }: { k: string; v: string }) => (
+  <>
+    <div className="text-muted-foreground">{k}:</div>
+    <div className="font-medium text-foreground text-right">{v}</div>
+  </>
+);
+
+const ApprovalChain = ({ detail }: { detail: ApprovalItem }) => {
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+  return (
+    <ol className="space-y-1.5">
+      {detail.approverIds.map((id, i) => {
+        const dec = detail.decisions[id];
+        const state = dec?.decision || "pending";
+        const isOpen = openIdx === i;
+        const emp = getEnrichedEmployee(id);
+        const stateBadge = state === "approved"
+          ? { text: "Təsdiq edildi", cls: "text-emerald-700", icon: CheckCircle2 }
+          : state === "rejected"
+          ? { text: "İmtina edildi", cls: "text-rose-700", icon: XCircle }
+          : i === detail.approverIds.findIndex(x => (detail.decisions[x]?.decision || "pending") === "pending")
+          ? { text: "Gözləyir", cls: "text-amber-700", icon: Hourglass }
+          : { text: "Növbədə", cls: "text-muted-foreground", icon: Clock };
+        const StateIcon = stateBadge.icon;
+        const stepNumCls = state === "approved"
+          ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+          : state === "rejected"
+          ? "bg-rose-100 text-rose-700 border-rose-300"
+          : "bg-amber-100 text-amber-700 border-amber-300";
+        return (
+          <li key={id} className="rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setOpenIdx(isOpen ? null : i)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-secondary/40"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-semibold ${stepNumCls}`}>
+                  {state === "approved" ? "✓" : i + 1}
+                </span>
+                <div className="text-left">
+                  <div className="text-sm font-medium text-foreground">{emp?.position || "Təsdiqləyici"}</div>
+                  <div className="text-xs text-muted-foreground">{empName(id)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs flex items-center gap-1 ${stateBadge.cls}`}>
+                  <StateIcon className="w-3.5 h-3.5" /> {stateBadge.text}
+                  {dec?.at && ` — ${new Date(dec.at).toLocaleDateString("az-AZ")}`}
+                </span>
+                {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+              </div>
+            </button>
+            {isOpen && (
+              <div className="border-t border-border bg-muted/20 px-3 py-2.5 text-xs space-y-1.5">
+                <div className="font-medium text-foreground">
+                  {emp?.position || "—"} təsdiqi — Mərhələ Detalları
+                </div>
+                <div className="grid grid-cols-2 gap-y-1">
+                  <div><span className="text-muted-foreground">Təsdiqləyən:</span> <span className="font-medium">{empName(id)}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> <span className={stateBadge.cls}>{stateBadge.text}</span></div>
+                  {dec?.at && (
+                    <>
+                      <div><span className="text-muted-foreground">Təsdiq tarixi:</span> <span className="font-medium">{new Date(dec.at).toLocaleDateString("az-AZ")}</span></div>
+                      <div><span className="text-muted-foreground">Cavab tarixi:</span> <span className="font-medium">{new Date(dec.at).toLocaleDateString("az-AZ")}</span></div>
+                    </>
+                  )}
+                </div>
+                {dec?.note && (
+                  <div className={`mt-1 rounded px-2 py-1.5 border ${
+                    state === "approved" ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : state === "rejected" ? "bg-rose-50 border-rose-200 text-rose-800"
+                    : "bg-white border-border text-foreground/80"
+                  }`}>
+                    <span className="font-medium">Şərh: </span>{dec.note}
+                  </div>
+                )}
+                {state === "pending" && !dec?.note && (
+                  <div className="text-muted-foreground italic">Hələ cavab yoxdur.</div>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+};
+
 export default ApprovalsPage;
