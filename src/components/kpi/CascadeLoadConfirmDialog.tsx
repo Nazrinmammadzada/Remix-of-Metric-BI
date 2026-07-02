@@ -2,6 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GitBranch } from "lucide-react";
+import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
