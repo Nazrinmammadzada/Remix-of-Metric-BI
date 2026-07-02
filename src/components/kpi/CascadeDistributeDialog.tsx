@@ -231,4 +231,24 @@ const StatCard = ({ label, value, unit, accent, icon, negative }: { label: strin
   </div>
 );
 
+const BigStat = ({ label, value, unit, tone, negative }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "warning" | "danger"; negative?: boolean }) => {
+  const toneCls = {
+    neutral: "border-border bg-card text-foreground",
+    primary: "border-primary/30 bg-primary/5 text-primary",
+    success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
+    warning: "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400",
+    danger:  "border-destructive/40 bg-destructive/5 text-destructive",
+  }[tone];
+  return (
+    <div className={`rounded-xl border p-4 ${toneCls}`}>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-bold tabular-nums">
+        {negative ? "−" : ""}{value}
+        <span className="ml-1.5 text-sm font-normal text-muted-foreground">{unit}</span>
+      </div>
+    </div>
+  );
+};
+
+
 export default CascadeDistributeDialog;
