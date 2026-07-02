@@ -810,23 +810,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const draft = cardDrafts[cardId];
     return (draft?.startDate) || "—";
   };
-  const getAssignKindFor = (cardId: number): "Fərdi" | "Komanda" | "Struktur" | "Vəzifə" => {
+  const getAssignKindFor = (cardId: number): "Fərdi" | "Toplu" => {
     const draft = cardDrafts[cardId];
     if (!draft) {
-      // Legacy demo: map to Fərdi/Komanda based on team match
       const card = kpiCards.find(c => c.id === cardId);
       if (!card) return "Fərdi";
       const teams = getTeams();
       const inTeam = teams.some(t => [t.leader, ...t.members.map(m => m.name)].includes(card.responsible));
-      return inTeam ? "Komanda" : "Fərdi";
+      return inTeam ? "Toplu" : "Fərdi";
     }
-    if (draft.mode === "individual") return "Fərdi";
-    // bulk mode — introspect selected buckets
-    const b: any = (draft as any).bulk || {};
-    if (b.teamIds?.length) return "Komanda";
-    if (b.structureIds?.length) return "Struktur";
-    if (b.positions?.length) return "Vəzifə";
-    return "Fərdi";
+    return draft.mode === "individual" ? "Fərdi" : "Toplu";
   };
 
   const filteredCards = kpiCards.filter(c => {
