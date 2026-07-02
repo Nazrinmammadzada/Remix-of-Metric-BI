@@ -113,6 +113,9 @@ export interface CreateKpiWizardDraft {
   scoringSystem: string;
   useMatrix: boolean;
   approvalMatrixId: string;
+  /** 3-cü addımda seçilir. Default `mode`/`bulkSelections`-a əsasən hesablanır. */
+  approvalMethod: "structure_leader" | "team_leader" | "matrix";
+
 
   lifecycle: {
     /** KPI təyin olunması */
@@ -154,6 +157,8 @@ export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
   scoringSystem: "1-5",
   useMatrix: false,
   approvalMatrixId: "",
+  approvalMethod: "matrix",
+
   lifecycle: {
     assignmentStart: "",
     assignmentEnd: "",
@@ -553,10 +558,90 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     toast.success(`Yeni komanda yaradıldı: ${baseName}`);
   };
 
+  // ==== Approval method auto-default (touched flag qoruyur user seçimini) ====
+  const [approvalMethodTouched, setApprovalMethodTouched] = useState(false);
+  const suggestApprovalMethod = (d: CreateKpiWizardDraft): CreateKpiWizardDraft["approvalMethod"] => {
+    if (d.mode === "individual") return "matrix";
+    const bs = d.bulkSelections;
+    if (bs.teams.length > 0) return "team_leader";
+    if (bs.structures.length > 0) return "structure_leader";
+    return "matrix"; // positions / persons / boş
+  };
+  useEffect(() => {
+    if (approvalMethodTouched) return;
+    const suggested = suggestApprovalMethod(draft);
+    if (suggested !== draft.approvalMethod) {
+      setDraft(p => ({ ...p, approvalMethod: suggested, useMatrix: suggested === "matrix" }));
+    }
+  }, [draft.mode, draft.bulkSelections, approvalMethodTouched]);
+  const setApprovalMethod = (m: CreateKpiWizardDraft["approvalMethod"]) => {
+    setApprovalMethodTouched(true);
+    update({ approvalMethod: m, useMatrix: m === "matrix" });
+  };
+
+  // ==== Approval targets validation (team_leader / structure_leader / matrix) ====
+  const collectAssignedEmployees = (d: CreateKpiWizardDraft): string[] => {
+    if (d.mode === "individual") return d.individualEmployees;
+    const bs = d.bulkSelections;
+    const set = new Set<string>();
+    // Şəxs kateqoriyası — birbaşa adlar; digər kateqoriyalarda üzvləri toplayırıq.
+    bs.persons.forEach(n => set.add(n));
+    if (bs.teams.length > 0) {
+      const allTeams = getTeams();
+      bs.teams.forEach(name => {
+        const t = allTeams.find(x => x.name === name);
+        if (!t) return;
+        set.add(t.leader);
+        t.members.forEach(m => set.add(m.name));
+      });
+    }
+    // Struktur/vəzifə üçün əməkdaş adlarını burada map etmirik (validator ayrıca yoxlayır).
+    return Array.from(set);
+  };
+
+  const getTeamOfPerson = (name: string) => {
+    const teams = getTeams();
+    return teams.find(t => t.leader === name || t.members.some(m => m.name === name)) || null;
+  };
+  const getStructureLeaderName = (empName: string): string | null => {
+    const employees = getEmployees();
+    const emp = employees.find(e => `${e.firstName} ${e.lastName}` === empName || (e as any).fullName === empName);
+    if (!emp) return null;
+    const path = (emp as any).structurePath as string | undefined;
+    if (!path) return null;
+    const leader = employees.find(e => (e as any).structurePath === path && e.isStarPerson);
+    if (!leader) return null;
+    return `${leader.firstName} ${leader.lastName}`;
+  };
+
+  const validateApprovalTargets = (d: CreateKpiWizardDraft): string | null => {
+    if (d.approvalMethod === "matrix") {
+      if (!d.approvalMatrixId) return "Təsdiqləmə matrisi seçin";
+      return null;
+    }
+    if (d.approvalMethod === "team_leader") {
+      const people = collectAssignedEmployees(d);
+      if (people.length === 0 && d.bulkSelections.teams.length === 0) return "Təsdiqləmə üçün əməkdaş və ya komanda seçilməlidir";
+      const missing = people.filter(p => !getTeamOfPerson(p));
+      if (missing.length > 0) {
+        return `Bu şəxslərin komandası yoxdur: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+      }
+      return null;
+    }
+    // structure_leader
+    const people = collectAssignedEmployees(d);
+    if (people.length === 0 && d.bulkSelections.structures.length === 0) return "Təsdiqləmə üçün əməkdaş və ya struktur seçilməlidir";
+    const missing = people.filter(p => !getStructureLeaderName(p));
+    if (missing.length > 0) {
+      return `Bu şəxslərin struktur rəhbəri müəyyən edilə bilmir: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+    }
+    return null;
+  };
+
   const finalize = (action: WizardAction) => {
-    if (action === "submit" && draft.useMatrix && !draft.approvalMatrixId) {
-      toast.error("Təyinə göndərmək üçün təsdiqləmə matrisini seçin");
-      return;
+    if (action === "submit") {
+      const err = validateApprovalTargets(draft);
+      if (err) { toast.error(err); return; }
     }
     ensureAutoTeam(draft);
     onComplete({ ...draft, action, lastStep: step });
@@ -567,6 +652,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     );
     close();
   };
+
 
   // ====== UI ======
   const Field = ({ label, required, children, span = "col-span-12 md:col-span-6" }:
@@ -746,19 +832,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 </Field>
 
                 <div className="col-span-12">
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${draft.useMatrix ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
-                    <input type="checkbox" checked={draft.useMatrix} onChange={e => update({ useMatrix: e.target.checked })} className="w-5 h-5 mt-0.5" />
-                    <div>
-                      <div className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-primary" />
-                        Təsdiqləmə matrisi tətbiq olunsun?
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Aktiv olduqda təyinatlar bitdikdən sonra kart "Təsdiq gözlənilir" statusuna keçəcək.
-                      </p>
-                    </div>
-                  </label>
+                  <div className="p-3 rounded-lg border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
+                    <ShieldCheck className="w-4 h-4 text-primary inline mr-1.5 -mt-0.5" />
+                    Təsdiqləmə üsulu 3-cü addımda seçiləcək (təyinat növünə əsasən avtomatik təklif olunur).
+                  </div>
                 </div>
+
               </div>
 
               {/* ===== Lifecycle ===== */}
@@ -853,7 +932,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <SummaryRow label="Dövr" value={draft.frequency} />
                   <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
                   <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
-                  <SummaryRow label="Təsdiqləmə matrisi" value={draft.useMatrix ? "Bəli" : "Xeyr"} />
+                  <SummaryRow label="Təsdiqləmə üsulu" value={
+                    draft.approvalMethod === "team_leader" ? "Komanda rəhbəri"
+                    : draft.approvalMethod === "structure_leader" ? "Təşkilati struktur rəhbəri"
+                    : "Matriks"
+                  } />
+
                   {draft.mode === "individual" && <SummaryRow label="Əməkdaşlar" value={draft.individualEmployees.join(", ") || "—"} />}
                   {draft.mode === "bulk" && (
                     <>
@@ -890,27 +974,53 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   }
                 </SummarySection>
 
-                {draft.useMatrix && (
-                  <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə Matrisi seçimi</h3>
-                    </div>
-                    <select value={draft.approvalMatrixId}
-                      onChange={e => update({ approvalMatrixId: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                      <option value="">— Təsdiqləmə matrisi seçin —</option>
-                      {approvalMatrices.map(m => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
-                      ))}
-                    </select>
-                    {selectedMatrix && (
-                      <div className="text-[11px] text-muted-foreground">
-                        Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
-                      </div>
-                    )}
+                {/* Təsdiqləmə üsulu seçimi */}
+                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə üsulu</h3>
+                    <span className="text-[11px] text-muted-foreground">(təyinat növünə görə default təklif olunub)</span>
                   </div>
-                )}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    {([
+                      { v: "structure_leader" as const, t: "Təşkilati struktur rəhbəri", d: "Hər əməkdaşın öz struktur rəhbərinə göndərilir" },
+                      { v: "team_leader" as const, t: "Komanda rəhbəri", d: "Hər əməkdaşın öz komanda liderinə göndərilir" },
+                      { v: "matrix" as const, t: "Matriks", d: "Mövcud matrislərdən birini seçin" },
+                    ]).map(o => {
+                      const active = draft.approvalMethod === o.v;
+                      return (
+                        <button key={o.v} type="button" onClick={() => setApprovalMethod(o.v)}
+                          className={`text-left p-2.5 rounded-lg border text-xs transition-all ${active ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
+                          <div className="font-semibold text-foreground text-sm">{o.t}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">{o.d}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {draft.approvalMethod === "matrix" && (
+                    <div className="pt-2 border-t border-border/50">
+                      <select value={draft.approvalMatrixId}
+                        onChange={e => update({ approvalMatrixId: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                        <option value="">— Təsdiqləmə matrisi seçin —</option>
+                        {approvalMatrices.map(m => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
+                        ))}
+                      </select>
+                      {selectedMatrix && (
+                        <div className="text-[11px] text-muted-foreground mt-1">
+                          Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-muted-foreground pt-1">
+                    Qeyd: Təsdiq bir nəfərə deyil, hər əməkdaşın öz rəhbərinə/komanda liderinə göndərilir. Rəhbəri təyin olunmayan şəxs varsa "Təyinə göndər" xəta verəcək.
+                  </p>
+                </div>
+
               </div>
             );
           })()}
@@ -935,17 +1045,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 className="flex items-center gap-1 px-5 py-1.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
                 Növbəti <ChevronRight className="w-4 h-4" />
               </button>
-            ) : draft.useMatrix ? (
+            ) : (
               <button type="button" onClick={() => finalize("submit")}
                 className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
                 <Send className="w-4 h-4" /> Təyinə göndər
               </button>
-            ) : (
-              <button type="button" onClick={() => finalize("create_active")}
-                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
-                <Power className="w-4 h-4" /> KPI yarat
-              </button>
             )}
+
           </div>
         </div>
       </DialogContent>
