@@ -23,15 +23,12 @@ interface Props {
   onDistributed?: () => void;
 }
 
-type Choice = "cascade" | "independent";
-
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
-  const [choice, setChoice] = useState<Choice>("cascade");
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
 
-  useEffect(() => { setNode(existingNode); setChoice("cascade"); setSlices({}); }, [existingNode?.id, open]);
+  useEffect(() => { setNode(existingNode); setSlices({}); }, [existingNode?.id, open]);
 
   // Lazy-create root when opening from KpiSet entry
   useEffect(() => {
