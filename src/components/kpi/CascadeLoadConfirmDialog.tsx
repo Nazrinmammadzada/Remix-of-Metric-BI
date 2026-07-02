@@ -15,7 +15,8 @@ interface Props {
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
 const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }: Props) => {
-  const hasLoad = value > 0;
+  const { total, remaining } = useCascadeLoad();
+  const hasLoad = remaining > 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -26,15 +27,20 @@ const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }
           </DialogTitle>
         </DialogHeader>
         {hasLoad ? (
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-            Sizin üzərinizdə <span className="font-semibold">{fmt(value)} {unit}</span> məbləğində
-            <span className="font-semibold"> Cascade Load</span> mövcuddur.
-            Bu limit sizə <span className="italic">başqa kartdan</span> gəlir və hazırda təyin etdiyiniz hədəflə əlaqəsi yoxdur.
-            Onu tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground space-y-1.5">
+            <div>
+              Sizə <span className="italic">başqa KPI kartından</span> gələn
+              <span className="font-semibold"> Cascade Load</span>:
+              <span className="ml-1 font-semibold">{fmt(remaining)} AZN</span>
+              <span className="text-muted-foreground"> / {fmt(total)} AZN</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Bu limit hazırda təyin etdiyiniz hədəflə əlaqəli deyil. Tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
+            </div>
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">
-            Hazırda sizin üzərinizdə paylanmalı Cascade Load yoxdur.
+            Cascade Load tamamilə paylanıb ({fmt(total)} / {fmt(total)} AZN).
           </div>
         )}
         <DialogFooter>
