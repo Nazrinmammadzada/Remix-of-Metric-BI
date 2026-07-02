@@ -1181,7 +1181,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                         const next = await mod.fetchAllStatuses();
                                         setStatusMap(next);
                                       } catch {}
-                                      toast.success("Kart kopyalandı (Qaralama)");
+                                      toast.success("Kart kopyalandı (Natamam)");
                                     }}
                                     title="Kopyala"
                                     className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -1538,7 +1538,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Təyin edənlər — Qaralama</DialogTitle>
+            <DialogTitle>Təyin edənlər — Natamam</DialogTitle>
           </DialogHeader>
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);
