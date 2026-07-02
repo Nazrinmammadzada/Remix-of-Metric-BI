@@ -512,21 +512,45 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       scoreDescriptions: [],
       cascading: false, cascadeMatrix: "",
     }));
+    const lc = getLifecycle(cardId);
+    const toISO = (s: string) => {
+      if (!s) return "";
+      // "01.01.2026" → "2026-01-01"
+      const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      return m ? `${m[3]}-${m[2]}-${m[1]}` : s;
+    };
     openWizard({
       name: card.name,
       mode: "individual",
       individualEmployees: [card.responsible],
       bulkSelections: { teams: [], structures: [], positions: [], persons: [] },
       frequency: card.frequency || "Aylıq",
-      startDate: card.startDate || "",
-      endDate: card.endDate || "",
+      startDate: toISO(card.startDate || ""),
+      endDate: toISO(card.endDate || ""),
       scoringSystem: "1-5",
       useMatrix: true,
       approvalMatrixId: "matrix-standard",
+      approvalMethod: "matrix",
+      lifecycle: {
+        assignmentStart: lc?.assignment?.start || "",
+        assignmentEnd: lc?.assignment?.end || "",
+        assignmentDeadline: lc?.assignment?.end || "",
+        evaluationStart: lc?.evaluation?.start || "",
+        evaluationEnd: lc?.evaluation?.end || "",
+        bonusStart: lc?.bonus?.start || "",
+        bonusEnd: lc?.bonus?.end || "",
+        reviews: (lc?.reviews || []).map((r, i) => ({
+          id: r.id || `r-${i}`,
+          name: `Review ${i + 1}`,
+          start: r.start,
+          end: r.end,
+        })),
+      },
       targets: targets as any,
       createdBy: "self",
       createdByEmployee: card.responsible,
     } as any, cardId);
+
   };
   const handleWizardComplete = async (d: CreateKpiWizardDraft) => {
     const action = d.action || "draft";
