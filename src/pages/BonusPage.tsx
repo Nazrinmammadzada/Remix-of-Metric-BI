@@ -278,14 +278,16 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
 
   return (
     <div className="min-h-screen">
-      <Header title="Bonuslar" />
-      <main className="p-6 pb-24 space-y-4">
-        <PageHero
-          badge="Bonus Mərkəzi"
-          icon={Sparkles}
-          title="Bonuslar"
-          subtitle="Əməkdaşlar üzrə dövrlük bonus hesablanması"
-        />
+      {!hideChrome && <Header title="Bonuslar" />}
+      <main className={hideChrome ? "space-y-4" : "p-6 pb-24 space-y-4"}>
+        {!hideChrome && (
+          <PageHero
+            badge="Bonus Mərkəzi"
+            icon={Sparkles}
+            title={heroTitle || "Bonuslar"}
+            subtitle={heroSubtitle || "Əməkdaşlar üzrə dövrlük bonus hesablanması"}
+          />
+        )}
 
         <div className="bg-card rounded-xl border border-border p-4">
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_auto] gap-3 items-end">
@@ -308,9 +310,11 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
               {renderPeriodPicker()}
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={handleCalculate} disabled={!isPeriodReady()}>
-                <Calculator className="mr-2 h-4 w-4" /> Bonus hesabla
-              </Button>
+              {!hideCalcButton && (
+                <Button onClick={handleCalculate} disabled={!isPeriodReady()}>
+                  <Calculator className="mr-2 h-4 w-4" /> Bonus hesabla
+                </Button>
+              )}
               {result && (
                 <ExportMenu
                   getData={() => ({
