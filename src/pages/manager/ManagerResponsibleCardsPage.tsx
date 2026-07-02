@@ -11,7 +11,14 @@ import {
 } from "lucide-react";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
-import { useSharedKpiCards, STATUS_LABEL_MAP, type SharedKpiCard } from "@/lib/kpiCardStore";
+import { useSharedKpiCards, type SharedKpiCard, type SharedKpiStatus } from "@/lib/kpiCardStore";
+
+const STATUS_LABEL_MAP: Record<SharedKpiStatus, string> = {
+  natamam: "Natamam",
+  tesdiq_gozlenilir: "Təsdiq gözlənilir",
+  imtina: "İmtina",
+  aktiv: "Aktiv",
+};
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
 import { getEnrichedEmployee, getDirectReports, getTeamsLedBy, mockTeams } from "@/data/mockExtras";
