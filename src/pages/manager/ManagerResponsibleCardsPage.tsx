@@ -1,11 +1,12 @@
 // Manager · "Məsul olduğum kartlar" — rəhbərin gündəlik iş axını.
-// Ayrıca KPI Set / Cascading moduluna keçmədən burada hədəf bölgüsü aparılır.
+// Ayrıca KPI Set / Cascading moduluna keçmədən burada hədəf təyinetməsi və
+// kaskadlama bölgüsü aparılır.
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import {
   LayoutGrid, Search, ChevronDown, ChevronRight, GitBranch, Crown,
-  CheckCircle2, Hourglass, Target as TargetIcon,
+  CheckCircle2, Hourglass, Target as TargetIcon, Pencil,
 } from "lucide-react";
 import { useKpiSet, type KpiSetEntry } from "@/lib/kpiSetStore";
 import {
@@ -13,6 +14,9 @@ import {
 } from "@/lib/cascadeTreeStore";
 import { getEmployees } from "@/lib/orgStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
+import AssignGoalDialog from "@/components/kpi/AssignGoalDialog";
+import CascadeLoadConfirmDialog from "@/components/kpi/CascadeLoadConfirmDialog";
+
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
