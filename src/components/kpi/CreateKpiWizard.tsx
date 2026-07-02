@@ -991,8 +991,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   }
                 </SummarySection>
 
-                {/* Təsdiqləmə üsulu */}
-                {draft.useMatrix ? (
+                {/* Təsdiqləmə üsulu — yalnız matris seçildikdə */}
+                {draft.useMatrix && (
                   <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-primary" />
@@ -1011,16 +1011,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 flex items-start gap-2 text-xs">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-foreground">Matrissiz təyinat</div>
-                      <p className="text-muted-foreground mt-0.5">
-                        Kart matris olmadan avtomatik təyin ediləcək və <b>Aktiv</b> statusda yaranacaq. Təsdiq lazım gəldikdə birbaşa <b>{draft.approvalMethod === "team_leader" ? "komanda liderinə" : "struktur rəhbərinə"}</b> göndəriləcək.
-                      </p>
-                    </div>
                   </div>
                 )}
 
