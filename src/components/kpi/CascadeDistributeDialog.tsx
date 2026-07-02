@@ -23,15 +23,12 @@ interface Props {
   onDistributed?: () => void;
 }
 
-type Choice = "cascade" | "independent";
-
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
-  const [choice, setChoice] = useState<Choice>("cascade");
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
 
-  useEffect(() => { setNode(existingNode); setChoice("cascade"); setSlices({}); }, [existingNode?.id, open]);
+  useEffect(() => { setNode(existingNode); setSlices({}); }, [existingNode?.id, open]);
 
   // Lazy-create root when opening from KpiSet entry
   useEffect(() => {
@@ -75,14 +72,36 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
   useEffect(() => {
     if (!node) return;
-    // mövcud bölgüləri əvvəlcədən doldur
+    // mövcud bölgüləri əvvəlcədən doldur — və ya subordinatları bərabər böl
     const kids = getChildren(node.id);
     const seed: Record<number, string> = {};
-    kids.forEach(k => { seed[k.assigneeId] = String(k.limit); });
+    if (kids.length) {
+      kids.forEach(k => { seed[k.assigneeId] = String(k.limit); });
+    } else if (subordinates.length && node.limit > 0) {
+      const per = Math.floor((node.limit / subordinates.length) * 100) / 100;
+      subordinates.forEach((e, i) => {
+        // Son əməkdaşa qalıq düşsün ki, cəm dəqiq gəlsin
+        seed[e.id] = i === subordinates.length - 1
+          ? String(Math.round((node.limit - per * (subordinates.length - 1)) * 100) / 100)
+          : String(per);
+      });
+    }
     setSlices(seed);
-  }, [node?.id]);
+  }, [node?.id, subordinates.length]);
 
   const setSlice = (id: number, val: string) => setSlices(prev => ({ ...prev, [id]: val }));
+
+  const equalSplit = () => {
+    if (!node || !subordinates.length) return;
+    const per = Math.floor((node.limit / subordinates.length) * 100) / 100;
+    const next: Record<number, string> = {};
+    subordinates.forEach((e, i) => {
+      next[e.id] = i === subordinates.length - 1
+        ? String(Math.round((node.limit - per * (subordinates.length - 1)) * 100) / 100)
+        : String(per);
+    });
+    setSlices(next);
+  };
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const limit = node?.limit || 0;
@@ -126,94 +145,73 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           </p>
         </DialogHeader>
 
-        {/* Choice */}
-        <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
-          <div className="text-xs font-medium text-muted-foreground">Bu hədəfi necə təyin etmək istəyirsiniz?</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {([
-              { k: "cascade", t: "Mövcud hədəfdən bölərək (Kaskadlama)", d: "Ana hədəfin davamı — parent-child əlaqəsi yaradılır, limit çıxılır." },
-              { k: "independent", t: "Yeni müstəqil hədəf", d: "Ana hədəflə əlaqəsi yoxdur; limitdən heç nə çıxılmır." },
-            ] as { k: Choice; t: string; d: string }[]).map(opt => (
-              <label key={opt.k} className={`cursor-pointer rounded-md border p-2.5 text-xs transition ${choice === opt.k ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                <div className="flex items-start gap-2">
-                  <input type="radio" checked={choice === opt.k} onChange={() => setChoice(opt.k)} className="mt-0.5" />
-                  <div>
-                    <div className="font-medium text-foreground">{opt.t}</div>
-                    <div className="text-muted-foreground mt-0.5">{opt.d}</div>
-                  </div>
-                </div>
-              </label>
-            ))}
-          </div>
+        {/* Live totals — Ümumi Limit / Paylanmış / Qalıq */}
+        <div className="grid grid-cols-3 gap-3">
+          <BigStat label="Ümumi Limit (Sizin üzərinizdə)" value={fmt(limit)} unit={node?.unit || ""} tone="neutral" />
+          <BigStat label="Paylanmış" value={fmt(totalDist)} unit={node?.unit || ""} tone="primary" />
+          <BigStat label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} tone={overflow ? "danger" : remaining === 0 ? "success" : "warning"} negative={overflow} />
         </div>
 
-        {choice === "independent" ? (
-          <div className="rounded-md border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Yeni müstəqil hədəf yaratmaq üçün <b>KPI-lar → Yeni KPI</b> ekranına keçin. Bu hədəf mövcud ana hədəfə təsir etməyəcək.
+        <div className="flex items-center justify-between">
+          <div className="text-[11px] text-muted-foreground">
+            Kaskad limit dəyəri kartda təyin olunmuş hədəf dəyərindən götürülür və dəyişdirilə bilməz.
           </div>
-        ) : (
-          <>
-            {/* Live totals — şəkildəki layout: Ümumi Limit / Paylanmış / Qalıq */}
-            <div className="grid grid-cols-3 gap-3">
-              <BigStat label="Ümumi Limit (Sizin üzərinizdə)" value={fmt(limit)} unit={node?.unit || ""} tone="neutral" />
-              <BigStat label="Paylanmış" value={fmt(totalDist)} unit={node?.unit || ""} tone="primary" />
-              <BigStat label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} tone={overflow ? "danger" : remaining === 0 ? "success" : "warning"} negative={overflow} />
-            </div>
+          {subordinates.length > 0 && (
+            <Button size="sm" variant="outline" onClick={equalSplit} className="h-7 text-[11px]">
+              Bərabər böl
+            </Button>
+          )}
+        </div>
 
-            {/* Subordinates list — şəkildəki cədvəl */}
-            <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
-              {subordinates.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">Bu strukturda tabelikdə əməkdaş yoxdur.</div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary/40 text-xs text-muted-foreground sticky top-0">
-                    <tr>
-                      <th className="text-left px-3 py-2 font-medium w-10">#</th>
-                      <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
-                      <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
-                      <th className="text-right px-3 py-2 font-medium w-44">Kaskad limit ({node?.unit})</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subordinates.map((e, idx) => (
-                      <tr key={e.id} className="border-t border-border">
-                        <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-foreground">{e.firstName} {e.lastName}</span>
-                            {e.isStarPerson && <Crown className="w-3.5 h-3.5 text-amber-500" />}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">{e.positionName || "—"}</td>
-                        <td className="px-3 py-2 text-right">
-                          <input
-                            type="number" min={0} inputMode="decimal"
-                            value={slices[e.id] || ""}
-                            onChange={ev => setSlice(e.id, ev.target.value)}
-                            placeholder="0"
-                            className="w-36 text-right px-2 py-1 border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+        {/* Subordinates */}
+        <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
+          {subordinates.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">Bu strukturda tabelikdə əməkdaş yoxdur.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/40 text-xs text-muted-foreground sticky top-0">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium w-10">#</th>
+                  <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
+                  <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
+                  <th className="text-right px-3 py-2 font-medium w-44">Kaskad limit ({node?.unit})</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subordinates.map((e, idx) => (
+                  <tr key={e.id} className="border-t border-border">
+                    <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-foreground">{e.firstName} {e.lastName}</span>
+                        {e.isStarPerson && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{e.positionName || "—"}</td>
+                    <td className="px-3 py-2 text-right">
+                      <input
+                        type="number" min={0} inputMode="decimal"
+                        value={slices[e.id] || ""}
+                        onChange={ev => setSlice(e.id, ev.target.value)}
+                        placeholder="0"
+                        className="w-36 text-right px-2 py-1 border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-            {error && <div className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {error}</div>}
-            {overflow && <div className="text-xs text-destructive font-medium">⚠ Cəm ana hədəfi keçir — sistem hədəfin şişməsinə icazə vermir.</div>}
-          </>
-
-        )}
+        {error && <div className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {error}</div>}
+        {overflow && <div className="text-xs text-destructive font-medium">⚠ Cəm ana hədəfi keçir — sistem hədəfin şişməsinə icazə vermir.</div>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
-          {choice === "cascade" && (
-            <Button onClick={handleSave} disabled={overflow || subordinates.length === 0}>
-              Bölgünü yadda saxla
-            </Button>
-          )}
+          <Button onClick={handleSave} disabled={overflow || subordinates.length === 0}>
+            Bölgünü yadda saxla
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

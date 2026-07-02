@@ -31,7 +31,7 @@ export interface KpiCardInfo {
   period: string;
 }
 
-const KEY = "user_kpi_subkpis_v2";
+const KEY = "user_kpi_subkpis_v3";
 const EVT = "user-kpi-subkpis-updated";
 
 export const USER_KPI_CARD: KpiCardInfo = {
@@ -39,6 +39,18 @@ export const USER_KPI_CARD: KpiCardInfo = {
   assigneeId: "e4",
   name: "2026 Q1 — Satış və Müştəri Uğuru Kartı",
   period: "2026 Q1",
+};
+
+// Manager (e8 — Kamran Rzayev) üçün bir neçə kart və hədəf.
+export const MANAGER_KPI_CARDS: KpiCardInfo[] = [
+  { id: "card-2026q1-e8-1", assigneeId: "e8", name: "Satış Departamenti — Rüblük Hədəflər", period: "2026 Q1" },
+  { id: "card-2026q1-e8-2", assigneeId: "e8", name: "Komanda İnkişafı və Effektivlik", period: "2026 Q1" },
+  { id: "card-2026q1-e8-3", assigneeId: "e8", name: "Marketinq Büdcə Hədəfi Kartı", period: "2026 Q1" },
+];
+
+export const getKpiCardsFor = (assigneeId: string): KpiCardInfo[] => {
+  if (assigneeId === USER_KPI_CARD.assigneeId) return [USER_KPI_CARD];
+  return MANAGER_KPI_CARDS.filter(c => c.assigneeId === assigneeId);
 };
 
 const NOW = Date.now();
@@ -51,11 +63,7 @@ const SEED: SubKpi[] = [
     cardId: USER_KPI_CARD.id,
     name: "Aylıq Satış Həcmi",
     description: "Cari rüb üçün şəxsi satış hədəfinin yerinə yetirilməsi.",
-    target: 150000,
-    actual: 162000,
-    unit: "AZN",
-    weight: 35,
-    period: "2026 Q1",
+    target: 150000, actual: 162000, unit: "AZN", weight: 35, period: "2026 Q1",
     evaluatedScore: 5,
     selfComment: "Hədəfi 108% yerinə yetirdim, yeni korporativ müştərilər hesabına.",
     challenges: "Yanvar ayında bazarın yavaş açılması.",
@@ -69,11 +77,7 @@ const SEED: SubKpi[] = [
     cardId: USER_KPI_CARD.id,
     name: "Yeni Müştəri Cəlbi",
     description: "Cari dövrdə cəlb edilən yeni aktiv müştərilərin sayı.",
-    target: 20,
-    actual: 18,
-    unit: "ədəd",
-    weight: 20,
-    period: "2026 Q1",
+    target: 20, actual: 18, unit: "ədəd", weight: 20, period: "2026 Q1",
     evaluatedScore: 4,
     selfComment: "Hədəfə 90% çatdım, 2 müştəri keçən rübə sürüşdü.",
     challenges: "Marketinq dəstəyinin gec başlaması.",
@@ -81,29 +85,24 @@ const SEED: SubKpi[] = [
     nextPlan: "Q2 üçün outbound sıxlığını həftəlik 15 zəngə qaldırmaq.",
     submittedAt: NOW - 86400000 * 2,
   },
-  // 2 ədəd QİYMƏTLƏNDİRİLMƏSİ GÖZLƏNİLƏN
-  {
-    id: "skpi-3",
-    assigneeId: "e4",
-    cardId: USER_KPI_CARD.id,
-    name: "Müştəri Məmnuniyyəti (CSAT)",
-    description: "Rüblük sorğu ilə ölçülən müştəri məmnuniyyət göstəricisi.",
-    target: 90,
-    unit: "%",
-    weight: 25,
-    period: "2026 Q1",
-  },
-  {
-    id: "skpi-4",
-    assigneeId: "e4",
-    cardId: USER_KPI_CARD.id,
-    name: "Sifarişin Çatdırılma Vaxtı",
-    description: "Sifarişin orta çatdırılma müddətinin azaldılması (az olması yaxşıdır).",
-    target: 48,
-    unit: "saat",
-    weight: 20,
-    period: "2026 Q1",
-  },
+  { id: "skpi-3", assigneeId: "e4", cardId: USER_KPI_CARD.id, name: "Müştəri Məmnuniyyəti (CSAT)", description: "Rüblük sorğu ilə ölçülən müştəri məmnuniyyət göstəricisi.", target: 90, unit: "%", weight: 25, period: "2026 Q1" },
+  { id: "skpi-4", assigneeId: "e4", cardId: USER_KPI_CARD.id, name: "Sifarişin Çatdırılma Vaxtı", description: "Sifarişin orta çatdırılma müddətinin azaldılması.", target: 48, unit: "saat", weight: 20, period: "2026 Q1" },
+
+  // ============= MANAGER (e8) ============ 
+  // Kart 1 — Satış Departamenti Rüblük Hədəflər
+  { id: "mskpi-1", assigneeId: "e8", cardId: "card-2026q1-e8-1", name: "Ümumi Satış Həcmi", description: "Departamentin rüblük satış həcmi hədəfi.", target: 850000, actual: 812000, unit: "AZN", weight: 40, period: "2026 Q1", evaluatedScore: 4, selfComment: "Hədəfin 96%-i icra olundu.", submittedAt: NOW - 86400000 * 2 },
+  { id: "mskpi-2", assigneeId: "e8", cardId: "card-2026q1-e8-1", name: "Yeni Korporativ Müştəri", description: "Rüb ərzində cəlb edilən yeni korporativ müştərilərin sayı.", target: 12, unit: "ədəd", weight: 30, period: "2026 Q1" },
+  { id: "mskpi-3", assigneeId: "e8", cardId: "card-2026q1-e8-1", name: "Ortalama Sövdələşmə Ölçüsü", description: "Bağlanan sövdələşmələrin orta məbləği.", target: 45000, unit: "AZN", weight: 30, period: "2026 Q1" },
+
+  // Kart 2 — Komanda İnkişafı
+  { id: "mskpi-4", assigneeId: "e8", cardId: "card-2026q1-e8-2", name: "Komanda Məmnuniyyəti", description: "Rüblük daxili sorğu balı (1–5).", target: 4.5, actual: 4.6, unit: "bal", weight: 40, period: "2026 Q1", evaluatedScore: 5, submittedAt: NOW - 86400000 * 4 },
+  { id: "mskpi-5", assigneeId: "e8", cardId: "card-2026q1-e8-2", name: "Tədris Saatları", description: "Hər əməkdaş üçün rüblük təlim saatlarının orta göstəricisi.", target: 20, unit: "saat", weight: 30, period: "2026 Q1" },
+  { id: "mskpi-6", assigneeId: "e8", cardId: "card-2026q1-e8-2", name: "İşdən Ayrılma Faizi", description: "Rüb ərzində könüllü ayrılmaların faizi (az olması yaxşıdır).", target: 5, unit: "%", weight: 30, period: "2026 Q1" },
+
+  // Kart 3 — Marketinq Büdcə
+  { id: "mskpi-7", assigneeId: "e8", cardId: "card-2026q1-e8-3", name: "Marketinq Kampaniyalarının Ümumi Büdcəsi", description: "Rüb ərzində planlaşdırılmış marketinq büdcəsinin idarə olunması.", target: 374000, unit: "AZN", weight: 49, period: "2026 Q1" },
+  { id: "mskpi-8", assigneeId: "e8", cardId: "card-2026q1-e8-3", name: "Yeni Müştəri Gəliri", description: "Kampaniyalardan gələn yeni müştəri gəliri.", target: 120000, unit: "AZN", weight: 25, period: "2026 Q1" },
+  { id: "mskpi-9", assigneeId: "e8", cardId: "card-2026q1-e8-3", name: "Brend Tanınırlıq Auditi", description: "Kampaniya sonrası brend tanınırlıq faizi.", target: 75, unit: "%", weight: 15, period: "2026 Q1" },
 ];
 
 const load = (): SubKpi[] => {

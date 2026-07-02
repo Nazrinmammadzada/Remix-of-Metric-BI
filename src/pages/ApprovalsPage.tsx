@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, X, Clock, CheckCircle2, XCircle, Send, Eye, User, Calendar, MessageSquare } from "lucide-react";
+import {
+  Check, X, Clock, CheckCircle2, XCircle, Send, Eye, User, Calendar, MessageSquare,
+  ChevronDown, ChevronUp, Hourglass, Trophy,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApprovals, decideApproval, type ApprovalItem } from "@/lib/approvalsStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
@@ -105,27 +108,30 @@ const ApprovalsPage = () => {
   const meId = getCurrentEmployeeId(user);
   const visible = useMemo(() => getVisibleApprovals(user, all), [user, all]);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [rejectId, setRejectId] = useState<string | null>(null);
-  const [rejectNote, setRejectNote] = useState("");
+  const [detailNote, setDetailNote] = useState("");
 
   const detail = visible.find(a => a.id === detailId) || null;
   const cardOf = (kpiCardId: string) => cards.find(c => c.id === kpiCardId);
 
   const isManagerActor = user?.role === "MANAGER";
 
-  const handleApprove = (id: string) => {
-    if (!meId) return toast.error("Profil tapılmadı");
-    decideApproval(id, meId, "approved");
-    toast.success("KPI təsdiqləndi — kart aktiv statusa keçdi");
-    setDetailId(null);
+  const closeDetail = () => { setDetailId(null); setDetailNote(""); };
+
+  const handleApproveInDetail = () => {
+    if (!detail || !meId) return;
+    decideApproval(detail.id, meId, "approved", detailNote || undefined);
+    toast.success("KPI təsdiqləndi");
+    closeDetail();
   };
-  const handleReject = () => {
-    if (!rejectId || !meId) return;
-    decideApproval(rejectId, meId, "rejected", rejectNote || "Səbəb göstərilməyib");
+  const handleRejectInDetail = () => {
+    if (!detail || !meId) return;
+    if (!detailNote.trim()) {
+      toast.error("İmtina üçün rəy yazın");
+      return;
+    }
+    decideApproval(detail.id, meId, "rejected", detailNote);
     toast.success("İmtina qeyd olundu");
-    setRejectId(null);
-    setRejectNote("");
-    setDetailId(null);
+    closeDetail();
   };
 
   const columns = [
@@ -170,9 +176,7 @@ const ApprovalsPage = () => {
                 </div>
                 <div className="p-3 space-y-3 min-h-[400px]">
                   {items.length === 0 && (
-                    <div className="text-center text-xs text-muted-foreground py-10">
-                      Boş
-                    </div>
+                    <div className="text-center text-xs text-muted-foreground py-10">Boş</div>
                   )}
                   {items.map(a => {
                     const myDecision = meId ? a.decisions[meId]?.decision : undefined;
@@ -182,9 +186,9 @@ const ApprovalsPage = () => {
                         key={a.id}
                         a={a}
                         canAct={canActMe}
-                        onView={() => setDetailId(a.id)}
-                        onApprove={() => handleApprove(a.id)}
-                        onReject={() => { setRejectId(a.id); setRejectNote(""); }}
+                        onView={() => { setDetailId(a.id); setDetailNote(""); }}
+                        onApprove={() => { setDetailId(a.id); setDetailNote(""); }}
+                        onReject={() => { setDetailId(a.id); setDetailNote(""); }}
                       />
                     );
                   })}
@@ -195,72 +199,206 @@ const ApprovalsPage = () => {
         </div>
       </main>
 
-      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetailId(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{detail?.kpiName}</DialogTitle></DialogHeader>
+      <Dialog open={!!detail} onOpenChange={(o) => !o && closeDetail()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {detail && (() => {
             const c = cardOf(detail.kpiCardId);
+            const myDecision = meId ? detail.decisions[meId]?.decision : undefined;
+            const canAct = isManagerActor && detail.status === "pending" && myDecision === "pending";
+            const statusBadge = detail.status === "pending"
+              ? { text: "Təsdiq gözləyir", cls: "bg-amber-100 text-amber-800 border-amber-300" }
+              : detail.status === "approved"
+              ? { text: "Təsdiqləndi", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" }
+              : { text: "İmtina", cls: "bg-rose-100 text-rose-800 border-rose-300" };
+
+            const firstTargetVal = c?.targets?.[0]
+              ? `${c.targets[0].name || "—"}`
+              : "—";
+            const totalWeight = c?.targets?.reduce((s, t) => s + (t.weight || 0), 0) || 0;
+
             return (
-              <div className="space-y-4 text-sm">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><div className="text-muted-foreground">Yaradan</div><div className="font-medium">{empName(detail.createdBy)}</div></div>
-                  <div><div className="text-muted-foreground">Status</div><div className="font-medium capitalize">{detail.status}</div></div>
-                  <div><div className="text-muted-foreground">Dövr</div><div className="font-medium">{c?.frequency || "—"}</div></div>
-                  <div><div className="text-muted-foreground">Bal sistemi</div><div className="font-medium">{c?.scoringSystem || "—"}</div></div>
+              <div className="space-y-4">
+                <DialogHeader className="space-y-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <DialogTitle className="text-lg flex items-center gap-2">
+                        {detail.kpiName}
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full border ${statusBadge.cls}`}>{statusBadge.text}</span>
+                      </DialogTitle>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Kartın matris üzrə təsdiqləmə prosesinin cari vəziyyəti və mərhələ detalları.
+                      </p>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {/* KPI Məlumatları */}
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="text-xs font-semibold text-foreground mb-2">KPI Məlumatları</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                    <InfoRow k="KPI Kodu" v={detail.id.slice(0, 12).toUpperCase()} />
+                    <InfoRow k="KPI Növü" v={c?.scoringSystem ? "Absolut Hədəf" : "—"} />
+                    <InfoRow k="Hədəf" v={firstTargetVal} />
+                    <InfoRow k="Cavab tarixi" v={new Date(detail.updatedAt).toLocaleDateString("az-AZ")} />
+                    <InfoRow k="Təsdiq tarixi" v={detail.status === "approved" ? new Date(detail.updatedAt).toLocaleDateString("az-AZ") : "—"} />
+                    <InfoRow k="Yaradan" v={empName(detail.createdBy)} />
+                    <InfoRow k="KPI Sahibi" v={c?.ownerId ? empName(c.ownerId) : empName(detail.createdBy)} />
+                    <InfoRow k="Struktur" v={getEnrichedEmployee(detail.createdBy)?.department || "—"} />
+                    <InfoRow k="Dövr" v={c?.frequency || "—"} />
+                    <InfoRow k="Ümumi çəki" v={`${totalWeight}%`} />
+                  </div>
                 </div>
-                {c && (
-                  <div>
-                    <div className="text-muted-foreground mb-1">Hədəflər</div>
+
+                {/* Hədəflər */}
+                {c && c.targets.length > 0 && (
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                      <Trophy className="h-3.5 w-3.5 text-primary" /> Hədəflər ({c.targets.length})
+                    </div>
                     <ul className="space-y-1">
                       {c.targets.map(t => (
-                        <li key={t.id} className="flex justify-between rounded bg-muted/40 px-3 py-2">
+                        <li key={t.id} className="flex justify-between rounded bg-muted/40 px-3 py-2 text-xs">
                           <span>{t.name || "Hədəf"} <span className="text-muted-foreground">({t.type})</span></span>
-                          <span>Çəki: {t.weight} · Bal: {t.scoreLimit}</span>
+                          <span className="text-muted-foreground">Çəki: {t.weight}% · Bal: {t.scoreLimit}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-                <div>
-                  <div className="text-muted-foreground mb-1">Təsdiq zənciri</div>
-                  <ul className="space-y-1">
-                    {detail.approverIds.map(id => {
-                      const dec = detail.decisions[id];
-                      const label = dec?.decision === "approved" ? "Təsdiqlədi"
-                        : dec?.decision === "rejected" ? "İmtina"
-                        : "Gözləyir";
-                      return (
-                        <li key={id} className="flex justify-between rounded border border-border px-3 py-2">
-                          <span>{empName(id)}</span>
-                          <span className="text-muted-foreground">{label}{dec?.note ? ` — ${dec.note}` : ""}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
+
+                {/* Təsdiqləmə Zənciri */}
+                <div className="rounded-lg border border-border p-3">
+                  <div className="text-xs font-semibold text-foreground mb-2">Təsdiqləmə Zənciri</div>
+                  <ApprovalChain detail={detail} />
                 </div>
+
+                {/* Rəy + Aksiyalar */}
+                {canAct ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground">Təsdiq / İmtina Şərhi <span className="text-muted-foreground">(imtina üçün məcburi)</span></label>
+                    <textarea
+                      value={detailNote}
+                      onChange={e => setDetailNote(e.target.value)}
+                      rows={3}
+                      placeholder="Şərh əlavə edin..."
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={handleApproveInDetail}
+                        className="px-3 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium flex items-center justify-center gap-1.5"
+                      >
+                        <Check className="h-4 w-4" /> Təsdiq Et
+                      </button>
+                      <button
+                        onClick={handleRejectInDetail}
+                        className="px-3 py-2 rounded-md border border-rose-300 hover:bg-rose-50 text-rose-700 text-sm font-medium flex items-center justify-center gap-1.5"
+                      >
+                        <X className="h-4 w-4" /> Ləğv Et
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground text-center">
+                    {isManagerActor
+                      ? "Bu kart üçün sizin qərarınız artıq verilib və ya təsdiq mərhələsi tamamlanıb."
+                      : "Yalnız təsdiqləyici rəhbər bu kartı təsdiq / imtina edə bilər."}
+                  </div>
+                )}
               </div>
             );
           })()}
         </DialogContent>
       </Dialog>
-
-      <Dialog open={!!rejectId} onOpenChange={(o) => !o && setRejectId(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>İmtina səbəbi</DialogTitle></DialogHeader>
-          <textarea
-            value={rejectNote}
-            onChange={e => setRejectNote(e.target.value)}
-            rows={4}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            placeholder="Səbəbi qeyd edin..."
-          />
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setRejectId(null)} className="px-3 py-1.5 rounded-md border border-border text-sm">Ləğv et</button>
-            <button onClick={handleReject} className="px-3 py-1.5 rounded-md bg-rose-600 text-white text-sm">İmtina et</button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
+  );
+};
+
+const InfoRow = ({ k, v }: { k: string; v: string }) => (
+  <>
+    <div className="text-muted-foreground">{k}:</div>
+    <div className="font-medium text-foreground text-right">{v}</div>
+  </>
+);
+
+const ApprovalChain = ({ detail }: { detail: ApprovalItem }) => {
+  const [openIdx, setOpenIdx] = useState<number | null>(0);
+  return (
+    <ol className="space-y-1.5">
+      {detail.approverIds.map((id, i) => {
+        const dec = detail.decisions[id];
+        const state = dec?.decision || "pending";
+        const isOpen = openIdx === i;
+        const emp = getEnrichedEmployee(id);
+        const stateBadge = state === "approved"
+          ? { text: "Təsdiq edildi", cls: "text-emerald-700", icon: CheckCircle2 }
+          : state === "rejected"
+          ? { text: "İmtina edildi", cls: "text-rose-700", icon: XCircle }
+          : i === detail.approverIds.findIndex(x => (detail.decisions[x]?.decision || "pending") === "pending")
+          ? { text: "Gözləyir", cls: "text-amber-700", icon: Hourglass }
+          : { text: "Növbədə", cls: "text-muted-foreground", icon: Clock };
+        const StateIcon = stateBadge.icon;
+        const stepNumCls = state === "approved"
+          ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+          : state === "rejected"
+          ? "bg-rose-100 text-rose-700 border-rose-300"
+          : "bg-amber-100 text-amber-700 border-amber-300";
+        return (
+          <li key={id} className="rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setOpenIdx(isOpen ? null : i)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-secondary/40"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-semibold ${stepNumCls}`}>
+                  {state === "approved" ? "✓" : i + 1}
+                </span>
+                <div className="text-left">
+                  <div className="text-sm font-medium text-foreground">{emp?.position || "Təsdiqləyici"}</div>
+                  <div className="text-xs text-muted-foreground">{empName(id)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs flex items-center gap-1 ${stateBadge.cls}`}>
+                  <StateIcon className="w-3.5 h-3.5" /> {stateBadge.text}
+                  {dec?.at && ` — ${new Date(dec.at).toLocaleDateString("az-AZ")}`}
+                </span>
+                {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+              </div>
+            </button>
+            {isOpen && (
+              <div className="border-t border-border bg-muted/20 px-3 py-2.5 text-xs space-y-1.5">
+                <div className="font-medium text-foreground">
+                  {emp?.position || "—"} təsdiqi — Mərhələ Detalları
+                </div>
+                <div className="grid grid-cols-2 gap-y-1">
+                  <div><span className="text-muted-foreground">Təsdiqləyən:</span> <span className="font-medium">{empName(id)}</span></div>
+                  <div><span className="text-muted-foreground">Status:</span> <span className={stateBadge.cls}>{stateBadge.text}</span></div>
+                  {dec?.at && (
+                    <>
+                      <div><span className="text-muted-foreground">Təsdiq tarixi:</span> <span className="font-medium">{new Date(dec.at).toLocaleDateString("az-AZ")}</span></div>
+                      <div><span className="text-muted-foreground">Cavab tarixi:</span> <span className="font-medium">{new Date(dec.at).toLocaleDateString("az-AZ")}</span></div>
+                    </>
+                  )}
+                </div>
+                {dec?.note && (
+                  <div className={`mt-1 rounded px-2 py-1.5 border ${
+                    state === "approved" ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                    : state === "rejected" ? "bg-rose-50 border-rose-200 text-rose-800"
+                    : "bg-white border-border text-foreground/80"
+                  }`}>
+                    <span className="font-medium">Şərh: </span>{dec.note}
+                  </div>
+                )}
+                {state === "pending" && !dec?.note && (
+                  <div className="text-muted-foreground italic">Hələ cavab yoxdur.</div>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 };
 

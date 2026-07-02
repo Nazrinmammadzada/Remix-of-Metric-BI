@@ -1,27 +1,25 @@
 // Manager · "Məsul olduğum kartlar" — hub with two big cards:
-//  1) Hədəf təyin etmə — assign & cascade goals (existing workflow)
-//  2) Kartlarım — 3 tabs (Öz / Komanda / Tabeçilikdəki) to track KPI cards
+//  1) Hədəf təyin etmə — assign & cascade goals
+//  2) Hədəf qiymətləndirmə — evaluate goals (mirrors user's KPI evaluation)
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import {
   LayoutGrid, Search, ChevronDown, ChevronRight, GitBranch, ChevronLeft,
   CheckCircle2, Hourglass, Target as TargetIcon,
-  ClipboardList, FolderKanban, User, Users, Network, Eye,
+  ClipboardList, ClipboardCheck, UserPlus, Clock, Award,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
-import { useSharedKpiCards, type SharedKpiCard, type SharedKpiStatus } from "@/lib/kpiCardStore";
-
-const STATUS_LABEL_MAP: Record<SharedKpiStatus, string> = {
-  natamam: "Natamam",
-  tesdiq_gozlenilir: "Təsdiq gözlənilir",
-  imtina: "İmtina",
-  aktiv: "Aktiv",
-};
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
-import { getEnrichedEmployee, getDirectReports, getTeamsLedBy } from "@/data/mockExtras";
+import {
+  useSubKpis, getKpiCardsFor, calcCompletion, isEvaluated, type SubKpi, type KpiCardInfo,
+} from "@/lib/kpiEvaluationStore";
+import { KpiEvalDialog } from "@/components/evaluation/KpiEvaluationSection";
+import { RatingCircles } from "@/components/evaluation/RatingCircles";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import AssignGoalDialog from "@/components/kpi/AssignGoalDialog";
 import CascadeLoadConfirmDialog from "@/components/kpi/CascadeLoadConfirmDialog";
@@ -30,7 +28,7 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 const parseNum = (v: string) => parseFloat(String(v).replace(/[^\d.\-]/g, "")) || 0;
 
-type View = "hub" | "assign" | "mycards";
+type View = "hub" | "assign" | "evaluate";
 
 interface CardGroup {
   cardId: number;
@@ -56,7 +54,7 @@ const ManagerResponsibleCardsPage = () => {
 
         {view === "hub" && <HubView onOpen={setView} />}
         {view === "assign" && <AssignView />}
-        {view === "mycards" && <MyCardsView />}
+        {view === "evaluate" && <EvaluateView />}
       </main>
     </div>
   );
@@ -65,18 +63,12 @@ const ManagerResponsibleCardsPage = () => {
 /* ============================== HUB ============================== */
 const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const rows = useKpiSet();
-  const cards = useSharedKpiCards();
   const { user } = useAuth();
   const meId = getCurrentEmployeeId(user);
+  const evalItems = useSubKpis(meId || "");
 
   const assignCount = useMemo(() => rows.filter(r => r.ownerType === "manager").length, [rows]);
-  const cardsCount = useMemo(() => {
-    if (!meId) return 0;
-    const reports = new Set(getDirectReports(meId).map(r => r.id));
-    const teams = getTeamsLedBy(meId);
-    const teamMembers = new Set(teams.flatMap(t => t.memberIds));
-    return cards.filter(c => c.ownerId === meId || reports.has(c.ownerId) || teamMembers.has(c.ownerId)).length;
-  }, [cards, meId]);
+  const evalCount = evalItems.length;
 
   return (
     <>
@@ -84,7 +76,7 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
         badge="Rəhbər Paneli"
         icon={LayoutGrid}
         title="Məsul olduğum kartlar"
-        subtitle="Hədəf təyin etmə və kartların izlənilməsi üçün mərkəzi mühit."
+        subtitle="Hədəflərin təyin edilməsi və qiymətləndirilməsi üçün mərkəzi mühit."
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
         <HubCard
@@ -96,12 +88,12 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
           onClick={() => onOpen("assign")}
         />
         <HubCard
-          icon={FolderKanban}
-          title="Kartlarım"
-          subtitle="Öz, komanda və tabeçiliyinizdəki KPI kartlarını izləyin."
-          badge={`${cardsCount} kart`}
+          icon={ClipboardCheck}
+          title="Hədəf qiymətləndirmə"
+          subtitle="Sizə aid KPI kartlarındakı hədəfləri qiymətləndirin və nəticələri qeyd edin."
+          badge={`${evalCount} hədəf`}
           gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40"
-          onClick={() => onOpen("mycards")}
+          onClick={() => onOpen("evaluate")}
         />
       </div>
     </>
@@ -155,16 +147,11 @@ const AssignView = () => {
     if (!s) return list;
     return list.filter(g =>
       g.cardName.toLowerCase().includes(s) ||
-      g.entries.some(e => e.subKpiName.toLowerCase().includes(s) || e.assigneeName.toLowerCase().includes(s))
+      g.entries.some(e => e.subKpiName.toLowerCase().includes(s))
     );
   }, [rows, q]);
 
-  const stats = useMemo(() => {
-    const total = rows.filter(r => r.ownerType === "manager").length;
-    const done = rows.filter(r => r.ownerType === "manager" && r.status === "completed").length;
-    const cascadable = rows.filter(r => r.ownerType === "manager" && r.cascadable).length;
-    return { total, done, cascadable, cards: groups.length };
-  }, [rows, groups]);
+  const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
 
   return (
     <>
@@ -172,14 +159,8 @@ const AssignView = () => {
         badge="Rəhbər Paneli"
         icon={ClipboardList}
         title="Hədəf təyin etmə"
-        subtitle="Sizə həvalə olunmuş KPI kartlarını buradan idarə edin — kaskadlanan hədəflər burada bölüşdürülür."
+        subtitle="Sizə həvalə olunmuş KPI kartları — hədəflərinizi təyin edin. Kaskadlanan hədəflər avtomatik bölgüyə açılır."
       />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <Stat label="Kartlar" value={stats.cards} icon={LayoutGrid} />
-        <Stat label="Ümumi hədəflər" value={stats.total} icon={TargetIcon} />
-        <Stat label="Tamamlanmış" value={stats.done} icon={CheckCircle2} accent="text-emerald-600" />
-        <Stat label="Kaskadlanan" value={stats.cascadable} icon={GitBranch} accent="text-primary" />
-      </div>
 
       <div className="rounded-xl border border-border bg-card p-3 mb-3 flex items-center gap-2">
         <div className="relative flex-1 max-w-md">
@@ -187,7 +168,7 @@ const AssignView = () => {
           <input
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="Kart, hədəf və ya əməkdaş axtar..."
+            placeholder="Kart və ya hədəf axtar..."
             className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
@@ -200,29 +181,20 @@ const AssignView = () => {
           </div>
         ) : groups.map(g => {
           const isOpen = open[g.cardId] ?? true;
-          const cascadableCount = g.entries.filter(e => e.cascadable).length;
-          const doneCount = g.entries.filter(e => e.status === "completed").length;
           return (
-            <div key={g.cardId} className="rounded-xl border border-border bg-card overflow-hidden">
+            <div key={g.cardId} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
               <button
                 onClick={() => setOpen(o => ({ ...o, [g.cardId]: !isOpen }))}
                 className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                  <span className="font-medium text-foreground truncate">{g.cardName}</span>
-                </div>
-                <div className="flex items-center gap-2 text-[11px]">
-                  <span className="px-2 py-0.5 rounded-full border border-border bg-secondary text-muted-foreground">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-foreground truncate">{g.cardName}</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
                     {g.entries.length} hədəf
-                  </span>
-                  {cascadableCount > 0 && (
-                    <span className="px-2 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-primary inline-flex items-center gap-1">
-                      <GitBranch className="w-3 h-3" /> {cascadableCount} kaskad
-                    </span>
-                  )}
-                  <span className="px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                    {doneCount}/{g.entries.length} hazır
                   </span>
                 </div>
               </button>
@@ -232,10 +204,11 @@ const AssignView = () => {
                   <table className="w-full text-sm">
                     <thead className="bg-secondary/30 text-xs text-muted-foreground">
                       <tr>
-                        <th className="text-left px-4 py-2 font-medium">Hədəfin adı</th>
+                        <th className="text-left px-4 py-2 font-medium">Ad</th>
                         <th className="text-left px-4 py-2 font-medium">Növ</th>
-                        <th className="text-right px-4 py-2 font-medium">Dəyər</th>
-                        <th className="text-right px-4 py-2 font-medium">Çəki</th>
+                        <th className="text-left px-4 py-2 font-medium">Dəyər</th>
+                        <th className="text-left px-4 py-2 font-medium">Çəki</th>
+                        <th className="text-right px-4 py-2 font-medium">Əməliyyatlar</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -243,30 +216,33 @@ const AssignView = () => {
                         const displayName = e.subKpiName || "— hədəf adı təyin edilməyib";
                         const value = e.target ? `${fmt(parseNum(e.target))} ${e.unit || ""}`.trim() : "—";
                         const weight = e.weight ? `${e.weight}%` : "—";
+                        const isDone = e.status === "completed";
                         return (
-                          <tr
-                            key={e.id}
-                            onClick={() => setAssignEntry(e)}
-                            className="border-t border-border hover:bg-secondary/40 cursor-pointer transition-colors"
-                          >
+                          <tr key={e.id} className="border-t border-border hover:bg-secondary/30 transition-colors">
                             <td className="px-4 py-2.5">
                               <div className="flex items-center gap-2">
-                                <span className={e.subKpiName ? "text-foreground" : "text-muted-foreground italic"}>{displayName}</span>
+                                <span className={e.subKpiName ? "text-foreground font-medium" : "text-muted-foreground italic"}>{displayName}</span>
                                 {e.cascadable && (
                                   <span title="Cascading aktiv" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-primary text-[10px]">
                                     <GitBranch className="w-3 h-3" /> C
                                   </span>
                                 )}
-                                {e.status === "pending" && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                                    <Hourglass className="w-3 h-3" /> Gözləyir
-                                  </span>
-                                )}
                               </div>
                             </td>
                             <td className="px-4 py-2.5 text-foreground">{e.type || "—"}</td>
-                            <td className="px-4 py-2.5 text-right text-foreground">{value}</td>
-                            <td className="px-4 py-2.5 text-right text-foreground">{weight}</td>
+                            <td className="px-4 py-2.5 text-foreground">{value}</td>
+                            <td className="px-4 py-2.5 text-foreground">{weight}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <Button
+                                size="sm"
+                                variant={isDone ? "outline" : "default"}
+                                onClick={() => openAssign(e)}
+                                className="h-7 gap-1 text-xs"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                                {isDone ? "Yenilə" : "Təyin et"}
+                              </Button>
+                            </td>
                           </tr>
                         );
                       })}
@@ -298,17 +274,22 @@ const AssignView = () => {
         open={!!assignEntry}
         onOpenChange={(o) => !o && setAssignEntry(null)}
         entry={assignEntry}
-        onSaved={() => {
+        onSaved={(saved) => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
+          // Cascade load pəncərəsi: kartın hədəf dəyəri limit kimi göstərilir.
           const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          if (incoming) {
-            const refreshed = { ...entry, target: String(incoming.value), unit: incoming.unit, cardName: incoming.cardName, cascadable: true };
-            setCascadeConfirm({ entry: refreshed, value: incoming.value, unit: incoming.unit });
-          } else {
-            setCascadeConfirm({ entry: { ...entry, cascadable: true }, value: 0, unit: entry.unit || "" });
-          }
+          const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
+          const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
+          const refreshed: KpiSetEntry = {
+            ...entry,
+            target: String(value),
+            unit,
+            cascadable: true,
+            subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
+          };
+          setCascadeConfirm({ entry: refreshed, value, unit });
         }}
       />
 
@@ -328,180 +309,171 @@ const AssignView = () => {
   );
 };
 
-/* ============================== MY CARDS ============================== */
-type CardTab = "own" | "team" | "reports";
+/* ============================== EVALUATE ============================== */
+const pctTone = (pct: number) => {
+  if (pct >= 100) return "bg-zone-green-bg text-zone-green-text";
+  if (pct >= 75) return "bg-zone-yellow-bg text-zone-yellow-text";
+  return "bg-zone-red-bg text-zone-red-text";
+};
 
-const MyCardsView = () => {
+const fmtEval = (n: number) =>
+  Number.isInteger(n) ? n.toLocaleString("az-AZ") : n.toLocaleString("az-AZ", { maximumFractionDigits: 2 });
+
+const EvaluateView = () => {
   const { user } = useAuth();
   const meId = getCurrentEmployeeId(user);
-  const cards = useSharedKpiCards();
-  const [tab, setTab] = useState<CardTab>("own");
-  const [detail, setDetail] = useState<SharedKpiCard | null>(null);
+  const items = useSubKpis(meId || "");
+  const cards = useMemo(() => (meId ? getKpiCardsFor(meId) : []), [meId]);
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+  const [editing, setEditing] = useState<SubKpi | null>(null);
 
-  const reports = useMemo(() => (meId ? getDirectReports(meId) : []), [meId]);
-  const reportIds = useMemo(() => new Set(reports.map(r => r.id)), [reports]);
-  const myTeams = useMemo(() => (meId ? getTeamsLedBy(meId) : []), [meId]);
-  const teamMemberIds = useMemo(() => {
-    const s = new Set<string>();
-    myTeams.forEach(t => t.memberIds.forEach(id => { if (id !== meId) s.add(id); }));
-    return s;
-  }, [myTeams, meId]);
+  if (!cards.length) {
+    return (
+      <>
+        <PageHero
+          badge="Rəhbər Paneli"
+          icon={ClipboardCheck}
+          title="Hədəf qiymətləndirmə"
+          subtitle="Sizə aid KPI kartları və hədəflər burada göstərilir."
+        />
+        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+          Sizə aid KPI kartı yoxdur.
+        </div>
+      </>
+    );
+  }
 
-  const own = useMemo(() => cards.filter(c => c.ownerId === meId), [cards, meId]);
-  const teamCards = useMemo(() => cards.filter(c => teamMemberIds.has(c.ownerId)), [cards, teamMemberIds]);
-  const reportsCards = useMemo(() => cards.filter(c => reportIds.has(c.ownerId) && c.ownerId !== meId), [cards, reportIds, meId]);
-
-  const current = tab === "own" ? own : tab === "team" ? teamCards : reportsCards;
-
-  const tabs: { key: CardTab; label: string; icon: any; count: number; color: string }[] = [
-    { key: "own", label: "Öz kartlarım", icon: User, count: own.length, color: "text-indigo-600" },
-    { key: "team", label: "Komanda kartları", icon: Users, count: teamCards.length, color: "text-emerald-600" },
-    { key: "reports", label: "Tabeçilikdəkilər", icon: Network, count: reportsCards.length, color: "text-amber-600" },
-  ];
+  const totals = {
+    done: items.filter(isEvaluated).length,
+    pending: items.filter(k => !isEvaluated(k)).length,
+    cards: cards.length,
+  };
 
   return (
     <>
       <PageHero
         badge="Rəhbər Paneli"
-        icon={FolderKanban}
-        title="Kartlarım"
-        subtitle="Öz, komanda və tabeçiliyinizdəki KPI kartlarını izləyin."
+        icon={ClipboardCheck}
+        title="Hədəf qiymətləndirmə"
+        subtitle="Sizə aid KPI kartlarını açın və hər bir hədəf üzrə qiymətləndirmə aparın."
       />
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        {tabs.map(t => {
-          const active = tab === t.key;
-          const Icon = t.icon;
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <MiniHeaderStat icon={Award} label="Kart" value={totals.cards} accent="text-indigo-600" />
+        <MiniHeaderStat icon={CheckCircle2} label="Qiymətləndirilib" value={totals.done} accent="text-emerald-600" />
+        <MiniHeaderStat icon={Clock} label="Gözləyir" value={totals.pending} accent="text-amber-600" />
+      </div>
+
+      <div className="space-y-3">
+        {cards.map((c: KpiCardInfo) => {
+          const cardItems = items.filter(k => k.cardId === c.id);
+          const done = cardItems.filter(isEvaluated).length;
+          const isOpen = openMap[c.id] ?? true;
           return (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
-                active
-                  ? "bg-primary text-primary-foreground border-primary shadow-md"
-                  : "bg-card text-foreground border-border hover:bg-secondary"
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${active ? "" : t.color}`} />
-              <span className="text-sm font-medium">{t.label}</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full ${active ? "bg-white/25" : "bg-secondary"}`}>
-                {t.count}
-              </span>
-            </button>
+            <div key={c.id} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              <button
+                onClick={() => setOpenMap(o => ({ ...o, [c.id]: !isOpen }))}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <ClipboardCheck className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-foreground truncate">{c.name}</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    {cardItems.length} hədəf
+                  </span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">{c.period}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {done}/{cardItems.length} qiymətləndirilib
+                </div>
+              </button>
+
+              {isOpen && (
+                <div className="border-t border-border overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/40 text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-medium">Hədəf</th>
+                        <th className="text-right px-4 py-3 font-medium">Hədəf</th>
+                        <th className="text-right px-4 py-3 font-medium">Faktiki</th>
+                        <th className="text-right px-4 py-3 font-medium">İcra %</th>
+                        <th className="text-center px-4 py-3 font-medium">Çəki</th>
+                        <th className="text-center px-4 py-3 font-medium">Yekun bal</th>
+                        <th className="text-center px-4 py-3 font-medium">Status</th>
+                        <th className="text-right px-4 py-3 font-medium">Əməliyyat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cardItems.map(k => {
+                        const ev = isEvaluated(k);
+                        const pct = calcCompletion(k);
+                        return (
+                          <tr key={k.id} className="border-t border-border hover:bg-secondary/20">
+                            <td className="px-4 py-3">
+                              <p className="font-medium text-foreground">{k.name}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{k.description}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right text-foreground tabular-nums">{fmtEval(k.target)} {k.unit}</td>
+                            <td className="px-4 py-3 text-right text-foreground tabular-nums">
+                              {k.actual !== undefined ? `${fmtEval(k.actual)} ${k.unit}` : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {ev ? (
+                                <span className={`inline-flex items-center justify-end px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums ${pctTone(pct)}`}>
+                                  {pct.toFixed(0)}%
+                                </span>
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-center text-muted-foreground tabular-nums">{k.weight}%</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-center">
+                                {ev ? (
+                                  <RatingCircles value={k.evaluatedScore ?? 0} size="sm" readOnly showLabel={false} />
+                                ) : <span className="text-muted-foreground text-xs">—</span>}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {ev ? (
+                                <Badge className="bg-zone-green-bg text-zone-green-text hover:bg-zone-green-bg gap-1">
+                                  <CheckCircle2 className="w-3 h-3" /> Qiymətləndirilib
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-zone-yellow-bg text-zone-yellow-text hover:bg-zone-yellow-bg gap-1">
+                                  <Clock className="w-3 h-3" /> Gözləyir
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <Button size="sm" variant={ev ? "outline" : "default"} onClick={() => setEditing(k)}>
+                                {ev ? "Bax / Düzəliş et" : "Qiymətləndir"}
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {cardItems.length === 0 && (
+                        <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">Bu kartda hədəf yoxdur.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
 
-      {current.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
-          Bu kateqoriyada kart yoxdur.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {current.map(c => (
-            <MyCardTile key={c.id} card={c} onView={() => setDetail(c)} />
-          ))}
-        </div>
-      )}
-
-      <CardDetailDialog card={detail} onClose={() => setDetail(null)} />
+      {editing && <KpiEvalDialog item={editing} onClose={() => setEditing(null)} />}
     </>
   );
 };
 
-const statusStyle = (s: SharedKpiCard["status"]) => {
-  switch (s) {
-    case "aktiv": return "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
-    case "tesdiq_gozlenilir": return "bg-amber-500/15 text-amber-800 border-amber-500/30";
-    case "imtina": return "bg-rose-500/15 text-rose-700 border-rose-500/30";
-    default: return "bg-slate-500/15 text-slate-700 border-slate-500/30";
-  }
-};
-
-const MyCardTile = ({ card, onView }: { card: SharedKpiCard; onView: () => void }) => {
-  const owner = getEnrichedEmployee(card.ownerId);
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-all">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-semibold text-foreground truncate">{card.name}</h3>
-        <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 ${statusStyle(card.status)}`}>
-          {STATUS_LABEL_MAP[card.status]}
-        </span>
-      </div>
-      <div className="text-xs text-muted-foreground mb-3">
-        {owner?.fullName || "—"} · {card.frequency || "—"}
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-center mb-3">
-        <MiniStat label="Hədəf" value={card.targets.length} />
-        <MiniStat label="Çəki" value={`${card.targets.reduce((s, t) => s + (t.weight || 0), 0)}%`} />
-        <MiniStat label="Bal" value={card.scoringSystem || "—"} />
-      </div>
-      <button
-        onClick={onView}
-        className="w-full text-xs px-3 py-1.5 rounded-md border border-border bg-white hover:bg-secondary/60 flex items-center justify-center gap-1"
-      >
-        <Eye className="w-3.5 h-3.5" /> Bax
-      </button>
-    </div>
-  );
-};
-
-const MiniStat = ({ label, value }: { label: string; value: any }) => (
-  <div className="rounded-lg bg-secondary/40 border border-border py-1.5">
-    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
-    <div className="text-sm font-semibold text-foreground">{value}</div>
-  </div>
-);
-
-const CardDetailDialog = ({ card, onClose }: { card: SharedKpiCard | null; onClose: () => void }) => {
-  if (!card) return null;
-  const owner = getEnrichedEmployee(card.ownerId);
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <div>
-            <div className="text-xs text-muted-foreground">KPI Kartı</div>
-            <div className="text-lg font-semibold">{card.name}</div>
-          </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full border ${statusStyle(card.status)}`}>
-            {STATUS_LABEL_MAP[card.status]}
-          </span>
-        </div>
-        <div className="p-5 space-y-4 overflow-y-auto text-sm">
-          <div className="grid grid-cols-2 gap-3">
-            <Info label="Məsul" value={owner?.fullName || "—"} />
-            <Info label="Dövr" value={card.frequency || "—"} />
-            <Info label="Bal sistemi" value={card.scoringSystem || "—"} />
-            <Info label="Başlama" value={card.startDate || "—"} />
-          </div>
-          <div>
-            <div className="text-muted-foreground mb-1">Hədəflər</div>
-            <ul className="space-y-1">
-              {card.targets.map(t => (
-                <li key={t.id} className="flex justify-between rounded bg-muted/40 px-3 py-2">
-                  <span>{t.name || "Hədəf"} <span className="text-muted-foreground">({t.type})</span></span>
-                  <span className="text-xs">Çəki: {t.weight}% · Bal: {t.scoreLimit}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const Info = ({ label, value }: { label: string; value: string }) => (
-  <div><div className="text-muted-foreground text-xs">{label}</div><div className="font-medium">{value}</div></div>
-);
-
-const Stat = ({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: string }) => (
+const MiniHeaderStat = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: number; accent?: string }) => (
   <div className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
-    <div className={`w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center ${accent || "text-primary"}`}>
+    <div className={`w-10 h-10 rounded-lg bg-secondary flex items-center justify-center ${accent || "text-primary"}`}>
       <Icon className="w-5 h-5" />
     </div>
     <div>

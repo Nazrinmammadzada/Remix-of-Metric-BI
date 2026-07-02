@@ -178,7 +178,7 @@ export const KpiEvaluationSection = ({ assigneeId }: Props) => {
   );
 };
 
-const KpiEvalDialog = ({ item, onClose }: { item: SubKpi; onClose: () => void }) => {
+export const KpiEvalDialog = ({ item, onClose }: { item: SubKpi; onClose: () => void }) => {
   const [actual, setActual] = useState<string>(item.actual !== undefined ? String(item.actual) : "");
   const [score, setScore] = useState<number>(item.evaluatedScore ?? 0);
   const [comment, setComment] = useState(item.selfComment || "");
