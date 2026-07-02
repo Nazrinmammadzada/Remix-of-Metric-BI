@@ -1552,7 +1552,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             if (st.status === "tesdiq_gozlenilir") {
               // Təsdiq zənciri — approvalChain-dən adları oxu, boşdursa fallback
               const draft = cardDrafts[statusDialogCardId];
-              const chain = draft?.approvalChain || card?.approvalChain || [];
+              const chain = (draft as any)?.approvalChain || (card as any)?.approvalChain || [];
               const rows: { role: string; name: string }[] = [];
               chain.forEach((c: any) => (c.persons || []).forEach((p: string) => rows.push({ role: c.role, name: p })));
               if (rows.length === 0) {
