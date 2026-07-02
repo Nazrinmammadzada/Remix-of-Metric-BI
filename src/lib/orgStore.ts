@@ -43,8 +43,8 @@ export interface OrgStructure {
   positions: OrgPosition[];
 }
 
-const STORAGE_EMPLOYEES = "kpi_org_employees_v4";
-const STORAGE_STRUCTURES = "kpi_org_structures_v5";
+const STORAGE_EMPLOYEES = "kpi_org_employees_v5";
+const STORAGE_STRUCTURES = "kpi_org_structures_v6";
 
 // ---------- Seed: 40 employees ----------
 // 12 leaders + 8 rank-and-file assigned = 20 in slots; 20 unassigned bench.
@@ -67,7 +67,7 @@ const seedEmployees: OrgEmployee[] = [
   mkEmp(1,  "Günel",   "Əlizadə",    "Vüqar",    "hr@kpi.az",         { structurePath: "İnsan Resursları Departamenti", positionName: "HR Direktoru",           salary: 4500, isStarPerson: true }),
   mkEmp(2,  "Nigar",   "Hüseynova",  "Elxan",    "nigar@kpi.az",      { structurePath: "Maliyyə Departamenti",         positionName: "Maliyyə Direktoru (CFO)",  salary: 5000, isStarPerson: true }),
   mkEmp(3,  "Samir",   "Həsənov",    "Rauf",     "user@kpi.az",       { structurePath: "Satış Departamenti",           positionName: "Satış Direktoru",          salary: 4800, isStarPerson: true }),
-  mkEmp(4,  "Elçin",   "Rəhimov",    "Tofiq",    "elchin@kpi.az",     { structurePath: "Marketinq Departamenti",       positionName: "Marketinq Direktoru",      salary: 4600, isStarPerson: true }),
+  mkEmp(4,  "Elvin",   "Rəhimov",    "Tofiq",    "manager@kpi.az",    { structurePath: "Marketinq Departamenti",       positionName: "Marketinq Direktoru",      salary: 4600, isStarPerson: true }),
   mkEmp(5,  "Rəşad",   "Əliyev",     "Tahir",    "reshad@kpi.az",     { structurePath: "Satış Departamenti › Bakı Satış Şöbəsi",              positionName: "Şöbə Müdiri", salary: 3000, isStarPerson: true }),
   mkEmp(6,  "Leyla",   "Məmmədova",  "İlqar",    "leyla@kpi.az",      { structurePath: "Satış Departamenti › Regional Satış Şöbəsi",          positionName: "Şöbə Müdiri", salary: 3000, isStarPerson: true }),
   mkEmp(7,  "Kamran",  "Quliyev",    "Zaur",     "kamran@kpi.az",     { structurePath: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",  positionName: "Şöbə Müdiri", salary: 2900, isStarPerson: true }),
