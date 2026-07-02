@@ -43,8 +43,8 @@ export interface OrgStructure {
   positions: OrgPosition[];
 }
 
-const STORAGE_EMPLOYEES = "kpi_org_employees_v3";
-const STORAGE_STRUCTURES = "kpi_org_structures_v4";
+const STORAGE_EMPLOYEES = "kpi_org_employees_v4";
+const STORAGE_STRUCTURES = "kpi_org_structures_v5";
 
 // ---------- Seed: 40 employees ----------
 // 12 leaders + 8 rank-and-file assigned = 20 in slots; 20 unassigned bench.
