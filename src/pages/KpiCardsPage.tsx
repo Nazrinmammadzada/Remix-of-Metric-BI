@@ -1094,10 +1094,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
+                <option>Qaralama</option>
                 <option>Natamam</option>
                 <option>Təsdiq gözlənilir</option>
                 <option>İmtina</option>
                 <option>Aktiv</option>
+                <option>Qiymətləndirmə</option>
+                <option>Tamamlanıb</option>
                 <option>Ləğv olundu</option>
               </select>
             </div>
