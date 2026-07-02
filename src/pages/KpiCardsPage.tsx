@@ -688,16 +688,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const DEMO_STATUS: Record<number, Partial<import("@/lib/kpiCardStatusStore").KpiCardStatusRow>> = {
     1: { status: "aktiv", use_matrix: true, submitted_for_approval: true, assignees: [{ name: "Samir Həsənov", ok: true }, { name: "Leyla Məmmədova", ok: true }] },
     2: { status: "aktiv", assignees: [{ name: "Farid Həsənov", ok: true }] },
-    3: { status: "aktiv", assignees: [{ name: "Emin Məmmədov", ok: true }] },
-    4: { status: "aktiv", assignees: [{ name: "Leyla Həsənova", ok: true }] },
+    3: { status: "qiymetlendirme", assignees: [{ name: "Emin Məmmədov", ok: true }] },
+    4: { status: "tamamlanib", assignees: [{ name: "Leyla Həsənova", ok: true }] },
     5: { status: "tesdiq_gozlenilir", use_matrix: true, submitted_for_approval: false, assignees: [{ name: "Rəşad Əliyev", ok: true }] },
     6: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: true }, { name: "Tural İsmayılov", ok: false }] },
     7: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", assignees: [{ name: "Leyla Məmmədova", ok: true }] },
-    8: { status: "aktiv", assignees: [{ name: "Tural İsmayılov", ok: true }] },
+    8: { status: "tamamlanib", assignees: [{ name: "Tural İsmayılov", ok: true }] },
     9: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", rejection_reason: "Hədəf dəyəri çox aşağıdır — yenidən nəzərdən keçirilməlidir.", assignees: [{ name: "Nigar Hüseynova", ok: true }, { name: "Leyla Həsənova", ok: false }] } as any,
-    10: { status: "imtina", use_matrix: true, rejected_by: "HR Direktoru", rejection_reason: "Qiymətləndirici seçimi tələblərə uyğun deyil.", assignees: [{ name: "Emin Məmmədov", ok: true }, { name: "Günel Əlizadə", ok: false }] } as any,
-    11: { status: "natamam", use_matrix: false, assignees: [{ name: "Leyla Həsənova", ok: false }] },
-    12: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: false }] },
+    10: { status: "qiymetlendirme", use_matrix: false, assignees: [{ name: "Emin Məmmədov", ok: true }] } as any,
+    11: { status: "qaralama", use_matrix: false, assignees: [] },
+    12: { status: "qaralama", use_matrix: false, assignees: [] },
   };
   const getStatusFor = (cardId: number) => {
     const remote = statusMap[cardId];
