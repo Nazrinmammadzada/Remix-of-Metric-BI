@@ -24,6 +24,13 @@ export interface DynamicTier {
   max: number;
 }
 
+export interface ScoreDescRow {
+  score: number;
+  description?: string;
+  timeStart?: string;
+  timeEnd?: string;
+}
+
 export interface KpiSetEntry {
   id: string;
   cardId: number;
@@ -40,7 +47,9 @@ export interface KpiSetEntry {
   limits?: LimitSet;
   /** Dinamik aralıq (qeyri-default bal şablonu istifadə olunduqda) */
   dynamicLimits?: DynamicTier[];
-  /** Hədəf-nın çəkisi (%). Min/Max məhdudiyyəti varsa, weight bu aralıqda olmalıdır. */
+  /** İcra / Fərdi İnkişaf / Zaman üçün — bal + təsvir (aralıq YOX) */
+  scoreDescriptions?: ScoreDescRow[];
+  /** Hədəf-nın çəkisi (%). */
   weight?: number;
   weightMin?: number;
   weightMax?: number;
