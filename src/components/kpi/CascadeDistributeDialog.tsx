@@ -178,7 +178,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
         <div className="flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground">
-            Kaskad limit dəyəri kartda təyin olunmuş hədəf dəyərindən götürülür və dəyişdirilə bilməz.
+            Bu limit sizə başqa KPI kartından cascade load kimi gəlir və bu hədəflə əlaqəsi yoxdur.
           </div>
           {subordinates.length > 0 && (
             <Button size="sm" variant="outline" onClick={equalSplit} className="h-7 text-[11px]">
