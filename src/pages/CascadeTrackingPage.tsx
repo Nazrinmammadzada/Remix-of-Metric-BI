@@ -1,21 +1,41 @@
-// Kaskad İzləmə — YALNIZ İZLƏMƏ. Bölgü/redaktə burada aparılmır — rəhbər öz
-// "Məsul olduğum kartlar" ekranından bölgünü edir.
+// Kaskad İzləmə — YALNIZ İZLƏMƏ. Bütün kaskadlanan KPİ kartları kart siyahısı
+// şəklində əks olunur, klikləyəndə tam iyerarxiya topologiyası açılır.
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { Activity, ChevronLeft, ChevronRight, ChevronDown, Crown, Search, CheckCircle2, Clock, AlertTriangle, Circle } from "lucide-react";
-import { useCascadeTree, getChildren, distributedOf, remainingOf, statusOf, type CascadeTreeNode, type CascadeStatus } from "@/lib/cascadeTreeStore";
+import { Activity, ChevronLeft, Search, Crown, X, Maximize2, Users, Target } from "lucide-react";
+import { useCascadeTree, getChildren, distributedOf, remainingOf, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
+
+// Node rəngi: yaşıl (tam bölüşdürülüb), qırmızı (qalıq var), boz (yarpaq — son icraçı)
+type NodeTone = "green" | "red" | "neutral";
+const toneOf = (n: CascadeTreeNode): NodeTone => {
+  const kids = getChildren(n.id);
+  if (kids.length === 0) return "neutral";
+  const rem = remainingOf(n.id);
+  return rem <= 0.0001 ? "green" : "red";
+};
+
+const toneClasses: Record<NodeTone, { border: string; bg: string; ring: string; dot: string; label: string }> = {
+  green:   { border: "border-emerald-500/60",     bg: "bg-emerald-500/10",     ring: "ring-emerald-500/30",     dot: "bg-emerald-500",  label: "Tam bölüşdürülüb" },
+  red:     { border: "border-destructive/60",     bg: "bg-destructive/10",     ring: "ring-destructive/30",     dot: "bg-destructive",  label: "Bölünməmiş (Qırmızı Zona)" },
+  neutral: { border: "border-slate-300 dark:border-slate-700", bg: "bg-card",  ring: "ring-slate-400/20",       dot: "bg-slate-400",    label: "Son icraçı" },
+};
 
 const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
   const nodes = useCascadeTree();
   const roots = useMemo(() => nodes.filter(n => n.parentId === null), [nodes]);
-  const [activeRoot, setActiveRoot] = useState<string | null>(roots[0]?.id || null);
   const [q, setQ] = useState("");
-  
+  const [activeRoot, setActiveRoot] = useState<string | null>(null);
+  const [fullView, setFullView] = useState(false);
 
-  const filtered = roots.filter(r => !q || r.goalName.toLowerCase().includes(q.toLowerCase()) || r.cardName.toLowerCase().includes(q.toLowerCase()));
+  const filtered = roots.filter(r =>
+    !q || r.goalName.toLowerCase().includes(q.toLowerCase()) ||
+          r.cardName.toLowerCase().includes(q.toLowerCase()) ||
+          r.assigneeName.toLowerCase().includes(q.toLowerCase())
+  );
+
   const current = nodes.find(n => n.id === activeRoot);
 
   return (
@@ -25,122 +45,216 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
         <button onClick={onBack} className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors">
           <ChevronLeft className="w-4 h-4" /> Geri
         </button>
-        <PageHero badge="Cascading" icon={Activity} title="Kaskad İzləmə" subtitle="Cascading aktiv olan hər bir ana hədəfin bölgü zənciri və qalıq limiti" />
+        <PageHero badge="Cascading" icon={Activity} title="Kaskad İzləmə" subtitle="Bütün kaskadlanan KPI kartları — klikləyərək iyerarxiya topologiyasını açın" />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-4">
-          {/* Root list */}
-          <aside className="rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="p-3 border-b border-border">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input value={q} onChange={e => setQ(e.target.value)} placeholder="Ana hədəf axtar..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring" />
+        {/* Axtarış */}
+        <div className="mb-4 max-w-md">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="KPI kartı, hədəf və ya təyinedici axtar..."
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-1 focus:ring-ring" />
+          </div>
+        </div>
+
+        {/* Kartlar siyahısı */}
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
+            Kaskadlanan KPI kartı yoxdur.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filtered.map(r => {
+              const tone = toneOf(r);
+              const t = toneClasses[tone];
+              const dist = distributedOf(r.id);
+              const rem = remainingOf(r.id);
+              const pct = r.limit > 0 ? Math.min(100, (dist / r.limit) * 100) : 0;
+              const isActive = activeRoot === r.id;
+              return (
+                <button key={r.id} onClick={() => setActiveRoot(isActive ? null : r.id)}
+                  className={`text-left rounded-2xl border-2 p-4 transition-all ${t.border} ${t.bg} ${isActive ? `ring-2 ${t.ring} scale-[1.01]` : "hover:ring-1 hover:ring-primary/20"}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{r.cardName}</div>
+                      <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{r.goalName}</div>
+                    </div>
+                    <span className={`shrink-0 w-2.5 h-2.5 rounded-full ${t.dot} shadow-[0_0_0_3px] shadow-current/10`} />
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold">
+                      {r.assigneeName.split(" ").map(p => p[0]).join("").slice(0, 2)}
+                    </div>
+                    <span className="truncate">{r.assigneeName}</span>
+                    {r.isStar && <Crown className="w-3 h-3 text-amber-500 shrink-0" />}
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-muted-foreground">Limit</span>
+                      <span className="font-semibold text-foreground">{fmt(r.limit)} {r.unit}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full ${tone === "green" ? "bg-emerald-500" : tone === "red" ? "bg-destructive" : "bg-slate-400"}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-muted-foreground">Bölüşdürülüb: <b className="text-foreground">{fmt(dist)}</b></span>
+                      <span className={rem <= 0.0001 ? "text-emerald-600 font-semibold" : "text-destructive font-semibold"}>Qalıq: {fmt(rem)}</span>
+                    </div>
+                  </div>
+                  <div className={`mt-2 text-[10px] font-medium ${tone === "green" ? "text-emerald-600" : tone === "red" ? "text-destructive" : "text-muted-foreground"}`}>
+                    {t.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Topologiya paneli */}
+        {current && (
+          <section className="mt-6 rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/30">
+              <div className="flex items-center gap-2 min-w-0">
+                <Target className="w-4 h-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground truncate">Hədəf Topologiyası — {current.goalName}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Legend />
+                <button onClick={() => setFullView(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/60 transition">
+                  <Maximize2 className="w-3.5 h-3.5" /> Tam formatda aç
+                </button>
               </div>
             </div>
-            <div className="max-h-[70vh] overflow-auto">
-              {filtered.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">Cascadeable ana hədəf yoxdur.</div>
-              ) : filtered.map(r => {
-                const st = statusOf(r.id);
-                const active = r.id === activeRoot;
-                return (
-                  <button key={r.id} onClick={() => setActiveRoot(r.id)}
-                    className={`w-full text-left px-3 py-2.5 border-b border-border transition ${active ? "bg-primary/10" : "hover:bg-secondary/40"}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-foreground truncate">{r.goalName}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{r.cardName}</div>
-                      </div>
-                      <StatusBadge status={st} compact />
-                    </div>
-                    <div className="mt-1.5 text-[11px] text-muted-foreground">
-                      Limit: <b className="text-foreground">{fmt(r.limit)} {r.unit}</b> · Qalıq: <b className={remainingOf(r.id) === 0 ? "text-emerald-600" : "text-amber-600"}>{fmt(remainingOf(r.id))}</b>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="p-6 overflow-auto">
+              <Topology root={current} compact />
             </div>
-          </aside>
-
-          {/* Tree */}
-          <section className="rounded-2xl border border-border bg-card p-4">
-            {!current ? (
-              <div className="p-12 text-center text-sm text-muted-foreground">Ana hədəf seçin</div>
-            ) : (
-              <TreeNode node={current} depth={0} defaultOpen />
-            )}
           </section>
-        </div>
+        )}
+
+        {/* Tam ekran topologiya */}
+        {fullView && current && (
+          <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
+            <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground truncate">Tam Topologiya — {current.goalName}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Legend />
+                <button onClick={() => setFullView(false)} className="p-2 rounded-lg hover:bg-secondary transition">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-8">
+              <Topology root={current} compact={false} />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 };
 
-const TreeNode = ({ node, depth, defaultOpen }: { node: CascadeTreeNode; depth: number; defaultOpen?: boolean }) => {
-  const [open, setOpen] = useState(!!defaultOpen);
-  const kids = getChildren(node.id);
-  const st = statusOf(node.id);
-  const dist = distributedOf(node.id);
-  const rem = remainingOf(node.id);
+/* ------------------------ Topology (yatay ağac) ------------------------ */
 
+const Legend = () => (
+  <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground">
+    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Tam</span>
+    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-destructive" /> Qırmızı zona</span>
+    <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400" /> Son icraçı</span>
+  </div>
+);
+
+const Topology = ({ root, compact }: { root: CascadeTreeNode; compact: boolean }) => {
   return (
-    <div className="space-y-2">
-      <div className={`rounded-xl border p-3 transition ${st === "problem" ? "border-destructive/50 bg-destructive/5" : st === "done" ? "border-emerald-500/40 bg-emerald-500/5" : st === "in_progress" ? "border-amber-500/40 bg-amber-500/5" : "border-border bg-background"}`}
-        style={{ marginLeft: depth * 20 }}>
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 min-w-0">
-            {kids.length > 0 ? (
-              <button onClick={() => setOpen(o => !o)} className="w-6 h-6 rounded-md hover:bg-secondary flex items-center justify-center">
-                {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
-            ) : <div className="w-6" />}
-            <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-              {node.assigneeName.split(" ").map(p => p[0]).join("").slice(0, 2)}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-sm font-medium text-foreground truncate">
-                {node.assigneeName}
-                {node.isStar && <Crown className="w-3.5 h-3.5 text-amber-500" />}
-              </div>
-              <div className="text-[11px] text-muted-foreground truncate">{node.positionName || "—"}</div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs">
-            <Metric label="Limit" val={`${fmt(node.limit)} ${node.unit}`} />
-            <Metric label="Bölüşdürülüb" val={`${fmt(dist)}`} accent={dist > 0 ? "text-primary" : ""} />
-            <Metric label="Qalıq" val={`${fmt(rem)}`} accent={rem === 0 ? "text-emerald-600" : "text-amber-600"} />
-            <StatusBadge status={st} />
-          </div>
-        </div>
-      </div>
-
-      {open && kids.map(k => <TreeNode key={k.id} node={k} depth={depth + 1} defaultOpen />)}
+    <div className="cascade-tree inline-block min-w-full">
+      <style>{treeCss}</style>
+      <ul className="cascade-root">
+        <TopoNode node={root} depth={0} maxDepth={compact ? 2 : 99} />
+      </ul>
     </div>
   );
 };
 
-const Metric = ({ label, val, accent }: { label: string; val: string; accent?: string }) => (
-  <div className="hidden md:block text-right">
-    <div className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</div>
-    <div className={`text-xs font-semibold ${accent || "text-foreground"}`}>{val}</div>
-  </div>
-);
+const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: number; maxDepth: number }) => {
+  const kids = getChildren(node.id);
+  const tone = toneOf(node);
+  const t = toneClasses[tone];
+  const dist = distributedOf(node.id);
+  const rem = remainingOf(node.id);
+  const showKids = kids.length > 0 && depth < maxDepth;
+  const hiddenKids = kids.length > 0 && depth >= maxDepth;
 
-const StatusBadge = ({ status, compact }: { status: CascadeStatus; compact?: boolean }) => {
-  const map = {
-    done:        { icon: CheckCircle2, label: "Tamamlandı",  cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" },
-    in_progress: { icon: Clock,        label: "Davam edir",  cls: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
-    problem:     { icon: AlertTriangle,label: "Problem var", cls: "bg-destructive/15 text-destructive border-destructive/30" },
-    wait:        { icon: Circle,       label: "Gözləyir",    cls: "bg-muted text-muted-foreground border-border" },
-  }[status];
-  const Icon = map.icon;
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border ${map.cls}`}>
-      <Icon className="w-3 h-3" />
-      {!compact && map.label}
-    </span>
+    <li>
+      <div className={`cascade-node inline-block rounded-xl border-2 ${t.border} ${t.bg} px-3 py-2 min-w-[190px] max-w-[230px] text-left shadow-sm`}>
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${t.dot}`} />
+          <span className="text-[11px] font-semibold text-foreground truncate">{node.assigneeName}</span>
+          {node.isStar && <Crown className="w-3 h-3 text-amber-500 shrink-0" />}
+        </div>
+        {node.positionName && (
+          <div className="text-[10px] text-muted-foreground truncate mt-0.5">{node.positionName}</div>
+        )}
+        <div className="mt-1.5 text-[12px] font-bold text-foreground">
+          {fmt(node.limit)} <span className="text-[10px] font-normal text-muted-foreground">{node.unit}</span>
+        </div>
+        {kids.length > 0 && (
+          <div className="mt-1 flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">Bölünüb: <b className="text-foreground">{fmt(dist)}</b></span>
+            <span className={rem <= 0.0001 ? "text-emerald-600 font-semibold" : "text-destructive font-semibold"}>
+              Qalıq: {fmt(rem)}
+            </span>
+          </div>
+        )}
+        {hiddenKids && (
+          <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-primary">
+            <Users className="w-3 h-3" /> +{kids.length} alt hədəf (tam formatda aç)
+          </div>
+        )}
+      </div>
+      {showKids && (
+        <ul>
+          {kids.map(k => <TopoNode key={k.id} node={k} depth={depth + 1} maxDepth={maxDepth} />)}
+        </ul>
+      )}
+    </li>
   );
 };
+
+// Klassik yatay ağac üçün CSS (pseudo-elementlərlə bağlantı xətləri).
+const treeCss = `
+.cascade-tree ul { list-style: none; padding: 0; margin: 0; display: flex; justify-content: center; }
+.cascade-tree > ul.cascade-root { padding-top: 0; }
+.cascade-tree ul ul { padding-top: 28px; position: relative; gap: 12px; }
+.cascade-tree li { position: relative; padding: 28px 10px 0; text-align: center; }
+.cascade-tree > ul.cascade-root > li { padding-top: 0; }
+.cascade-tree > ul.cascade-root > li::before,
+.cascade-tree > ul.cascade-root > li::after { display: none; }
+.cascade-tree li::before, .cascade-tree li::after {
+  content: ''; position: absolute; top: 0; right: 50%;
+  border-top: 2px solid hsl(var(--border));
+  width: 50%; height: 28px;
+}
+.cascade-tree li::after { right: auto; left: 50%; border-left: 2px solid hsl(var(--border)); }
+.cascade-tree li:only-child::before, .cascade-tree li:only-child::after {
+  display: none;
+}
+.cascade-tree li:only-child { padding-top: 28px; }
+.cascade-tree li:first-child::before, .cascade-tree li:last-child::after { border: 0 none; }
+.cascade-tree li:last-child::before {
+  border-right: 2px solid hsl(var(--border)); border-radius: 0 6px 0 0;
+}
+.cascade-tree li:first-child::after { border-radius: 6px 0 0 0; }
+.cascade-tree li > .cascade-node { position: relative; display: inline-block; }
+.cascade-tree ul ul::before {
+  content: ''; position: absolute; top: 0; left: 50%;
+  border-left: 2px solid hsl(var(--border)); height: 28px;
+}
+`;
 
 export default CascadeTrackingPage;
