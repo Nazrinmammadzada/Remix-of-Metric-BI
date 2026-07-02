@@ -26,9 +26,9 @@ export interface CascadeTreeNode {
   frozen?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v3";
+const KEY = "cascade_tree_nodes_v4";
 // köhnə seed versiyalarını təmizlə
-try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2"].forEach(k => localStorage.removeItem(k)); } catch {}
+try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
 const load = (): CascadeTreeNode[] => {
@@ -196,19 +196,46 @@ function seedNodes(): CascadeTreeNode[] {
     limit, createdAt: now, updatedAt: now,
   });
 
-  // 1) Satış — tam paylanmış (4 səviyyə)
+  // 1) Satış — tam paylanmış, geniş topologiya:
+  // Samir → Rəşad + Leyla; Rəşad və Leyla da öz tabeliyindəkilərə bölüşdürür.
   const samir = byName("Samir Həsənov");
   const reshad = byName("Rəşad Əliyev");
   const leyla = byName("Leyla Məmmədova");
   const emin = byName("Emin Məmmədov");
   const nermin = byName("Nərmin Vəliyeva");
-  if (samir && reshad && leyla && emin && nermin) {
+  const ceyhun = byName("Ceyhun Abbasov");
+  const gunay = byName("Günay Salmanova");
+  const ramil = byName("Ramil Səfərov");
+  const nezrin = byName("Nəzrin Qurbanova");
+  const vusal = byName("Vüsal Mirzəyev");
+  const tural = byName("Tural Abbasov");
+  const ulviyye = byName("Ülviyyə Nəbiyeva");
+  const nergiz = byName("Nərgiz Əhmədova");
+  const togrul = byName("Toğrul Kərimov");
+  const nurlan = byName("Nurlan Bağırov");
+  if (samir && reshad && leyla && emin && nermin && ceyhun && gunay && ramil && nezrin && vusal && tural && ulviyye && nergiz && togrul && nurlan) {
     const card = "İllik Satış Hədəfi 2026"; const goal = "Ümumi Satış Həcmi";
     rows.push(mk("cn-s-root", null, "cn-s-root", "root", samir, 1_000_000, card, goal));
     rows.push(mk("cn-s-a", "cn-s-root", "cn-s-root", "", reshad, 600_000, card, goal));
     rows.push(mk("cn-s-b", "cn-s-root", "cn-s-root", "", leyla, 400_000, card, goal));
-    rows.push(mk("cn-s-a1", "cn-s-a", "cn-s-root", "", emin, 600_000, card, goal));
-    rows.push(mk("cn-s-b1", "cn-s-b", "cn-s-root", "", nermin, 400_000, card, goal));
+
+    // Rəşad Əliyev öz hədəfini tabeliyindəki əməkdaşlar arasında tam paylaşır.
+    rows.push(mk("cn-s-a1", "cn-s-a", "cn-s-root", "", emin, 250_000, card, goal));
+    rows.push(mk("cn-s-a2", "cn-s-a", "cn-s-root", "", ceyhun, 150_000, card, goal));
+    rows.push(mk("cn-s-a3", "cn-s-a", "cn-s-root", "", gunay, 100_000, card, goal));
+    rows.push(mk("cn-s-a4", "cn-s-a", "cn-s-root", "", ramil, 100_000, card, goal));
+
+    // Leyla Məmmədova da öz hədəfini tabeliyindəki əməkdaşlar arasında tam paylaşır.
+    rows.push(mk("cn-s-b1", "cn-s-b", "cn-s-root", "", nermin, 140_000, card, goal));
+    rows.push(mk("cn-s-b2", "cn-s-b", "cn-s-root", "", nezrin, 90_000, card, goal));
+    rows.push(mk("cn-s-b3", "cn-s-b", "cn-s-root", "", vusal, 90_000, card, goal));
+    rows.push(mk("cn-s-b4", "cn-s-b", "cn-s-root", "", tural, 80_000, card, goal));
+
+    // Nümunə daha dərin görünsün deyə iki alt qolda komanda daxili mikro-bölgü var.
+    rows.push(mk("cn-s-a1-1", "cn-s-a1", "cn-s-root", "", ulviyye, 125_000, card, goal));
+    rows.push(mk("cn-s-a1-2", "cn-s-a1", "cn-s-root", "", nergiz, 125_000, card, goal));
+    rows.push(mk("cn-s-b1-1", "cn-s-b1", "cn-s-root", "", togrul, 70_000, card, goal));
+    rows.push(mk("cn-s-b1-2", "cn-s-b1", "cn-s-root", "", nurlan, 70_000, card, goal));
   }
 
   // 2) Marketinq — tam paylanmış (3 səviyyə, çoxlu qollar)
