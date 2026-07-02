@@ -751,19 +751,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 </Field>
 
                 <div className="col-span-12">
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${draft.useMatrix ? "border-primary bg-primary/10" : "border-border bg-card"}`}>
-                    <input type="checkbox" checked={draft.useMatrix} onChange={e => update({ useMatrix: e.target.checked })} className="w-5 h-5 mt-0.5" />
-                    <div>
-                      <div className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-primary" />
-                        Təsdiqləmə matrisi tətbiq olunsun?
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Aktiv olduqda təyinatlar bitdikdən sonra kart "Təsdiq gözlənilir" statusuna keçəcək.
-                      </p>
-                    </div>
-                  </label>
+                  <div className="p-3 rounded-lg border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
+                    <ShieldCheck className="w-4 h-4 text-primary inline mr-1.5 -mt-0.5" />
+                    Təsdiqləmə üsulu 3-cü addımda seçiləcək (təyinat növünə əsasən avtomatik təklif olunur).
+                  </div>
                 </div>
+
               </div>
 
               {/* ===== Lifecycle ===== */}
