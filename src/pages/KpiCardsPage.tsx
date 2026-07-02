@@ -845,8 +845,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     }
     const st = getStatusFor(c.id);
     const STATUS_LBL: Record<string, string> = {
-      natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
-      imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
+      qaralama: "Qaralama", natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+      imtina: "İmtina", aktiv: "Aktiv", qiymetlendirme: "Qiymətləndirmə",
+      tamamlanib: "Tamamlanıb", legv_olundu: "Ləğv olundu",
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
     const kind = getAssignKindFor(c.id);
