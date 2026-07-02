@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, X, Clock, CheckCircle2, XCircle, Send, Eye, User, Calendar, MessageSquare } from "lucide-react";
+import {
+  Check, X, Clock, CheckCircle2, XCircle, Send, Eye, User, Calendar, MessageSquare,
+  ChevronDown, ChevronUp, Hourglass, Trophy,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApprovals, decideApproval, type ApprovalItem } from "@/lib/approvalsStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
