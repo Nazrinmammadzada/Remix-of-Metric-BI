@@ -119,7 +119,7 @@ const App = () => {
 
               {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
               <Route path="/hr/rehber" element={<ManagerHomePage />} />
-              <Route path="/hr/rehber/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/hr/rehber/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/hr/rehber/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
               <Route path="/hr/rehber/komandam" element={<TeamsPage />} />
               <Route path="/hr/rehber/kpi-izleme" element={<ManagerKpiTrackingPage />} />
