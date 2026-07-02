@@ -80,8 +80,15 @@ interface ScoreRow {
   score: number;
 }
 
-const KpiScoresPage = () => {
-  const employees = useMemo(() => getEmployees().filter(e => e.active), []);
+export interface KpiScoresPageProps {
+  employeesOverride?: ReturnType<typeof getEmployees>;
+  hideChrome?: boolean;
+  heroTitle?: string;
+  heroSubtitle?: string;
+}
+
+const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle }: KpiScoresPageProps = {}) => {
+  const employees = useMemo(() => employeesOverride || getEmployees().filter(e => e.active), [employeesOverride]);
 
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [month, setMonth] = useState<string>("May");
