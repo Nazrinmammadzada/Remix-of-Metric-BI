@@ -18,13 +18,13 @@ import { toast } from "sonner";
 
 type Periodicity = "weekly" | "monthly" | "quarterly" | "halfyear" | "yearly" | "other";
 
-interface SubKpi { name: string; weight: number; evaluator: string; score: number | null; }
-interface Employee {
+export interface SubKpi { name: string; weight: number; evaluator: string; score: number | null; }
+export interface Employee {
   id: string; firstName: string; lastName: string; department: string; position: string;
   baseSalary: number; targetBonusPct: number; subKpis: SubKpi[];
 }
 
-const employees: Employee[] = [
+export const DEFAULT_BONUS_EMPLOYEES: Employee[] = [
   { id: "1", firstName: "Aysel", lastName: "Məmmədova", department: "Satış", position: "Satış Meneceri", baseSalary: 2500, targetBonusPct: 25,
     subKpis: [
       { name: "Aylıq Satış", weight: 50, evaluator: "Samir Həsənov", score: 92 },
