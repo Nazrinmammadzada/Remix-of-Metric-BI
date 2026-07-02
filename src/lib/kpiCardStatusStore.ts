@@ -20,7 +20,7 @@ export interface KpiCardStatusRow {
 }
 
 export const STATUS_LABELS: Record<KpiCardStatus, string> = {
-  natamam: "Qaralama",
+  natamam: "Natamam",
   tesdiq_gozlenilir: "Təsdiq gözlənilir",
   imtina: "İmtina",
   aktiv: "Aktiv",
