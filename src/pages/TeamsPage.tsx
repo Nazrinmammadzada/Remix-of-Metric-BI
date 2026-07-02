@@ -10,6 +10,7 @@ import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore"
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
+import { useAuth } from "@/contexts/AuthContext";
 
 const allPeople: TeamMember[] = [
   { name: "Samir Həsənov", role: "Komanda Lideri", kpiScore: 90, avatar: "S" },
