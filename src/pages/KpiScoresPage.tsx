@@ -80,8 +80,15 @@ interface ScoreRow {
   score: number;
 }
 
-const KpiScoresPage = () => {
-  const employees = useMemo(() => getEmployees().filter(e => e.active), []);
+export interface KpiScoresPageProps {
+  employeesOverride?: ReturnType<typeof getEmployees>;
+  hideChrome?: boolean;
+  heroTitle?: string;
+  heroSubtitle?: string;
+}
+
+const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle }: KpiScoresPageProps = {}) => {
+  const employees = useMemo(() => employeesOverride || getEmployees().filter(e => e.active), [employeesOverride]);
 
   const [year, setYear] = useState<string>(String(new Date().getFullYear()));
   const [month, setMonth] = useState<string>("May");
@@ -138,14 +145,17 @@ const KpiScoresPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="KPI Nəticələri" />
-      <main className="p-6 pb-24">
-        <PageHero
-          badge="KPI Nəticələri"
-          icon={BarChart3}
-          title="KPI Nəticələri"
-          subtitle="Əməkdaşların KPI kartları üzrə qiymətləndirmə nəticələri"
-        />
+      {!hideChrome && <Header title="KPI Nəticələri" />}
+      <main className={hideChrome ? "" : "p-6 pb-24"}>
+        {!hideChrome && (
+          <PageHero
+            badge="KPI Nəticələri"
+            icon={BarChart3}
+            title={heroTitle || "KPI Nəticələri"}
+            subtitle={heroSubtitle || "Əməkdaşların KPI kartları üzrə qiymətləndirmə nəticələri"}
+          />
+        )}
+
 
         {/* Filter bar */}
         <div className="rounded-xl border border-border bg-card p-4 mb-4 flex flex-wrap items-end gap-3">

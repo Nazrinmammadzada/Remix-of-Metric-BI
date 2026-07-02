@@ -10,6 +10,7 @@ import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore"
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
+import { useAuth } from "@/contexts/AuthContext";
 
 const allPeople: TeamMember[] = [
   { name: "Samir Həsənov", role: "Komanda Lideri", kpiScore: 90, avatar: "S" },
@@ -32,6 +33,8 @@ const allPeople: TeamMember[] = [
 
 const TeamsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isManager = user?.role === "MANAGER";
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
 
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
@@ -74,17 +77,21 @@ const TeamsPage = () => {
     return Array.from(new Set(names));
   })();
 
-  const avgPerformance = teams.length ? (teams.reduce((s, t) => s + t.kpiResult, 0) / teams.length).toFixed(1) : "0";
-  const totalMembers = teams.reduce((s, t) => s + t.members.length + 1, 0);
-  const bestTeam = teams.length ? teams.reduce((b, t) => (t.kpiResult > b.kpiResult ? t : b), teams[0]) : null;
+  const scopedTeams = isManager
+    ? teams.filter(t => t.leader === user?.name)
+    : teams;
 
-  const chartData = teams.map(t => ({
+  const avgPerformance = scopedTeams.length ? (scopedTeams.reduce((s, t) => s + t.kpiResult, 0) / scopedTeams.length).toFixed(1) : "0";
+  const totalMembers = scopedTeams.reduce((s, t) => s + t.members.length + 1, 0);
+  const bestTeam = scopedTeams.length ? scopedTeams.reduce((b, t) => (t.kpiResult > b.kpiResult ? t : b), scopedTeams[0]) : null;
+
+  const chartData = scopedTeams.map(t => ({
     name: t.name.length > 12 ? t.name.substring(0, 12) + "..." : t.name,
     "KPI Nəticəsi": t.kpiResult,
     "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
   }));
 
-  const filteredTeams = teams.filter(t =>
+  const filteredTeams = scopedTeams.filter(t =>
     t.name.toLowerCase().includes(searchText.toLowerCase()) ||
     t.leader.toLowerCase().includes(searchText.toLowerCase())
   );
@@ -178,18 +185,20 @@ const TeamsPage = () => {
     <div className="min-h-screen">
       <Header title="Komandalar" />
       <main className="p-6 pb-24">
-        <button
-          onClick={() => navigate("/teskilati-struktur")}
-          className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Geri
-        </button>
+        {!isManager && (
+          <button
+            onClick={() => navigate("/teskilati-struktur")}
+            className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Geri
+          </button>
+        )}
         <PageHero
 
-          badge="Komanda İdarəsi"
+          badge={isManager ? "Rəhbər Paneli" : "Komanda İdarəsi"}
           icon={Sparkles}
-          title="Komandalar"
-          subtitle="Komandaları yaradın, redaktə edin və performansı izləyin"
+          title={isManager ? "Komandam" : "Komandalar"}
+          subtitle={isManager ? "Rəhbərlik etdiyiniz komanda və üzvləri" : "Komandaları yaradın, redaktə edin və performansı izləyin"}
           right={
             <div className="flex gap-3">
               <select className="px-3 py-2 text-sm border border-border rounded-lg bg-card">
@@ -199,12 +208,15 @@ const TeamsPage = () => {
                 <option>Fevral 2026</option>
                 <option>Yanvar 2026</option>
               </select>
-              <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                <Plus className="w-4 h-4" /> Yeni komanda yarat
-              </button>
+              {!isManager && (
+                <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+                  <Plus className="w-4 h-4" /> Yeni komanda yarat
+                </button>
+              )}
             </div>
           }
         />
+
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

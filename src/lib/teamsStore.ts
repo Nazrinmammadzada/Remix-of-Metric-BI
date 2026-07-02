@@ -72,13 +72,40 @@ const initialTeams: Team[] = [
       { name: "Orxan Məmmədov", role: "İpoteka Mütəxəssisi", kpiScore: 83, avatar: "O" },
     ],
   },
+  {
+    id: 4,
+    name: "Marketinq Komandası",
+    leader: "Elvin Rəhimov",
+    leaderAvatar: "E",
+    kpiResult: 88,
+    branch: "Marketinq Departamenti",
+    activeKpi: 9,
+    completedKpi: 6,
+    totalKpi: 11,
+    members: [
+      { name: "Kamran Quliyev", role: "Rəqəmsal Marketinq Şöbə Müdiri", kpiScore: 92, avatar: "K" },
+      { name: "Aynur Cəfərova", role: "Brend Şöbə Müdiri", kpiScore: 85, avatar: "A" },
+      { name: "Orxan Bayramov", role: "Marketinq Mütəxəssisi", kpiScore: 82, avatar: "O" },
+      { name: "Aytac Kərimova", role: "Brend Mütəxəssisi", kpiScore: 87, avatar: "A" },
+    ],
+  },
 ];
 
 export const getTeams = (): Team[] => {
   const saved = localStorage.getItem(TEAMS_KEY);
   if (saved) {
     try {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved) as Team[];
+      // Elvin komandası mövcud deyilsə, əlavə et (seed-i qorumaq üçün).
+      if (!parsed.some(t => t.leader === "Elvin Rəhimov")) {
+        const elvinTeam = initialTeams.find(t => t.leader === "Elvin Rəhimov");
+        if (elvinTeam) {
+          const next = [...parsed, elvinTeam];
+          localStorage.setItem(TEAMS_KEY, JSON.stringify(next));
+          return next;
+        }
+      }
+      return parsed;
     } catch {}
   }
   localStorage.setItem(TEAMS_KEY, JSON.stringify(initialTeams));

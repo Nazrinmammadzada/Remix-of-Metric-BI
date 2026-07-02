@@ -18,13 +18,13 @@ import { toast } from "sonner";
 
 type Periodicity = "weekly" | "monthly" | "quarterly" | "halfyear" | "yearly" | "other";
 
-interface SubKpi { name: string; weight: number; evaluator: string; score: number | null; }
-interface Employee {
+export interface SubKpi { name: string; weight: number; evaluator: string; score: number | null; }
+export interface Employee {
   id: string; firstName: string; lastName: string; department: string; position: string;
   baseSalary: number; targetBonusPct: number; subKpis: SubKpi[];
 }
 
-const employees: Employee[] = [
+export const DEFAULT_BONUS_EMPLOYEES: Employee[] = [
   { id: "1", firstName: "Aysel", lastName: "Məmmədova", department: "Satış", position: "Satış Meneceri", baseSalary: 2500, targetBonusPct: 25,
     subKpis: [
       { name: "Aylıq Satış", weight: 50, evaluator: "Samir Həsənov", score: 92 },
@@ -67,7 +67,16 @@ const MISSING_BY_LABEL: Record<string, string[]> = {
 
 interface CalcRow { employee: Employee; achievement: number | null; bonus: number | null; }
 
-const BonusPage = () => {
+export interface BonusPageProps {
+  employeesOverride?: Employee[];
+  hideChrome?: boolean;
+  hideCalcButton?: boolean;
+  heroTitle?: string;
+  heroSubtitle?: string;
+}
+
+const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, heroSubtitle }: BonusPageProps = {}) => {
+  const employees = employeesOverride || DEFAULT_BONUS_EMPLOYEES;
   const [periodicity, setPeriodicity] = useState<Periodicity | "">("monthly");
   const [weekDate, setWeekDate] = useState<Date | undefined>();
   const [year, setYear] = useState<string>("2026");
@@ -269,14 +278,16 @@ const BonusPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="Bonuslar" />
-      <main className="p-6 pb-24 space-y-4">
-        <PageHero
-          badge="Bonus Mərkəzi"
-          icon={Sparkles}
-          title="Bonuslar"
-          subtitle="Əməkdaşlar üzrə dövrlük bonus hesablanması"
-        />
+      {!hideChrome && <Header title="Bonuslar" />}
+      <main className={hideChrome ? "space-y-4" : "p-6 pb-24 space-y-4"}>
+        {!hideChrome && (
+          <PageHero
+            badge="Bonus Mərkəzi"
+            icon={Sparkles}
+            title={heroTitle || "Bonuslar"}
+            subtitle={heroSubtitle || "Əməkdaşlar üzrə dövrlük bonus hesablanması"}
+          />
+        )}
 
         <div className="bg-card rounded-xl border border-border p-4">
           <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_auto] gap-3 items-end">
@@ -299,9 +310,11 @@ const BonusPage = () => {
               {renderPeriodPicker()}
             </div>
             <div className="flex items-center gap-2">
-              <Button onClick={handleCalculate} disabled={!isPeriodReady()}>
-                <Calculator className="mr-2 h-4 w-4" /> Bonus hesabla
-              </Button>
+              {!hideCalcButton && (
+                <Button onClick={handleCalculate} disabled={!isPeriodReady()}>
+                  <Calculator className="mr-2 h-4 w-4" /> Bonus hesabla
+                </Button>
+              )}
               {result && (
                 <ExportMenu
                   getData={() => ({
