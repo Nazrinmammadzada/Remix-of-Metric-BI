@@ -72,14 +72,36 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
   useEffect(() => {
     if (!node) return;
-    // mövcud bölgüləri əvvəlcədən doldur
+    // mövcud bölgüləri əvvəlcədən doldur — və ya subordinatları bərabər böl
     const kids = getChildren(node.id);
     const seed: Record<number, string> = {};
-    kids.forEach(k => { seed[k.assigneeId] = String(k.limit); });
+    if (kids.length) {
+      kids.forEach(k => { seed[k.assigneeId] = String(k.limit); });
+    } else if (subordinates.length && node.limit > 0) {
+      const per = Math.floor((node.limit / subordinates.length) * 100) / 100;
+      subordinates.forEach((e, i) => {
+        // Son əməkdaşa qalıq düşsün ki, cəm dəqiq gəlsin
+        seed[e.id] = i === subordinates.length - 1
+          ? String(Math.round((node.limit - per * (subordinates.length - 1)) * 100) / 100)
+          : String(per);
+      });
+    }
     setSlices(seed);
-  }, [node?.id]);
+  }, [node?.id, subordinates.length]);
 
   const setSlice = (id: number, val: string) => setSlices(prev => ({ ...prev, [id]: val }));
+
+  const equalSplit = () => {
+    if (!node || !subordinates.length) return;
+    const per = Math.floor((node.limit / subordinates.length) * 100) / 100;
+    const next: Record<number, string> = {};
+    subordinates.forEach((e, i) => {
+      next[e.id] = i === subordinates.length - 1
+        ? String(Math.round((node.limit - per * (subordinates.length - 1)) * 100) / 100)
+        : String(per);
+    });
+    setSlices(next);
+  };
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const limit = node?.limit || 0;
