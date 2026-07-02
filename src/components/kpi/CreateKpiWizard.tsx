@@ -561,11 +561,9 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   // ==== Approval method auto-default (touched flag qoruyur user seçimini) ====
   const [approvalMethodTouched, setApprovalMethodTouched] = useState(false);
   const suggestApprovalMethod = (d: CreateKpiWizardDraft): CreateKpiWizardDraft["approvalMethod"] => {
-    if (d.mode === "individual") return "matrix";
     const bs = d.bulkSelections;
     if (bs.teams.length > 0) return "team_leader";
-    if (bs.structures.length > 0) return "structure_leader";
-    return "matrix"; // positions / persons / boş
+    return "structure_leader"; // default: matrissiz — birbaşa struktur rəhbərinə
   };
   useEffect(() => {
     if (approvalMethodTouched) return;
