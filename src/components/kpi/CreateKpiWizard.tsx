@@ -1188,11 +1188,16 @@ function Step2Targets({
           <div className="space-y-3">
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici</label>
-              <select value={unifiedAssigner} onChange={e => setUnifiedAssigner(e.target.value)}
-                className="w-full mt-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                <option value="">— Əməkdaş seçin —</option>
+              <input
+                list="unified-assigner-list"
+                value={unifiedAssigner}
+                onChange={e => setUnifiedAssigner(e.target.value)}
+                placeholder="Əməkdaş axtar (ad, vəzifə)…"
+                className="w-full mt-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background"
+              />
+              <datalist id="unified-assigner-list">
                 {employeeOptions.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
-              </select>
+              </datalist>
             </div>
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) — çəkilər cəmi 100%</label>
