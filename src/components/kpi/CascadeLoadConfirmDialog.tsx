@@ -13,26 +13,38 @@ interface Props {
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
-const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }: Props) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-md">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <GitBranch className="w-5 h-5 text-primary" />
-          Cascade Load — Bölgü təklifi
-        </DialogTitle>
-      </DialogHeader>
-      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-        Sizin üzərinizdə <span className="font-semibold">{fmt(value)} {unit}</span> məbləğində
-        <span className="font-semibold"> Cascade Load</span> mövcuddur.
-        Bu hədəfi tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={() => onOpenChange(false)}>Xeyr, sonra</Button>
-        <Button onClick={() => { onConfirm(); onOpenChange(false); }}>Bəli, indi bölüşdür</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-);
+const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }: Props) => {
+  const hasLoad = value > 0;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <GitBranch className="w-5 h-5 text-primary" />
+            Cascade Load — Bölgü təklifi
+          </DialogTitle>
+        </DialogHeader>
+        {hasLoad ? (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+            Sizin üzərinizdə <span className="font-semibold">{fmt(value)} {unit}</span> məbləğində
+            <span className="font-semibold"> Cascade Load</span> mövcuddur.
+            Bu limit sizə <span className="italic">başqa kartdan</span> gəlir və hazırda təyin etdiyiniz hədəflə əlaqəsi yoxdur.
+            Onu tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">
+            Hazırda sizin üzərinizdə paylanmalı Cascade Load yoxdur.
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
+          {hasLoad && (
+            <Button onClick={() => { onConfirm(); onOpenChange(false); }}>Bəli, indi bölüşdür</Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export default CascadeLoadConfirmDialog;
