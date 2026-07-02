@@ -185,18 +185,20 @@ const TeamsPage = () => {
     <div className="min-h-screen">
       <Header title="Komandalar" />
       <main className="p-6 pb-24">
-        <button
-          onClick={() => navigate("/teskilati-struktur")}
-          className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Geri
-        </button>
+        {!isManager && (
+          <button
+            onClick={() => navigate("/teskilati-struktur")}
+            className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Geri
+          </button>
+        )}
         <PageHero
 
-          badge="Komanda İdarəsi"
+          badge={isManager ? "Rəhbər Paneli" : "Komanda İdarəsi"}
           icon={Sparkles}
-          title="Komandalar"
-          subtitle="Komandaları yaradın, redaktə edin və performansı izləyin"
+          title={isManager ? "Komandam" : "Komandalar"}
+          subtitle={isManager ? "Rəhbərlik etdiyiniz komanda və üzvləri" : "Komandaları yaradın, redaktə edin və performansı izləyin"}
           right={
             <div className="flex gap-3">
               <select className="px-3 py-2 text-sm border border-border rounded-lg bg-card">
@@ -206,12 +208,15 @@ const TeamsPage = () => {
                 <option>Fevral 2026</option>
                 <option>Yanvar 2026</option>
               </select>
-              <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                <Plus className="w-4 h-4" /> Yeni komanda yarat
-              </button>
+              {!isManager && (
+                <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+                  <Plus className="w-4 h-4" /> Yeni komanda yarat
+                </button>
+              )}
             </div>
           }
         />
+
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
