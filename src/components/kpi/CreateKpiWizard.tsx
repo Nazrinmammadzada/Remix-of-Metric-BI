@@ -157,6 +157,8 @@ export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
   scoringSystem: "1-5",
   useMatrix: false,
   approvalMatrixId: "",
+  approvalMethod: "matrix",
+
   lifecycle: {
     assignmentStart: "",
     assignmentEnd: "",
