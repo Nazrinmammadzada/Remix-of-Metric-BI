@@ -67,7 +67,16 @@ const MISSING_BY_LABEL: Record<string, string[]> = {
 
 interface CalcRow { employee: Employee; achievement: number | null; bonus: number | null; }
 
-const BonusPage = () => {
+export interface BonusPageProps {
+  employeesOverride?: Employee[];
+  hideChrome?: boolean;
+  hideCalcButton?: boolean;
+  heroTitle?: string;
+  heroSubtitle?: string;
+}
+
+const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, heroSubtitle }: BonusPageProps = {}) => {
+  const employees = employeesOverride || DEFAULT_BONUS_EMPLOYEES;
   const [periodicity, setPeriodicity] = useState<Periodicity | "">("monthly");
   const [weekDate, setWeekDate] = useState<Date | undefined>();
   const [year, setYear] = useState<string>("2026");
