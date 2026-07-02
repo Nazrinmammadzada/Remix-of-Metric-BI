@@ -31,7 +31,7 @@ export interface KpiCardInfo {
   period: string;
 }
 
-const KEY = "user_kpi_subkpis_v2";
+const KEY = "user_kpi_subkpis_v3";
 const EVT = "user-kpi-subkpis-updated";
 
 export const USER_KPI_CARD: KpiCardInfo = {
