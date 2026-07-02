@@ -193,18 +193,38 @@ const ManagerResponsibleCardsPage = () => {
                                 )}
                               </td>
                               <td className="px-4 py-2.5 text-right">
-                                {e.cascadable && limit > 0 ? (
-                                  <button
-                                    onClick={() => setDistribute(e)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
-                                  >
-                                    <GitBranch className="w-3.5 h-3.5" />
-                                    {root && dist > 0 ? "Bölgünü dəyiş" : "Kaskad et"}
-                                  </button>
-                                ) : (
-                                  <span className="text-[11px] text-muted-foreground">—</span>
-                                )}
+                                <div className="inline-flex items-center gap-1.5 justify-end">
+                                  {e.status === "pending" ? (
+                                    <button
+                                      onClick={() => setAssignEntry(e)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
+                                    >
+                                      <TargetIcon className="w-3.5 h-3.5" /> Təyin et
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setAssignEntry(e)}
+                                      title="Redaktə et"
+                                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-border text-xs hover:bg-secondary"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  {e.cascadable && limit > 0 && (
+                                    <button
+                                      onClick={() => setDistribute(e)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
+                                    >
+                                      <GitBranch className="w-3.5 h-3.5" />
+                                      {root && dist > 0 ? "Bölgünü dəyiş" : "Kaskad et"}
+                                    </button>
+                                  )}
+                                  {e.status === "completed" && !e.cascadable && (
+                                    <span className="text-[11px] text-muted-foreground">—</span>
+                                  )}
+                                </div>
                               </td>
+
                             </tr>
                           );
                         })}
