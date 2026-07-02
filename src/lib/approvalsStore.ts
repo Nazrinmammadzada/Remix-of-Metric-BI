@@ -28,6 +28,8 @@ const load = (): ApprovalItem[] => {
     const raw = localStorage.getItem(KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
   const seed: ApprovalItem[] = [
     {
       id: "ap-seed-1",
@@ -38,8 +40,44 @@ const load = (): ApprovalItem[] => {
       decisions: { e8: { decision: "pending" } },
       status: "pending",
       createdBy: "e1",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date(now - 1 * day).toISOString(),
+      updatedAt: new Date(now - 1 * day).toISOString(),
+    },
+    {
+      id: "ap-seed-2",
+      kpiCardId: "seed-3",
+      kpiName: "Satış Konversiyası — Q1",
+      matrixId: "default-matrix",
+      approverIds: ["e8"],
+      decisions: { e8: { decision: "pending" } },
+      status: "pending",
+      createdBy: "e1",
+      createdAt: new Date(now - 2 * day).toISOString(),
+      updatedAt: new Date(now - 2 * day).toISOString(),
+    },
+    {
+      id: "ap-seed-3",
+      kpiCardId: "seed-4",
+      kpiName: "Onboarding Vaxtı",
+      matrixId: "default-matrix",
+      approverIds: ["e8"],
+      decisions: { e8: { decision: "approved", note: "Uyğundur", at: new Date(now - 3 * day).toISOString() } },
+      status: "approved",
+      createdBy: "e1",
+      createdAt: new Date(now - 5 * day).toISOString(),
+      updatedAt: new Date(now - 3 * day).toISOString(),
+    },
+    {
+      id: "ap-seed-4",
+      kpiCardId: "seed-5",
+      kpiName: "Xərc Optimizasiyası",
+      matrixId: "default-matrix",
+      approverIds: ["e8"],
+      decisions: { e8: { decision: "rejected", note: "Hədəf dəyəri realistik deyil", at: new Date(now - 2 * day).toISOString() } },
+      status: "rejected",
+      createdBy: "e1",
+      createdAt: new Date(now - 6 * day).toISOString(),
+      updatedAt: new Date(now - 2 * day).toISOString(),
     },
   ];
   localStorage.setItem(KEY, JSON.stringify(seed));

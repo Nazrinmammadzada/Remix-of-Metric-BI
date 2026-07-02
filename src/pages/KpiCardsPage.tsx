@@ -31,7 +31,7 @@ import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStor
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
-const STATUS_LABELS = { natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
+const STATUS_LABELS = { natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
 const STATUS_STYLES: Record<string, string> = {
   natamam: "bg-muted text-muted-foreground border-border",
   tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
@@ -810,23 +810,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const draft = cardDrafts[cardId];
     return (draft?.startDate) || "—";
   };
-  const getAssignKindFor = (cardId: number): "Fərdi" | "Komanda" | "Struktur" | "Vəzifə" => {
+  const getAssignKindFor = (cardId: number): "Fərdi" | "Toplu" => {
     const draft = cardDrafts[cardId];
     if (!draft) {
-      // Legacy demo: map to Fərdi/Komanda based on team match
       const card = kpiCards.find(c => c.id === cardId);
       if (!card) return "Fərdi";
       const teams = getTeams();
       const inTeam = teams.some(t => [t.leader, ...t.members.map(m => m.name)].includes(card.responsible));
-      return inTeam ? "Komanda" : "Fərdi";
+      return inTeam ? "Toplu" : "Fərdi";
     }
-    if (draft.mode === "individual") return "Fərdi";
-    // bulk mode — introspect selected buckets
-    const b: any = (draft as any).bulk || {};
-    if (b.teamIds?.length) return "Komanda";
-    if (b.structureIds?.length) return "Struktur";
-    if (b.positions?.length) return "Vəzifə";
-    return "Fərdi";
+    return draft.mode === "individual" ? "Fərdi" : "Toplu";
   };
 
   const filteredCards = kpiCards.filter(c => {
@@ -841,19 +834,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     }
     const st = getStatusFor(c.id);
     const STATUS_LBL: Record<string, string> = {
-      natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+      natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
       imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
     const kind = getAssignKindFor(c.id);
     let matchesKind = true;
     if (filterAssignKind === "Fərdi") matchesKind = kind === "Fərdi";
-    else if (filterAssignKind === "Toplu") {
-      matchesKind = kind !== "Fərdi";
-      if (matchesKind && filterBulkKind !== "Hamısı") {
-        matchesKind = kind === filterBulkKind || (filterBulkKind === "Şəxs" && kind === "Fərdi");
-      }
-    }
+    else if (filterAssignKind === "Toplu") matchesKind = kind === "Toplu";
     return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
@@ -1094,33 +1082,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <option>Toplu</option>
               </select>
             </div>
-            {filterAssignKind === "Toplu" && (
-              <div className="min-w-[150px]">
-                <label className="text-[11px] text-muted-foreground">Toplu növü</label>
-                <select
-                  value={filterBulkKind}
-                  onChange={e => { const v = e.target.value as any; setFilterBulkKind(v); if (v !== "Komanda") setFilterTeamId(null); }}
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
-                >
-                  <option>Hamısı</option>
-                  <option>Komanda</option>
-                  <option>Struktur</option>
-                  <option>Vəzifə</option>
-                  <option>Şəxs</option>
-                </select>
-              </div>
-            )}
-            {filterAssignKind === "Toplu" && filterBulkKind === "Komanda" && (
-              <div className="min-w-[180px]">
-                <label className="text-[11px] text-muted-foreground">Komanda</label>
-                <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
-              </div>
-            )}
             <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
-                <option>Qaralama</option>
+                <option>Natamam</option>
                 <option>Təsdiq gözlənilir</option>
                 <option>İmtina</option>
                 <option>Aktiv</option>
@@ -1215,7 +1181,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                         const next = await mod.fetchAllStatuses();
                                         setStatusMap(next);
                                       } catch {}
-                                      toast.success("Kart kopyalandı (Qaralama)");
+                                      toast.success("Kart kopyalandı (Natamam)");
                                     }}
                                     title="Kopyala"
                                     className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -1572,7 +1538,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Təyin edənlər — Qaralama</DialogTitle>
+            <DialogTitle>Təyin edənlər — Natamam</DialogTitle>
           </DialogHeader>
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);

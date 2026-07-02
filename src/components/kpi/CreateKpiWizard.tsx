@@ -621,8 +621,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
       const people = collectAssignedEmployees(d);
       if (people.length === 0 && d.bulkSelections.teams.length === 0) return "Təsdiqləmə üçün əməkdaş və ya komanda seçilməlidir";
       const missing = people.filter(p => !getTeamOfPerson(p));
+      if (missing.length > 0 && missing.length === people.length) {
+        return `Heç bir seçilmiş şəxsin komandası yoxdur: ${missing.join(", ")}.`;
+      }
       if (missing.length > 0) {
-        return `Bu şəxslərin komandası yoxdur: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+        toast.warning(`${missing.join(", ")} komanda liderinə malik deyil — bu şəxs(lər) üçün kart yaradılmayacaq. Qalanları üçün kart yaranır.`);
       }
       return null;
     }
@@ -630,8 +633,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     const people = collectAssignedEmployees(d);
     if (people.length === 0 && d.bulkSelections.structures.length === 0) return "Təsdiqləmə üçün əməkdaş və ya struktur seçilməlidir";
     const missing = people.filter(p => !getStructureLeaderName(p));
+    if (missing.length > 0 && missing.length === people.length) {
+      return `Heç bir seçilmiş şəxsin struktur rəhbəri yoxdur: ${missing.join(", ")}.`;
+    }
     if (missing.length > 0) {
-      return `Bu şəxslərin struktur rəhbəri müəyyən edilə bilmir: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+      toast.warning(`${missing.join(", ")} üçün struktur rəhbəri tapılmadı — bu şəxs(lər) üçün kart yaradılmayacaq. Qalanları üçün kart yaranır.`);
     }
     return null;
   };
@@ -644,7 +650,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     ensureAutoTeam(draft);
     onComplete({ ...draft, action, lastStep: step });
     toast.success(
-      action === "draft" ? "Qaralama (Draft) kimi yadda saxlanıldı"
+      action === "draft" ? "Natamam (Draft) kimi yadda saxlanıldı"
       : action === "create_active" ? "KPI yaradıldı və aktiv edildi"
       : "KPI təyinə göndərildi",
     );
@@ -850,9 +856,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         <ShieldCheck className="w-4 h-4 text-primary" />
                         Təsdiqləmə matrisi olsun
                       </div>
-                      <p className="mt-0.5 text-muted-foreground">
-                        Seçilməzsə kart matris olmadan yaranır — təsdiq birbaşa struktur rəhbərinə/komanda liderinə göndərilir və bütün məlumatlar dolu olduqda kart avtomatik <b>Aktiv</b> statusda yaranır.
-                      </p>
                     </div>
                   </label>
                 </div>
@@ -994,8 +997,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   }
                 </SummarySection>
 
-                {/* Təsdiqləmə üsulu */}
-                {draft.useMatrix ? (
+                {/* Təsdiqləmə üsulu — yalnız matris seçildikdə */}
+                {draft.useMatrix && (
                   <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-primary" />
@@ -1015,16 +1018,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 flex items-start gap-2 text-xs">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                    <div>
-                      <div className="font-semibold text-foreground">Matrissiz təyinat</div>
-                      <p className="text-muted-foreground mt-0.5">
-                        Kart matris olmadan avtomatik təyin ediləcək və <b>Aktiv</b> statusda yaranacaq. Təsdiq lazım gəldikdə birbaşa <b>{draft.approvalMethod === "team_leader" ? "komanda liderinə" : "struktur rəhbərinə"}</b> göndəriləcək.
-                      </p>
-                    </div>
-                  </div>
                 )}
 
 
@@ -1043,7 +1036,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
           <div className="text-xs text-muted-foreground">{step} / {TOTAL_STEPS}</div>
           <div className="flex gap-2 flex-wrap justify-end">
             <button type="button" onClick={close} className="px-3 py-1.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
-            {/* "Yadda saxla" — bütün addımlarda */}
             <button type="button" onClick={() => finalize("draft")}
               className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary">
               <Save className="w-4 h-4" /> Yadda saxla
@@ -1053,7 +1045,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 className="flex items-center gap-1 px-5 py-1.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
                 Növbəti <ChevronRight className="w-4 h-4" />
               </button>
-            ) : draft.useMatrix ? (
+            ) : (draft.useMatrix || draft.targets.some(t => t.createdBy === "other")) ? (
               <button type="button" onClick={() => finalize("submit")}
                 className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
                 <Send className="w-4 h-4" /> Təyinə göndər
