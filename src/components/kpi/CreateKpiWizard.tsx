@@ -86,7 +86,7 @@ export interface WizardEvaluator { id: string; name: string; weight: number }
 
 export type CreatedBy = "self" | "other";
 
-export interface WizardLifecycleReview { id: string; name: string; start: string; end: string }
+export interface WizardLifecycleReview { id: string; name: string; start: string; end: string; reviewerName?: string }
 
 export type WizardAction = "draft" | "submit" | "create_active";
 
@@ -438,7 +438,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   // Reviews
   const addReview = () => updLifecycle({
-    reviews: [...draft.lifecycle.reviews, { id: crypto.randomUUID(), name: `Review ${draft.lifecycle.reviews.length + 1}`, start: "", end: "" }],
+    reviews: [...draft.lifecycle.reviews, { id: crypto.randomUUID(), name: `Review ${draft.lifecycle.reviews.length + 1}`, start: "", end: "", reviewerName: "" }],
   });
   const updReview = (id: string, patch: Partial<WizardLifecycleReview>) =>
     updLifecycle({ reviews: draft.lifecycle.reviews.map(r => r.id === id ? { ...r, ...patch } : r) });
@@ -894,31 +894,63 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     <p className="text-xs text-muted-foreground italic">Review əlavə edilməyib.</p>
                   ) : (
                     <div className="space-y-2">
-                      {draft.lifecycle.reviews.map((r, i) => (
-                        <div key={r.id} className="grid grid-cols-12 gap-2 items-end">
-                          <div className="col-span-12 md:col-span-4">
-                            <label className="text-[11px] text-muted-foreground">Review #{i + 1} adı</label>
-                            <input value={r.name} onChange={e => updReview(r.id, { name: e.target.value })}
-                              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                      {draft.lifecycle.reviews.map((r, i) => {
+                        const emps = getEmployees().filter(e => e.active);
+                        return (
+                        <div key={r.id} className="rounded-lg border border-border p-3 space-y-2 bg-secondary/30">
+                          <div className="grid grid-cols-12 gap-2 items-end">
+                            <div className="col-span-12 md:col-span-4">
+                              <label className="text-[11px] text-muted-foreground">Review #{i + 1} adı</label>
+                              <input value={r.name} onChange={e => updReview(r.id, { name: e.target.value })}
+                                className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                            </div>
+                            <div className="col-span-6 md:col-span-3">
+                              <label className="text-[11px] text-muted-foreground">Başlama</label>
+                              <input type="date" value={r.start} onChange={e => updReview(r.id, { start: e.target.value })}
+                                className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+                            </div>
+                            <div className="col-span-6 md:col-span-3">
+                              <label className="text-[11px] text-muted-foreground">Bitmə</label>
+                              <input type="date" value={r.end} onChange={e => updReview(r.id, { end: e.target.value })}
+                                className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+                            </div>
+                            <div className="col-span-12 md:col-span-2">
+                              <button type="button" onClick={() => removeReview(r.id)}
+                                className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
+                                Sil
+                              </button>
+                            </div>
                           </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <label className="text-[11px] text-muted-foreground">Başlama</label>
-                            <input type="date" value={r.start} onChange={e => updReview(r.id, { start: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <label className="text-[11px] text-muted-foreground">Bitmə</label>
-                            <input type="date" value={r.end} onChange={e => updReview(r.id, { end: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
-                          </div>
-                          <div className="col-span-12 md:col-span-2">
-                            <button type="button" onClick={() => removeReview(r.id)}
-                              className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
-                              Sil
-                            </button>
+                          <div>
+                            <label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <User className="w-3 h-3" /> Reviewu keçirəcək şəxs
+                            </label>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0" title={r.reviewerName || "Şəxs seçilməyib"}>
+                                <User className="w-4 h-4 text-primary" />
+                              </div>
+                              <select
+                                value={r.reviewerName || ""}
+                                onChange={e => updReview(r.id, { reviewerName: e.target.value })}
+                                className="flex-1 px-2 py-1.5 text-sm border border-border rounded bg-background"
+                              >
+                                <option value="">— Şəxs seçin (rəhbər və ya adi əməkdaş) —</option>
+                                <optgroup label="Rəhbər vəzifədə olan şəxslər">
+                                  {emps.filter(e => /direktor|müdir|rəhbər|başçı/i.test(e.position || "")).map(e => (
+                                    <option key={`m-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.position}</option>
+                                  ))}
+                                </optgroup>
+                                <optgroup label="Adi əməkdaşlar">
+                                  {emps.filter(e => !/direktor|müdir|rəhbər|başçı/i.test(e.position || "")).map(e => (
+                                    <option key={`u-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.position}</option>
+                                  ))}
+                                </optgroup>
+                              </select>
+                            </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
