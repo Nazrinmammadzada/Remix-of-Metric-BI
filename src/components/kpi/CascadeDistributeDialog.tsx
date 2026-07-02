@@ -147,22 +147,15 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           </p>
         </DialogHeader>
 
-        {/* Live totals — Ümumi Limit / Paylanmış / Qalıq */}
+        {/* Live totals — Hədəf dəyəri hər əməkdaşa eyni təyin olunur */}
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Cascade Load (paylana bilən)" value={fmt(limit)} unit="AZN" tone="neutral" />
-          <BigStat label="Paylanmış" value={fmt(totalDist)} unit={node?.unit || ""} tone="primary" />
-          <BigStat label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} tone={overflow ? "danger" : remaining === 0 ? "success" : "warning"} negative={overflow} />
+          <BigStat label="Hədəf dəyəri (hər əməkdaş)" value={fmt(node?.limit || 0)} unit={node?.unit || "AZN"} tone="neutral" />
+          <BigStat label="Əməkdaş sayı" value={String(subordinates.length)} unit="nəfər" tone="primary" />
+          <BigStat label="Ümumi paylanan" value={fmt(totalDist)} unit={node?.unit || ""} tone="success" />
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] text-muted-foreground">
-            Bu limit sizə başqa KPI kartından cascade load kimi gəlir və bu hədəflə əlaqəsi yoxdur.
-          </div>
-          {subordinates.length > 0 && (
-            <Button size="sm" variant="outline" onClick={equalSplit} className="h-7 text-[11px]">
-              Bərabər böl
-            </Button>
-          )}
+        <div className="text-[11px] text-muted-foreground">
+          Rəhbərin təyin etdiyi hədəf dəyəri hər bir tabelikdəki əməkdaşa eynilə təyin olunur — bölünmür.
         </div>
 
         {/* Subordinates */}
@@ -176,7 +169,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
                   <th className="text-left px-3 py-2 font-medium w-10">#</th>
                   <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
                   <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
-                  <th className="text-right px-3 py-2 font-medium w-44">Kaskad limit ({node?.unit})</th>
+                  <th className="text-right px-3 py-2 font-medium w-44">Təyin olunan dəyər ({node?.unit})</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,13 +184,9 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{e.positionName || "—"}</td>
                     <td className="px-3 py-2 text-right">
-                      <input
-                        type="number" min={0} inputMode="decimal"
-                        value={slices[e.id] || ""}
-                        onChange={ev => setSlice(e.id, ev.target.value)}
-                        placeholder="0"
-                        className="w-36 text-right px-2 py-1 border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-                      />
+                      <div className="inline-flex items-center justify-end w-36 px-2 py-1 border border-border rounded bg-secondary/30 tabular-nums font-medium">
+                        {fmt(parseFloat(slices[e.id] || "0"))}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -207,14 +196,14 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
         </div>
 
         {error && <div className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {error}</div>}
-        {overflow && <div className="text-xs text-destructive font-medium">⚠ Cəm ana hədəfi keçir — sistem hədəfin şişməsinə icazə vermir.</div>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
-          <Button onClick={handleSave} disabled={overflow || subordinates.length === 0}>
-            Bölgünü yadda saxla
+          <Button onClick={handleSave} disabled={subordinates.length === 0}>
+            Təyin et
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
