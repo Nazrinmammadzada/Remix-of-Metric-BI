@@ -205,13 +205,14 @@ const AssignView = () => {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {isOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <ClipboardList className="w-4 h-4" />
                   </div>
                   <span className="font-semibold text-foreground truncate">{g.cardName}</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                     {g.entries.length} hədəf
                   </span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">2026 Q1</span>
                 </div>
                 <div className="text-[11px] text-muted-foreground">
                   {doneInCard}/{g.entries.length} təyin edilib
@@ -257,15 +258,26 @@ const AssignView = () => {
                             <td className="px-4 py-3 text-right text-foreground tabular-nums">{value}</td>
                             <td className="px-4 py-3 text-center text-muted-foreground tabular-nums">{weight}</td>
                             <td className="px-4 py-3 text-right">
-                              <Button
-                                size="sm"
-                                variant={isDone ? "outline" : "default"}
-                                onClick={() => openAssign(e)}
-                                className="gap-1"
-                              >
-                                <UserPlus className="w-3.5 h-3.5" />
-                                {isDone ? "Yenilə" : "Təyin et"}
-                              </Button>
+                              <div className="inline-flex items-center gap-1 justify-end">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  title="Bax"
+                                  onClick={() => setDistribute(e)}
+                                  className="h-8 w-8"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant={isDone ? "outline" : "default"}
+                                  onClick={() => openAssign(e)}
+                                  className="gap-1"
+                                >
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  {isDone ? "Yenilə" : "Təyin et"}
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -278,6 +290,7 @@ const AssignView = () => {
           );
         })}
       </div>
+
 
       {distribute && (
         <CascadeDistributeDialog
