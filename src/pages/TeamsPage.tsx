@@ -33,6 +33,8 @@ const allPeople: TeamMember[] = [
 
 const TeamsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isManager = user?.role === "MANAGER";
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
 
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
