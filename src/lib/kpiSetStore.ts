@@ -224,14 +224,33 @@ export const setEntryDetails = (
     subKpiName?: string; target?: string; unit?: string;
     limits?: LimitSet; cascadable?: boolean;
     weight?: number; dynamicLimits?: DynamicTier[];
+    scoreDescriptions?: ScoreDescRow[];
   }
 ) => {
   persist(load().map(e => {
     if (e.id !== id) return e;
     const next = { ...e, ...patch, updatedAt: Date.now() };
-    if ((next.limits || (next.dynamicLimits && next.dynamicLimits.length)) && next.subKpiName && next.target) next.status = "completed";
+    const hasLimits = !!(next.limits || (next.dynamicLimits && next.dynamicLimits.length) || (next.scoreDescriptions && next.scoreDescriptions.length));
+    if (hasLimits && next.subKpiName && next.target) next.status = "completed";
     return next;
   }));
+};
+
+/** Rəhbərin başqa kartlardan alınmış Cascade Load-u — bu kart istisna edilir. */
+export const getIncomingCascadeLoad = (
+  assigneeName: string,
+  excludeCardId?: number
+): { value: number; unit: string; cardName: string } | null => {
+  const list = load().filter(e =>
+    e.assigneeName === assigneeName &&
+    e.cascadable &&
+    e.status === "completed" &&
+    (excludeCardId == null || e.cardId !== excludeCardId)
+  );
+  if (!list.length) return null;
+  const first = list[0];
+  const num = parseFloat(String(first.target).replace(/[^\d.\-]/g, "")) || 0;
+  return { value: num, unit: first.unit, cardName: first.cardName };
 };
 
 
