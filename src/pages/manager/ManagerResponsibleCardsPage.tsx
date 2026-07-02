@@ -135,71 +135,41 @@ const ManagerResponsibleCardsPage = () => {
                     <table className="w-full text-sm">
                       <thead className="bg-secondary/30 text-xs text-muted-foreground">
                         <tr>
-                          <th className="text-left px-4 py-2 font-medium">Hədəf</th>
-                          <th className="text-right px-4 py-2 font-medium">Limit</th>
-                          <th className="text-right px-4 py-2 font-medium">Bölüşdürülüb</th>
-                          <th className="text-right px-4 py-2 font-medium">Qalıq</th>
-                          <th className="text-left px-4 py-2 font-medium">Status</th>
-                          <th className="text-right px-4 py-2 font-medium w-32">Əməliyyat</th>
+                          <th className="text-left px-4 py-2 font-medium">Hədəfin adı</th>
+                          <th className="text-left px-4 py-2 font-medium">Növ</th>
+                          <th className="text-right px-4 py-2 font-medium">Dəyər</th>
+                          <th className="text-right px-4 py-2 font-medium">Çəki</th>
                         </tr>
                       </thead>
                       <tbody>
                         {g.entries.map(e => {
-                          const limit = parseNum(e.target);
-                          const emp = e.assigneeId ? getEmployees().find(x => x.id === e.assigneeId) : undefined;
-                          const root = emp ? findRootByGoal(e.cardName, e.subKpiName || e.cardName, emp.id) : undefined;
-                          const dist = root ? distributedOf(root.id) : 0;
-                          const rem = root ? remainingOf(root.id) : limit;
+                          const displayName = e.subKpiName || "— hədəf adı təyin edilməyib";
+                          const value = e.target ? `${fmt(parseNum(e.target))} ${e.unit || ""}`.trim() : "—";
+                          const weight = e.weight ? `${e.weight}%` : (e.weightMin || e.weightMax ? `${e.weightMin || 0}-${e.weightMax || 0}%` : "—");
                           return (
-                            <tr key={e.id} className="border-t border-border hover:bg-secondary/20">
+                            <tr
+                              key={e.id}
+                              onClick={() => setAssignEntry(e)}
+                              className="border-t border-border hover:bg-secondary/40 cursor-pointer transition-colors"
+                            >
                               <td className="px-4 py-2.5">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-foreground">{e.subKpiName || <span className="text-muted-foreground italic">— hədəf adı təyin edilməyib</span>}</span>
+                                  <span className={e.subKpiName ? "text-foreground" : "text-muted-foreground italic"}>{displayName}</span>
                                   {e.cascadable && (
                                     <span title="Cascading aktiv" className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-primary/20 bg-primary/10 text-primary text-[10px]">
                                       <GitBranch className="w-3 h-3" /> C
                                     </span>
                                   )}
+                                  {e.status === "pending" && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
+                                      <Hourglass className="w-3 h-3" /> Gözləyir
+                                    </span>
+                                  )}
                                 </div>
                               </td>
-                              <td className="px-4 py-2.5 text-right text-foreground">
-                                {limit ? `${fmt(limit)} ${e.unit || ""}` : "—"}
-                              </td>
-                              <td className="px-4 py-2.5 text-right text-primary">
-                                {root ? fmt(dist) : "—"}
-                              </td>
-                              <td className={`px-4 py-2.5 text-right font-medium ${root && rem === 0 ? "text-emerald-600" : "text-amber-600"}`}>
-                                {root ? fmt(rem) : (limit ? fmt(limit) : "—")}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                {e.status === "completed" ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
-                                    <CheckCircle2 className="w-3 h-3" /> Hazır
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                                    <Hourglass className="w-3 h-3" /> Gözləyir
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2.5 text-right">
-                                {e.status === "pending" ? (
-                                  <button
-                                    onClick={() => setAssignEntry(e)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
-                                  >
-                                    <TargetIcon className="w-3.5 h-3.5" /> Təyin et
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => setAssignEntry(e)}
-                                    title="Redaktə et"
-                                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-border text-xs hover:bg-secondary"
-                                  >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </td>
+                              <td className="px-4 py-2.5 text-foreground">{e.type || "—"}</td>
+                              <td className="px-4 py-2.5 text-right text-foreground">{value}</td>
+                              <td className="px-4 py-2.5 text-right text-foreground">{weight}</td>
                             </tr>
                           );
                         })}

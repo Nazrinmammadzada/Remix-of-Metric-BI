@@ -158,6 +158,7 @@ const AssignGoalDialog = ({ open, onOpenChange, entry, onSaved }: Props) => {
     if (!entry || !canSave) return;
     setEntryDetails(entry.id, {
       subKpiName: name.trim(),
+      type: type as any,
       target: target.trim(),
       unit,
       cascadable: cascadable && CASCADE_TYPES.includes(type),

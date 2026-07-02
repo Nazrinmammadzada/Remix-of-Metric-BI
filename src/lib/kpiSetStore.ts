@@ -31,39 +31,124 @@ export interface ScoreDescRow {
   timeEnd?: string;
 }
 
+export type KpiEntryType =
+  | "Məbləğ" | "Say" | "İcra" | "Səriştə" | "Fərdi İnkişaf"
+  | "Faiz" | "Nisbət" | "Boolean" | "Zaman";
+
 export interface KpiSetEntry {
   id: string;
   cardId: number;
   cardName: string;
   subKpiId: number;
   subKpiName: string;
+  /** Hədəfin növü (Məbləğ, Say, Faiz, ...) */
+  type?: KpiEntryType;
   target: string;
   unit: string;
   assigneeId?: number;
   assigneeName: string;
-  /** Hədəf-nı kim təyin edir: HR (özü) və ya rəhbər */
   ownerType: "manager" | "hr";
   status: "pending" | "completed";
   limits?: LimitSet;
-  /** Dinamik aralıq (qeyri-default bal şablonu istifadə olunduqda) */
   dynamicLimits?: DynamicTier[];
-  /** İcra / Fərdi İnkişaf / Zaman üçün — bal + təsvir (aralıq YOX) */
   scoreDescriptions?: ScoreDescRow[];
-  /** Hədəf-nın çəkisi (%). */
   weight?: number;
   weightMin?: number;
   weightMax?: number;
-  /** Bu hədəf paylaşıla bilərmi? (Cascading modulunda komandaya bölünür) */
   cascadable?: boolean;
   updatedAt: number;
 }
 
 
-const KEY = "kpi_set_entries_v3";
+const KEY = "kpi_set_entries_v5";
 const EVT = "kpi-set-updated";
 
 const SEED: KpiSetEntry[] = [
-  // ---- Gözləyənlər (rəhbər hədəf adını, hədəfini, vahidi və limiti təyin edəcək) ----
+  // ============ ELVİN RƏHİMOV (id=4, manager@kpi.az) — Marketinq Departamenti rəhbəri ============
+  // Pending: HR yeni hədəf təyin edir, Elvin təfsilatı doldurmalıdır
+  {
+    id: "ks-elvin-1",
+    cardId: 101,
+    cardName: "Q1 2026 — Marketinq Büdcə Hədəfi",
+    subKpiId: 1001,
+    subKpiName: "",
+    target: "",
+    unit: "",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "pending",
+    weightMin: 15, weightMax: 35,
+    updatedAt: Date.now() - 3600000 * 6,
+  },
+  // Completed WITH cascade load — Elvinə başqa kartdan gələn 120000 AZN cascade limit
+  {
+    id: "ks-elvin-2",
+    cardId: 102,
+    cardName: "İllik Marketinq Gəliri",
+    subKpiId: 1002,
+    subKpiName: "Yeni müştəri gəliri",
+    type: "Məbləğ",
+    target: "120000",
+    unit: "AZN",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "completed",
+    cascadable: true,
+    weight: 25,
+    limits: {
+      l5: { min: 96001, max: 120000 },
+      l4: { min: 72001, max: 96000 },
+      l3: { min: 48001, max: 72000 },
+      l2: { min: 24001, max: 48000 },
+      l1: { min: 0, max: 24000 },
+    },
+    updatedAt: Date.now() - 86400000 * 3,
+  },
+  // Completed WITHOUT cascade — sadəcə qiymətləndirmə
+  {
+    id: "ks-elvin-3",
+    cardId: 103,
+    cardName: "Brend Tanınırlıq Auditi",
+    subKpiId: 1003,
+    subKpiName: "Sosial media əhatəsi",
+    type: "Faiz",
+    target: "80",
+    unit: "%",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "completed",
+    cascadable: false,
+    weight: 15,
+    limits: {
+      l5: { min: 76, max: 80 },
+      l4: { min: 61, max: 75 },
+      l3: { min: 46, max: 60 },
+      l2: { min: 31, max: 45 },
+      l1: { min: 0, max: 30 },
+    },
+    updatedAt: Date.now() - 86400000 * 5,
+  },
+  // Pending 2 — yeni hədəf gözləyir
+  {
+    id: "ks-elvin-4",
+    cardId: 104,
+    cardName: "Rəqəmsal Kampaniyalar",
+    subKpiId: 1004,
+    subKpiName: "",
+    target: "",
+    unit: "",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "pending",
+    weightMin: 10, weightMax: 25,
+    updatedAt: Date.now() - 3600000 * 2,
+  },
+
+  // ============ Digər rəhbərlər (nümunə) ============
   {
     id: "ks-1",
     cardId: 1,
@@ -76,50 +161,16 @@ const SEED: KpiSetEntry[] = [
     assigneeName: "Samir Həsənov",
     ownerType: "manager",
     status: "pending",
-    weightMin: 10,
-    weightMax: 30,
+    weightMin: 10, weightMax: 30,
     updatedAt: Date.now() - 86400000 * 2,
   },
-  {
-    id: "ks-2",
-    cardId: 1,
-    cardName: "Aylıq Satış Hədəfi",
-    subKpiId: 102,
-    subKpiName: "",
-    target: "",
-    unit: "",
-    assigneeId: 12,
-    assigneeName: "Leyla Məmmədova",
-    ownerType: "manager",
-    status: "pending",
-    weightMin: 15,
-    weightMax: 40,
-    updatedAt: Date.now() - 86400000,
-  },
-  {
-    id: "ks-3",
-    cardId: 3,
-    cardName: "Müştəri Əldə Etmə",
-    subKpiId: 301,
-    subKpiName: "",
-    target: "",
-    unit: "",
-    assigneeId: 21,
-    assigneeName: "Günel Əlizadə",
-    ownerType: "hr",
-    status: "pending",
-    weightMin: 5,
-    weightMax: 25,
-    updatedAt: Date.now() - 3600000 * 5,
-  },
-
-  // ---- Tamamlanmışlar ----
   {
     id: "ks-4",
     cardId: 1,
     cardName: "Aylıq Satış Hədəfi",
     subKpiId: 103,
     subKpiName: "Online Satış",
+    type: "Məbləğ",
     target: "50000",
     unit: "AZN",
     assigneeId: 13,
@@ -127,6 +178,7 @@ const SEED: KpiSetEntry[] = [
     ownerType: "manager",
     status: "completed",
     cascadable: true,
+    weight: 20,
     limits: {
       l5: { min: 40001, max: 50000 },
       l4: { min: 30001, max: 40000 },
@@ -142,13 +194,15 @@ const SEED: KpiSetEntry[] = [
     cardName: "Müştəri Əldə Etmə",
     subKpiId: 302,
     subKpiName: "Referral Müştərilər",
+    type: "Say",
     target: "150",
     unit: "ədəd",
     assigneeId: 22,
     assigneeName: "Emin Məmmədov",
     ownerType: "hr",
     status: "completed",
-    cascadable: true,
+    cascadable: false,
+    weight: 12,
     limits: {
       l5: { min: 121, max: 150 },
       l4: { min: 91, max: 120 },
@@ -222,6 +276,7 @@ export const setEntryDetails = (
   id: string,
   patch: {
     subKpiName?: string; target?: string; unit?: string;
+    type?: KpiEntryType;
     limits?: LimitSet; cascadable?: boolean;
     weight?: number; dynamicLimits?: DynamicTier[];
     scoreDescriptions?: ScoreDescRow[];
