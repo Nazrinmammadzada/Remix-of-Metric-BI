@@ -21,7 +21,7 @@ const STATUS_LABEL_MAP: Record<SharedKpiStatus, string> = {
 };
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
-import { getEnrichedEmployee, getDirectReports, getTeamsLedBy, mockTeams } from "@/data/mockExtras";
+import { getEnrichedEmployee, getDirectReports, getTeamsLedBy } from "@/data/mockExtras";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import AssignGoalDialog from "@/components/kpi/AssignGoalDialog";
 import CascadeLoadConfirmDialog from "@/components/kpi/CascadeLoadConfirmDialog";
