@@ -31,7 +31,7 @@ import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStor
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
-const STATUS_LABELS = { natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
+const STATUS_LABELS = { natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
 const STATUS_STYLES: Record<string, string> = {
   natamam: "bg-muted text-muted-foreground border-border",
   tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
