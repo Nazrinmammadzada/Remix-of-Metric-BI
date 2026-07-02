@@ -153,29 +153,31 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           </div>
         ) : (
           <>
-            {/* Live totals */}
-            <div className="grid grid-cols-3 gap-2">
-              <StatCard label="Ana Hədəf" value={fmt(limit)} unit={node?.unit || ""} />
-              <StatCard label="Bölüşdürülüb" value={fmt(totalDist)} unit={node?.unit || ""} accent="text-primary" />
-              <StatCard label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} accent={statusColor} icon={<StatusIcon className="w-3.5 h-3.5" />} negative={overflow} />
+            {/* Live totals — şəkildəki layout: Ümumi Limit / Paylanmış / Qalıq */}
+            <div className="grid grid-cols-3 gap-3">
+              <BigStat label="Ümumi Limit (Sizin üzərinizdə)" value={fmt(limit)} unit={node?.unit || ""} tone="neutral" />
+              <BigStat label="Paylanmış" value={fmt(totalDist)} unit={node?.unit || ""} tone="primary" />
+              <BigStat label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} tone={overflow ? "danger" : remaining === 0 ? "success" : "warning"} negative={overflow} />
             </div>
 
-            {/* Subordinates list */}
-            <div className="rounded-lg border border-border max-h-[300px] overflow-auto">
+            {/* Subordinates list — şəkildəki cədvəl */}
+            <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
               {subordinates.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground">Bu strukturda tabelikdə əməkdaş yoxdur.</div>
               ) : (
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/40 text-xs text-muted-foreground sticky top-0">
                     <tr>
+                      <th className="text-left px-3 py-2 font-medium w-10">#</th>
                       <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
                       <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
-                      <th className="text-right px-3 py-2 font-medium w-40">Ayrılan ({node?.unit})</th>
+                      <th className="text-right px-3 py-2 font-medium w-44">Kaskad limit ({node?.unit})</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {subordinates.map(e => (
+                    {subordinates.map((e, idx) => (
                       <tr key={e.id} className="border-t border-border">
+                        <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <span className="text-foreground">{e.firstName} {e.lastName}</span>
@@ -189,7 +191,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
                             value={slices[e.id] || ""}
                             onChange={ev => setSlice(e.id, ev.target.value)}
                             placeholder="0"
-                            className="w-32 text-right px-2 py-1 border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                            className="w-36 text-right px-2 py-1 border border-border rounded bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </td>
                       </tr>
@@ -200,8 +202,9 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             </div>
 
             {error && <div className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {error}</div>}
-            {overflow && <div className="text-xs text-destructive">Cəm ana hədəfi keçir — yadda saxlanıla bilməz.</div>}
+            {overflow && <div className="text-xs text-destructive font-medium">⚠ Cəm ana hədəfi keçir — sistem hədəfin şişməsinə icazə vermir.</div>}
           </>
+
         )}
 
         <DialogFooter>
@@ -227,5 +230,25 @@ const StatCard = ({ label, value, unit, accent, icon, negative }: { label: strin
     </div>
   </div>
 );
+
+const BigStat = ({ label, value, unit, tone, negative }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "warning" | "danger"; negative?: boolean }) => {
+  const toneCls = {
+    neutral: "border-border bg-card text-foreground",
+    primary: "border-primary/30 bg-primary/5 text-primary",
+    success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
+    warning: "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400",
+    danger:  "border-destructive/40 bg-destructive/5 text-destructive",
+  }[tone];
+  return (
+    <div className={`rounded-xl border p-4 ${toneCls}`}>
+      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-bold tabular-nums">
+        {negative ? "−" : ""}{value}
+        <span className="ml-1.5 text-sm font-normal text-muted-foreground">{unit}</span>
+      </div>
+    </div>
+  );
+};
+
 
 export default CascadeDistributeDialog;

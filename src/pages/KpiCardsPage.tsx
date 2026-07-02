@@ -10,7 +10,7 @@ import FilterTeamSelect from "@/components/kpi/FilterTeamSelect";
 import { getTeams } from "@/lib/teamsStore";
 import { validateTarget, getTargetPlaceholder, getTargetUnitSuffix } from "@/lib/kpiValidation";
 import { getApprovalMatrices, getDeletionMatrix, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, type ApprovalMatrix } from "@/lib/matrixStore";
-import { getStructures, findStructureById, findOccupantsByPosition, type OrgStructure } from "@/lib/orgStore";
+import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
 import { LayoutGrid, List, Briefcase, Copy, Eye } from "lucide-react";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
-import { getLimitsFor, getEntriesForCard } from "@/lib/kpiSetStore";
+import { getLimitsFor, getEntriesForCard, addPendingEntry } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
@@ -596,6 +596,29 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       const next = await mod.fetchAllStatuses();
       setStatusMap(next);
     } catch {}
+
+    // === Rəhbər üçün pending KpiSetEntry yarat ===
+    // "Digər əməkdaş təyin edir" seçildikdə həmin rəhbər öz "Məsul olduğum kartlar"
+    // modulundan bu hədəfi (ad/dəyər/limit/çəki/cascadable) təyin edir.
+    try {
+      const seen = new Set<string>();
+      (d.targets || []).forEach((t: any) => {
+        if (t.createdBy === "other" && t.assigner && !seen.has(t.assigner)) {
+          seen.add(t.assigner);
+          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === t.assigner);
+          addPendingEntry({
+            cardId: id,
+            cardName: d.name,
+            assigneeName: t.assigner,
+            assigneeId: emp?.id,
+            ownerType: "manager",
+            weightMin: 5,
+            weightMax: 40,
+          });
+        }
+      });
+    } catch (err) { console.warn("pending kpi set seed failed", err); }
+
 
     // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===
     try {

@@ -1,60 +1,80 @@
-## Plan
+# Rəhbər · Hədəf Təyinetmə və Kaskadlama axını
 
-### 1) KPI kartını Redaktə → Wizard tam məlumatla açılsın
-**Fayl:** `src/pages/KpiCardsPage.tsx`
-- Kartların üstündəki Pencil düyməsini (sətir ~1331 və digərləri) köhnə `showCreate` formundan **`openWizardForEdit(card.id)`**-yə keçir. Beləliklə redaktədə həmişə wizard pop-up-ı açılır.
-- `openWizardForEdit`-i genişləndir: `cardDrafts[cardId]` yoxdursa, karta bağlı `lifecycle`-i (`getLifecycle(cardId)`) və mövcud `approvalMatrixId`-i draftın içinə əlavə et — beləliklə wizard-ın 1-ci və 3-cü addımı (əsas məlumatlar + lifecycle + təsdiqləmə üsulu) tam dolu açılır.
-- Wizard-ın step 1 lifecycle sahələri artıq mövcuddur (`draft.lifecycle.*`); yalnız fallback draft-a `lifecycle` bloku ötürülməlidir.
+Bu iş "KPI Set" məntiqini bərpa edir — amma ayrı modul kimi yox, `Məsul olduğum kartlar` içərisində. Sonra riyazi düzgün kaskadlama pop-up-ı əlavə olunur.
 
-### 2) Komandalar — Komanda lideri seçimi
-**Fayl:** `src/pages/TeamsPage.tsx`
-- "Yeni komanda yarat" dialoqunda üzv seçimindən sonra **"Komanda lideri"** dropdown-u bərpa et (seçilmiş üzvlər arasından). `leaderName` state onsuz da mövcuddur — yalnız UI selector və `saveNewTeam` içində liderin `leaderName` əsasında seçilməsi lazımdır.
-- `saveNewTeam`: `const leader = allPeople.find(p => p.name === leaderName)`; validasiya: lider seçilməyibsə `toast.error("Komanda lideri seçin")`.
+## 1. HR axını (kart yaradarkən)
+`CreateKpiWizard`-da hədəf növünə uyğun aşağıdakılar artıq mövcuddur; toxunulmur:
+- Hədəf növü (say, məbləğ, nisbət, faiz, keyfiyyət, tarix, boolean və s.)
+- Cascading toggle (yalnız divisible növlərdə — say / məbləğ / nisbət / faiz)
+- Bal standartı (1–5, 1–10 və s.)
 
-### 3) KPI Wizard — Təsdiqləmə üsulu (3-cü addım)
-**Fayllar:** `src/components/kpi/CreateKpiWizard.tsx`, `src/lib/kpiCardStore.ts`, `src/lib/teamsStore.ts` (helper)
+**Dəyişiklik:** HR kartın daxilində hədəfi öz üzərinə deyil, `responsible` = rəhbər olan bir şəxs seçdikdə wizard tamamlandıqda `kpiSetStore`-da o rəhbər üçün **pending KpiSetEntry** yaradılır (hədəf adı və dəyər boş, yalnız kart, çəki intervalı, cascadable, unit təklifi ötürülür). Bu, indi tam olaraq itmişdir.
 
-#### Draft-a yeni sahə
-`CreateKpiWizardDraft`-a əlavə et:
-```ts
-approvalMethod: "structure_leader" | "team_leader" | "matrix";
+## 2. Rəhbər axını (`Məsul olduğum kartlar`)
+`ManagerResponsibleCardsPage`-ə **iki reallıq** əlavə olunur:
+
+### 2.1 Təyinetmə pop-up-ı (KPI Set məntiqinin bərpası)
+Hər pending sətir üçün "Təyin et" düyməsi.  Yeni komponent `AssignGoalDialog.tsx`:
+- **Hədəf adı** (mətn)
+- **Hədəf növü** (dropdown — data cədvəlində olan növlər, `dropdownCatalogStore`)
+- **Hədəf dəyəri** (unit ilə)
+- **Çəki (%)** — kartda təyin olunmuş min/max aralığında validasiya
+- **Qiymət limitləri** — `ScoreLimitsDialog`-un daxili blokunu istifadə edir. Bal aralığı kartın seçdiyi standart (məs. 1–10) əsasında formalaşır və hədəf növünə uyğun düzülür (məbləğ üçün diapazon, faiz üçün 0–100 və s.).
+- **"Bu hədəfi kaskadlana bilər"** — yalnız say / məbləğ / nisbət / faiz növlərində görünür.
+
+Save → `setEntryDetails` çağırılır → entry `completed` statusuna keçir.
+
+### 2.2 Kaskad pop-up-ı (Save-dan sonra)
+Save zamanı yoxlama:
+- Rəhbərin öz tabeçiliyində (structure üzrə `getSubordinatesOfStarHolder`) həmin **kartın şamil olunduğu** şəxslər varmı?
+- Hədəf `cascadable` mı?
+
+Hər ikisi doğrudursa, təsdiq dialoqu:
+> "Sizin üzərinizdə {value} {unit} Cascade Load mövcuddur. Bu hədəfi tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?"
+
+**Bəli** seçilərsə `CascadeDistributeDialog`-un yeni **Step-2** görünüşü açılır:
+- Yuxarı 3 stat kartı: **Ümumi Limit (Sizin üzərinizdə)**, **Paylanmış**, **Qalıq** (şəkildəki kimi).
+- Cədvəl: # · Əməkdaş · Vəzifə · Kaskad limit (input).
+- Yalnız kartın şamil olunduğu tabeçilik əməkdaşları görünür (intersect: subordinates ∩ kartın assignees).
+- Riyazi validasiya: `Σ slice ≤ ümumi limit`. Overflow → save disable + qırmızı xəbərdarlıq. "Sistem hədəfin şişməsinə icazə verməməlidir."
+- Save → `cascadeTreeStore.distribute()`.
+
+## 3. Data axışı
+```text
+HR kart yaradır ─▶ pending KpiSetEntry (rəhbər üçün)
+                         │
+Rəhbər AssignGoalDialog açır ─▶ hədəf detalları + limitlər set olur
+                         │
+        cascadable + subordinates var? ─▶ Confirm pop-up
+                         │ bəli
+              CascadeDistributeDialog (Step-2 stats + table)
+                         │
+                cascadeTreeStore.distribute()
 ```
-Köhnə `useMatrix` əvəzinə bu istifadə olunur (back-compat: `useMatrix = approvalMethod === "matrix"`).
 
-#### Default seçim məntiqi (təyinat növünə görə)
-Wizard step 3-də mount olarkən və mode/bulk seçimləri dəyişəndə default hesablanır (yalnız istifadəçi əl ilə dəyişməyibsə):
-- **Toplu → Komanda seçilib** → default `team_leader`
-- **Toplu → Struktur seçilib** → default `structure_leader`
-- **Toplu → Vəzifə və ya Şəxs seçilib** → default `matrix`
-- **Fərdi → Əməkdaş seçilib** → default `matrix`
+## 4. Fayl dəyişiklikləri
+- **Yeni:** `src/components/kpi/AssignGoalDialog.tsx` — hədəf adı/növü/dəyəri/çəki/limitlər + cascadable seçimi.
+- **Yeni:** `src/components/kpi/CascadeLoadConfirmDialog.tsx` — kiçik confirm pop-up.
+- **Redaktə:** `src/pages/manager/ManagerResponsibleCardsPage.tsx`
+  - Pending sətirlər üçün "Təyin et" düyməsi.
+  - Save sonrası cascadable + subordinates check → confirm → distribute dialog.
+  - Ümumi limit / paylanmış / qalıq statlarını rəhbərin öz row-u üçün göstər.
+- **Redaktə:** `src/components/kpi/CascadeDistributeDialog.tsx`
+  - Yuxarıdakı 3 stat kartını şəkildəki layout-a uyğunlaşdır (Ümumi Limit / Paylanmış / Qalıq üçlüsü).
+  - Subordinates siyahısını "kartın şamil olunduğu şəxslər ∩ tabeçilik" ilə məhdudlaşdır.
+  - Radio "cascade / independent" saxlanılır.
+- **Redaktə:** `src/components/kpi/CreateKpiWizard.tsx` (yüngül)
+  - HR kartı bitirəndə responsible rəhbərlər üçün pending `KpiSetEntry` yarat (əgər cascadable divisible növdürsə + rəhbər özü təyinediçidirsə).
+- **Toxunulmur:** `kpiSetStore.ts` API (setEntryDetails, cascadable, weight artıq mövcuddur).
 
-Bütün hallarda istifadəçi 3 radio arasından dəyişə bilər. `matrix` seçildikdə `getApprovalMatrices()`-dən dropdown göstərilir (mövcud UI-ni saxla).
+## 5. Riyazi qaydalar
+- Paylanmış = `Σ children.limit`
+- Qalıq = `limit − paylanmış` (heç vaxt < 0 olmasın — UI-də save disable)
+- Bir slice sıfır olarsa cəmə daxil edilmir
+- `distribute()` artıq `sum > parent.limit` yoxlayır — orada da təkrar yoxlama qorunur.
 
-#### UI dəyişikliyi (step 3)
-- Mövcud "Təsdiqləmə matrisi tətbiq olunsun?" checkbox-unu 3 seçimli radio qrupu ilə əvəz et:
-  - ○ Təşkilati struktur rəhbəri
-  - ○ Komanda rəhbəri
-  - ○ Matriks (seçildikdə matris dropdown açılır)
-- Yekun (summary) blokunda `Təsdiqləmə üsulu: <label>` göstər.
+## 6. Ekran uyğunluğu (istifadəçinin şəkli)
+- 3 sütunlu üst statlar (Ümumi Limit · Paylanmış · Qalıq) — böyük şrift + ölçü vahidi.
+- Cədvəl sütunları: # · Əməkdaş · Vəzifə · Kaskad limit.
 
-#### Validasiya — "Təsdiqə göndər" düyməsində
-Yeni helper `validateApprovalTargets(draft)` yaz (wizard-ın içində):
-- **team_leader**: hədəf alan bütün əməkdaşların `teamsStore`-dan komandası çıxarılır. Komandasız əməkdaş varsa → `toast.error("Bu şəxslərin komandası yoxdur: … Onlar üçün ayrıca kart və ya matriks yaradın.")` və göndərməni blokla.
-- **structure_leader**: hər əməkdaşın struktur vahidinin rəhbəri (`orgStore` üzərində `isStarPerson`) yoxlanılır; rəhbəri olmayan struktur varsa oxşar xəta.
-- **matrix**: `approvalMatrixId` seçilməlidir.
-Uğurlu halda: hər fərqli lider üçün ayrı təsdiqləmə tapşırığı yaradılır (bir kart, çoxlu approver qeydi).
-
-#### Digər modullara ötürmə
-- `buildSharedCardFromDraft` (`src/lib/kpiCardStore.ts`) `approvalMethod`-u qəbul edib `SharedKpiCard`-a əlavə etsin (`approvalMethod`, `approvalTargets: {approverId, forEmployeeIds[]}`).
-- `enqueueApproval` çağırışını (KpiCardsPage `handleWizardComplete` içində) `approvalMethod`-a görə lider(lər)ə yönəldiləcək şəkildə cütləşdir. Beləliklə **Təstiqləmə Matrisi** modulu və manager panelindəki "Məsul olduğum kartlar" avtomatik doğru rəhbərə düşür.
-
-### Texniki qeydlər
-- `teamsStore`-a helper: `getTeamOfEmployee(name: string): Team | null` (üzv və ya lider adına görə).
-- `orgStore`-a helper (əgər yoxdursa): `getStructureLeaderForEmployee(empId): OrgEmployee | null`.
-- Back-compat: `useMatrix` sahəsi qorunur (derived getter kimi), amma yeni yazmalar `approvalMethod` üzərindən gedir.
-
-### Test axını
-1. KPI siyahısında Pencil → wizard 3 addımı dolu açılır (lifecycle daxil).
-2. Komandalar → yeni komanda dialoqunda lider dropdown-u seçilir.
-3. Wizard step 3-də təyinat növünə görə default üsul dəyişir; matrix seçilirsə mövcud matrislər siyahılanır.
-4. Toplu şəxs seçimində 1 nəfər komandasızdırsa "Təsdiqə göndər" xəta verir və göndərmir.
+Təsdiq etsəniz, birbaşa implementasiyaya başlayıram.

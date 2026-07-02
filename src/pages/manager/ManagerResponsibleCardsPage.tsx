@@ -1,11 +1,12 @@
 // Manager · "Məsul olduğum kartlar" — rəhbərin gündəlik iş axını.
-// Ayrıca KPI Set / Cascading moduluna keçmədən burada hədəf bölgüsü aparılır.
+// Ayrıca KPI Set / Cascading moduluna keçmədən burada hədəf təyinetməsi və
+// kaskadlama bölgüsü aparılır.
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import {
   LayoutGrid, Search, ChevronDown, ChevronRight, GitBranch, Crown,
-  CheckCircle2, Hourglass, Target as TargetIcon,
+  CheckCircle2, Hourglass, Target as TargetIcon, Pencil,
 } from "lucide-react";
 import { useKpiSet, type KpiSetEntry } from "@/lib/kpiSetStore";
 import {
@@ -13,6 +14,9 @@ import {
 } from "@/lib/cascadeTreeStore";
 import { getEmployees } from "@/lib/orgStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
+import AssignGoalDialog from "@/components/kpi/AssignGoalDialog";
+import CascadeLoadConfirmDialog from "@/components/kpi/CascadeLoadConfirmDialog";
+
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
@@ -31,6 +35,9 @@ const ManagerResponsibleCardsPage = () => {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const [distribute, setDistribute] = useState<KpiSetEntry | null>(null);
+  const [assignEntry, setAssignEntry] = useState<KpiSetEntry | null>(null);
+  const [cascadeConfirm, setCascadeConfirm] = useState<{ entry: KpiSetEntry; value: number; unit: string } | null>(null);
+
 
   // "Rəhbərə məsul olduğu kartlar" — ownerType === "manager"
   const groups = useMemo<CardGroup[]>(() => {
@@ -186,18 +193,38 @@ const ManagerResponsibleCardsPage = () => {
                                 )}
                               </td>
                               <td className="px-4 py-2.5 text-right">
-                                {e.cascadable && limit > 0 ? (
-                                  <button
-                                    onClick={() => setDistribute(e)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
-                                  >
-                                    <GitBranch className="w-3.5 h-3.5" />
-                                    {root && dist > 0 ? "Bölgünü dəyiş" : "Kaskad et"}
-                                  </button>
-                                ) : (
-                                  <span className="text-[11px] text-muted-foreground">—</span>
-                                )}
+                                <div className="inline-flex items-center gap-1.5 justify-end">
+                                  {e.status === "pending" ? (
+                                    <button
+                                      onClick={() => setAssignEntry(e)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
+                                    >
+                                      <TargetIcon className="w-3.5 h-3.5" /> Təyin et
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setAssignEntry(e)}
+                                      title="Redaktə et"
+                                      className="inline-flex items-center gap-1 px-2 py-1.5 rounded-md border border-border text-xs hover:bg-secondary"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  {e.cascadable && limit > 0 && (
+                                    <button
+                                      onClick={() => setDistribute(e)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs hover:opacity-90"
+                                    >
+                                      <GitBranch className="w-3.5 h-3.5" />
+                                      {root && dist > 0 ? "Bölgünü dəyiş" : "Kaskad et"}
+                                    </button>
+                                  )}
+                                  {e.status === "completed" && !e.cascadable && (
+                                    <span className="text-[11px] text-muted-foreground">—</span>
+                                  )}
+                                </div>
                               </td>
+
                             </tr>
                           );
                         })}
@@ -225,9 +252,39 @@ const ManagerResponsibleCardsPage = () => {
           }}
         />
       )}
+
+      <AssignGoalDialog
+        open={!!assignEntry}
+        onOpenChange={(o) => !o && setAssignEntry(null)}
+        entry={assignEntry}
+        onSaved={(saved) => {
+          const entry = assignEntry;
+          setAssignEntry(null);
+          if (!entry) return;
+          if (saved.cascadable && saved.value > 0) {
+            // Yenilənmiş entry göstər — reload from store
+            const refreshed = { ...entry, target: String(saved.value), unit: saved.unit, cascadable: true };
+            setCascadeConfirm({ entry: refreshed, value: saved.value, unit: saved.unit });
+          }
+        }}
+      />
+
+      {cascadeConfirm && (
+        <CascadeLoadConfirmDialog
+          open={!!cascadeConfirm}
+          onOpenChange={(o) => !o && setCascadeConfirm(null)}
+          value={cascadeConfirm.value}
+          unit={cascadeConfirm.unit}
+          onConfirm={() => {
+            setDistribute(cascadeConfirm.entry);
+            setCascadeConfirm(null);
+          }}
+        />
+      )}
     </div>
   );
 };
+
 
 const Stat = ({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: string }) => (
   <div className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
