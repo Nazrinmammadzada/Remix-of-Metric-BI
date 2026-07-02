@@ -167,6 +167,40 @@ const persist = (rows: KpiSetEntry[]) => {
 
 export const getKpiSetEntries = (): KpiSetEntry[] => load();
 
+/** Yeni pending entry əlavə et — HR kart yaradarkən rəhbərin "Məsul olduğum kartlar"-ında görünsün deyə. */
+export const addPendingEntry = (input: {
+  cardId: number;
+  cardName: string;
+  assigneeName: string;
+  assigneeId?: number;
+  ownerType?: "manager" | "hr";
+  weightMin?: number;
+  weightMax?: number;
+  unit?: string;
+}): KpiSetEntry => {
+  const list = load();
+  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName && e.status === "pending");
+  if (dupe) return dupe;
+  const entry: KpiSetEntry = {
+    id: `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    cardId: input.cardId,
+    cardName: input.cardName,
+    subKpiId: Date.now(),
+    subKpiName: "",
+    target: "",
+    unit: input.unit || "",
+    assigneeId: input.assigneeId,
+    assigneeName: input.assigneeName,
+    ownerType: input.ownerType || "manager",
+    status: "pending",
+    weightMin: input.weightMin,
+    weightMax: input.weightMax,
+    updatedAt: Date.now(),
+  };
+  persist([entry, ...list]);
+  return entry;
+};
+
 export const getLimitsFor = (cardId: number, subKpiId: number): LimitSet | undefined =>
   load().find(e => e.cardId === cardId && e.subKpiId === subKpiId)?.limits;
 
