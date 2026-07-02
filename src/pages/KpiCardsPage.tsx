@@ -582,8 +582,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
-      : action === "submit" ? "tesdiq_gozlenilir"
-      : "natamam";
+      : action === "submit" ? "natamam"
+      : "qaralama";
     try {
       await upsertStatus({
         card_id: id,
