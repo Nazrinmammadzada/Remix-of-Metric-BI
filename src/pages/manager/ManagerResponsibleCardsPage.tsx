@@ -252,9 +252,39 @@ const ManagerResponsibleCardsPage = () => {
           }}
         />
       )}
+
+      <AssignGoalDialog
+        open={!!assignEntry}
+        onOpenChange={(o) => !o && setAssignEntry(null)}
+        entry={assignEntry}
+        onSaved={(saved) => {
+          const entry = assignEntry;
+          setAssignEntry(null);
+          if (!entry) return;
+          if (saved.cascadable && saved.value > 0) {
+            // Yenilənmiş entry göstər — reload from store
+            const refreshed = { ...entry, target: String(saved.value), unit: saved.unit, cascadable: true };
+            setCascadeConfirm({ entry: refreshed, value: saved.value, unit: saved.unit });
+          }
+        }}
+      />
+
+      {cascadeConfirm && (
+        <CascadeLoadConfirmDialog
+          open={!!cascadeConfirm}
+          onOpenChange={(o) => !o && setCascadeConfirm(null)}
+          value={cascadeConfirm.value}
+          unit={cascadeConfirm.unit}
+          onConfirm={() => {
+            setDistribute(cascadeConfirm.entry);
+            setCascadeConfirm(null);
+          }}
+        />
+      )}
     </div>
   );
 };
+
 
 const Stat = ({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: string }) => (
   <div className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
