@@ -621,8 +621,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
       const people = collectAssignedEmployees(d);
       if (people.length === 0 && d.bulkSelections.teams.length === 0) return "Təsdiqləmə üçün əməkdaş və ya komanda seçilməlidir";
       const missing = people.filter(p => !getTeamOfPerson(p));
+      if (missing.length > 0 && missing.length === people.length) {
+        return `Heç bir seçilmiş şəxsin komandası yoxdur: ${missing.join(", ")}.`;
+      }
       if (missing.length > 0) {
-        return `Bu şəxslərin komandası yoxdur: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+        toast.warning(`${missing.join(", ")} komanda liderinə malik deyil — bu şəxs(lər) üçün kart yaradılmayacaq. Qalanları üçün kart yaranır.`);
       }
       return null;
     }
@@ -630,8 +633,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     const people = collectAssignedEmployees(d);
     if (people.length === 0 && d.bulkSelections.structures.length === 0) return "Təsdiqləmə üçün əməkdaş və ya struktur seçilməlidir";
     const missing = people.filter(p => !getStructureLeaderName(p));
+    if (missing.length > 0 && missing.length === people.length) {
+      return `Heç bir seçilmiş şəxsin struktur rəhbəri yoxdur: ${missing.join(", ")}.`;
+    }
     if (missing.length > 0) {
-      return `Bu şəxslərin struktur rəhbəri müəyyən edilə bilmir: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+      toast.warning(`${missing.join(", ")} üçün struktur rəhbəri tapılmadı — bu şəxs(lər) üçün kart yaradılmayacaq. Qalanları üçün kart yaranır.`);
     }
     return null;
   };
