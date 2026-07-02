@@ -429,6 +429,23 @@ const TeamsPage = () => {
                 </div>
               </div>
             )}
+            {/* Komanda lideri */}
+            {selectedMembers.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-foreground">Komanda lideri</label>
+                <select
+                  value={leaderName}
+                  onChange={e => setLeaderName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background focus:ring-2 focus:ring-ring focus:outline-none"
+                >
+                  <option value="">— Lider seçin —</option>
+                  {selectedMembers.map(n => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
 
             <div className="flex gap-3 pt-2">
               <button onClick={saveNewTeam} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">💾 Yadda Saxla</button>
