@@ -26,7 +26,9 @@ export interface CascadeTreeNode {
   frozen?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v1";
+const KEY = "cascade_tree_nodes_v3";
+// köhnə seed versiyalarını təmizlə
+try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
 const load = (): CascadeTreeNode[] => {
@@ -177,36 +179,61 @@ export const useCascadeTree = (): CascadeTreeNode[] => {
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
-// ------- Seed (real üçün 1 ana hədəf + 3 səviyyəli bölgü) -------
+// ------- Seed: tam paylanmış çoxsəviyyəli nümunə + qismən paylanmış nümunə -------
 function seedNodes(): CascadeTreeNode[] {
   const emps = getEmployees();
   const byName = (n: string) => emps.find(e => `${e.firstName} ${e.lastName}` === n);
-  const dir = byName("Samir Həsənov"); // Satış Direktoru ⭐
-  const b1 = byName("Rəşad Əliyev");   // Bakı Satış Şöbə Müdiri ⭐
-  const b2 = byName("Leyla Məmmədova"); // Regional Satış Şöbə Müdiri ⭐
-  if (!dir || !b1 || !b2) return [];
   const now = Date.now();
-  const root: CascadeTreeNode = {
-    id: "cn-root", rootId: "cn-root", parentId: null,
-    cardName: "İllik Satış Hədəfi 2026", goalName: "Ümumi Satış Həcmi",
-    unit: "AZN",
-    assigneeId: dir.id, assigneeName: `${dir.firstName} ${dir.lastName}`,
-    positionName: dir.positionName, isStar: true,
-    limit: 1_000_000, createdAt: now, updatedAt: now,
-  };
-  const c1: CascadeTreeNode = {
-    id: "cn-c1", rootId: "cn-root", parentId: "cn-root",
-    cardName: root.cardName, goalName: root.goalName, unit: "AZN",
-    assigneeId: b1.id, assigneeName: `${b1.firstName} ${b1.lastName}`,
-    positionName: b1.positionName, isStar: true,
-    limit: 600_000, createdAt: now, updatedAt: now,
-  };
-  const c2: CascadeTreeNode = {
-    id: "cn-c2", rootId: "cn-root", parentId: "cn-root",
-    cardName: root.cardName, goalName: root.goalName, unit: "AZN",
-    assigneeId: b2.id, assigneeName: `${b2.firstName} ${b2.lastName}`,
-    positionName: b2.positionName, isStar: true,
-    limit: 250_000, createdAt: now, updatedAt: now,
-  };
-  return [root, c1, c2];
+  const rows: CascadeTreeNode[] = [];
+
+  const mk = (id: string, parentId: string | null, rootId: string, name: string, emp: any, limit: number, cardName: string, goalName: string): CascadeTreeNode => ({
+    id, rootId, parentId,
+    cardName, goalName, unit: "AZN",
+    assigneeId: emp.id,
+    assigneeName: `${emp.firstName} ${emp.lastName}`,
+    positionName: emp.positionName,
+    isStar: !!emp.isStarPerson,
+    limit, createdAt: now, updatedAt: now,
+  });
+
+  // 1) Satış — tam paylanmış (4 səviyyə)
+  const samir = byName("Samir Həsənov");
+  const reshad = byName("Rəşad Əliyev");
+  const leyla = byName("Leyla Məmmədova");
+  const emin = byName("Emin Məmmədov");
+  const nermin = byName("Nərmin Vəliyeva");
+  if (samir && reshad && leyla && emin && nermin) {
+    const card = "İllik Satış Hədəfi 2026"; const goal = "Ümumi Satış Həcmi";
+    rows.push(mk("cn-s-root", null, "cn-s-root", "root", samir, 1_000_000, card, goal));
+    rows.push(mk("cn-s-a", "cn-s-root", "cn-s-root", "", reshad, 600_000, card, goal));
+    rows.push(mk("cn-s-b", "cn-s-root", "cn-s-root", "", leyla, 400_000, card, goal));
+    rows.push(mk("cn-s-a1", "cn-s-a", "cn-s-root", "", emin, 600_000, card, goal));
+    rows.push(mk("cn-s-b1", "cn-s-b", "cn-s-root", "", nermin, 400_000, card, goal));
+  }
+
+  // 2) Marketinq — tam paylanmış (3 səviyyə, çoxlu qollar)
+  const elvin = byName("Elvin Rəhimov");
+  const kamran = byName("Kamran Quliyev");
+  const aynur = byName("Aynur Cəfərova");
+  const orxan = byName("Orxan Bayramov");
+  const aytac = byName("Aytac Kərimova");
+  if (elvin && kamran && aynur && orxan && aytac) {
+    const card = "Marketinq Kampaniya Hədəfi"; const goal = "Lead Generation Həcmi";
+    rows.push(mk("cn-m-root", null, "cn-m-root", "", elvin, 500_000, card, goal));
+    rows.push(mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal));
+    rows.push(mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal));
+    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 300_000, card, goal));
+    rows.push(mk("cn-m-b1", "cn-m-b", "cn-m-root", "", aytac, 200_000, card, goal));
+  }
+
+  // 3) Maliyyə — qismən paylanmış (qırmızı zona nümunəsi)
+  const nigar = byName("Nigar Hüseynova");
+  const turan = byName("Turan Nəsibov");
+  if (nigar && turan) {
+    const card = "Maliyyə Effektivlik Hədəfi"; const goal = "Xərc Optimizasiyası";
+    rows.push(mk("cn-f-root", null, "cn-f-root", "", nigar, 800_000, card, goal));
+    rows.push(mk("cn-f-a", "cn-f-root", "cn-f-root", "", turan, 300_000, card, goal));
+  }
+
+  return rows;
 }

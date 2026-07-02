@@ -56,83 +56,96 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
           </div>
         </div>
 
-        {/* Kartlar siyahısı */}
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
-            Kaskadlanan KPI kartı yoxdur.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filtered.map(r => {
-              const tone = toneOf(r);
-              const t = toneClasses[tone];
-              const dist = distributedOf(r.id);
-              const rem = remainingOf(r.id);
-              const pct = r.limit > 0 ? Math.min(100, (dist / r.limit) * 100) : 0;
-              const isActive = activeRoot === r.id;
-              return (
-                <button key={r.id} onClick={() => setActiveRoot(isActive ? null : r.id)}
-                  className={`text-left rounded-2xl border-2 p-4 transition-all ${t.border} ${t.bg} ${isActive ? `ring-2 ${t.ring} scale-[1.01]` : "hover:ring-1 hover:ring-primary/20"}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{r.cardName}</div>
-                      <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{r.goalName}</div>
-                    </div>
-                    <span className={`shrink-0 w-2.5 h-2.5 rounded-full ${t.dot} shadow-[0_0_0_3px] shadow-current/10`} />
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="w-6 h-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold">
-                      {r.assigneeName.split(" ").map(p => p[0]).join("").slice(0, 2)}
-                    </div>
-                    <span className="truncate">{r.assigneeName}</span>
-                    {r.isStar && <Crown className="w-3 h-3 text-amber-500 shrink-0" />}
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-muted-foreground">Limit</span>
-                      <span className="font-semibold text-foreground">{fmt(r.limit)} {r.unit}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className={`h-full ${tone === "green" ? "bg-emerald-500" : tone === "red" ? "bg-destructive" : "bg-slate-400"}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-muted-foreground">Bölüşdürülüb: <b className="text-foreground">{fmt(dist)}</b></span>
-                      <span className={rem <= 0.0001 ? "text-emerald-600 font-semibold" : "text-destructive font-semibold"}>Qalıq: {fmt(rem)}</span>
-                    </div>
-                  </div>
-                  <div className={`mt-2 text-[10px] font-medium ${tone === "green" ? "text-emerald-600" : tone === "red" ? "text-destructive" : "text-muted-foreground"}`}>
-                    {t.label}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Split layout: sol — kartlar (scrollable), sağ — topologiya */}
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
+          {/* SOL: Kartlar */}
+          <aside className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-border bg-secondary/30 flex items-center justify-between">
+              <div className="text-sm font-semibold text-foreground">Kaskadlanan Kartlar</div>
+              <span className="text-[11px] text-muted-foreground">{filtered.length} kart</span>
+            </div>
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">Nəticə yoxdur.</div>
+            ) : (
+              <div className="overflow-y-auto max-h-[calc(100vh-320px)] p-3 space-y-2">
+                {filtered.map(r => {
+                  const tone = toneOf(r);
+                  const t = toneClasses[tone];
+                  const dist = distributedOf(r.id);
+                  const rem = remainingOf(r.id);
+                  const pct = r.limit > 0 ? Math.min(100, (dist / r.limit) * 100) : 0;
+                  const isActive = activeRoot === r.id;
+                  return (
+                    <button key={r.id} onClick={() => setActiveRoot(r.id)}
+                      className={`w-full text-left rounded-xl border-2 p-3 transition-all ${t.border} ${t.bg} ${isActive ? `ring-2 ${t.ring}` : "hover:ring-1 hover:ring-primary/20"}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{r.cardName}</div>
+                          <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{r.goalName}</div>
+                        </div>
+                        <span className={`shrink-0 w-2.5 h-2.5 rounded-full ${t.dot}`} />
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[9px] font-semibold">
+                          {r.assigneeName.split(" ").map(p => p[0]).join("").slice(0, 2)}
+                        </div>
+                        <span className="truncate">{r.assigneeName}</span>
+                        {r.isStar && <Crown className="w-3 h-3 text-amber-500 shrink-0" />}
+                      </div>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground">Limit</span>
+                          <span className="font-semibold text-foreground">{fmt(r.limit)} {r.unit}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className={`h-full ${tone === "green" ? "bg-emerald-500" : tone === "red" ? "bg-destructive" : "bg-slate-400"}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-muted-foreground">Bölünüb: <b className="text-foreground">{fmt(dist)}</b></span>
+                          <span className={rem <= 0.0001 ? "text-emerald-600 font-semibold" : "text-destructive font-semibold"}>Qalıq: {fmt(rem)}</span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </aside>
 
-        {/* Topologiya paneli */}
-        {current && (
-          <section className="mt-6 rounded-2xl border border-border bg-card overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/30">
-              <div className="flex items-center gap-2 min-w-0">
-                <Target className="w-4 h-4 text-primary shrink-0" />
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-foreground truncate">Hədəf Topologiyası — {current.goalName}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+          {/* SAĞ: Topologiya */}
+          <section className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col min-h-[520px]">
+            {current ? (
+              <>
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/30">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Target className="w-4 h-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-foreground truncate">Hədəf Topologiyası — {current.goalName}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Legend />
+                    <button onClick={() => setFullView(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/60 transition">
+                      <Maximize2 className="w-3.5 h-3.5" /> Tam formatda aç
+                    </button>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-auto p-6">
+                  <Topology root={current} compact />
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-12 text-center text-sm text-muted-foreground">
+                <div>
+                  <Target className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  Sol tərəfdən bir kart seçin — onun hədəf topologiyası burada açılacaq.
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Legend />
-                <button onClick={() => setFullView(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/60 transition">
-                  <Maximize2 className="w-3.5 h-3.5" /> Tam formatda aç
-                </button>
-              </div>
-            </div>
-            <div className="p-6 overflow-auto">
-              <Topology root={current} compact />
-            </div>
+            )}
           </section>
-        )}
+        </div>
 
         {/* Tam ekran topologiya */}
         {fullView && current && (
@@ -155,6 +168,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
           </div>
         )}
       </main>
+
     </div>
   );
 };
