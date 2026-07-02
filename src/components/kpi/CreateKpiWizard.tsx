@@ -1064,13 +1064,9 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 <Power className="w-4 h-4" /> KPI yarat
               </button>
             )}
-              <button type="button" onClick={() => finalize("submit")}
-                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
-                <Send className="w-4 h-4" /> Təyinə göndər
-              </button>
-            )}
 
           </div>
+
         </div>
       </DialogContent>
     </Dialog>
