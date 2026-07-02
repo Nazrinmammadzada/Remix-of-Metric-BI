@@ -830,13 +830,33 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 </Field>
 
                 <div className="col-span-12">
-                  <div className="p-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-xs text-foreground/80 flex items-start gap-2">
-                    <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                    <div>
-                      <b>Təsdiqləmə matrisi məcburi deyil.</b> Kartı matrissiz yarada bilərsiniz — bu halda təsdiq birbaşa struktur rəhbərinə və ya komanda liderinə göndərilir. Üsul 3-cü addımda seçilir (default: <b>Struktur rəhbəri</b>).
+                  <label className="flex items-start gap-2.5 p-3 rounded-lg border border-primary/40 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={draft.useMatrix}
+                      onChange={e => {
+                        const on = e.target.checked;
+                        setApprovalMethodTouched(true);
+                        update({
+                          useMatrix: on,
+                          approvalMethod: on ? "matrix" : suggestApprovalMethod(draft),
+                          approvalMatrixId: on ? draft.approvalMatrixId : "",
+                        });
+                      }}
+                      className="mt-0.5 w-4 h-4 accent-primary shrink-0"
+                    />
+                    <div className="text-xs text-foreground/85">
+                      <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                        <ShieldCheck className="w-4 h-4 text-primary" />
+                        Təsdiqləmə matrisi olsun
+                      </div>
+                      <p className="mt-0.5 text-muted-foreground">
+                        Seçilməzsə kart matris olmadan yaranır — təsdiq birbaşa struktur rəhbərinə/komanda liderinə göndərilir və bütün məlumatlar dolu olduqda kart avtomatik <b>Aktiv</b> statusda yaranır.
+                      </p>
                     </div>
-                  </div>
+                  </label>
                 </div>
+
 
               </div>
 
