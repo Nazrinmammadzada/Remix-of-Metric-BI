@@ -10,7 +10,7 @@ import FilterTeamSelect from "@/components/kpi/FilterTeamSelect";
 import { getTeams } from "@/lib/teamsStore";
 import { validateTarget, getTargetPlaceholder, getTargetUnitSuffix } from "@/lib/kpiValidation";
 import { getApprovalMatrices, getDeletionMatrix, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, type ApprovalMatrix } from "@/lib/matrixStore";
-import { getStructures, findStructureById, findOccupantsByPosition, type OrgStructure } from "@/lib/orgStore";
+import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
