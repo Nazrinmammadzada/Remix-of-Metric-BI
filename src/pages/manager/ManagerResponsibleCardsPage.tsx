@@ -232,14 +232,18 @@ const ManagerResponsibleCardsPage = () => {
         open={!!assignEntry}
         onOpenChange={(o) => !o && setAssignEntry(null)}
         entry={assignEntry}
-        onSaved={(saved) => {
+        onSaved={() => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          if (saved.cascadable && saved.value > 0) {
-            // Yenilənmiş entry göstər — reload from store
-            const refreshed = { ...entry, target: String(saved.value), unit: saved.unit, cascadable: true };
-            setCascadeConfirm({ entry: refreshed, value: saved.value, unit: saved.unit });
+          // Pop-up HƏMİŞƏ yadda saxlamaq üçün açılır. Bölünə biləcək limit
+          // rəhbərə BAŞQA kartdan gələn Cascade Load-dur — bu hədəflə əlaqəsi yoxdur.
+          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
+          if (incoming) {
+            const refreshed = { ...entry, target: String(incoming.value), unit: incoming.unit, cardName: incoming.cardName, cascadable: true };
+            setCascadeConfirm({ entry: refreshed, value: incoming.value, unit: incoming.unit });
+          } else {
+            setCascadeConfirm({ entry: { ...entry, cascadable: true }, value: 0, unit: entry.unit || "" });
           }
         }}
       />
