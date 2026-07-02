@@ -1,35 +1,83 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator, ShieldCheck, Building2, ClipboardList, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge, SlidersHorizontal, Workflow, GitBranch, Target } from "lucide-react";
+import { useState } from "react";
+import {
+  Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator,
+  ShieldCheck, Building2, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge,
+  Workflow, GitBranch, Target, Users, Activity, Trophy, Gift, UserCog, Crown,
+  ChevronDown,
+} from "lucide-react";
 
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSidebar } from "@/contexts/SidebarContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-const navItems = [
-  { path: "/hr", label: "Əsas Səhifə", icon: Home },
-  { path: "/teskilati-struktur", label: "Təşkilat", icon: Building2 },
-  { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid },
-  { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target },
-  { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow },
-  { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge },
-  { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardCheck },
-  
-  { path: "/cascading", label: "Cascading", icon: GitBranch },
-  { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck },
-  { path: "/hesabat", label: "Hesabatlar", icon: BarChart3 },
-  { path: "/whistleblower", label: "Anonim Bildiriş", icon: Shield },
-  { path: "/hesablama-dusturlari", label: "Hesablama Düsturları", icon: Calculator },
-  { path: "/bonus", label: "Bonuslar", icon: DollarSign },
-  { path: "/inteqrasiyalar", label: "İnteqrasiyalar", icon: Link2 },
-  { path: "/ayarlar", label: "Sazlamalar", icon: Settings },
+type NavItem = { path: string; label: string; icon: any; perm?: string };
+
+const ADMIN_ITEMS: NavItem[] = [
+  { path: "/hr", label: "Əsas Səhifə", icon: Home, perm: "home" },
+  { path: "/teskilati-struktur", label: "Təşkilat", icon: Building2, perm: "organization" },
+  { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid, perm: "kpi" },
+  { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target, perm: "goal_tracking" },
+  { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow, perm: "kpi_lifecycle" },
+  { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge, perm: "kpi_scores" },
+  { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardCheck, perm: "evaluation" },
+  { path: "/cascading", label: "Cascading", icon: GitBranch, perm: "cascading" },
+  { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck, perm: "matrix" },
+  { path: "/hesabat", label: "Hesabatlar", icon: BarChart3, perm: "reporting" },
+  { path: "/whistleblower", label: "Anonim Bildiriş", icon: Shield, perm: "whistleblower" },
+  { path: "/hesablama-dusturlari", label: "Hesablama Düsturları", icon: Calculator, perm: "formulas" },
+  { path: "/bonus", label: "Bonuslar", icon: DollarSign, perm: "bonus" },
+  { path: "/inteqrasiyalar", label: "İnteqrasiyalar", icon: Link2, perm: "integrations" },
+  { path: "/ayarlar", label: "Sazlamalar", icon: Settings, perm: "settings" },
+];
+
+const MANAGER_ITEMS: NavItem[] = [
+  { path: "/hr/rehber", label: "Rəhbər Əsas Səhifə", icon: Home },
+  { path: "/hr/rehber/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
+  { path: "/hr/rehber/mesul-kartlar", label: "Məsul olduğum kartlar", icon: LayoutGrid },
+  { path: "/hr/rehber/komandam", label: "Komandam", icon: Users },
+  { path: "/hr/rehber/kpi-izleme", label: "KPI İzlənməsi", icon: Activity },
+  { path: "/hr/rehber/neticelerim", label: "Nəticələrim", icon: Trophy },
+  { path: "/hr/rehber/bonuslarim", label: "Bonuslarım", icon: Gift },
 ];
 
 const Sidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
+  const [adminOpen, setAdminOpen] = useState(true);
+  const [managerOpen, setManagerOpen] = useState(true);
 
+  // Rəhbər bölməsi: Günel Əlizadə üçün açıqdır (o həm HR, həm rəhbərdir).
+  const showManagerSection = user?.name === "Günel Əlizadə";
+
+  const renderItem = (item: NavItem) => {
+    const isActive = location.pathname === item.path;
+    const link = (
+      <Link
+        key={item.path}
+        to={item.path}
+        className={`group flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} py-2.5 rounded-lg text-sm transition-all relative ${
+          isActive
+            ? "bg-sidebar-active text-sidebar-fg font-medium shadow-sm"
+            : "text-sidebar-fg/70 hover:bg-sidebar-hover hover:text-sidebar-fg"
+        }`}
+      >
+        {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground rounded-r-full" />}
+        <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
+        {!collapsed && <span className="truncate">{item.label}</span>}
+      </Link>
+    );
+    return collapsed ? (
+      <Tooltip key={item.path}>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
+    ) : link;
+  };
+
+  const adminFiltered = ADMIN_ITEMS.filter(it => !it.perm || (user?.permissions.includes(it.perm) ?? false));
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -48,7 +96,6 @@ const Sidebar = () => {
           )}
         </div>
 
-        {/* Toggle button */}
         <button
           onClick={toggle}
           aria-label={collapsed ? "Sidebar aç" : "Sidebar bağla"}
@@ -58,58 +105,53 @@ const Sidebar = () => {
         </button>
 
         <nav className={`flex-1 ${collapsed ? "px-2" : "px-3"} mt-4 space-y-1 overflow-y-auto scrollbar-hide`}>
-          {navItems.filter(item => {
-            // Yol-> səlahiyyət uyğunluğu. Səlahiyyəti olmayanlar üçün modulu gizlət.
-            const pathToPerm: Record<string, string> = {
-              "/hr": "home",
-              "/teskilati-struktur": "organization",
-              "/kpi-kartlari": "kpi",
-              "/kpi-qiymetleri": "kpi_scores",
-              
-              "/hedef-tayin-izleme": "goal_tracking",
-              "/kpi-lifecycle": "kpi_lifecycle",
-              "/cascading": "cascading",
-              "/cascade-matrisi": "cascade_matrix",
+          {/* ===== ADMİN qrupu ===== */}
+          {!collapsed ? (
+            <button
+              onClick={() => setAdminOpen(v => !v)}
+              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold text-sidebar-fg/80 hover:bg-sidebar-hover"
+            >
+              <span className="inline-flex items-center gap-2">
+                <UserCog className="w-3.5 h-3.5" /> Admin
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${adminOpen ? "" : "-rotate-90"}`} />
+            </button>
+          ) : (
+            <div className="mx-auto my-2 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title="Admin">
+              <UserCog className="w-3.5 h-3.5 text-sidebar-fg/70" />
+            </div>
+          )}
+          {adminOpen && (
+            <div className={collapsed ? "space-y-1" : "space-y-1 pl-1 border-l border-sidebar-fg/10 ml-2"}>
+              {adminFiltered.map(renderItem)}
+            </div>
+          )}
 
-              "/komandalar": "teams",
-              "/qiymetlendirme": "evaluation",
-              "/sistem-tesdiq": "approvals",
-              "/tesdiqleme-matrisi": "matrix",
-              "/hesabat": "reporting",
-              "/whistleblower": "whistleblower",
-              "/bonus": "bonus",
-              "/hesablama-dusturlari": "formulas",
-              "/emekhaqqi-bazasi": "salary",
-              "/inteqrasiyalar": "integrations",
-              "/ayarlar": "settings",
-            };
-            const perm = pathToPerm[item.path];
-            if (!perm) return true;
-            return user?.permissions.includes(perm) ?? false;
-          }).map((item) => {
-            const isActive = location.pathname === item.path;
-            const link = (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`group flex items-center ${collapsed ? "justify-center px-2" : "gap-3 px-3"} py-2.5 rounded-lg text-sm transition-all relative ${
-                  isActive
-                    ? "bg-sidebar-active text-sidebar-fg font-medium shadow-sm"
-                    : "text-sidebar-fg/70 hover:bg-sidebar-hover hover:text-sidebar-fg"
-                }`}
-              >
-                {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground rounded-r-full" />}
-                <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            );
-            return collapsed ? (
-              <Tooltip key={item.path}>
-                <TooltipTrigger asChild>{link}</TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            ) : link;
-          })}
+          {/* ===== RƏHBƏR qrupu (yalnız Günel Əlizadə) ===== */}
+          {showManagerSection && (
+            <>
+              {!collapsed ? (
+                <button
+                  onClick={() => setManagerOpen(v => !v)}
+                  className="mt-4 w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold text-sidebar-fg/80 hover:bg-sidebar-hover"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Crown className="w-3.5 h-3.5" /> Rəhbər
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${managerOpen ? "" : "-rotate-90"}`} />
+                </button>
+              ) : (
+                <div className="mx-auto mt-3 mb-1 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title="Rəhbər">
+                  <Crown className="w-3.5 h-3.5 text-sidebar-fg/70" />
+                </div>
+              )}
+              {managerOpen && (
+                <div className={collapsed ? "space-y-1" : "space-y-1 pl-1 border-l border-sidebar-fg/10 ml-2"}>
+                  {MANAGER_ITEMS.map(renderItem)}
+                </div>
+              )}
+            </>
+          )}
         </nav>
 
         <div className={`p-3 border-t border-sidebar-fg/10 ${collapsed ? "px-2" : ""}`}>
