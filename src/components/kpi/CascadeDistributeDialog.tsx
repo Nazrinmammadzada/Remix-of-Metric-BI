@@ -171,7 +171,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
         {/* Live totals — Ümumi Limit / Paylanmış / Qalıq */}
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Ümumi Limit (Sizin üzərinizdə)" value={fmt(limit)} unit={node?.unit || ""} tone="neutral" />
+          <BigStat label="Cascade Load (paylana bilən)" value={fmt(limit)} unit="AZN" tone="neutral" />
           <BigStat label="Paylanmış" value={fmt(totalDist)} unit={node?.unit || ""} tone="primary" />
           <BigStat label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} tone={overflow ? "danger" : remaining === 0 ? "success" : "warning"} negative={overflow} />
         </div>
