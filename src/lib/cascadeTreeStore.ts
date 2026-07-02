@@ -26,7 +26,9 @@ export interface CascadeTreeNode {
   frozen?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v1";
+const KEY = "cascade_tree_nodes_v3";
+// köhnə seed versiyalarını təmizlə
+try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
 const load = (): CascadeTreeNode[] => {
