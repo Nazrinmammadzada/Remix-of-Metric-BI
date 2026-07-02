@@ -116,6 +116,15 @@ const App = () => {
               <Route path="/qiymetlendirme" element={<EvaluationPage />} />
               <Route path="/whistleblower" element={<WhistleblowerPage />} />
               <Route path="/ayarlar" element={<SettingsPage />} />
+
+              {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
+              <Route path="/hr/rehber" element={<ManagerHomePage />} />
+              <Route path="/hr/rehber/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/hr/rehber/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
+              <Route path="/hr/rehber/komandam" element={<TeamsPage />} />
+              <Route path="/hr/rehber/kpi-izleme" element={<ManagerKpiTrackingPage />} />
+              <Route path="/hr/rehber/neticelerim" element={<ManagerResultsPage />} />
+              <Route path="/hr/rehber/bonuslarim" element={<ManagerBonusPage />} />
             </Route>
 
             {/* Super Admin Panel — yalnız HR (Admin) idarəetməsi */}

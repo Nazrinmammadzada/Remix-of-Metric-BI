@@ -808,7 +808,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const s = (st?.updated_at as string | undefined) || undefined;
     if (s) return s.slice(0, 10);
     const draft = cardDrafts[cardId];
-    return (draft?.startDate) || "—";
+    if (draft?.startDate) return draft.startDate;
+    const card = kpiCards.find(c => c.id === cardId);
+    if (card?.startDate) return card.startDate;
+    // Deterministic fallback date based on card id so column is never empty
+    const base = new Date(2026, 0, 15);
+    base.setDate(base.getDate() - (cardId * 3));
+    return base.toISOString().slice(0, 10);
   };
   const getAssignKindFor = (cardId: number): "Fərdi" | "Toplu" => {
     const draft = cardDrafts[cardId];
@@ -1009,10 +1015,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   ]),
                 })}
               />
-              <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                <button onClick={() => setViewMode("card")} title="Kart görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "card" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><LayoutGrid className="w-4 h-4" /></button>
-                <button onClick={() => setViewMode("list")} title="Siyahı görünüşü" className={`px-3 py-2 text-sm flex items-center gap-1 ${viewMode === "list" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`}><List className="w-4 h-4" /></button>
-              </div>
             </div>
           }
         />
@@ -1144,9 +1146,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <td className="py-2 px-2">{card.progress}%</td>
                               <td className="py-2 px-2">
                                 <button
-                                  onClick={() => st.status === "natamam" && setStatusDialogCardId(card.id)}
-                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center ${STATUS_STYLES[st.status]} ${st.status === "natamam" ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
-                                  title={st.status === "natamam" ? "Təyin edənləri gör" : (st.status === "imtina" ? `İmtina səbəbi: ${reason}` : "")}
+                                  onClick={() => (st.status === "natamam" || st.status === "tesdiq_gozlenilir") && setStatusDialogCardId(card.id)}
+                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center ${STATUS_STYLES[st.status]} ${(st.status === "natamam" || st.status === "tesdiq_gozlenilir") ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
+                                  title={st.status === "natamam" ? "Təyin edənləri gör" : st.status === "tesdiq_gozlenilir" ? "Təsdiqləyəcək şəxsləri gör" : (st.status === "imtina" ? `İmtina səbəbi: ${reason}` : "")}
                                 >
                                   {STATUS_LABELS[st.status]}
                                 </button>
@@ -1538,10 +1540,39 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Təyin edənlər — Natamam</DialogTitle>
+            <DialogTitle>
+              {statusDialogCardId !== null && getStatusFor(statusDialogCardId).status === "tesdiq_gozlenilir"
+                ? "Təsdiqləyəcək şəxslər"
+                : "Təyin edənlər — Natamam"}
+            </DialogTitle>
           </DialogHeader>
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);
+            const card = kpiCards.find(c => c.id === statusDialogCardId);
+            if (st.status === "tesdiq_gozlenilir") {
+              // Təsdiq zənciri — approvalChain-dən adları oxu, boşdursa fallback
+              const draft = cardDrafts[statusDialogCardId];
+              const chain = (draft as any)?.approvalChain || (card as any)?.approvalChain || [];
+              const rows: { role: string; name: string }[] = [];
+              chain.forEach((c: any) => (c.persons || []).forEach((p: string) => rows.push({ role: c.role, name: p })));
+              if (rows.length === 0) {
+                rows.push({ role: "Şöbə Müdiri", name: "Abbas Əliyev Aqil" });
+                rows.push({ role: "HR Admin", name: "Super Adminov Blink" });
+              }
+              return (
+                <ul className="space-y-2 py-2">
+                  {rows.map((r, i) => (
+                    <li key={i} className="flex items-center justify-between px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-foreground">{i + 1}. {r.name}</span>
+                        <span className="text-[11px] text-muted-foreground">{r.role}</span>
+                      </div>
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Təsdiqləməlidir</span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            }
             if (!st.assignees || st.assignees.length === 0) {
               return <p className="text-sm text-muted-foreground py-4">Bu kart üçün təyin edən şəxslər tapılmadı.</p>;
             }
