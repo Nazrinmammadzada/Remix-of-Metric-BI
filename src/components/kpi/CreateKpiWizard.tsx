@@ -830,9 +830,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 </Field>
 
                 <div className="col-span-12">
-                  <div className="p-3 rounded-lg border border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
-                    <ShieldCheck className="w-4 h-4 text-primary inline mr-1.5 -mt-0.5" />
-                    Təsdiqləmə üsulu 3-cü addımda seçiləcək (təyinat növünə əsasən avtomatik təklif olunur).
+                  <div className="p-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 text-xs text-foreground/80 flex items-start gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <div>
+                      <b>Təsdiqləmə matrisi məcburi deyil.</b> Kartı matrissiz yarada bilərsiniz — bu halda təsdiq birbaşa struktur rəhbərinə və ya komanda liderinə göndərilir. Üsul 3-cü addımda seçilir (default: <b>Struktur rəhbəri</b>).
+                    </div>
                   </div>
                 </div>
 
