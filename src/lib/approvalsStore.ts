@@ -20,7 +20,7 @@ export interface ApprovalItem {
   updatedAt: string;
 }
 
-const KEY = "kpi_approval_queue_v1";
+const KEY = "kpi_approval_queue_v2";
 const EVT = "kpi-approval-queue-updated";
 
 const load = (): ApprovalItem[] => {
@@ -34,10 +34,14 @@ const load = (): ApprovalItem[] => {
     {
       id: "ap-seed-1",
       kpiCardId: "seed-2",
-      kpiName: "Müştəri Məmnuniyyəti",
+      kpiName: "KPI-2026-001 — Aylıq Satış Hədəfi",
       matrixId: "default-matrix",
-      approverIds: ["e8"],
-      decisions: { e8: { decision: "pending" } },
+      approverIds: ["e8", "e7", "e2"],
+      decisions: {
+        e8: { decision: "pending" },
+        e7: { decision: "pending" },
+        e2: { decision: "pending" },
+      },
       status: "pending",
       createdBy: "e1",
       createdAt: new Date(now - 1 * day).toISOString(),
@@ -46,38 +50,68 @@ const load = (): ApprovalItem[] => {
     {
       id: "ap-seed-2",
       kpiCardId: "seed-3",
-      kpiName: "Satış Konversiyası — Q1",
+      kpiName: "KPI-2026-002 — Satış Konversiyası Q1",
       matrixId: "default-matrix",
-      approverIds: ["e8"],
-      decisions: { e8: { decision: "pending" } },
+      approverIds: ["e8", "e2"],
+      decisions: {
+        e8: { decision: "approved", note: "Hədəf ölçülə biləndir və dəstəkləyicidir.", at: new Date(now - 2 * day).toISOString() },
+        e2: { decision: "pending" },
+      },
       status: "pending",
       createdBy: "e1",
-      createdAt: new Date(now - 2 * day).toISOString(),
+      createdAt: new Date(now - 3 * day).toISOString(),
       updatedAt: new Date(now - 2 * day).toISOString(),
     },
     {
       id: "ap-seed-3",
       kpiCardId: "seed-4",
-      kpiName: "Onboarding Vaxtı",
+      kpiName: "KPI-2026-003 — Onboarding Vaxtı",
       matrixId: "default-matrix",
-      approverIds: ["e8"],
-      decisions: { e8: { decision: "approved", note: "Uyğundur", at: new Date(now - 3 * day).toISOString() } },
+      approverIds: ["e8", "e7"],
+      decisions: {
+        e8: { decision: "approved", note: "Uyğundur", at: new Date(now - 3 * day).toISOString() },
+        e7: { decision: "approved", note: "Təsdiq edildi", at: new Date(now - 2 * day).toISOString() },
+      },
       status: "approved",
       createdBy: "e1",
       createdAt: new Date(now - 5 * day).toISOString(),
-      updatedAt: new Date(now - 3 * day).toISOString(),
+      updatedAt: new Date(now - 2 * day).toISOString(),
     },
     {
       id: "ap-seed-4",
       kpiCardId: "seed-5",
-      kpiName: "Xərc Optimizasiyası",
+      kpiName: "KPI-2026-004 — Xərc Optimizasiyası",
       matrixId: "default-matrix",
       approverIds: ["e8"],
-      decisions: { e8: { decision: "rejected", note: "Hədəf dəyəri realistik deyil", at: new Date(now - 2 * day).toISOString() } },
+      decisions: { e8: { decision: "rejected", note: "Hədəf dəyəri realistik deyil — yenidən nəzərdən keçirilməlidir.", at: new Date(now - 2 * day).toISOString() } },
       status: "rejected",
       createdBy: "e1",
       createdAt: new Date(now - 6 * day).toISOString(),
       updatedAt: new Date(now - 2 * day).toISOString(),
+    },
+    {
+      id: "ap-seed-5",
+      kpiCardId: "seed-6",
+      kpiName: "KPI-2026-005 — Marketinq Kampaniyaları ROI",
+      matrixId: "default-matrix",
+      approverIds: ["e8", "e2"],
+      decisions: { e8: { decision: "pending" }, e2: { decision: "pending" } },
+      status: "pending",
+      createdBy: "e1",
+      createdAt: new Date(now - 0.5 * day).toISOString(),
+      updatedAt: new Date(now - 0.5 * day).toISOString(),
+    },
+    {
+      id: "ap-seed-6",
+      kpiCardId: "seed-7",
+      kpiName: "KPI-2026-006 — Komanda Effektivliyi",
+      matrixId: "default-matrix",
+      approverIds: ["e8"],
+      decisions: { e8: { decision: "approved", note: "Ölçülənə bilir, təsdiqləyirəm.", at: new Date(now - 4 * day).toISOString() } },
+      status: "approved",
+      createdBy: "e1",
+      createdAt: new Date(now - 7 * day).toISOString(),
+      updatedAt: new Date(now - 4 * day).toISOString(),
     },
   ];
   localStorage.setItem(KEY, JSON.stringify(seed));
