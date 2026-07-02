@@ -153,6 +153,15 @@ const AssignView = () => {
 
   const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
 
+  const totals = useMemo(() => {
+    const all = groups.flatMap(g => g.entries);
+    return {
+      cards: groups.length,
+      done: all.filter(e => e.status === "completed").length,
+      pending: all.filter(e => e.status !== "completed").length,
+    };
+  }, [groups]);
+
   return (
     <>
       <PageHero
@@ -161,6 +170,12 @@ const AssignView = () => {
         title="Hədəf təyin etmə"
         subtitle="Sizə həvalə olunmuş KPI kartları — hədəflərinizi təyin edin. Kaskadlanan hədəflər avtomatik bölgüyə açılır."
       />
+
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <MiniHeaderStat icon={Award} label="Kart" value={totals.cards} accent="text-indigo-600" />
+        <MiniHeaderStat icon={CheckCircle2} label="Təyin edilib" value={totals.done} accent="text-emerald-600" />
+        <MiniHeaderStat icon={Clock} label="Gözləyir" value={totals.pending} accent="text-amber-600" />
+      </div>
 
       <div className="rounded-xl border border-border bg-card p-3 mb-3 flex items-center gap-2">
         <div className="relative flex-1 max-w-md">
@@ -181,6 +196,7 @@ const AssignView = () => {
           </div>
         ) : groups.map(g => {
           const isOpen = open[g.cardId] ?? true;
+          const doneInCard = g.entries.filter(e => e.status === "completed").length;
           return (
             <div key={g.cardId} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
               <button
@@ -197,18 +213,21 @@ const AssignView = () => {
                     {g.entries.length} hədəf
                   </span>
                 </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {doneInCard}/{g.entries.length} təyin edilib
+                </div>
               </button>
 
               {isOpen && (
-                <div className="border-t border-border">
+                <div className="border-t border-border overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-secondary/30 text-xs text-muted-foreground">
+                    <thead className="bg-secondary/40 text-muted-foreground">
                       <tr>
-                        <th className="text-left px-4 py-2 font-medium">Ad</th>
-                        <th className="text-left px-4 py-2 font-medium">Növ</th>
-                        <th className="text-left px-4 py-2 font-medium">Dəyər</th>
-                        <th className="text-left px-4 py-2 font-medium">Çəki</th>
-                        <th className="text-right px-4 py-2 font-medium">Əməliyyatlar</th>
+                        <th className="text-left px-4 py-3 font-medium">Ad</th>
+                        <th className="text-left px-4 py-3 font-medium">Növ</th>
+                        <th className="text-right px-4 py-3 font-medium">Dəyər</th>
+                        <th className="text-center px-4 py-3 font-medium">Çəki</th>
+                        <th className="text-right px-4 py-3 font-medium">Əməliyyatlar</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -218,8 +237,8 @@ const AssignView = () => {
                         const weight = e.weight ? `${e.weight}%` : "—";
                         const isDone = e.status === "completed";
                         return (
-                          <tr key={e.id} className="border-t border-border hover:bg-secondary/30 transition-colors">
-                            <td className="px-4 py-2.5">
+                          <tr key={e.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+                            <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <span className={e.subKpiName ? "text-foreground font-medium" : "text-muted-foreground italic"}>{displayName}</span>
                                 {e.cascadable && (
@@ -227,17 +246,22 @@ const AssignView = () => {
                                     <GitBranch className="w-3 h-3" /> C
                                   </span>
                                 )}
+                                {isDone && (
+                                  <Badge className="bg-zone-green-bg text-zone-green-text hover:bg-zone-green-bg gap-1 text-[10px]">
+                                    <CheckCircle2 className="w-3 h-3" /> Təyin edilib
+                                  </Badge>
+                                )}
                               </div>
                             </td>
-                            <td className="px-4 py-2.5 text-foreground">{e.type || "—"}</td>
-                            <td className="px-4 py-2.5 text-foreground">{value}</td>
-                            <td className="px-4 py-2.5 text-foreground">{weight}</td>
-                            <td className="px-4 py-2.5 text-right">
+                            <td className="px-4 py-3 text-foreground">{e.type || "—"}</td>
+                            <td className="px-4 py-3 text-right text-foreground tabular-nums">{value}</td>
+                            <td className="px-4 py-3 text-center text-muted-foreground tabular-nums">{weight}</td>
+                            <td className="px-4 py-3 text-right">
                               <Button
                                 size="sm"
                                 variant={isDone ? "outline" : "default"}
                                 onClick={() => openAssign(e)}
-                                className="h-7 gap-1 text-xs"
+                                className="gap-1"
                               >
                                 <UserPlus className="w-3.5 h-3.5" />
                                 {isDone ? "Yenilə" : "Təyin et"}
