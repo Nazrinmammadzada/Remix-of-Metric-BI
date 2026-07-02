@@ -73,36 +73,14 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
   useEffect(() => {
     if (!node) return;
-    // mövcud bölgüləri əvvəlcədən doldur — və ya subordinatları bərabər böl
-    const kids = getChildren(node.id);
+    // Hər bir tabelikdəki əməkdaşa hədəfin dəyəri EYNİLƏ təyin olunur — bölünmür.
     const seed: Record<number, string> = {};
-    if (kids.length) {
-      kids.forEach(k => { seed[k.assigneeId] = String(k.limit); });
-    } else if (subordinates.length && node.limit > 0) {
-      const per = Math.floor((node.limit / subordinates.length) * 100) / 100;
-      subordinates.forEach((e, i) => {
-        // Son əməkdaşa qalıq düşsün ki, cəm dəqiq gəlsin
-        seed[e.id] = i === subordinates.length - 1
-          ? String(Math.round((node.limit - per * (subordinates.length - 1)) * 100) / 100)
-          : String(per);
-      });
-    }
+    subordinates.forEach(e => { seed[e.id] = String(node.limit); });
     setSlices(seed);
-  }, [node?.id, subordinates.length]);
+  }, [node?.id, subordinates.length, node?.limit]);
 
   const setSlice = (id: number, val: string) => setSlices(prev => ({ ...prev, [id]: val }));
 
-  const equalSplit = () => {
-    if (!node || !subordinates.length) return;
-    const per = Math.floor((node.limit / subordinates.length) * 100) / 100;
-    const next: Record<number, string> = {};
-    subordinates.forEach((e, i) => {
-      next[e.id] = i === subordinates.length - 1
-        ? String(Math.round((node.limit - per * (subordinates.length - 1)) * 100) / 100)
-        : String(per);
-    });
-    setSlices(next);
-  };
 
   // Cascade Load bucket — 500 000 AZN shared across all cards
   useCascadeLoad(); // subscribe for live updates
