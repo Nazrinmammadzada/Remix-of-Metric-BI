@@ -414,7 +414,7 @@ const statusStyle = (s: SharedKpiCard["status"]) => {
     case "aktiv": return "bg-emerald-500/15 text-emerald-700 border-emerald-500/30";
     case "tesdiq_gozlenilir": return "bg-amber-500/15 text-amber-800 border-amber-500/30";
     case "imtina": return "bg-rose-500/15 text-rose-700 border-rose-500/30";
-    case "legv_olundu": return "bg-slate-500/15 text-slate-700 border-slate-500/30";
+    default: return "bg-slate-500/15 text-slate-700 border-slate-500/30";
     default: return "bg-slate-500/15 text-slate-700 border-slate-500/30";
   }
 };
