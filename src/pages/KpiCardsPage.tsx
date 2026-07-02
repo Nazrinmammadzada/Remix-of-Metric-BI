@@ -1082,33 +1082,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 <option>Toplu</option>
               </select>
             </div>
-            {filterAssignKind === "Toplu" && (
-              <div className="min-w-[150px]">
-                <label className="text-[11px] text-muted-foreground">Toplu növü</label>
-                <select
-                  value={filterBulkKind}
-                  onChange={e => { const v = e.target.value as any; setFilterBulkKind(v); if (v !== "Komanda") setFilterTeamId(null); }}
-                  className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
-                >
-                  <option>Hamısı</option>
-                  <option>Komanda</option>
-                  <option>Struktur</option>
-                  <option>Vəzifə</option>
-                  <option>Şəxs</option>
-                </select>
-              </div>
-            )}
-            {filterAssignKind === "Toplu" && filterBulkKind === "Komanda" && (
-              <div className="min-w-[180px]">
-                <label className="text-[11px] text-muted-foreground">Komanda</label>
-                <FilterTeamSelect value={filterTeamId} onChange={setFilterTeamId} />
-              </div>
-            )}
             <div className="min-w-[180px]">
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
-                <option>Qaralama</option>
+                <option>Natamam</option>
                 <option>Təsdiq gözlənilir</option>
                 <option>İmtina</option>
                 <option>Aktiv</option>
