@@ -994,52 +994,40 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   }
                 </SummarySection>
 
-                {/* Təsdiqləmə üsulu seçimi */}
-                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə üsulu</h3>
-                    <span className="text-[11px] text-muted-foreground">(təyinat növünə görə default təklif olunub)</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    {([
-                      { v: "structure_leader" as const, t: "Təşkilati struktur rəhbəri", d: "Hər əməkdaşın öz struktur rəhbərinə göndərilir" },
-                      { v: "team_leader" as const, t: "Komanda rəhbəri", d: "Hər əməkdaşın öz komanda liderinə göndərilir" },
-                      { v: "matrix" as const, t: "Matriks", d: "Mövcud matrislərdən birini seçin" },
-                    ]).map(o => {
-                      const active = draft.approvalMethod === o.v;
-                      return (
-                        <button key={o.v} type="button" onClick={() => setApprovalMethod(o.v)}
-                          className={`text-left p-2.5 rounded-lg border text-xs transition-all ${active ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
-                          <div className="font-semibold text-foreground text-sm">{o.t}</div>
-                          <div className="text-[11px] text-muted-foreground mt-0.5">{o.d}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {draft.approvalMethod === "matrix" && (
-                    <div className="pt-2 border-t border-border/50">
-                      <select value={draft.approvalMatrixId}
-                        onChange={e => update({ approvalMatrixId: e.target.value })}
-                        className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                        <option value="">— Təsdiqləmə matrisi seçin —</option>
-                        {approvalMatrices.map(m => (
-                          <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
-                        ))}
-                      </select>
-                      {selectedMatrix && (
-                        <div className="text-[11px] text-muted-foreground mt-1">
-                          Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
-                        </div>
-                      )}
+                {/* Təsdiqləmə üsulu */}
+                {draft.useMatrix ? (
+                  <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə matrisi</h3>
                     </div>
-                  )}
+                    <select value={draft.approvalMatrixId}
+                      onChange={e => update({ approvalMatrixId: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                      <option value="">— Təsdiqləmə matrisi seçin —</option>
+                      {approvalMatrices.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
+                      ))}
+                    </select>
+                    {selectedMatrix && (
+                      <div className="text-[11px] text-muted-foreground">
+                        Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3 flex items-start gap-2 text-xs">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                    <div>
+                      <div className="font-semibold text-foreground">Matrissiz təyinat</div>
+                      <p className="text-muted-foreground mt-0.5">
+                        Kart matris olmadan avtomatik təyin ediləcək və <b>Aktiv</b> statusda yaranacaq. Təsdiq lazım gəldikdə birbaşa <b>{draft.approvalMethod === "team_leader" ? "komanda liderinə" : "struktur rəhbərinə"}</b> göndəriləcək.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
-                  <p className="text-[11px] text-muted-foreground pt-1">
-                    Qeyd: Təsdiq bir nəfərə deyil, hər əməkdaşın öz rəhbərinə/komanda liderinə göndərilir. Rəhbəri təyin olunmayan şəxs varsa "Təyinə göndər" xəta verəcək.
-                  </p>
-                </div>
+
 
               </div>
             );
@@ -1065,7 +1053,17 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 className="flex items-center gap-1 px-5 py-1.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
                 Növbəti <ChevronRight className="w-4 h-4" />
               </button>
+            ) : draft.useMatrix ? (
+              <button type="button" onClick={() => finalize("submit")}
+                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
+                <Send className="w-4 h-4" /> Təyinə göndər
+              </button>
             ) : (
+              <button type="button" onClick={() => finalize("create_active")}
+                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold shadow-sm hover:from-emerald-600 hover:to-emerald-700">
+                <Power className="w-4 h-4" /> KPI yarat
+              </button>
+            )}
               <button type="button" onClick={() => finalize("submit")}
                 className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
                 <Send className="w-4 h-4" /> Təyinə göndər
