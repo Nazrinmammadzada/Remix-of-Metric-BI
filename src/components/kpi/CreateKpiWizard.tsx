@@ -113,6 +113,9 @@ export interface CreateKpiWizardDraft {
   scoringSystem: string;
   useMatrix: boolean;
   approvalMatrixId: string;
+  /** 3-cü addımda seçilir. Default `mode`/`bulkSelections`-a əsasən hesablanır. */
+  approvalMethod: "structure_leader" | "team_leader" | "matrix";
+
 
   lifecycle: {
     /** KPI təyin olunması */
