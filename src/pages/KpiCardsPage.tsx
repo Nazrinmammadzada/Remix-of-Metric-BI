@@ -1328,12 +1328,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   <div key={card.id} onClick={() => openDetail(card)} className={`bg-card rounded-xl p-5 border-2 border-border cursor-pointer hover:shadow-md hover:border-primary/40 transition-shadow relative group ${card.frozen ? "opacity-70" : ""}`}>
                     <button
                       disabled={locked}
-                      onClick={(e) => { e.stopPropagation(); if (locked) return; setEditingCardId(card.id); setShowCreate(true); setCreateStep(1); }}
+                      onClick={(e) => { e.stopPropagation(); if (locked) return; openWizardForEdit(card.id); }}
                       title={locked ? "Təsdiqlənmiş KPI-ı redaktə etmək mümkün deyil" : "Redaktə et"}
                       className={`absolute top-3 right-11 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10 ${locked ? "cursor-not-allowed opacity-30 group-hover:opacity-40" : "hover:bg-secondary"}`}
                     >
                       <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
+
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
                       title={card.approvalStatus === "approved" ? "Silmək üçün təsdiqləmə matrisindən təsdiq tələb olunur" : "Sil"}
