@@ -104,7 +104,7 @@ const App = () => {
               <Route path="/cascading" element={<CascadingHubPage />} />
               <Route path="/cascade-matrisi" element={<CascadeMatrixPage />} />
 
-              <Route path="/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/tesdiqleme-matrisi" element={<MatrixPage />} />
               <Route path="/hesabat" element={<ReportsPage />} />
               <Route path="/komandalar" element={<TeamsPage />} />
