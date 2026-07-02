@@ -145,14 +145,17 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
 
   return (
     <div className="min-h-screen">
-      <Header title="KPI Nəticələri" />
-      <main className="p-6 pb-24">
-        <PageHero
-          badge="KPI Nəticələri"
-          icon={BarChart3}
-          title="KPI Nəticələri"
-          subtitle="Əməkdaşların KPI kartları üzrə qiymətləndirmə nəticələri"
-        />
+      {!hideChrome && <Header title="KPI Nəticələri" />}
+      <main className={hideChrome ? "" : "p-6 pb-24"}>
+        {!hideChrome && (
+          <PageHero
+            badge="KPI Nəticələri"
+            icon={BarChart3}
+            title={heroTitle || "KPI Nəticələri"}
+            subtitle={heroSubtitle || "Əməkdaşların KPI kartları üzrə qiymətləndirmə nəticələri"}
+          />
+        )}
+
 
         {/* Filter bar */}
         <div className="rounded-xl border border-border bg-card p-4 mb-4 flex flex-wrap items-end gap-3">
