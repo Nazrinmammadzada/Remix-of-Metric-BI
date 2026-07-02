@@ -558,10 +558,90 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     toast.success(`Yeni komanda yaradıldı: ${baseName}`);
   };
 
+  // ==== Approval method auto-default (touched flag qoruyur user seçimini) ====
+  const [approvalMethodTouched, setApprovalMethodTouched] = useState(false);
+  const suggestApprovalMethod = (d: CreateKpiWizardDraft): CreateKpiWizardDraft["approvalMethod"] => {
+    if (d.mode === "individual") return "matrix";
+    const bs = d.bulkSelections;
+    if (bs.teams.length > 0) return "team_leader";
+    if (bs.structures.length > 0) return "structure_leader";
+    return "matrix"; // positions / persons / boş
+  };
+  useEffect(() => {
+    if (approvalMethodTouched) return;
+    const suggested = suggestApprovalMethod(draft);
+    if (suggested !== draft.approvalMethod) {
+      setDraft(p => ({ ...p, approvalMethod: suggested, useMatrix: suggested === "matrix" }));
+    }
+  }, [draft.mode, draft.bulkSelections, approvalMethodTouched]);
+  const setApprovalMethod = (m: CreateKpiWizardDraft["approvalMethod"]) => {
+    setApprovalMethodTouched(true);
+    update({ approvalMethod: m, useMatrix: m === "matrix" });
+  };
+
+  // ==== Approval targets validation (team_leader / structure_leader / matrix) ====
+  const collectAssignedEmployees = (d: CreateKpiWizardDraft): string[] => {
+    if (d.mode === "individual") return d.individualEmployees;
+    const bs = d.bulkSelections;
+    const set = new Set<string>();
+    // Şəxs kateqoriyası — birbaşa adlar; digər kateqoriyalarda üzvləri toplayırıq.
+    bs.persons.forEach(n => set.add(n));
+    if (bs.teams.length > 0) {
+      const allTeams = getTeams();
+      bs.teams.forEach(name => {
+        const t = allTeams.find(x => x.name === name);
+        if (!t) return;
+        set.add(t.leader);
+        t.members.forEach(m => set.add(m.name));
+      });
+    }
+    // Struktur/vəzifə üçün əməkdaş adlarını burada map etmirik (validator ayrıca yoxlayır).
+    return Array.from(set);
+  };
+
+  const getTeamOfPerson = (name: string) => {
+    const teams = getTeams();
+    return teams.find(t => t.leader === name || t.members.some(m => m.name === name)) || null;
+  };
+  const getStructureLeaderName = (empName: string): string | null => {
+    const employees = getEmployees();
+    const emp = employees.find(e => `${e.firstName} ${e.lastName}` === empName || (e as any).fullName === empName);
+    if (!emp) return null;
+    const path = (emp as any).structurePath as string | undefined;
+    if (!path) return null;
+    const leader = employees.find(e => (e as any).structurePath === path && e.isStarPerson);
+    if (!leader) return null;
+    return `${leader.firstName} ${leader.lastName}`;
+  };
+
+  const validateApprovalTargets = (d: CreateKpiWizardDraft): string | null => {
+    if (d.approvalMethod === "matrix") {
+      if (!d.approvalMatrixId) return "Təsdiqləmə matrisi seçin";
+      return null;
+    }
+    if (d.approvalMethod === "team_leader") {
+      const people = collectAssignedEmployees(d);
+      if (people.length === 0 && d.bulkSelections.teams.length === 0) return "Təsdiqləmə üçün əməkdaş və ya komanda seçilməlidir";
+      const missing = people.filter(p => !getTeamOfPerson(p));
+      if (missing.length > 0) {
+        return `Bu şəxslərin komandası yoxdur: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+      }
+      return null;
+    }
+    // structure_leader
+    const people = collectAssignedEmployees(d);
+    if (people.length === 0 && d.bulkSelections.structures.length === 0) return "Təsdiqləmə üçün əməkdaş və ya struktur seçilməlidir";
+    const missing = people.filter(p => !getStructureLeaderName(p));
+    if (missing.length > 0) {
+      return `Bu şəxslərin struktur rəhbəri müəyyən edilə bilmir: ${missing.join(", ")}. Onlar üçün ayrıca kart və ya matriks yaradın.`;
+    }
+    return null;
+  };
+
   const finalize = (action: WizardAction) => {
-    if (action === "submit" && draft.useMatrix && !draft.approvalMatrixId) {
-      toast.error("Təyinə göndərmək üçün təsdiqləmə matrisini seçin");
-      return;
+    if (action === "submit") {
+      const err = validateApprovalTargets(draft);
+      if (err) { toast.error(err); return; }
     }
     ensureAutoTeam(draft);
     onComplete({ ...draft, action, lastStep: step });
@@ -572,6 +652,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     );
     close();
   };
+
 
   // ====== UI ======
   const Field = ({ label, required, children, span = "col-span-12 md:col-span-6" }:
