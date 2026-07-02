@@ -143,7 +143,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             Kaskadlama — {node?.goalName || bootstrap?.goalName}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {node?.cardName || bootstrap?.cardName} · Ümumi limit: <b>{fmt(limit)} {node?.unit || bootstrap?.unit}</b>
+            {node?.cardName || bootstrap?.cardName} · Hədəf dəyəri (hər əməkdaşa): <b>{fmt(node?.limit || 0)} {node?.unit || bootstrap?.unit}</b>
           </p>
         </DialogHeader>
 
