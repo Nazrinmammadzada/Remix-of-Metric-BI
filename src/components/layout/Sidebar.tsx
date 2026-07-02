@@ -33,7 +33,6 @@ const ADMIN_ITEMS: NavItem[] = [
 ];
 
 const MANAGER_ITEMS: NavItem[] = [
-  { path: "/hr/rehber", label: "Rəhbər Əsas Səhifə", icon: Home },
   { path: "/hr/rehber/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
   { path: "/hr/rehber/mesul-kartlar", label: "Məsul olduğum kartlar", icon: LayoutGrid },
   { path: "/hr/rehber/komandam", label: "Komandam", icon: Users },

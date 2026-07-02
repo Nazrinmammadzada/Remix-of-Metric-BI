@@ -31,12 +31,19 @@ import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStor
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
-const STATUS_LABELS = { natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir", imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu" } as const;
+const STATUS_LABELS = {
+  qaralama: "Qaralama", natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+  imtina: "İmtina", aktiv: "Aktiv", qiymetlendirme: "Qiymətləndirmə",
+  tamamlanib: "Tamamlanıb", legv_olundu: "Ləğv olundu",
+} as const;
 const STATUS_STYLES: Record<string, string> = {
+  qaralama: "bg-slate-200 text-slate-700 border-slate-300",
   natamam: "bg-muted text-muted-foreground border-border",
   tesdiq_gozlenilir: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
   imtina: "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30",
   aktiv: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
+  qiymetlendirme: "bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30",
+  tamamlanib: "bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30",
   legv_olundu: "bg-slate-800 text-slate-100 border-slate-900",
 };
 
@@ -582,8 +589,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
-      : action === "submit" ? "tesdiq_gozlenilir"
-      : "natamam";
+      : action === "submit" ? "natamam"
+      : "qaralama";
     try {
       await upsertStatus({
         card_id: id,
@@ -624,9 +631,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     try {
       const ownerId = getCurrentEmployeeId(user) || "e1";
       const sharedStatus: "natamam" | "tesdiq_gozlenilir" | "aktiv" =
-        nextStatus === "tesdiq_gozlenilir" ? "tesdiq_gozlenilir"
-        : nextStatus === "aktiv" ? "aktiv"
-        : "natamam";
+        nextStatus === "aktiv" ? "aktiv" : "natamam";
       const sharedId = `legacy-${id}`;
       const shared = buildSharedCardFromDraft(d, {
         id: sharedId,
@@ -683,16 +688,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const DEMO_STATUS: Record<number, Partial<import("@/lib/kpiCardStatusStore").KpiCardStatusRow>> = {
     1: { status: "aktiv", use_matrix: true, submitted_for_approval: true, assignees: [{ name: "Samir Həsənov", ok: true }, { name: "Leyla Məmmədova", ok: true }] },
     2: { status: "aktiv", assignees: [{ name: "Farid Həsənov", ok: true }] },
-    3: { status: "aktiv", assignees: [{ name: "Emin Məmmədov", ok: true }] },
-    4: { status: "aktiv", assignees: [{ name: "Leyla Həsənova", ok: true }] },
+    3: { status: "qiymetlendirme", assignees: [{ name: "Emin Məmmədov", ok: true }] },
+    4: { status: "tamamlanib", assignees: [{ name: "Leyla Həsənova", ok: true }] },
     5: { status: "tesdiq_gozlenilir", use_matrix: true, submitted_for_approval: false, assignees: [{ name: "Rəşad Əliyev", ok: true }] },
     6: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: true }, { name: "Tural İsmayılov", ok: false }] },
     7: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", assignees: [{ name: "Leyla Məmmədova", ok: true }] },
-    8: { status: "aktiv", assignees: [{ name: "Tural İsmayılov", ok: true }] },
+    8: { status: "tamamlanib", assignees: [{ name: "Tural İsmayılov", ok: true }] },
     9: { status: "imtina", use_matrix: true, rejected_by: "Departament Direktoru", rejection_reason: "Hədəf dəyəri çox aşağıdır — yenidən nəzərdən keçirilməlidir.", assignees: [{ name: "Nigar Hüseynova", ok: true }, { name: "Leyla Həsənova", ok: false }] } as any,
-    10: { status: "imtina", use_matrix: true, rejected_by: "HR Direktoru", rejection_reason: "Qiymətləndirici seçimi tələblərə uyğun deyil.", assignees: [{ name: "Emin Məmmədov", ok: true }, { name: "Günel Əlizadə", ok: false }] } as any,
-    11: { status: "natamam", use_matrix: false, assignees: [{ name: "Leyla Həsənova", ok: false }] },
-    12: { status: "natamam", use_matrix: false, assignees: [{ name: "Kamran Quliyev", ok: false }] },
+    10: { status: "qiymetlendirme", use_matrix: false, assignees: [{ name: "Emin Məmmədov", ok: true }] } as any,
+    11: { status: "qaralama", use_matrix: false, assignees: [] },
+    12: { status: "qaralama", use_matrix: false, assignees: [] },
   };
   const getStatusFor = (cardId: number) => {
     const remote = statusMap[cardId];
@@ -840,8 +845,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     }
     const st = getStatusFor(c.id);
     const STATUS_LBL: Record<string, string> = {
-      natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
-      imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
+      qaralama: "Qaralama", natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+      imtina: "İmtina", aktiv: "Aktiv", qiymetlendirme: "Qiymətləndirmə",
+      tamamlanib: "Tamamlanıb", legv_olundu: "Ləğv olundu",
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
     const kind = getAssignKindFor(c.id);
@@ -1088,10 +1094,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               <label className="text-[11px] text-muted-foreground">Status</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background">
                 <option>Hamısı</option>
+                <option>Qaralama</option>
                 <option>Natamam</option>
                 <option>Təsdiq gözlənilir</option>
                 <option>İmtina</option>
                 <option>Aktiv</option>
+                <option>Qiymətləndirmə</option>
+                <option>Tamamlanıb</option>
                 <option>Ləğv olundu</option>
               </select>
             </div>

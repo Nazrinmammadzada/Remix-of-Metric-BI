@@ -104,7 +104,7 @@ const App = () => {
               <Route path="/cascading" element={<CascadingHubPage />} />
               <Route path="/cascade-matrisi" element={<CascadeMatrixPage />} />
 
-              <Route path="/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/tesdiqleme-matrisi" element={<MatrixPage />} />
               <Route path="/hesabat" element={<ReportsPage />} />
               <Route path="/komandalar" element={<TeamsPage />} />
@@ -119,7 +119,7 @@ const App = () => {
 
               {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
               <Route path="/hr/rehber" element={<ManagerHomePage />} />
-              <Route path="/hr/rehber/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/hr/rehber/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/hr/rehber/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
               <Route path="/hr/rehber/komandam" element={<TeamsPage />} />
               <Route path="/hr/rehber/kpi-izleme" element={<ManagerKpiTrackingPage />} />
@@ -147,7 +147,7 @@ const App = () => {
             {/* Manager (Rəhbər) Panel */}
             <Route element={<RouteGuard requiredRole="MANAGER"><ManagerLayout /></RouteGuard>}>
               <Route path="/manager" element={<ManagerHomePage />} />
-              <Route path="/manager/sistem-tesdiq" element={<ApprovalsPage />} />
+              <Route path="/manager/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
               <Route path="/manager/komandam" element={<TeamsPage />} />
               <Route path="/manager/kpi-izleme" element={<ManagerKpiTrackingPage />} />

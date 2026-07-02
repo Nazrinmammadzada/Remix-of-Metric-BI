@@ -107,47 +107,8 @@ const OrganizationPage = () => {
               )}
             </div>
           }
-          right={
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <button
-                onClick={() => {
-                  const inp = document.createElement("input");
-                  inp.type = "file";
-                  inp.accept = ".xlsx,.xls,.csv";
-                  inp.onchange = () => {
-                    const f = inp.files?.[0];
-                    if (f) toast.success(`Excel faylı qəbul edildi: ${f.name}`);
-                  };
-                  inp.click();
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-              >
-                <Download className="w-3.5 h-3.5 rotate-180" /> Excel import
-              </button>
-              <button
-                onClick={() => window.open("https://pre.chr.blink-bi.az/auth/sign-in", "_blank", "noopener,noreferrer")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-              >
-                <img src={chrLogo} alt="CHR" className="w-4 h-4 object-contain" />
-                CHR import
-              </button>
-              <button
-                onClick={() => toast.success("CHR-a export sorğusu göndərildi")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-              >
-                <img src={chrLogo} alt="CHR" className="w-4 h-4 object-contain" />
-                CHR export
-              </button>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border">
-                <Users className="w-4 h-4 text-primary" />
-                <div className="text-xs">
-                  <span className="font-semibold text-foreground">{stats.total}</span>
-                  <span className="text-muted-foreground"> əməkdaş · {stats.active} aktiv</span>
-                </div>
-              </div>
-            </div>
-          }
         />
+
 
         {tab === null ? (
           <ModuleCards activeTab={tab} onSelectTab={setTab} />

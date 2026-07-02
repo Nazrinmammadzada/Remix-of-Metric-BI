@@ -61,6 +61,9 @@ export type Database = {
         | "imtina"
         | "aktiv"
         | "legv_olundu"
+        | "qaralama"
+        | "qiymetlendirme"
+        | "tamamlanib"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -194,6 +197,9 @@ export const Constants = {
         "imtina",
         "aktiv",
         "legv_olundu",
+        "qaralama",
+        "qiymetlendirme",
+        "tamamlanib",
       ],
     },
   },

@@ -650,7 +650,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     ensureAutoTeam(draft);
     onComplete({ ...draft, action, lastStep: step });
     toast.success(
-      action === "draft" ? "Natamam (Draft) kimi yadda saxlanıldı"
+      action === "draft" ? "Qaralama kimi yadda saxlanıldı"
       : action === "create_active" ? "KPI yaradıldı və aktiv edildi"
       : "KPI təyinə göndərildi",
     );
@@ -929,23 +929,20 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                               <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0" title={r.reviewerName || "Şəxs seçilməyib"}>
                                 <User className="w-4 h-4 text-primary" />
                               </div>
-                              <select
+                              <input
+                                list={`reviewer-list-${r.id}`}
                                 value={r.reviewerName || ""}
                                 onChange={e => updReview(r.id, { reviewerName: e.target.value })}
+                                placeholder="Şəxs axtar (ad, vəzifə)…"
                                 className="flex-1 px-2 py-1.5 text-sm border border-border rounded bg-background"
-                              >
-                                <option value="">— Şəxs seçin (rəhbər və ya adi əməkdaş) —</option>
-                                <optgroup label="Rəhbər vəzifədə olan şəxslər">
-                                  {emps.filter(e => /direktor|müdir|rəhbər|başçı/i.test(e.positionName || "")).map(e => (
-                                    <option key={`m-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.positionName || ""}</option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Adi əməkdaşlar">
-                                  {emps.filter(e => !/direktor|müdir|rəhbər|başçı/i.test(e.positionName || "")).map(e => (
-                                    <option key={`u-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.positionName || ""}</option>
-                                  ))}
-                                </optgroup>
-                              </select>
+                              />
+                              <datalist id={`reviewer-list-${r.id}`}>
+                                {emps.map(e => (
+                                  <option key={e.id} value={`${e.firstName} ${e.lastName}`}>
+                                    {e.positionName || ""}
+                                  </option>
+                                ))}
+                              </datalist>
                             </div>
                           </div>
                         </div>
@@ -1191,11 +1188,16 @@ function Step2Targets({
           <div className="space-y-3">
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici</label>
-              <select value={unifiedAssigner} onChange={e => setUnifiedAssigner(e.target.value)}
-                className="w-full mt-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                <option value="">— Əməkdaş seçin —</option>
+              <input
+                list="unified-assigner-list"
+                value={unifiedAssigner}
+                onChange={e => setUnifiedAssigner(e.target.value)}
+                placeholder="Əməkdaş axtar (ad, vəzifə)…"
+                className="w-full mt-1 px-2.5 py-1.5 text-sm border border-border rounded bg-background"
+              />
+              <datalist id="unified-assigner-list">
                 {employeeOptions.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
-              </select>
+              </datalist>
             </div>
             <div>
               <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Qiymətləndirici(lər) — çəkilər cəmi 100%</label>
@@ -1397,11 +1399,16 @@ function Step2Targets({
                   <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Təyin edici *</span>
                   <button type="button" onClick={() => setAssignerPickerFor(null)} className="text-[11px] text-primary hover:underline">Bağla</button>
                 </div>
-                <select value={t.assigner} onChange={e => updHedef(t.id, { assigner: e.target.value })}
-                  className="w-full px-2 py-1.5 text-xs border border-border rounded bg-background">
-                  <option value="">— Əməkdaş seçin —</option>
+                <input
+                  list={`assigner-list-${t.id}`}
+                  value={t.assigner}
+                  onChange={e => updHedef(t.id, { assigner: e.target.value })}
+                  placeholder="Əməkdaş axtar (ad, vəzifə)…"
+                  className="w-full px-2 py-1.5 text-xs border border-border rounded bg-background"
+                />
+                <datalist id={`assigner-list-${t.id}`}>
                   {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                </datalist>
               </div>
             )}
 
