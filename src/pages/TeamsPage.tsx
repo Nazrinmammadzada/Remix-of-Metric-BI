@@ -87,7 +87,11 @@ const TeamsPage = () => {
     "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
   }));
 
-  const filteredTeams = teams.filter(t =>
+  const scopedTeams = isManager
+    ? teams.filter(t => t.leader === user?.name)
+    : teams;
+
+  const filteredTeams = scopedTeams.filter(t =>
     t.name.toLowerCase().includes(searchText.toLowerCase()) ||
     t.leader.toLowerCase().includes(searchText.toLowerCase())
   );
