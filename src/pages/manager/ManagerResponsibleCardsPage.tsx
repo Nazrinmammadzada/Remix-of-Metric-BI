@@ -8,7 +8,7 @@ import {
   LayoutGrid, Search, ChevronDown, ChevronRight, GitBranch, Crown,
   CheckCircle2, Hourglass, Target as TargetIcon, Pencil,
 } from "lucide-react";
-import { useKpiSet, type KpiSetEntry } from "@/lib/kpiSetStore";
+import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
 import {
   useCascadeTree, findRootByGoal, distributedOf, remainingOf,
 } from "@/lib/cascadeTreeStore";
