@@ -145,8 +145,13 @@ const TeamsPage = () => {
       toast.error("Ən azı bir üzv seçin");
       return;
     }
-    const leader = allPeople.find(p => p.name === selectedMembers[0]);
-    if (!leader) return;
+    if (!leaderName) {
+      toast.error("Komanda lideri seçin");
+      return;
+    }
+    const leader = allPeople.find(p => p.name === leaderName);
+    if (!leader) { toast.error("Seçilən lider siyahıda tapılmadı"); return; }
+
     const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leader.name);
     const branch = subStructures[0] || structures[0] || "Mərkəzi Filial";
     const team: Team = {
