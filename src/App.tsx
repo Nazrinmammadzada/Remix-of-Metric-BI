@@ -15,6 +15,9 @@ import KpiCardsPage from "./pages/KpiCardsPage";
 import KpiHubPage from "./pages/KpiHubPage";
 import KpiScoresPage from "./pages/KpiScoresPage";
 import ManagerResponsibleCardsPage from "./pages/manager/ManagerResponsibleCardsPage";
+import ManagerResultsPage from "./pages/manager/ManagerResultsPage";
+import ManagerBonusPage from "./pages/manager/ManagerBonusPage";
+import ManagerKpiTrackingPage from "./pages/manager/ManagerKpiTrackingPage";
 import KpiLifecyclePage from "./pages/KpiLifecyclePage";
 import CascadeMatrixPage from "./pages/CascadeMatrixPage";
 import CascadingPage from "./pages/CascadingPage";
@@ -138,9 +141,9 @@ const App = () => {
               <Route path="/manager/sistem-tesdiq" element={<ApprovalsPage />} />
               <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
               <Route path="/manager/komandam" element={<TeamsPage />} />
-              <Route path="/manager/kpi-izleme" element={<GoalTrackingPage />} />
-              <Route path="/manager/neticelerim" element={<KpiScoresPage />} />
-              <Route path="/manager/bonuslarim" element={<BonusPage />} />
+              <Route path="/manager/kpi-izleme" element={<ManagerKpiTrackingPage />} />
+              <Route path="/manager/neticelerim" element={<ManagerResultsPage />} />
+              <Route path="/manager/bonuslarim" element={<ManagerBonusPage />} />
               <Route path="/manager/hesabat" element={<ReportsPage />} />
               <Route path="/manager/whistleblower" element={<WhistleblowerPage />} />
               <Route path="/manager/ayarlar" element={<SettingsPage />} />

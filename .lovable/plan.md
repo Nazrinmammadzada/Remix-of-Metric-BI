@@ -1,80 +1,70 @@
-# Rəhbər · Hədəf Təyinetmə və Kaskadlama axını
+# Rəhbər profilində dəyişikliklər planı
 
-Bu iş "KPI Set" məntiqini bərpa edir — amma ayrı modul kimi yox, `Məsul olduğum kartlar` içərisində. Sonra riyazi düzgün kaskadlama pop-up-ı əlavə olunur.
+## 1) Cascade Load məntiqinin düzəldilməsi
 
-## 1. HR axını (kart yaradarkən)
-`CreateKpiWizard`-da hədəf növünə uyğun aşağıdakılar artıq mövcuddur; toxunulmur:
-- Hədəf növü (say, məbləğ, nisbət, faiz, keyfiyyət, tarix, boolean və s.)
-- Cascading toggle (yalnız divisible növlərdə — say / məbləğ / nisbət / faiz)
-- Bal standartı (1–5, 1–10 və s.)
+**Problem:** Hazırda rəhbərin təyin etdiyi hədəf dəyəri cascade limit kimi işlədilir. Əslində bu dəyər hədəfin **aid olduğu şəxsə** aiddir, təyinediciyə deyil.
 
-**Dəyişiklik:** HR kartın daxilində hədəfi öz üzərinə deyil, `responsible` = rəhbər olan bir şəxs seçdikdə wizard tamamlandıqda `kpiSetStore`-da o rəhbər üçün **pending KpiSetEntry** yaradılır (hədəf adı və dəyər boş, yalnız kart, çəki intervalı, cascadable, unit təklifi ötürülür). Bu, indi tam olaraq itmişdir.
+**Dəyişikliklər:**
+- `CascadeDistributeDialog.tsx`:
+  - "Ümumi limit" artıq hədəfin `value`-si deyil, rəhbərin **başqa kartdan** gələn ümumi cascade load-udur.
+  - Global seed: rəhbər üçün `500 000` AZN paylanabilən cascade load təyin et (`kpiSetStore` və ya yeni `cascadeLoadStore`-da).
+  - Əməkdaşın qarşısına yazılan qiymət default olaraq hədəfin dəyərinə (`bootstrap.limit`) bərabərdir — yalnız bir sətir, birbaşa əməkdaş üçün.
+  - Hər bölgüdən sonra qalan cascade load bütün digər pop-up/pəncərələrdə azalmış görünsün (persist real-time).
+- `CascadeLoadConfirmDialog`: `value` prop cascade load qalıqını göstərəcək (500000 seed-dən).
 
-## 2. Rəhbər axını (`Məsul olduğum kartlar`)
-`ManagerResponsibleCardsPage`-ə **iki reallıq** əlavə olunur:
+## 2) "Hədəf təyin etmə" cədvəlinin görünüşü
 
-### 2.1 Təyinetmə pop-up-ı (KPI Set məntiqinin bərpası)
-Hər pending sətir üçün "Təyin et" düyməsi.  Yeni komponent `AssignGoalDialog.tsx`:
-- **Hədəf adı** (mətn)
-- **Hədəf növü** (dropdown — data cədvəlində olan növlər, `dropdownCatalogStore`)
-- **Hədəf dəyəri** (unit ilə)
-- **Çəki (%)** — kartda təyin olunmuş min/max aralığında validasiya
-- **Qiymət limitləri** — `ScoreLimitsDialog`-un daxili blokunu istifadə edir. Bal aralığı kartın seçdiyi standart (məs. 1–10) əsasında formalaşır və hədəf növünə uyğun düzülür (məbləğ üçün diapazon, faiz üçün 0–100 və s.).
-- **"Bu hədəfi kaskadlana bilər"** — yalnız say / məbləğ / nisbət / faiz növlərində görünür.
+`ManagerResponsibleCardsPage.tsx` — "Hədəf təyin etmə" hissəsi:
+- Görünüşü tam olaraq "Hədəf qiymətləndirmə" ilə eyni et: multi-card expandable list, hər kart açıldıqda hədəflər cədvəli.
+- Sütun adları (Ad, Növ, Dəyər, Çəki, Əməliyyatlar) dəyişməz qalır.
+- "Qiymətləndir" yerinə "Təyin et" düyməsi.
 
-Save → `setEntryDetails` çağırılır → entry `completed` statusuna keçir.
+## 3) "Nəticələrim" modulu (yeni)
 
-### 2.2 Kaskad pop-up-ı (Save-dan sonra)
-Save zamanı yoxlama:
-- Rəhbərin öz tabeçiliyində (structure üzrə `getSubordinatesOfStarHolder`) həmin **kartın şamil olunduğu** şəxslər varmı?
-- Hədəf `cascadable` mı?
+Yeni səhifə `src/pages/manager/ManagerResultsPage.tsx`:
+- 3 kart: **Fərdi nəticələrim**, **Komanda nəticələri**, **Tabeçiliyimdəki nəticələr**.
+- Hər kartın daxilində 2 tab: **Yekunlaşmış** və **Davam edən**.
+- Seed data: komandada və tabeçilikdə nümunə şəxslər (mövcud org profilləri ilə uyğun).
+- Sidebar-a əlavə.
 
-Hər ikisi doğrudursa, təsdiq dialoqu:
-> "Sizin üzərinizdə {value} {unit} Cascade Load mövcuddur. Bu hədəfi tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?"
+## 4) "Bonuslarım" modulu
 
-**Bəli** seçilərsə `CascadeDistributeDialog`-un yeni **Step-2** görünüşü açılır:
-- Yuxarı 3 stat kartı: **Ümumi Limit (Sizin üzərinizdə)**, **Paylanmış**, **Qalıq** (şəkildəki kimi).
-- Cədvəl: # · Əməkdaş · Vəzifə · Kaskad limit (input).
-- Yalnız kartın şamil olunduğu tabeçilik əməkdaşları görünür (intersect: subordinates ∩ kartın assignees).
-- Riyazi validasiya: `Σ slice ≤ ümumi limit`. Overflow → save disable + qırmızı xəbərdarlıq. "Sistem hədəfin şişməsinə icazə verməməlidir."
-- Save → `cascadeTreeStore.distribute()`.
+Yeni səhifə `src/pages/manager/ManagerBonusPage.tsx`:
+- 2 kart: **Öz bonuslarım**, **Tabeçiliyimdəki bonuslar**.
+- Daxili məntiq eynidir (mövcud `BonusPage` səhifəsinin sadə variantı).
+- Sidebar-a əlavə et.
 
-## 3. Data axışı
-```text
-HR kart yaradır ─▶ pending KpiSetEntry (rəhbər üçün)
-                         │
-Rəhbər AssignGoalDialog açır ─▶ hədəf detalları + limitlər set olur
-                         │
-        cascadable + subordinates var? ─▶ Confirm pop-up
-                         │ bəli
-              CascadeDistributeDialog (Step-2 stats + table)
-                         │
-                cascadeTreeStore.distribute()
-```
+## 5) "KPI izlənməsi" modulu
 
-## 4. Fayl dəyişiklikləri
-- **Yeni:** `src/components/kpi/AssignGoalDialog.tsx` — hədəf adı/növü/dəyəri/çəki/limitlər + cascadable seçimi.
-- **Yeni:** `src/components/kpi/CascadeLoadConfirmDialog.tsx` — kiçik confirm pop-up.
-- **Redaktə:** `src/pages/manager/ManagerResponsibleCardsPage.tsx`
-  - Pending sətirlər üçün "Təyin et" düyməsi.
-  - Save sonrası cascadable + subordinates check → confirm → distribute dialog.
-  - Ümumi limit / paylanmış / qalıq statlarını rəhbərin öz row-u üçün göstər.
-- **Redaktə:** `src/components/kpi/CascadeDistributeDialog.tsx`
-  - Yuxarıdakı 3 stat kartını şəkildəki layout-a uyğunlaşdır (Ümumi Limit / Paylanmış / Qalıq üçlüsü).
-  - Subordinates siyahısını "kartın şamil olunduğu şəxslər ∩ tabeçilik" ilə məhdudlaşdır.
-  - Radio "cascade / independent" saxlanılır.
-- **Redaktə:** `src/components/kpi/CreateKpiWizard.tsx` (yüngül)
-  - HR kartı bitirəndə responsible rəhbərlər üçün pending `KpiSetEntry` yarat (əgər cascadable divisible növdürsə + rəhbər özü təyinediçidirsə).
-- **Toxunulmur:** `kpiSetStore.ts` API (setEntryDetails, cascadable, weight artıq mövcuddur).
+Yeni səhifə `src/pages/manager/ManagerKpiTrackingPage.tsx`:
+- 3 kart:
+  1. **Mənim KPI-larım** — fərdi hədəflər və icra vəziyyəti.
+  2. **Komanda KPI-ları** — kollektiv hədəflər.
+  3. **Tabeçiliyimdəkilərin KPI-ları** — iyerarxik ağac görünüşü:
+     - Default: yalnız 1 səviyyə aşağı (birbaşa tabeçilik).
+     - Səviyyə seçici (1–5): klik ilə genişlənmə.
+     - Ad üzrə axtarış inputu.
+     - Hər əməkdaş sətrində: təyin statusu (✓/✗), mərhələ (təyin/qiymətləndirmə), gecikmə bildirişi ("Tələsdür" düyməsi — toast notification).
+     - Lifecycle qısa göstəricisi.
+- Sidebar-a əlavə et.
 
-## 5. Riyazi qaydalar
-- Paylanmış = `Σ children.limit`
-- Qalıq = `limit − paylanmış` (heç vaxt < 0 olmasın — UI-də save disable)
-- Bir slice sıfır olarsa cəmə daxil edilmir
-- `distribute()` artıq `sum > parent.limit` yoxlayır — orada da təkrar yoxlama qorunur.
+## Texniki detallar
 
-## 6. Ekran uyğunluğu (istifadəçinin şəkli)
-- 3 sütunlu üst statlar (Ümumi Limit · Paylanmış · Qalıq) — böyük şrift + ölçü vahidi.
-- Cədvəl sütunları: # · Əməkdaş · Vəzifə · Kaskad limit.
+**Yeni store:** `src/lib/managerCascadeLoadStore.ts`
+- Konstant `TOTAL_LOAD = 500000`, `distributed` state, `remaining()` selector, `distribute(amount)` və `useCascadeLoad()` hook.
 
-Təsdiq etsəniz, birbaşa implementasiyaya başlayıram.
+**Yeni fayllar:**
+- `src/pages/manager/ManagerResultsPage.tsx`
+- `src/pages/manager/ManagerBonusPage.tsx`
+- `src/pages/manager/ManagerKpiTrackingPage.tsx`
+- `src/lib/managerCascadeLoadStore.ts`
+- (opsional) `src/lib/managerResultsSeed.ts`, `src/lib/managerBonusSeed.ts`
+
+**Redaktə olunacaq:**
+- `src/components/kpi/CascadeDistributeDialog.tsx` — limit mənbəyi və real-time load.
+- `src/components/kpi/CascadeLoadConfirmDialog.tsx` — value = qalıq load.
+- `src/pages/manager/ManagerResponsibleCardsPage.tsx` — cədvəl görünüşü.
+- `src/components/layout/ManagerSidebar.tsx` — 3 yeni link.
+- `src/App.tsx` — 3 yeni route.
+
+Təstiq alandan sonra dərhal implementasiyaya başlayıram.

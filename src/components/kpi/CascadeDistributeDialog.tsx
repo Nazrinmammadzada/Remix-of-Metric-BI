@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { GitBranch, Crown, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, findStructureById, getStructures } from "@/lib/orgStore";
 import { distribute, getChildren, remainingOf, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { availableFor, setAllocated, useCascadeLoad, getAllocated } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
@@ -103,8 +104,18 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     setSlices(next);
   };
 
+  // Cascade Load bucket — 500 000 AZN shared across all cards
+  useCascadeLoad(); // subscribe for live updates
+  const bucketKey = useMemo(() => {
+    if (node) return `node:${node.id}`;
+    if (bootstrap) return `bs:${bootstrap.cardName}::${bootstrap.goalName}::${bootstrap.assigneeId ?? bootstrap.assigneeName}`;
+    return "unknown";
+  }, [node?.id, bootstrap?.cardName, bootstrap?.goalName, bootstrap?.assigneeId, bootstrap?.assigneeName]);
+  const bucketAvailable = availableFor(bucketKey); // remaining + this-key's own allocation
+  const alreadyAllocated = getAllocated(bucketKey);
+
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
-  const limit = node?.limit || 0;
+  const limit = bucketAvailable; // artıq hədəf dəyəri yox, cascade load bucket-i
   const remaining = limit - totalDist;
   const overflow = remaining < -0.001;
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +133,21 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
         } : null;
       })
       .filter(Boolean) as any[];
+    // Load bucket-in ana limitini bölgüyə uyğun yenilə ki, distribute check keçsin.
+    if (totalDist > node.limit) {
+      // parent.limit-i böyütmək üçün createRoot etməyə ehtiyac yoxdur — birbaşa storage-də dəyişək
+      try {
+        const raw = localStorage.getItem("cascade_tree_nodes_v1");
+        if (raw) {
+          const all = JSON.parse(raw) as any[];
+          const idx = all.findIndex(n => n.id === node.id);
+          if (idx >= 0) { all[idx].limit = totalDist; localStorage.setItem("cascade_tree_nodes_v1", JSON.stringify(all)); }
+        }
+      } catch {}
+    }
     const res = distribute(node.id, rows);
     if (!res.ok) { setError(res.error || "Xəta"); return; }
+    setAllocated(bucketKey, totalDist);
     setError(null);
     onDistributed?.();
     onOpenChange(false);
@@ -147,14 +171,14 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
         {/* Live totals — Ümumi Limit / Paylanmış / Qalıq */}
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Ümumi Limit (Sizin üzərinizdə)" value={fmt(limit)} unit={node?.unit || ""} tone="neutral" />
+          <BigStat label="Cascade Load (paylana bilən)" value={fmt(limit)} unit="AZN" tone="neutral" />
           <BigStat label="Paylanmış" value={fmt(totalDist)} unit={node?.unit || ""} tone="primary" />
           <BigStat label="Qalıq" value={fmt(Math.abs(remaining))} unit={node?.unit || ""} tone={overflow ? "danger" : remaining === 0 ? "success" : "warning"} negative={overflow} />
         </div>
 
         <div className="flex items-center justify-between">
           <div className="text-[11px] text-muted-foreground">
-            Kaskad limit dəyəri kartda təyin olunmuş hədəf dəyərindən götürülür və dəyişdirilə bilməz.
+            Bu limit sizə başqa KPI kartından cascade load kimi gəlir və bu hədəflə əlaqəsi yoxdur.
           </div>
           {subordinates.length > 0 && (
             <Button size="sm" variant="outline" onClick={equalSplit} className="h-7 text-[11px]">
