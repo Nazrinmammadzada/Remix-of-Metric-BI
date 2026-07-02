@@ -834,19 +834,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     }
     const st = getStatusFor(c.id);
     const STATUS_LBL: Record<string, string> = {
-      natamam: "Qaralama", tesdiq_gozlenilir: "Təsdiq gözlənilir",
+      natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
       imtina: "İmtina", aktiv: "Aktiv", legv_olundu: "Ləğv olundu",
     };
     const matchesStatus = filterStatus === "Hamısı" || STATUS_LBL[st.status] === filterStatus;
     const kind = getAssignKindFor(c.id);
     let matchesKind = true;
     if (filterAssignKind === "Fərdi") matchesKind = kind === "Fərdi";
-    else if (filterAssignKind === "Toplu") {
-      matchesKind = kind !== "Fərdi";
-      if (matchesKind && filterBulkKind !== "Hamısı") {
-        matchesKind = kind === filterBulkKind || (filterBulkKind === "Şəxs" && kind === "Fərdi");
-      }
-    }
+    else if (filterAssignKind === "Toplu") matchesKind = kind === "Toplu";
     return matchesSearch && matchesTeam && matchesStatus && matchesKind;
   });
 
