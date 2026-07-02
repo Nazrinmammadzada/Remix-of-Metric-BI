@@ -624,9 +624,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     try {
       const ownerId = getCurrentEmployeeId(user) || "e1";
       const sharedStatus: "natamam" | "tesdiq_gozlenilir" | "aktiv" =
-        nextStatus === "tesdiq_gozlenilir" ? "tesdiq_gozlenilir"
-        : nextStatus === "aktiv" ? "aktiv"
-        : "natamam";
+        nextStatus === "aktiv" ? "aktiv" : "natamam";
       const sharedId = `legacy-${id}`;
       const shared = buildSharedCardFromDraft(d, {
         id: sharedId,
