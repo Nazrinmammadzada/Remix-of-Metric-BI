@@ -6,7 +6,7 @@ import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import {
   LayoutGrid, Search, ChevronDown, ChevronRight, GitBranch, ChevronLeft,
-  CheckCircle2, Hourglass, Target as TargetIcon,
+  CheckCircle2, Hourglass, Target as TargetIcon, Eye,
   ClipboardList, ClipboardCheck, UserPlus, Clock, Award,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
