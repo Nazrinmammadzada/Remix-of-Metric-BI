@@ -929,23 +929,20 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                               <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0" title={r.reviewerName || "Şəxs seçilməyib"}>
                                 <User className="w-4 h-4 text-primary" />
                               </div>
-                              <select
+                              <input
+                                list={`reviewer-list-${r.id}`}
                                 value={r.reviewerName || ""}
                                 onChange={e => updReview(r.id, { reviewerName: e.target.value })}
+                                placeholder="Şəxs axtar (ad, vəzifə)…"
                                 className="flex-1 px-2 py-1.5 text-sm border border-border rounded bg-background"
-                              >
-                                <option value="">— Şəxs seçin (rəhbər və ya adi əməkdaş) —</option>
-                                <optgroup label="Rəhbər vəzifədə olan şəxslər">
-                                  {emps.filter(e => /direktor|müdir|rəhbər|başçı/i.test(e.positionName || "")).map(e => (
-                                    <option key={`m-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.positionName || ""}</option>
-                                  ))}
-                                </optgroup>
-                                <optgroup label="Adi əməkdaşlar">
-                                  {emps.filter(e => !/direktor|müdir|rəhbər|başçı/i.test(e.positionName || "")).map(e => (
-                                    <option key={`u-${e.id}`} value={`${e.firstName} ${e.lastName}`}>{e.firstName} {e.lastName} · {e.positionName || ""}</option>
-                                  ))}
-                                </optgroup>
-                              </select>
+                              />
+                              <datalist id={`reviewer-list-${r.id}`}>
+                                {emps.map(e => (
+                                  <option key={e.id} value={`${e.firstName} ${e.lastName}`}>
+                                    {e.positionName || ""}
+                                  </option>
+                                ))}
+                              </datalist>
                             </div>
                           </div>
                         </div>
