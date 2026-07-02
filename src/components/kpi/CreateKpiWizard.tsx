@@ -1045,17 +1045,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 className="flex items-center gap-1 px-5 py-1.5 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium disabled:opacity-50">
                 Növbəti <ChevronRight className="w-4 h-4" />
               </button>
-            ) : draft.useMatrix ? (
+            ) : (
               <button type="button" onClick={() => finalize("submit")}
                 className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-950 font-semibold shadow-sm hover:from-amber-500 hover:to-yellow-600">
                 <Send className="w-4 h-4" /> Təyinə göndər
               </button>
-            ) : (
-              <button type="button" onClick={() => finalize("create_active")}
-                className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium">
-                <Power className="w-4 h-4" /> KPI yarat
-              </button>
             )}
+
           </div>
         </div>
       </DialogContent>
