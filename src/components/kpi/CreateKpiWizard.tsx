@@ -850,9 +850,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         <ShieldCheck className="w-4 h-4 text-primary" />
                         Təsdiqləmə matrisi olsun
                       </div>
-                      <p className="mt-0.5 text-muted-foreground">
-                        Seçilməzsə kart matris olmadan yaranır — təsdiq birbaşa struktur rəhbərinə/komanda liderinə göndərilir və bütün məlumatlar dolu olduqda kart avtomatik <b>Aktiv</b> statusda yaranır.
-                      </p>
                     </div>
                   </label>
                 </div>
