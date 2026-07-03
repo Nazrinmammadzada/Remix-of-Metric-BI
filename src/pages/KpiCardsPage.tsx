@@ -1155,9 +1155,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <td className="py-2 px-2">{card.progress}%</td>
                               <td className="py-2 px-2">
                                 <button
-                                  onClick={() => (st.status === "natamam" || st.status === "tesdiq_gozlenilir") && setStatusDialogCardId(card.id)}
-                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center ${STATUS_STYLES[st.status]} ${(st.status === "natamam" || st.status === "tesdiq_gozlenilir") ? "cursor-pointer hover:opacity-80" : "cursor-default"}`}
-                                  title={st.status === "natamam" ? "Təyin edənləri gör" : st.status === "tesdiq_gozlenilir" ? "Təsdiqləyəcək şəxsləri gör" : (st.status === "imtina" ? `İmtina səbəbi: ${reason}` : "")}
+                                  onClick={() => setStatusDialogCardId(card.id)}
+                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center cursor-pointer hover:opacity-80 ${STATUS_STYLES[st.status]}`}
+                                  title="Ətraflı bax"
                                 >
                                   {STATUS_LABELS[st.status]}
                                 </button>
