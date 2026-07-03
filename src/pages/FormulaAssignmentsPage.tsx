@@ -136,6 +136,7 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
                                   <thead>
                                     <tr className="bg-secondary/60 text-left text-xs text-muted-foreground">
                                       <th className="px-3 py-2">Əməkdaşın A.S.A.</th>
+                                      <th className="px-3 py-2">Ata adı</th>
                                       <th className="px-3 py-2">Struktur</th>
                                       <th className="px-3 py-2">Vəzifə</th>
                                       <th className="px-3 py-2">Təyin tarixi</th>
@@ -145,7 +146,8 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
                                   <tbody>
                                     {empList.map((e) => e && (
                                       <tr key={e.id} className="border-t border-border">
-                                        <td className="px-3 py-2 font-medium">{e.lastName} {e.firstName} {e.fatherName ?? ""}</td>
+                                        <td className="px-3 py-2 font-medium">{e.lastName} {e.firstName}</td>
+                                        <td className="px-3 py-2 text-muted-foreground">{e.fatherName ?? "—"}</td>
                                         <td className="px-3 py-2 text-muted-foreground">{e.structurePath ?? "—"}</td>
                                         <td className="px-3 py-2">{e.positionName ?? "—"}</td>
                                         <td className="px-3 py-2 text-muted-foreground">{fmtDate(r.assignedAt)}</td>
