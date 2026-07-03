@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Info, Check, Search,
-  Loader2, CircleCheck, Folder, FolderOpen, Users, Building2, Briefcase, User,
+  Loader2, CircleCheck, Folder, FolderOpen, Users, Building2, Briefcase, User, Globe,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import { getFormulas } from "@/lib/formulasStore";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getTeams } from "@/lib/teamsStore";
-import { addAssignment, type FormulaTargetType, type FormulaTargetRef } from "@/lib/formulaAssignmentsStore";
+import { upsertAssignmentForFormula, type FormulaTargetType, type FormulaTargetRef } from "@/lib/formulaAssignmentsStore";
 import { toast } from "sonner";
 
 // --------- helpers to derive real-data lists ---------
