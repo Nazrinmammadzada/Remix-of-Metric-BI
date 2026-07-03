@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, Eye, EyeOff, LogIn, Target, TrendingUp, Users, GitBranch, BarChart3, ClipboardList, Award } from "lucide-react";
-import logo from "@/assets/logo.png";
+import { AlertCircle, Eye, EyeOff, LogIn } from "lucide-react";
+import loginHero from "@/assets/login-hero.png.asset.json";
 
 const LoginPage = () => {
   const { login } = useAuth();
