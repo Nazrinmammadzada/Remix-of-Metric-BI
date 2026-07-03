@@ -8,12 +8,12 @@ import { getFormulas, saveFormulas, getVariables, type Formula, type FormulaVari
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { DataTable } from "@/components/common/DataTable";
 
-const KPI_TYPE_DEFAULTS = ["Absolut Hədəf", "Faiz Hədəfi", "Trend Hədəfi", "Benchmark", "Say Hədəfi"];
+
 
 const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
   const [formulas, setFormulas] = useState<Formula[]>(() => getFormulas());
   const variables_initial = getVariables();
-  const kpiTypeOptions = useCatalogValues("kpi_types", KPI_TYPE_DEFAULTS);
+  
   const [variables, setVariables] = useState<FormulaVariable[]>(() => variables_initial);
 
   const [showBook, setShowBook] = useState(false);
@@ -22,9 +22,8 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
 
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Formula | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", kpiTypes: [] as string[], variables: [] as string[], formula: "" });
+  const [form, setForm] = useState({ name: "", description: "", variables: [] as string[], formula: "" });
   const [showVarDropdown, setShowVarDropdown] = useState(false);
-  const [showKpiTypeDropdown, setShowKpiTypeDropdown] = useState(false);
 
   const [deleteConfirm, setDeleteConfirm] = useState<Formula | null>(null);
 
@@ -44,14 +43,14 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", kpiTypes: [], variables: [], formula: "" });
+    setForm({ name: "", description: "", variables: [], formula: "" });
     setShowDialog(true);
   };
 
   const openEdit = (f: Formula) => {
     toast.info("Dəyişiklik cari tarixdən etibarən qüvvəyə minir");
     setEditing(f);
-    setForm({ name: f.name, description: f.description, kpiTypes: f.kpiTypes ? [...f.kpiTypes] : [], variables: [...f.variables], formula: f.formula });
+    setForm({ name: f.name, description: f.description, variables: [...f.variables], formula: f.formula });
     setShowDialog(true);
   };
 
@@ -59,9 +58,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
     setForm(p => ({ ...p, variables: p.variables.includes(short) ? p.variables.filter(s => s !== short) : [...p.variables, short] }));
   };
 
-  const toggleKpiType = (t: string) => {
-    setForm(p => ({ ...p, kpiTypes: p.kpiTypes.includes(t) ? p.kpiTypes.filter(x => x !== t) : [...p.kpiTypes, t] }));
-  };
 
   const insertToken = (token: string) => setForm(p => ({ ...p, formula: p.formula + token }));
 
@@ -135,9 +131,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
             columns={[
               { key: "name", label: "Düstur Adı", filterType: "text", accessor: (f) => f.name, render: (f) => <span className="font-medium">{f.name}</span> },
               { key: "formula", label: "Formula", filterType: "text", accessor: (f) => f.formula, render: (f) => <span className="font-mono text-xs">{f.formula}</span> },
-              { key: "kpi", label: "Aid KPI Tipləri", filterType: "select", selectOptions: kpiTypeOptions, accessor: (f) => (f.kpiTypes?.join(", ") || f.kpiName || ""), render: (f) => (
-                <div className="flex flex-wrap gap-1">{(f.kpiTypes && f.kpiTypes.length > 0 ? f.kpiTypes : (f.kpiName ? [f.kpiName] : [])).map(t => <span key={t} className="px-2 py-0.5 text-xs bg-accent text-accent-foreground rounded-full">{t}</span>)}</div>
-              ) },
               {
                 key: "vars", label: "Dəyişənlər", filterType: "text", accessor: (f) => f.variables.join(", "),
                 render: (f) => <div className="flex flex-wrap gap-1">{f.variables.map(v => <span key={v} className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{v}</span>)}</div>,
@@ -231,32 +224,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
           <div className="space-y-4">
             <div><label className="text-sm font-medium">Düstur Adı</label><input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Satış Performans Düsturu" className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
             <div><label className="text-sm font-medium">Təsvir</label><input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Düsturun təsviri..." className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
-            <div>
-              <label className="text-sm font-medium">Aid Olduğu KPI Tipləri</label>
-              <div className="relative mt-1">
-                <div onClick={() => setShowKpiTypeDropdown(!showKpiTypeDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
-                  {form.kpiTypes.length === 0 && <span className="text-muted-foreground">KPI tipi seçin (çoxlu seçim)</span>}
-                  {form.kpiTypes.map(t => (
-                    <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-accent text-accent-foreground rounded-full">
-                      {t}<X className="w-3 h-3 cursor-pointer" onClick={e => { e.stopPropagation(); toggleKpiType(t); }} />
-                    </span>
-                  ))}
-                  <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />
-                </div>
-                {showKpiTypeDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {kpiTypeOptions.length === 0 && <p className="p-3 text-xs text-muted-foreground">Məlumat kataloqunda KPI tipi yoxdur.</p>}
-                    {kpiTypeOptions.map(t => (
-                      <div key={t} onClick={e => { e.stopPropagation(); toggleKpiType(t); }} className={`px-3 py-2 text-sm cursor-pointer hover:bg-secondary flex items-center justify-between ${form.kpiTypes.includes(t) ? 'bg-primary/5' : ''}`}>
-                        <span>{t}</span>
-                        {form.kpiTypes.includes(t) && <Check className="w-4 h-4 text-primary" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">KPI kartı yaradılarkən seçilmiş tipə uyğun düstur avtomatik təklif olunacaq.</p>
-            </div>
             <div>
               <label className="text-sm font-medium">Dəyişənlər (kitabdan seçim)</label>
               <div className="relative mt-1">

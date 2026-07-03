@@ -1,43 +1,19 @@
 import { useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
-import { Calculator, BookOpen, ArrowUpRight, ChevronLeft, Sparkles } from "lucide-react";
+import { Calculator, BookOpen, ArrowUpRight, Sparkles } from "lucide-react";
 import FormulasPage from "./FormulasPage";
+import BulkAssignWizard from "@/components/formulas/BulkAssignWizard";
 
 type Tab = "calc" | "formulas";
 
-const CalculationView = ({ onBack }: { onBack: () => void }) => (
-  <div className="min-h-screen">
-    <Header title="Hesablama" />
-    <main className="p-6 pb-24">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" /> Geri
-      </button>
-      <PageHero
-        badge="Hesablama"
-        icon={Calculator}
-        title="Hesablama"
-        subtitle="KPI nəticələrinin düsturlar əsasında hesablanması və icmal"
-      />
-      <div className="bg-card rounded-2xl p-10 border border-border shadow-sm text-center">
-        <Calculator className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-        <h3 className="text-lg font-semibold text-foreground mb-1">Hesablama modulu</h3>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Bu bölmədə seçilmiş düsturlar üzrə KPI hesablanması və icmal nəticələri göstəriləcək.
-        </p>
-      </div>
-    </main>
-  </div>
-);
 
 const FormulasHubPage = () => {
   const [tab, setTab] = useState<Tab | null>(null);
 
-  if (tab === "calc") return <CalculationView onBack={() => setTab(null)} />;
+  if (tab === "calc") return <BulkAssignWizard onBack={() => setTab(null)} />;
   if (tab === "formulas") return <FormulasPage onBack={() => setTab(null)} />;
+
 
   const cards: Array<{
     title: string;
