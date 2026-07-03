@@ -5,6 +5,7 @@ import { PageHero } from "@/components/ui/page-hero";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getFormulas, saveFormulas, getVariables, type Formula, type FormulaVariable } from "@/lib/formulasStore";
+import { ensureAssignmentForFormula } from "@/lib/formulaAssignmentsStore";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { DataTable } from "@/components/common/DataTable";
 
@@ -70,7 +71,9 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
       persistFormulas(formulas.map(f => f.id === editing.id ? { ...editing, ...form, kpiName: editing.kpiName } : f));
       toast.success("Düstur yeniləndi");
     } else {
-      persistFormulas([...formulas, { id: Date.now(), ...form, kpiName: "" }]);
+      const created: Formula = { id: Date.now(), ...form, kpiName: "" };
+      persistFormulas([...formulas, created]);
+      ensureAssignmentForFormula(created);
       toast.success("Düstur əlavə edildi");
     }
     setShowDialog(false);

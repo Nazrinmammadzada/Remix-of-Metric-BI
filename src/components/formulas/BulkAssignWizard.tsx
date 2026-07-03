@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Info, Check, Search,
-  Loader2, CircleCheck, Folder, FolderOpen, Users, Building2, Briefcase, User,
+  Loader2, CircleCheck, Folder, FolderOpen, Users, Building2, Briefcase, User, Globe,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import { getFormulas } from "@/lib/formulasStore";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getTeams } from "@/lib/teamsStore";
-import { addAssignment, type FormulaTargetType, type FormulaTargetRef } from "@/lib/formulaAssignmentsStore";
+import { upsertAssignmentForFormula, type FormulaTargetType, type FormulaTargetRef } from "@/lib/formulaAssignmentsStore";
 import { toast } from "sonner";
 
 // --------- helpers to derive real-data lists ---------
@@ -161,6 +161,7 @@ const StepBadge = ({ n, label, active, done }: { n: number; label: string; activ
 );
 
 const TYPE_META: Record<FormulaTargetType, { label: string; icon: typeof User }> = {
+  butun_sirket: { label: "Bütün şirkət", icon: Globe },
   sexs: { label: "Şəxs", icon: User },
   vezife: { label: "Vəzifə", icon: Briefcase },
   struktur: { label: "Struktur", icon: Building2 },
@@ -186,8 +187,56 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
   const structuresFlat = useMemo(() => collectStructures(getStructures()), []);
   const teams = useMemo(() => getTeams(), []);
 
+  const isAll = types.includes("butun_sirket");
+
   const toggleType = (t: FormulaTargetType) => {
-    setTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+    setTypes(prev => {
+      if (t === "butun_sirket") {
+        // exclusive: seçilsə digərlərini təmizlə
+        if (prev.includes("butun_sirket")) return prev.filter(x => x !== "butun_sirket");
+        setSelPersons(new Set()); setSelPositions(new Set()); setSelStructures(new Set()); setSelTeams(new Set());
+        return ["butun_sirket"];
+      }
+      // digər tip seçilibsə "Bütün şirkət" seçilə bilməz
+      if (prev.includes("butun_sirket")) return prev;
+      return prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t];
+    });
+  };
+
+  // Struktur seçildikdə bütün alt strukturlar da seçilsin/çıxarılsın
+  const descendantStructureIds = (rootId: number): number[] => {
+    const res: number[] = [];
+    const walk = (id: number) => {
+      for (const s of structuresFlat) {
+        if (s.parentId === id) { res.push(s.id); walk(s.id); }
+      }
+    };
+    walk(rootId);
+    return res;
+  };
+
+  const toggleStructure = (id: string | number, name: string) => {
+    const numId = Number(id);
+    const desc = descendantStructureIds(numId);
+    setSelStructures(prev => {
+      const next = new Set(prev);
+      if (next.has(numId)) {
+        next.delete(numId);
+        desc.forEach(d => next.delete(d));
+      } else {
+        next.add(numId);
+        desc.forEach(d => next.add(d));
+      }
+      return next;
+    });
+    setSelNames(prev => {
+      const upd = { ...prev, [`struktur:${numId}`]: name };
+      desc.forEach(d => {
+        const s = structuresFlat.find(x => x.id === d);
+        if (s) upd[`struktur:${d}`] = s.name;
+      });
+      return upd;
+    });
   };
 
   const toggleFromSet = (
@@ -203,15 +252,21 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
   };
 
   const targets: FormulaTargetRef[] = useMemo(() => {
+    if (isAll) {
+      return [{ type: "butun_sirket", id: "all", name: "Bütün şirkət" }];
+    }
     const out: FormulaTargetRef[] = [];
     selPersons.forEach(id => out.push({ type: "sexs", id, name: selNames[`sexs:${id}`] ?? String(id) }));
     selPositions.forEach(id => out.push({ type: "vezife", id, name: selNames[`vezife:${id}`] ?? String(id) }));
     selStructures.forEach(id => out.push({ type: "struktur", id, name: selNames[`struktur:${id}`] ?? String(id) }));
     selTeams.forEach(id => out.push({ type: "komanda", id, name: selNames[`komanda:${id}`] ?? String(id) }));
     return out;
-  }, [selPersons, selPositions, selStructures, selTeams, selNames]);
+  }, [isAll, selPersons, selPositions, selStructures, selTeams, selNames]);
 
-  const employeeIds = useMemo(() => collectEmployeeIdsForTargets(targets), [targets]);
+  const employeeIds = useMemo(() => {
+    if (isAll) return employees.filter(e => e.active).map(e => e.id);
+    return collectEmployeeIdsForTargets(targets);
+  }, [isAll, targets, employees]);
   const totalCount = employeeIds.length;
 
   useEffect(() => {
@@ -229,21 +284,17 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
 
   const finalize = () => {
     if (!selectedFormula) return;
-    addAssignment({
-      formulaId: selectedFormula.id,
-      formulaName: selectedFormula.name,
-      variables: selectedFormula.variables ?? [],
+    upsertAssignmentForFormula(selectedFormula, {
       targetTypes: types,
       targets,
       employeeIds,
-      status: "active",
     });
     toast.success(`${totalCount} əməkdaşa düstur təyin olundu`);
     onDone?.();
     onBack();
   };
 
-  const canNextStep1 = !!selectedFormula && types.length > 0 && targets.length > 0;
+  const canNextStep1 = !!selectedFormula && types.length > 0 && (isAll || targets.length > 0);
 
   return (
     <div className="min-h-screen">
@@ -317,9 +368,16 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                 <div className="flex flex-wrap gap-2 mb-5">
                   {(Object.keys(TYPE_META) as FormulaTargetType[]).map(t => {
                     const active = types.includes(t);
+                    const disabled = t === "butun_sirket" ? types.some(x => x !== "butun_sirket") : isAll;
                     const Icon = TYPE_META[t].icon;
                     return (
-                      <button key={t} onClick={() => toggleType(t)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${active ? "border-blue-600 bg-blue-600 text-white" : "border-border bg-card hover:bg-secondary/40"}`}>
+                      <button
+                        key={t}
+                        onClick={() => !disabled && toggleType(t)}
+                        disabled={disabled}
+                        title={disabled ? (t === "butun_sirket" ? "Digər seçimləri təmizləyin" : "«Bütün şirkət» seçilib") : undefined}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${active ? "border-blue-600 bg-blue-600 text-white" : "border-border bg-card hover:bg-secondary/40"} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
                         <Icon className="w-3.5 h-3.5" /> {TYPE_META[t].label}
                       </button>
                     );
@@ -330,6 +388,15 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                 {types.length === 0 && (
                   <div className="text-sm text-muted-foreground border border-dashed border-border rounded-lg p-6 text-center">
                     Tətbiq sahəsini görmək üçün ən azı bir təyinat tipi seçin.
+                  </div>
+                )}
+                {isAll && (
+                  <div className="text-sm border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 rounded-lg p-4 flex items-start gap-2">
+                    <Globe className="w-4 h-4 text-blue-600 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-foreground">Bütün şirkət seçilib</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Düstur bütün aktiv əməkdaşlara ({employees.filter(e => e.active).length} nəfər) tətbiq olunacaq.</div>
+                    </div>
                   </div>
                 )}
 
@@ -376,7 +443,7 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                             node={{ ...s, children: [] }}
                             level={s.depth}
                             selectedIds={selStructures as Set<number>}
-                            toggle={(id) => toggleFromSet(setSelStructures, "struktur")(id, s.name)}
+                            toggle={(id) => toggleStructure(id, s.name)}
                             expanded={expandedTree}
                             toggleExpand={(id) => setExpandedTree(prev => ({ ...prev, [id]: !prev[id] }))}
                           />
