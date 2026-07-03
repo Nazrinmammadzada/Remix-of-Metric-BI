@@ -1,6 +1,6 @@
 // Kaskad İzləmə — YALNIZ İZLƏMƏ. Bütün kaskadlanan KPİ kartları kart siyahısı
 // şəklində əks olunur, klikləyəndə tam iyerarxiya topologiyası açılır.
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Activity, ChevronLeft, Search, Crown, X, Maximize2, Users, Target } from "lucide-react";
@@ -29,14 +29,55 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
   const [q, setQ] = useState("");
   const [activeRoot, setActiveRoot] = useState<string | null>(null);
   const [fullView, setFullView] = useState(false);
+  const [highlightNodeId, setHighlightNodeId] = useState<string | null>(null);
 
-  const filtered = roots.filter(r =>
-    !q || r.goalName.toLowerCase().includes(q.toLowerCase()) ||
-          r.cardName.toLowerCase().includes(q.toLowerCase()) ||
-          r.assigneeName.toLowerCase().includes(q.toLowerCase())
-  );
+  // Bütün ağac üzrə axtarış — həm kök kartlar, həm də bütün alt hədəf sahibləri.
+  const ql = q.trim().toLowerCase();
+  const matchesNode = (n: CascadeTreeNode) =>
+    !ql ||
+    n.goalName.toLowerCase().includes(ql) ||
+    n.cardName.toLowerCase().includes(ql) ||
+    n.assigneeName.toLowerCase().includes(ql) ||
+    (n.positionName || "").toLowerCase().includes(ql);
+
+  // Axtarış nəticələri: eşleşen hər node — root'u ilə birlikdə göstərilir.
+  const matchedNodes = useMemo(() => {
+    if (!ql) return [] as CascadeTreeNode[];
+    return nodes.filter(matchesNode);
+  }, [nodes, ql]);
+
+  // Filtrlənmiş root kartlar: özü ya da altındaki hər hansı node uyğun gəlirsə göstər.
+  const matchedRootIds = new Set(matchedNodes.map(n => n.rootId));
+  const filtered = ql ? roots.filter(r => matchedRootIds.has(r.id)) : roots;
 
   const current = nodes.find(n => n.id === activeRoot);
+
+  // Seçilən əməkdaşın kartına avtomatik scroll və highlight
+  useEffect(() => {
+    if (!highlightNodeId) return;
+    const t = setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-cascade-node-id="${highlightNodeId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      }
+    }, 80);
+    const clr = setTimeout(() => setHighlightNodeId(null), 2600);
+    return () => { clearTimeout(t); clearTimeout(clr); };
+  }, [highlightNodeId, activeRoot, fullView]);
+
+  // Alt-hədəf sahibinə klik olunanda: onun rootu-nu aç və özünə scroll et.
+  const focusEmployeeNode = (n: CascadeTreeNode) => {
+    setActiveRoot(n.rootId);
+    setHighlightNodeId(n.id);
+    // Dərinlik böyükdürsə tam ekrana keç ki, bütün alt qollar açılsın.
+    let depth = 0;
+    let cur: CascadeTreeNode | undefined = n;
+    while (cur && cur.parentId) {
+      depth += 1;
+      cur = nodes.find(x => x.id === cur!.parentId);
+    }
+    if (depth > 2) setFullView(true);
+  };
 
   return (
     <div className="min-h-screen">
@@ -48,13 +89,30 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
         <PageHero badge="Cascading" icon={Activity} title="Kaskad İzləmə" subtitle="Bütün kaskadlanan KPI kartları — klikləyərək iyerarxiya topologiyasını açın" />
 
         {/* Axtarış */}
-        <div className="mb-4 max-w-md">
+        <div className="mb-4 max-w-md relative">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="KPI kartı, hədəf və ya təyinedici axtar..."
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder="KPI kartı, hədəf, təyinedici və ya alt icraçı axtar..."
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-border bg-card focus:outline-none focus:ring-1 focus:ring-ring" />
           </div>
+          {ql && matchedNodes.length > 0 && (
+            <div className="absolute z-20 mt-1 w-full bg-popover border border-border rounded-lg shadow-lg max-h-72 overflow-y-auto">
+              {matchedNodes.slice(0, 12).map(n => {
+                const root = nodes.find(x => x.id === n.rootId);
+                return (
+                  <button key={n.id} onClick={() => { focusEmployeeNode(n); setQ(""); }}
+                    className="w-full text-left px-3 py-2 hover:bg-secondary/60 border-b border-border last:border-0">
+                    <div className="text-xs font-semibold text-foreground truncate">{n.assigneeName}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      {n.positionName || "—"} · {root?.goalName || n.goalName}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
+
 
         {/* Split layout: sol — kartlar (scrollable), sağ — topologiya */}
         <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
@@ -133,7 +191,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto p-6">
-                  <Topology root={current} compact />
+                  <Topology root={current} compact highlightId={highlightNodeId} />
                 </div>
               </>
             ) : (
@@ -163,7 +221,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
               </div>
             </div>
             <div className="flex-1 overflow-auto p-8">
-              <Topology root={current} compact={false} />
+              <Topology root={current} compact={false} highlightId={highlightNodeId} />
             </div>
           </div>
         )}
@@ -183,18 +241,18 @@ const Legend = () => (
   </div>
 );
 
-const Topology = ({ root, compact }: { root: CascadeTreeNode; compact: boolean }) => {
+const Topology = ({ root, compact, highlightId }: { root: CascadeTreeNode; compact: boolean; highlightId?: string | null }) => {
   return (
     <div className="cascade-tree inline-block min-w-full">
       <style>{treeCss}</style>
       <ul className="cascade-root">
-        <TopoNode node={root} depth={0} maxDepth={compact ? 2 : 99} />
+        <TopoNode node={root} depth={0} maxDepth={compact ? 2 : 99} highlightId={highlightId ?? null} />
       </ul>
     </div>
   );
 };
 
-const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: number; maxDepth: number }) => {
+const TopoNode = ({ node, depth, maxDepth, highlightId }: { node: CascadeTreeNode; depth: number; maxDepth: number; highlightId: string | null }) => {
   const kids = getChildren(node.id);
   const tone = toneOf(node);
   const t = toneClasses[tone];
@@ -202,10 +260,14 @@ const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: num
   const rem = remainingOf(node.id);
   const showKids = kids.length > 0 && depth < maxDepth;
   const hiddenKids = kids.length > 0 && depth >= maxDepth;
+  const isHi = highlightId === node.id;
 
   return (
     <li>
-      <div className={`cascade-node inline-block rounded-xl border-2 ${t.border} ${t.bg} px-3 py-2 min-w-[190px] max-w-[230px] text-left shadow-sm`}>
+      <div
+        data-cascade-node-id={node.id}
+        className={`cascade-node inline-block rounded-xl border-2 ${t.border} ${t.bg} px-3 py-2 min-w-[190px] max-w-[230px] text-left shadow-sm transition-all ${isHi ? "ring-4 ring-primary/60 shadow-lg -translate-y-0.5" : ""}`}
+      >
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full ${t.dot}`} />
           <span className="text-[11px] font-semibold text-foreground truncate">{node.assigneeName}</span>
@@ -233,7 +295,7 @@ const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: num
       </div>
       {showKids && (
         <ul>
-          {kids.map(k => <TopoNode key={k.id} node={k} depth={depth + 1} maxDepth={maxDepth} />)}
+          {kids.map(k => <TopoNode key={k.id} node={k} depth={depth + 1} maxDepth={maxDepth} highlightId={highlightId} />)}
         </ul>
       )}
     </li>
