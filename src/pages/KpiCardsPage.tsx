@@ -439,15 +439,28 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [lifecycleDraft, setLifecycleDraft] = useState<Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">>(() => emptyLifecycleDraft());
   const [useMatrix, setUseMatrix] = useState<boolean | null>(null);
   const [selectedMatrixId, setSelectedMatrixId] = useState<string | null>(null);
-  const [filterDepartment, setFilterDepartment] = useState("Hamısı");
-  const [filterSubdivision, setFilterSubdivision] = useState("Hamısı");
-  const [filterGroup, setFilterGroup] = useState("Hamısı");
-  const [filterTeamId, setFilterTeamId] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState("Hamısı");
-  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Toplu">("Hamısı");
-  const [filterBulkKind, setFilterBulkKind] = useState<"Hamısı" | "Komanda" | "Struktur" | "Vəzifə" | "Şəxs">("Hamısı");
+  // Filter values are persisted in localStorage so they survive route/tab changes.
+  const FILTERS_KEY = "kpi-cards-filters-v1";
+  const initialFilters = (() => {
+    try { return JSON.parse(localStorage.getItem(FILTERS_KEY) || "{}"); } catch { return {}; }
+  })();
+  const [filterDepartment, setFilterDepartment] = useState<string>(initialFilters.filterDepartment ?? "Hamısı");
+  const [filterSubdivision, setFilterSubdivision] = useState<string>(initialFilters.filterSubdivision ?? "Hamısı");
+  const [filterGroup, setFilterGroup] = useState<string>(initialFilters.filterGroup ?? "Hamısı");
+  const [filterTeamId, setFilterTeamId] = useState<number | null>(initialFilters.filterTeamId ?? null);
+  const [filterStatus, setFilterStatus] = useState<string>(initialFilters.filterStatus ?? "Hamısı");
+  const [filterAssignKind, setFilterAssignKind] = useState<"Hamısı" | "Fərdi" | "Toplu">(initialFilters.filterAssignKind ?? "Hamısı");
+  const [filterBulkKind, setFilterBulkKind] = useState<"Hamısı" | "Komanda" | "Struktur" | "Vəzifə" | "Şəxs">(initialFilters.filterBulkKind ?? "Hamısı");
   // zone filter removed
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState<string>(initialFilters.searchText ?? "");
+  useEffect(() => {
+    try {
+      localStorage.setItem(FILTERS_KEY, JSON.stringify({
+        filterDepartment, filterSubdivision, filterGroup, filterTeamId,
+        filterStatus, filterAssignKind, filterBulkKind, searchText,
+      }));
+    } catch {}
+  }, [filterDepartment, filterSubdivision, filterGroup, filterTeamId, filterStatus, filterAssignKind, filterBulkKind, searchText]);
   const [hoveredMinTarget, setHoveredMinTarget] = useState<number | null>(null);
   const [approvedPage, setApprovedPage] = useState(1);
   const [pendingPage, setPendingPage] = useState(1);
