@@ -42,20 +42,20 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
             <ChevronLeft className="w-4 h-4" /> Geri
           </button>
         )}
-        <div className="flex items-start justify-between gap-4">
-          <PageHero
-            badge="Hesablama"
-            icon={Sparkles}
-            title="Hesablama Düsturları"
-            subtitle="Düsturların əməkdaşlara təyinatı və izlənməsi"
-          />
-          <button
-            onClick={() => setWizardOpen(true)}
-            className="mt-2 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm shrink-0"
-          >
-            <Plus className="w-4 h-4" /> Düstur təyin et
-          </button>
-        </div>
+        <PageHero
+          badge="Hesablama"
+          icon={Sparkles}
+          title="Hesablama Düsturları"
+          subtitle="Düsturların əməkdaşlara təyinatı və izlənməsi"
+          right={
+            <button
+              onClick={() => setWizardOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Düstur təyin et
+            </button>
+          }
+        />
 
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
