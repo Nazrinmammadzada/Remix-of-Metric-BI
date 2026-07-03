@@ -443,7 +443,7 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                             node={{ ...s, children: [] }}
                             level={s.depth}
                             selectedIds={selStructures as Set<number>}
-                            toggle={(id) => toggleFromSet(setSelStructures, "struktur")(id, s.name)}
+                            toggle={(id) => toggleStructure(id, s.name)}
                             expanded={expandedTree}
                             toggleExpand={(id) => setExpandedTree(prev => ({ ...prev, [id]: !prev[id] }))}
                           />
