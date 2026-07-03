@@ -131,9 +131,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
             columns={[
               { key: "name", label: "Düstur Adı", filterType: "text", accessor: (f) => f.name, render: (f) => <span className="font-medium">{f.name}</span> },
               { key: "formula", label: "Formula", filterType: "text", accessor: (f) => f.formula, render: (f) => <span className="font-mono text-xs">{f.formula}</span> },
-              { key: "kpi", label: "Aid KPI Tipləri", filterType: "select", selectOptions: kpiTypeOptions, accessor: (f) => (f.kpiTypes?.join(", ") || f.kpiName || ""), render: (f) => (
-                <div className="flex flex-wrap gap-1">{(f.kpiTypes && f.kpiTypes.length > 0 ? f.kpiTypes : (f.kpiName ? [f.kpiName] : [])).map(t => <span key={t} className="px-2 py-0.5 text-xs bg-accent text-accent-foreground rounded-full">{t}</span>)}</div>
-              ) },
               {
                 key: "vars", label: "Dəyişənlər", filterType: "text", accessor: (f) => f.variables.join(", "),
                 render: (f) => <div className="flex flex-wrap gap-1">{f.variables.map(v => <span key={v} className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{v}</span>)}</div>,
