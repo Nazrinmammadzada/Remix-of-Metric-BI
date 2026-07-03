@@ -15,12 +15,12 @@ export interface Formula {
   formula: string;
   description: string;
   kpiName?: string; // backward compat (free-text label)
-  kpiTypes?: string[]; // KPI tipləri (məlumat kataloqundan) — multiselect
+  kpiTypes?: string[]; // deprecated — hidden in UI
   variables: string[]; // variable shorts referenced
 }
 
-const FORMULAS_KEY = "kpi_formulas_v3";
-const VARIABLES_KEY = "kpi_formula_variables_v3";
+const FORMULAS_KEY = "kpi_formulas_v4";
+const VARIABLES_KEY = "kpi_formula_variables_v4";
 
 const initialVariables: FormulaVariable[] = [
   { id: 1, short: "CS", name: "Cari Satış", description: "İndiki dövr ərzində baş tutmuş satışın ümumi həcmi (AZN).", source: "CRM Sistemi" },
@@ -30,15 +30,42 @@ const initialVariables: FormulaVariable[] = [
   { id: 5, short: "ID", name: "İş Davamiyyəti", description: "Dövr ərzində iş günləri sayı.", source: "CHR" },
   { id: 6, short: "AS", name: "Audit Sayı", description: "Dövrlük təhlükəsizlik audit sayı.", source: "SIEM Platform" },
   { id: 7, short: "EM", name: "E-poçt Cavabları", description: "Müştəri e-poçt cavablama sayı.", source: "Microsoft 365" },
-  { id: 8, short: "HD", name: "Hədəf Dəyər", description: "BSC üçün KPI-nin müəyyən edilmiş hədəf dəyəri.", source: "KPI Kartı" },
-  { id: 9, short: "FD", name: "Faktiki Dəyər", description: "BSC üçün KPI-nin faktiki ölçülmüş dəyəri.", source: "KPI Kartı" },
+  { id: 8, short: "Maaş", name: "Aylıq Maaş", description: "Əməkdaşın illik baza maaşı (AZN).", source: "CHR" },
+  { id: 9, short: "Çəki", name: "Hədəf Çəkisi", description: "KPI hədəfinin ümumi kart daxilində çəki faizi.", source: "KPI Kartı" },
+  { id: 10, short: "Nəticə1", name: "Fərdi Nəticə", description: "Əməkdaşın fərdi KPI nəticəsi.", source: "KPI Kartı" },
+  { id: 11, short: "Nəticə2", name: "Komanda Nəticəsi", description: "Komanda üzrə orta KPI nəticəsi.", source: "KPI Kartı" },
+  { id: 12, short: "Nəticə3", name: "Struktur Nəticəsi", description: "Struktur (departament) üzrə orta KPI nəticəsi.", source: "KPI Kartı" },
 ];
 
 const initialFormulas: Formula[] = [
-  { id: 1, name: "Satış Performans Düsturu", formula: "(CS / HS) × 100", description: "Satış hədəfinin faizlə yerinə yetirilmə nisbəti", kpiName: "Aylıq Satış Hədəfi", variables: ["CS", "HS"] },
-  { id: 2, name: "Müştəri Məmnuniyyət İndeksi", formula: "(MM / 100) × 100", description: "Müştəri sorğusu əsasında məmnuniyyət faizi", kpiName: "Müştəri Məmnuniyyəti", variables: ["MM"] },
-  { id: 3, name: "BSC GSR (Tərs) – Xərc/Müddət tipli KPI", formula: "GSR = ( Hədəf Dəyər / Faktiki Dəyər ) × 100%", description: "Balanced Scorecard üçün, kiçik dəyər daha yaxşı olan KPI tiplərinə tətbiq edilir (məs. Xərc Azaltma, Reaksiya Müddəti, Şikayət Sayı).", kpiName: "Əməliyyat Effektivliyi", kpiTypes: ["Trend Hədəfi"], variables: ["HD", "FD"] },
-  { id: 4, name: "BSC GSR (Düz) – Satış/Performans tipli KPI", formula: "GSR = ( Faktiki Dəyər / Hədəf Dəyər ) × 100%", description: "Balanced Scorecard üçün, böyük dəyər daha yaxşı olan KPI tiplərinə tətbiq edilir (məs. Faiz Hədəfi, Say Hədəfi, Absolut Hədəf, Benchmark).", kpiName: "Aylıq Satış Hədəfi", kpiTypes: ["Absolut Hədəf", "Faiz Hədəfi", "Say Hədəfi", "Benchmark"], variables: ["FD", "HD"] },
+  {
+    id: 1,
+    name: "Satış Performans Düsturu",
+    formula: "(CS / HS) × 100",
+    description: "Satış hədəfinin faizlə yerinə yetirilmə nisbəti.",
+    variables: ["CS", "HS"],
+  },
+  {
+    id: 2,
+    name: "Müştəri Məmnuniyyət İndeksi",
+    formula: "(MM / 100) × 100",
+    description: "Müştəri sorğusu əsasında məmnuniyyət faizi.",
+    variables: ["MM"],
+  },
+  {
+    id: 3,
+    name: "Fərdi Performans Balı",
+    formula: "(Nəticə1 × 0.6) + (Nəticə2 × 0.4)",
+    description: "Fərdi və komanda nəticələrinin çəkiyə əsasən birləşdirilməsi.",
+    variables: ["Nəticə1", "Nəticə2"],
+  },
+  {
+    id: 4,
+    name: "Satış bonusu düsturu",
+    formula: "(Nəticə1 + (Nəticə2 × Çəki)) × (Maaş / 12)",
+    description: "Yekun bonus hesablama düsturu — fərdi və komanda nəticələri əsasında aylıq bonus.",
+    variables: ["Nəticə1", "Nəticə2", "Çəki", "Maaş"],
+  },
 ];
 
 export const getVariables = (): FormulaVariable[] => {
