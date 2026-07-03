@@ -1607,7 +1607,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               err:  "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400",
             };
             const badgeText = {
-              ok: "Tamamlanıb", wait: "Gözlənilir", err: "Diqqət",
+              ok: "Tamamlanıb", wait: "Gözlənilir", err: "Tamamlanmayıb",
             } as const;
 
             return (
