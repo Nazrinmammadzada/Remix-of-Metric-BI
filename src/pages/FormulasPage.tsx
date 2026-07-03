@@ -225,32 +225,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
             <div><label className="text-sm font-medium">Düstur Adı</label><input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Satış Performans Düsturu" className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
             <div><label className="text-sm font-medium">Təsvir</label><input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Düsturun təsviri..." className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
             <div>
-              <label className="text-sm font-medium">Aid Olduğu KPI Tipləri</label>
-              <div className="relative mt-1">
-                <div onClick={() => setShowKpiTypeDropdown(!showKpiTypeDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
-                  {form.kpiTypes.length === 0 && <span className="text-muted-foreground">KPI tipi seçin (çoxlu seçim)</span>}
-                  {form.kpiTypes.map(t => (
-                    <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-accent text-accent-foreground rounded-full">
-                      {t}<X className="w-3 h-3 cursor-pointer" onClick={e => { e.stopPropagation(); toggleKpiType(t); }} />
-                    </span>
-                  ))}
-                  <ChevronDown className="w-4 h-4 ml-auto text-muted-foreground" />
-                </div>
-                {showKpiTypeDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {kpiTypeOptions.length === 0 && <p className="p-3 text-xs text-muted-foreground">Məlumat kataloqunda KPI tipi yoxdur.</p>}
-                    {kpiTypeOptions.map(t => (
-                      <div key={t} onClick={e => { e.stopPropagation(); toggleKpiType(t); }} className={`px-3 py-2 text-sm cursor-pointer hover:bg-secondary flex items-center justify-between ${form.kpiTypes.includes(t) ? 'bg-primary/5' : ''}`}>
-                        <span>{t}</span>
-                        {form.kpiTypes.includes(t) && <Check className="w-4 h-4 text-primary" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">KPI kartı yaradılarkən seçilmiş tipə uyğun düstur avtomatik təklif olunacaq.</p>
-            </div>
-            <div>
               <label className="text-sm font-medium">Dəyişənlər (kitabdan seçim)</label>
               <div className="relative mt-1">
                 <div onClick={() => setShowVarDropdown(!showVarDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
