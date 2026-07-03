@@ -33,8 +33,10 @@ const allPeople: TeamMember[] = [
 
 const TeamsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
-  const isManager = user?.role === "MANAGER";
+  const isRehberRoute = /\/(rehber|manager)\//.test(location.pathname);
+  const isManager = user?.role === "MANAGER" || isRehberRoute;
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
 
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
