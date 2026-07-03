@@ -222,7 +222,7 @@ const AssignView = () => {
               {isOpen && (
                 <div className="border-t border-border overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-secondary/40 text-muted-foreground">
+                    <thead className="bg-emerald-600 text-white">
                       <tr>
                         <th className="text-left px-4 py-3 font-medium">Ad</th>
                         <th className="text-left px-4 py-3 font-medium">Növ</th>
@@ -431,7 +431,7 @@ const EvaluateView = () => {
               {isOpen && (
                 <div className="border-t border-border overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-secondary/40 text-muted-foreground">
+                    <thead className="bg-emerald-600 text-white">
                       <tr>
                         <th className="text-left px-4 py-3 font-medium">Hədəf</th>
                         <th className="text-right px-4 py-3 font-medium">Hədəf</th>

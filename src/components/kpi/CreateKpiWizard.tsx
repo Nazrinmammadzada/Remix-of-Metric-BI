@@ -11,6 +11,7 @@ import {
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
   ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown,
 } from "lucide-react";
+import SearchableSelect from "@/components/common/SearchableSelect";
 import { toast } from "sonner";
 
 // ============ TYPES ============
@@ -929,20 +930,22 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                               <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0" title={r.reviewerName || "Şəxs seçilməyib"}>
                                 <User className="w-4 h-4 text-primary" />
                               </div>
-                              <input
-                                list={`reviewer-list-${r.id}`}
-                                value={r.reviewerName || ""}
-                                onChange={e => updReview(r.id, { reviewerName: e.target.value })}
-                                placeholder="Şəxs axtar (ad, vəzifə)…"
-                                className="flex-1 px-2 py-1.5 text-sm border border-border rounded bg-background"
-                              />
-                              <datalist id={`reviewer-list-${r.id}`}>
-                                {emps.map(e => (
-                                  <option key={e.id} value={`${e.firstName} ${e.lastName}`}>
-                                    {e.positionName || ""}
-                                  </option>
-                                ))}
-                              </datalist>
+                              <div className="flex-1">
+                                <SearchableSelect
+                                  value={r.reviewerName || ""}
+                                  onChange={(v) => updReview(r.id, { reviewerName: v })}
+                                  placeholder="Şəxs axtar (ad, vəzifə)…"
+                                  options={emps.map(e => {
+                                    const isLeader = /direktor|müdir|rəhbər|başçı|lider/i.test(e.positionName || "");
+                                    const full = `${e.firstName} ${e.lastName}`;
+                                    return {
+                                      value: full,
+                                      label: `${full}${e.positionName ? " · " + e.positionName : ""}`,
+                                      group: isLeader ? "Rəhbər vəzifədə olan şəxslər" : "Əməkdaşlar",
+                                    };
+                                  })}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>

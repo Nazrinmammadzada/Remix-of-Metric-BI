@@ -114,12 +114,15 @@ const OrganizationPage = () => {
           <ModuleCards activeTab={tab} onSelectTab={setTab} />
         ) : (
           <div className="space-y-4">
-            <button
-              onClick={() => setTab(null)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" /> Geri
-            </button>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <button
+                onClick={() => setTab(null)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Geri
+              </button>
+              <TabToolbar total={stats.total} active={stats.active} />
+            </div>
             {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
           </div>
         )}
@@ -127,6 +130,23 @@ const OrganizationPage = () => {
     </div>
   );
 };
+
+const TabToolbar = ({ total, active }: { total: number; active: number }) => (
+  <div className="flex items-center gap-2 flex-wrap">
+    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
+      <Download className="w-4 h-4 rotate-180" /> Excel import
+    </button>
+    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
+      <img src={chrLogo} alt="" className="w-4 h-4 rounded" /> CHR import
+    </button>
+    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
+      <img src={chrLogo} alt="" className="w-4 h-4 rounded" /> CHR export
+    </button>
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-muted-foreground">
+      <Users className="w-4 h-4" /> <span className="font-medium text-foreground">{total} əməkdaş</span> · {active} aktiv
+    </div>
+  </div>
+);
 
 // ====================================================
 // Module entry cards — Komandalar & Əməkhaqqı bazası

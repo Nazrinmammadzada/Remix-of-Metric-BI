@@ -4,6 +4,7 @@ import { Check, ChevronDown, Search, X } from "lucide-react";
 export interface SearchableOption {
   value: string;
   label: string;
+  group?: string;
 }
 
 interface Props {
@@ -74,16 +75,32 @@ const SearchableSelect = ({ value, onChange, options, placeholder = "Seçin", di
             {filtered.length === 0 ? (
               <div className="px-3 py-2 text-xs text-muted-foreground text-center">Nəticə yoxdur</div>
             ) : (
-              filtered.map(o => (
-                <div
-                  key={o.value}
-                  onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
-                  className={`px-3 py-1.5 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${o.value === value ? "bg-primary/5" : ""}`}
-                >
-                  <span className="truncate">{o.label}</span>
-                  {o.value === value && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-                </div>
-              ))
+              (() => {
+                const hasGroups = filtered.some(o => o.group);
+                if (!hasGroups) {
+                  return filtered.map(o => (
+                    <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
+                      className={`px-3 py-1.5 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${o.value === value ? "bg-primary/5" : ""}`}>
+                      <span className="truncate">{o.label}</span>
+                      {o.value === value && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    </div>
+                  ));
+                }
+                const groups: Record<string, SearchableOption[]> = {};
+                filtered.forEach(o => { const g = o.group || "Digər"; (groups[g] = groups[g] || []).push(o); });
+                return Object.entries(groups).map(([g, list]) => (
+                  <div key={g}>
+                    <div className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold bg-secondary/40">{g}</div>
+                    {list.map(o => (
+                      <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
+                        className={`px-3 py-1.5 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${o.value === value ? "bg-primary/5" : ""}`}>
+                        <span className="truncate">{o.label}</span>
+                        {o.value === value && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                      </div>
+                    ))}
+                  </div>
+                ));
+              })()
             )}
           </div>
         </div>
