@@ -72,6 +72,7 @@ const scoreColor = (s: number) =>
 interface ScoreRow {
   empId: number;
   fullName: string;
+  fatherName: string;
   cardIdx: number;
   cardName: string;
   periodLabel: string;
