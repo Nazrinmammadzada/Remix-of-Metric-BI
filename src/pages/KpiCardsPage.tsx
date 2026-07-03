@@ -1713,10 +1713,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 </span>
                                 {sk.weight ? <span className="text-xs text-muted-foreground">Çəki: {sk.weight}%</span> : null}
                               </div>
-                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Dəyər: {sk.target}{sk.unit ? ` (${sk.unit})` : ""}</span>
-                                <span>{sk._fromSet ? `Təyin edici: ${sk._assignee}` : ""}</span>
-                              </div>
+                               <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                 <span>Dəyər: {sk.target}{sk.unit ? ` (${sk.unit})` : ""}</span>
+                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium">
+                                   Cari vəziyyət: {sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}
+                                 </span>
+                                 <span>{sk._fromSet ? `Təyin edici: ${sk._assignee}` : ""}</span>
+                               </div>
                               {sk.evaluator?.type && (
                                 <div className="text-[11px] text-muted-foreground mt-1">
                                   Qiymətləndirici ({sk.evaluator.type}): {sk.evaluator.type === "self" ? "Özü" : sk.evaluator.type === "integration" ? `${sk.evaluator.integrationName} (${sk.evaluator.integrationWeight ?? 100}%)` : sk.evaluator.persons.map((p: any) => `${p.name} ${p.weight}%`).join(", ")}
