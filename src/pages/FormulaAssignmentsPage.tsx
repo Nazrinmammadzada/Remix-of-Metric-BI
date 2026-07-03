@@ -36,13 +36,13 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
   return (
     <div className="min-h-screen">
       <Header title="Hesablama Düsturları" />
-      <main className="p-6 pb-24 max-w-[1400px] mx-auto">
+      <main className="p-6 pb-24 space-y-4">
         {onBack && (
-          <button onClick={onBack} className="inline-flex items-center gap-1.5 px-3 py-1.5 mb-4 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40">
+          <button onClick={onBack} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40">
             <ChevronLeft className="w-4 h-4" /> Geri
           </button>
         )}
-        <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex items-start justify-between gap-4">
           <PageHero
             badge="Hesablama"
             icon={Sparkles}
