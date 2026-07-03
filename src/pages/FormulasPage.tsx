@@ -71,7 +71,9 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
       persistFormulas(formulas.map(f => f.id === editing.id ? { ...editing, ...form, kpiName: editing.kpiName } : f));
       toast.success("Düstur yeniləndi");
     } else {
-      persistFormulas([...formulas, { id: Date.now(), ...form, kpiName: "" }]);
+      const created: Formula = { id: Date.now(), ...form, kpiName: "" };
+      persistFormulas([...formulas, created]);
+      ensureAssignmentForFormula(created);
       toast.success("Düstur əlavə edildi");
     }
     setShowDialog(false);
