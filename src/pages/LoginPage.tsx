@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle, Eye, EyeOff, LogIn, Target, TrendingUp, Users, GitBranch, BarChart3, ClipboardList, Award } from "lucide-react";
-import logo from "@/assets/logo.png";
+import { AlertCircle, Eye, EyeOff, LogIn } from "lucide-react";
+import loginHero from "@/assets/login-hero.png.asset.json";
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -39,16 +39,6 @@ const LoginPage = () => {
     }
   };
 
-  // Orbit badges – KPI ecosystem
-  const orbitBadges = [
-    { label: "Hədəflər", icon: Target, color: "text-violet-600", angle: 270, radius: 220 },
-    { label: "Performans", icon: TrendingUp, color: "text-emerald-600", angle: 330, radius: 220 },
-    { label: "Kaskadlama", icon: GitBranch, color: "text-amber-700", angle: 30, radius: 150 },
-    { label: "Hesabatlar", icon: BarChart3, color: "text-sky-600", angle: 90, radius: 220 },
-    { label: "Komandalar", icon: Users, color: "text-rose-600", angle: 150, radius: 220 },
-    { label: "Qiymətləndirmə", icon: ClipboardList, color: "text-indigo-600", angle: 210, radius: 150 },
-    { label: "Bonus", icon: Award, color: "text-fuchsia-600", angle: 0, radius: 150 },
-  ];
 
   return (
     <div className="min-h-screen bg-background grid lg:grid-cols-2">
@@ -149,45 +139,14 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Right – KPI orbit illustration */}
+      {/* Right – KPI ecosystem illustration */}
       <div className="hidden lg:flex relative items-center justify-center p-10 bg-gradient-to-br from-secondary/40 via-background to-primary/5 border-l border-border overflow-hidden">
         <div className="absolute inset-6 rounded-3xl border border-border/60 bg-card/40 backdrop-blur-sm" />
-        <div className="relative w-[520px] h-[520px] flex items-center justify-center">
-          {/* concentric circles */}
-          <div className="absolute inset-0 rounded-full border border-dashed border-primary/20" />
-          <div className="absolute inset-12 rounded-full border border-dashed border-primary/25" />
-          <div className="absolute inset-24 rounded-full border border-dashed border-primary/30" />
-
-          {/* center logo card */}
-          <div className="relative z-10 w-44 h-44 rounded-full bg-card border border-border shadow-xl flex flex-col items-center justify-center">
-            <img src={logo} alt="KPI Logo" className="w-12 h-12 object-contain mb-2" />
-            <p className="text-[11px] font-bold tracking-[0.18em] text-foreground text-center leading-tight">
-              KPİ<br />MANAGEMENT<br />SİSTEMİ
-            </p>
-          </div>
-
-          {/* orbiting badges */}
-          {orbitBadges.map((b, i) => {
-            const rad = (b.angle * Math.PI) / 180;
-            const x = Math.cos(rad) * b.radius;
-            const y = Math.sin(rad) * b.radius;
-            const Icon = b.icon;
-            return (
-              <div
-                key={i}
-                className="absolute flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border shadow-md"
-                style={{
-                  left: `calc(50% + ${x}px)`,
-                  top: `calc(50% + ${y}px)`,
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <span className={`text-sm font-semibold ${b.color}`}>{b.label}</span>
-                <Icon className={`w-4 h-4 ${b.color}`} />
-              </div>
-            );
-          })}
-        </div>
+        <img
+          src={loginHero.url}
+          alt="KPI ekosistemi — Hədəflər, Qiymətləndirmə, Performans, Bonus, Kaskadlama, Komandalar, Hesabatlar"
+          className="relative w-full max-w-[560px] h-auto object-contain drop-shadow-xl"
+        />
       </div>
     </div>
   );
