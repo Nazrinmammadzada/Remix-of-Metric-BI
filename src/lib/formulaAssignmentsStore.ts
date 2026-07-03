@@ -3,7 +3,7 @@
 
 import { getFormulas, type Formula } from "./formulasStore";
 
-export type FormulaTargetType = "sexs" | "vezife" | "struktur" | "komanda";
+export type FormulaTargetType = "sexs" | "vezife" | "struktur" | "komanda" | "butun_sirket";
 
 export interface FormulaTargetRef {
   type: FormulaTargetType;
