@@ -209,7 +209,7 @@ const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: num
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full ${t.dot}`} />
           <span className="text-[11px] font-semibold text-foreground truncate">{node.assigneeName}</span>
-          {node.isStar && <Crown className="w-3 h-3 text-amber-500 shrink-0" />}
+          {(node.isStar || kids.length > 0) && <Crown className="w-3 h-3 text-amber-500 shrink-0" />}
         </div>
         {node.positionName && (
           <div className="text-[10px] text-muted-foreground truncate mt-0.5">{node.positionName}</div>
