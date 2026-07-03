@@ -162,7 +162,7 @@ export const emptyKpiWizardDraft = (): CreateKpiWizardDraft => ({
   approvalMethod: "matrix",
 
   lifecycle: {
-    assignmentStart: "",
+    assignmentStart: new Date().toISOString().slice(0, 10),
     assignmentEnd: "",
     assignmentDeadline: "",
     evaluationStart: "",
