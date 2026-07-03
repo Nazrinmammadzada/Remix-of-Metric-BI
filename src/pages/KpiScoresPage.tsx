@@ -123,6 +123,7 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
         out.push({
           empId: emp.id,
           fullName: `${emp.firstName} ${emp.lastName}`,
+          fatherName: emp.fatherName ?? "",
           cardIdx,
           cardName: card,
           periodLabel,
