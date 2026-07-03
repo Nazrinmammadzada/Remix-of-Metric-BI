@@ -161,6 +161,7 @@ const StepBadge = ({ n, label, active, done }: { n: number; label: string; activ
 );
 
 const TYPE_META: Record<FormulaTargetType, { label: string; icon: typeof User }> = {
+  butun_sirket: { label: "Bütün şirkət", icon: Globe },
   sexs: { label: "Şəxs", icon: User },
   vezife: { label: "Vəzifə", icon: Briefcase },
   struktur: { label: "Struktur", icon: Building2 },
