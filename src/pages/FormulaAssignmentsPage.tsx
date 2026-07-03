@@ -79,7 +79,7 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
                   const isOpen = expandedId === r.id;
                   const empList = r.employeeIds.map(id => employees.find(e => e.id === id)).filter(Boolean);
                   return (
-                    <>
+                    <Fragment key={r.id}>
                       <tr key={r.id} className={`border-t border-border transition-colors ${isOpen ? "bg-blue-50/40 dark:bg-blue-500/5" : "hover:bg-secondary/30"}`}>
                         <td className="px-3 py-3">
                           <button onClick={() => toggleExpand(r.id)} className="p-1 rounded hover:bg-secondary">
