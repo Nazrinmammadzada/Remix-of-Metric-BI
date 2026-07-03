@@ -11,6 +11,7 @@ import {
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
   ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown,
 } from "lucide-react";
+import SearchableSelect from "@/components/common/SearchableSelect";
 import { toast } from "sonner";
 
 // ============ TYPES ============
