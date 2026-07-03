@@ -161,7 +161,7 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
