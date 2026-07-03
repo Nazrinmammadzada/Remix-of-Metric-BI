@@ -368,9 +368,16 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                 <div className="flex flex-wrap gap-2 mb-5">
                   {(Object.keys(TYPE_META) as FormulaTargetType[]).map(t => {
                     const active = types.includes(t);
+                    const disabled = t === "butun_sirket" ? types.some(x => x !== "butun_sirket") : isAll;
                     const Icon = TYPE_META[t].icon;
                     return (
-                      <button key={t} onClick={() => toggleType(t)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${active ? "border-blue-600 bg-blue-600 text-white" : "border-border bg-card hover:bg-secondary/40"}`}>
+                      <button
+                        key={t}
+                        onClick={() => !disabled && toggleType(t)}
+                        disabled={disabled}
+                        title={disabled ? (t === "butun_sirket" ? "Digər seçimləri təmizləyin" : "«Bütün şirkət» seçilib") : undefined}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${active ? "border-blue-600 bg-blue-600 text-white" : "border-border bg-card hover:bg-secondary/40"} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
                         <Icon className="w-3.5 h-3.5" /> {TYPE_META[t].label}
                       </button>
                     );
@@ -381,6 +388,15 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                 {types.length === 0 && (
                   <div className="text-sm text-muted-foreground border border-dashed border-border rounded-lg p-6 text-center">
                     Tətbiq sahəsini görmək üçün ən azı bir təyinat tipi seçin.
+                  </div>
+                )}
+                {isAll && (
+                  <div className="text-sm border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 rounded-lg p-4 flex items-start gap-2">
+                    <Globe className="w-4 h-4 text-blue-600 mt-0.5" />
+                    <div>
+                      <div className="font-medium text-foreground">Bütün şirkət seçilib</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Düstur bütün aktiv əməkdaşlara ({employees.filter(e => e.active).length} nəfər) tətbiq olunacaq.</div>
+                    </div>
                   </div>
                 )}
 
