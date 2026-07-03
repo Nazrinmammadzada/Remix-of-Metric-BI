@@ -1,6 +1,6 @@
 // Kaskad İzləmə — YALNIZ İZLƏMƏ. Bütün kaskadlanan KPİ kartları kart siyahısı
 // şəklində əks olunur, klikləyəndə tam iyerarxiya topologiyası açılır.
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Activity, ChevronLeft, Search, Crown, X, Maximize2, Users, Target } from "lucide-react";
