@@ -77,6 +77,56 @@ export const updateAssignment = (id: number, patch: Partial<FormulaAssignment>) 
   saveAssignments(list);
 };
 
+/** Yeni yaradılan düstur avtomatik siyahıya 0 əməkdaşla əlavə edilsin. */
+export const ensureAssignmentForFormula = (formula: Formula) => {
+  const list = getAssignments();
+  if (list.some(a => a.formulaId === formula.id)) return;
+  addAssignment({
+    formulaId: formula.id,
+    formulaName: formula.name,
+    variables: formula.variables ?? [],
+    targetTypes: [],
+    targets: [],
+    employeeIds: [],
+    status: "active",
+  });
+};
+
+/** Eyni düstur üçün mövcud sətri yenilə (əməkdaşları birləşdir), yoxdursa əlavə et. */
+export const upsertAssignmentForFormula = (
+  formula: Formula,
+  data: {
+    targetTypes: FormulaTargetType[];
+    targets: FormulaTargetRef[];
+    employeeIds: number[];
+  }
+) => {
+  const list = getAssignments();
+  const existing = list.find(a => a.formulaId === formula.id);
+  const now = new Date().toISOString();
+  if (existing) {
+    const mergedEmp = Array.from(new Set([...existing.employeeIds, ...data.employeeIds]));
+    const mergedTypes = Array.from(new Set([...existing.targetTypes, ...data.targetTypes])) as FormulaTargetType[];
+    const key = (t: FormulaTargetRef) => `${t.type}:${t.id}`;
+    const map = new Map<string, FormulaTargetRef>();
+    [...existing.targets, ...data.targets].forEach(t => map.set(key(t), t));
+    const next = list.map(a => a.id === existing.id
+      ? { ...a, formulaName: formula.name, variables: formula.variables ?? a.variables, targetTypes: mergedTypes, targets: Array.from(map.values()), employeeIds: mergedEmp, updatedAt: now }
+      : a);
+    saveAssignments(next);
+    return next.find(a => a.id === existing.id)!;
+  }
+  return addAssignment({
+    formulaId: formula.id,
+    formulaName: formula.name,
+    variables: formula.variables ?? [],
+    targetTypes: data.targetTypes,
+    targets: data.targets,
+    employeeIds: data.employeeIds,
+    status: "active",
+  });
+};
+
 export const deleteAssignment = (id: number) => {
   saveAssignments(getAssignments().filter(a => a.id !== id));
 };
