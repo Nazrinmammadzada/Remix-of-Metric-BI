@@ -87,7 +87,7 @@ export interface WizardEvaluator { id: string; name: string; weight: number }
 
 export type CreatedBy = "self" | "other";
 
-export interface WizardLifecycleReview { id: string; name: string; start: string; end: string; reviewerName?: string }
+export interface WizardLifecycleReview { id: string; name: string; start: string; end: string; reviewerName?: string; reviewerNames?: string[] }
 
 export type WizardAction = "draft" | "submit" | "create_active";
 
