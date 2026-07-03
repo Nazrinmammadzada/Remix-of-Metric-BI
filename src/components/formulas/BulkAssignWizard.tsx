@@ -187,8 +187,56 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
   const structuresFlat = useMemo(() => collectStructures(getStructures()), []);
   const teams = useMemo(() => getTeams(), []);
 
+  const isAll = types.includes("butun_sirket");
+
   const toggleType = (t: FormulaTargetType) => {
-    setTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+    setTypes(prev => {
+      if (t === "butun_sirket") {
+        // exclusive: seçilsə digərlərini təmizlə
+        if (prev.includes("butun_sirket")) return prev.filter(x => x !== "butun_sirket");
+        setSelPersons(new Set()); setSelPositions(new Set()); setSelStructures(new Set()); setSelTeams(new Set());
+        return ["butun_sirket"];
+      }
+      // digər tip seçilibsə "Bütün şirkət" seçilə bilməz
+      if (prev.includes("butun_sirket")) return prev;
+      return prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t];
+    });
+  };
+
+  // Struktur seçildikdə bütün alt strukturlar da seçilsin/çıxarılsın
+  const descendantStructureIds = (rootId: number): number[] => {
+    const res: number[] = [];
+    const walk = (id: number) => {
+      for (const s of structuresFlat) {
+        if (s.parentId === id) { res.push(s.id); walk(s.id); }
+      }
+    };
+    walk(rootId);
+    return res;
+  };
+
+  const toggleStructure = (id: string | number, name: string) => {
+    const numId = Number(id);
+    const desc = descendantStructureIds(numId);
+    setSelStructures(prev => {
+      const next = new Set(prev);
+      if (next.has(numId)) {
+        next.delete(numId);
+        desc.forEach(d => next.delete(d));
+      } else {
+        next.add(numId);
+        desc.forEach(d => next.add(d));
+      }
+      return next;
+    });
+    setSelNames(prev => {
+      const upd = { ...prev, [`struktur:${numId}`]: name };
+      desc.forEach(d => {
+        const s = structuresFlat.find(x => x.id === d);
+        if (s) upd[`struktur:${d}`] = s.name;
+      });
+      return upd;
+    });
   };
 
   const toggleFromSet = (
@@ -204,15 +252,21 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
   };
 
   const targets: FormulaTargetRef[] = useMemo(() => {
+    if (isAll) {
+      return [{ type: "butun_sirket", id: "all", name: "Bütün şirkət" }];
+    }
     const out: FormulaTargetRef[] = [];
     selPersons.forEach(id => out.push({ type: "sexs", id, name: selNames[`sexs:${id}`] ?? String(id) }));
     selPositions.forEach(id => out.push({ type: "vezife", id, name: selNames[`vezife:${id}`] ?? String(id) }));
     selStructures.forEach(id => out.push({ type: "struktur", id, name: selNames[`struktur:${id}`] ?? String(id) }));
     selTeams.forEach(id => out.push({ type: "komanda", id, name: selNames[`komanda:${id}`] ?? String(id) }));
     return out;
-  }, [selPersons, selPositions, selStructures, selTeams, selNames]);
+  }, [isAll, selPersons, selPositions, selStructures, selTeams, selNames]);
 
-  const employeeIds = useMemo(() => collectEmployeeIdsForTargets(targets), [targets]);
+  const employeeIds = useMemo(() => {
+    if (isAll) return employees.filter(e => e.active).map(e => e.id);
+    return collectEmployeeIdsForTargets(targets);
+  }, [isAll, targets, employees]);
   const totalCount = employeeIds.length;
 
   useEffect(() => {
@@ -230,21 +284,17 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
 
   const finalize = () => {
     if (!selectedFormula) return;
-    addAssignment({
-      formulaId: selectedFormula.id,
-      formulaName: selectedFormula.name,
-      variables: selectedFormula.variables ?? [],
+    upsertAssignmentForFormula(selectedFormula, {
       targetTypes: types,
       targets,
       employeeIds,
-      status: "active",
     });
     toast.success(`${totalCount} əməkdaşa düstur təyin olundu`);
     onDone?.();
     onBack();
   };
 
-  const canNextStep1 = !!selectedFormula && types.length > 0 && targets.length > 0;
+  const canNextStep1 = !!selectedFormula && types.length > 0 && (isAll || targets.length > 0);
 
   return (
     <div className="min-h-screen">
