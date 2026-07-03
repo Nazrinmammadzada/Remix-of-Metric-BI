@@ -4,6 +4,7 @@ import { Check, ChevronDown, Search, X } from "lucide-react";
 export interface SearchableOption {
   value: string;
   label: string;
+  group?: string;
 }
 
 interface Props {
