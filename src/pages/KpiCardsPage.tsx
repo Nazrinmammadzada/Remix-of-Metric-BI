@@ -1289,15 +1289,25 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               }
               return (
                 <div className="bg-card border border-border rounded-2xl p-5">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
+                  <div className="flex items-center justify-between mb-4 gap-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
+                    </div>
+                    <button
+                      onClick={() => { setEditingCardId(null); setWizardOpen(true); }}
+                      className="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                    >
+                      <Plus className="w-5 h-5" /> Yeni KPI Kartı
+                    </button>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
                           <th className="py-2 px-2">Əməkdaş</th>
+                          <th className="py-2 px-2">Ata adı</th>
+                          <th className="py-2 px-2">Vəzifə</th>
                           <th className="py-2 px-2 text-center">KPI kartlarının sayı</th>
                           <th className="py-2 px-2">Ortalama Progress</th>
                           <th className="py-2 px-2 text-right">Əməliyyat</th>
@@ -1307,6 +1317,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         {entries.map(([person, cards]) => {
                           const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
                           const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+                          const parts = person.split(" ");
+                          const empMatch = getEmployees().find(e => `${e.firstName} ${e.lastName}` === person || `${e.lastName} ${e.firstName}` === person || (parts.length >= 2 && e.firstName === parts[0] && e.lastName === parts[1]));
+                          const fatherName = empMatch?.fatherName || "—";
+                          const positionName = empMatch?.positionName || cards[0]?.subdivision || "Əməkdaş";
                           return (
                             <tr key={person} className="border-b border-border last:border-0 hover:bg-secondary/40">
                               <td className="py-2.5 px-2">
@@ -1315,6 +1329,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <span className="font-medium text-foreground">{person}</span>
                                 </div>
                               </td>
+                              <td className="py-2.5 px-2 text-muted-foreground text-xs">{fatherName}</td>
+                              <td className="py-2.5 px-2 text-xs">{positionName}</td>
                               <td className="py-2.5 px-2 text-center">
                                 <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">{cards.length}</span>
                               </td>
@@ -1327,10 +1343,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <td className="py-2.5 px-2 text-right">
                                 <button
                                   onClick={() => setEmployeeDrilldown(person)}
-                                  title="Kartlara bax"
-                                  className="inline-flex items-center gap-1 p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
                                 >
-                                  <Eye className="w-3.5 h-3.5" />
+                                  Kartlara detallı bax
+                                  <ArrowUp className="w-3.5 h-3.5 rotate-90" />
                                 </button>
                               </td>
                             </tr>
