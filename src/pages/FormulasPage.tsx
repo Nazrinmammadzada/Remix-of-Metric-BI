@@ -58,9 +58,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
     setForm(p => ({ ...p, variables: p.variables.includes(short) ? p.variables.filter(s => s !== short) : [...p.variables, short] }));
   };
 
-  const toggleKpiType = (t: string) => {
-    setForm(p => ({ ...p, kpiTypes: p.kpiTypes.includes(t) ? p.kpiTypes.filter(x => x !== t) : [...p.kpiTypes, t] }));
-  };
 
   const insertToken = (token: string) => setForm(p => ({ ...p, formula: p.formula + token }));
 
