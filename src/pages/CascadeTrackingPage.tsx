@@ -191,7 +191,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto p-6">
-                  <Topology root={current} compact />
+                  <Topology root={current} compact highlightId={highlightNodeId} />
                 </div>
               </>
             ) : (
