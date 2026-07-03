@@ -80,7 +80,7 @@ const TeamsPage = () => {
   })();
 
   const scopedTeams = isManager
-    ? teams.filter(t => t.leader === user?.name)
+    ? teams.filter(t => t.leader === user?.name || t.members.some(m => m.name === user?.name))
     : teams;
 
   const avgPerformance = scopedTeams.length ? (scopedTeams.reduce((s, t) => s + t.kpiResult, 0) / scopedTeams.length).toFixed(1) : "0";
