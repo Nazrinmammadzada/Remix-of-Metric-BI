@@ -925,27 +925,33 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                           </div>
                           <div>
                             <label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <User className="w-3 h-3" /> Reviewu keçirəcək şəxs
+                              <User className="w-3 h-3" /> Reviewu keçirəcək şəxs(lər)
                             </label>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0" title={r.reviewerName || "Şəxs seçilməyib"}>
-                                <User className="w-4 h-4 text-primary" />
+                            <div className="flex items-start gap-2 mt-0.5">
+                              <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 mt-1">
+                                <Users className="w-4 h-4 text-primary" />
                               </div>
                               <div className="flex-1">
-                                <SearchableSelect
-                                  value={r.reviewerName || ""}
-                                  onChange={(v) => updReview(r.id, { reviewerName: v })}
-                                  placeholder="Şəxs axtar (ad, vəzifə)…"
-                                  options={emps.map(e => {
-                                    const isLeader = /direktor|müdir|rəhbər|başçı|lider/i.test(e.positionName || "");
-                                    const full = `${e.firstName} ${e.lastName}`;
-                                    return {
-                                      value: full,
-                                      label: `${full}${e.positionName ? " · " + e.positionName : ""}`,
-                                      group: isLeader ? "Rəhbər vəzifədə olan şəxslər" : "Əməkdaşlar",
-                                    };
-                                  })}
-                                />
+                                {(() => {
+                                  const currentList: string[] = r.reviewerNames && r.reviewerNames.length
+                                    ? r.reviewerNames
+                                    : (r.reviewerName ? [r.reviewerName] : []);
+                                  const opts = emps.map(e => `${e.firstName} ${e.lastName}${e.positionName ? " · " + e.positionName : ""}`);
+                                  const toggle = (v: string) => {
+                                    const has = currentList.includes(v);
+                                    const next = has ? currentList.filter(x => x !== v) : [...currentList, v];
+                                    updReview(r.id, { reviewerNames: next, reviewerName: next[0] || "" });
+                                  };
+                                  return (
+                                    <DropdownMultiSelect
+                                      options={opts}
+                                      selected={currentList}
+                                      onToggle={toggle}
+                                      placeholder="Şəxs(lər) seçin — bir neçə seçilə bilər"
+                                      searchPlaceholder="Şəxs axtar (ad, vəzifə)…"
+                                    />
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>
