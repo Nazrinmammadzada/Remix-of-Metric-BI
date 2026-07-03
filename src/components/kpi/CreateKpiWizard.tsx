@@ -12,6 +12,7 @@ import {
   ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown,
 } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
 import { toast } from "sonner";
 
 // ============ TYPES ============
