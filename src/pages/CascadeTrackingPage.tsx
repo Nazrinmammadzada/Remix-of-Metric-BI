@@ -295,7 +295,7 @@ const TopoNode = ({ node, depth, maxDepth, highlightId }: { node: CascadeTreeNod
       </div>
       {showKids && (
         <ul>
-          {kids.map(k => <TopoNode key={k.id} node={k} depth={depth + 1} maxDepth={maxDepth} />)}
+          {kids.map(k => <TopoNode key={k.id} node={k} depth={depth + 1} maxDepth={maxDepth} highlightId={highlightId} />)}
         </ul>
       )}
     </li>
