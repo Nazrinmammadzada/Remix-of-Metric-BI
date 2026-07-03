@@ -8,12 +8,12 @@ import { getFormulas, saveFormulas, getVariables, type Formula, type FormulaVari
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { DataTable } from "@/components/common/DataTable";
 
-const KPI_TYPE_DEFAULTS = ["Absolut Hədəf", "Faiz Hədəfi", "Trend Hədəfi", "Benchmark", "Say Hədəfi"];
+
 
 const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
   const [formulas, setFormulas] = useState<Formula[]>(() => getFormulas());
   const variables_initial = getVariables();
-  const kpiTypeOptions = useCatalogValues("kpi_types", KPI_TYPE_DEFAULTS);
+  
   const [variables, setVariables] = useState<FormulaVariable[]>(() => variables_initial);
 
   const [showBook, setShowBook] = useState(false);
@@ -22,9 +22,8 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
 
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Formula | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", kpiTypes: [] as string[], variables: [] as string[], formula: "" });
+  const [form, setForm] = useState({ name: "", description: "", variables: [] as string[], formula: "" });
   const [showVarDropdown, setShowVarDropdown] = useState(false);
-  const [showKpiTypeDropdown, setShowKpiTypeDropdown] = useState(false);
 
   const [deleteConfirm, setDeleteConfirm] = useState<Formula | null>(null);
 
@@ -44,14 +43,14 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", kpiTypes: [], variables: [], formula: "" });
+    setForm({ name: "", description: "", variables: [], formula: "" });
     setShowDialog(true);
   };
 
   const openEdit = (f: Formula) => {
     toast.info("Dəyişiklik cari tarixdən etibarən qüvvəyə minir");
     setEditing(f);
-    setForm({ name: f.name, description: f.description, kpiTypes: f.kpiTypes ? [...f.kpiTypes] : [], variables: [...f.variables], formula: f.formula });
+    setForm({ name: f.name, description: f.description, variables: [...f.variables], formula: f.formula });
     setShowDialog(true);
   };
 
