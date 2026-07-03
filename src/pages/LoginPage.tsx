@@ -140,12 +140,12 @@ const LoginPage = () => {
       </div>
 
       {/* Right – KPI ecosystem illustration */}
-      <div className="hidden lg:flex relative items-center justify-center p-10 bg-gradient-to-br from-secondary/40 via-background to-primary/5 border-l border-border overflow-hidden">
-        <div className="absolute inset-6 rounded-3xl border border-border/60 bg-card/40 backdrop-blur-sm" />
+      <div className="hidden lg:flex relative items-center justify-center overflow-hidden bg-background">
         <img
           src={loginHero.url}
           alt="KPI ekosistemi — Hədəflər, Qiymətləndirmə, Performans, Bonus, Kaskadlama, Komandalar, Hesabatlar"
-          className="relative w-full max-w-[560px] h-auto object-contain drop-shadow-xl"
+          className="w-full h-full object-cover"
+          style={{ mixBlendMode: "multiply" }}
         />
       </div>
     </div>
