@@ -241,18 +241,18 @@ const Legend = () => (
   </div>
 );
 
-const Topology = ({ root, compact }: { root: CascadeTreeNode; compact: boolean }) => {
+const Topology = ({ root, compact, highlightId }: { root: CascadeTreeNode; compact: boolean; highlightId?: string | null }) => {
   return (
     <div className="cascade-tree inline-block min-w-full">
       <style>{treeCss}</style>
       <ul className="cascade-root">
-        <TopoNode node={root} depth={0} maxDepth={compact ? 2 : 99} />
+        <TopoNode node={root} depth={0} maxDepth={compact ? 2 : 99} highlightId={highlightId ?? null} />
       </ul>
     </div>
   );
 };
 
-const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: number; maxDepth: number }) => {
+const TopoNode = ({ node, depth, maxDepth, highlightId }: { node: CascadeTreeNode; depth: number; maxDepth: number; highlightId: string | null }) => {
   const kids = getChildren(node.id);
   const tone = toneOf(node);
   const t = toneClasses[tone];
@@ -260,10 +260,14 @@ const TopoNode = ({ node, depth, maxDepth }: { node: CascadeTreeNode; depth: num
   const rem = remainingOf(node.id);
   const showKids = kids.length > 0 && depth < maxDepth;
   const hiddenKids = kids.length > 0 && depth >= maxDepth;
+  const isHi = highlightId === node.id;
 
   return (
     <li>
-      <div className={`cascade-node inline-block rounded-xl border-2 ${t.border} ${t.bg} px-3 py-2 min-w-[190px] max-w-[230px] text-left shadow-sm`}>
+      <div
+        data-cascade-node-id={node.id}
+        className={`cascade-node inline-block rounded-xl border-2 ${t.border} ${t.bg} px-3 py-2 min-w-[190px] max-w-[230px] text-left shadow-sm transition-all ${isHi ? "ring-4 ring-primary/60 shadow-lg -translate-y-0.5" : ""}`}
+      >
         <div className="flex items-center gap-1.5">
           <span className={`w-2 h-2 rounded-full ${t.dot}`} />
           <span className="text-[11px] font-semibold text-foreground truncate">{node.assigneeName}</span>
