@@ -39,16 +39,6 @@ const LoginPage = () => {
     }
   };
 
-  // Orbit badges – KPI ecosystem
-  const orbitBadges = [
-    { label: "Hədəflər", icon: Target, color: "text-violet-600", angle: 270, radius: 220 },
-    { label: "Performans", icon: TrendingUp, color: "text-emerald-600", angle: 330, radius: 220 },
-    { label: "Kaskadlama", icon: GitBranch, color: "text-amber-700", angle: 30, radius: 150 },
-    { label: "Hesabatlar", icon: BarChart3, color: "text-sky-600", angle: 90, radius: 220 },
-    { label: "Komandalar", icon: Users, color: "text-rose-600", angle: 150, radius: 220 },
-    { label: "Qiymətləndirmə", icon: ClipboardList, color: "text-indigo-600", angle: 210, radius: 150 },
-    { label: "Bonus", icon: Award, color: "text-fuchsia-600", angle: 0, radius: 150 },
-  ];
 
   return (
     <div className="min-h-screen bg-background grid lg:grid-cols-2">
