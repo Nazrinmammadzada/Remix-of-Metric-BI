@@ -1548,60 +1548,73 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
       <Dialog open={statusDialogCardId !== null} onOpenChange={(o) => !o && setStatusDialogCardId(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {statusDialogCardId !== null && getStatusFor(statusDialogCardId).status === "tesdiq_gozlenilir"
-                ? "Təsdiqləyəcək şəxslər"
-                : "Təyin edənlər — Natamam"}
-            </DialogTitle>
-          </DialogHeader>
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);
             const card = kpiCards.find(c => c.id === statusDialogCardId);
-            if (st.status === "tesdiq_gozlenilir") {
-              // Təsdiq zənciri — approvalChain-dən adları oxu, boşdursa fallback
-              const draft = cardDrafts[statusDialogCardId];
-              const chain = (draft as any)?.approvalChain || (card as any)?.approvalChain || [];
-              const rows: { role: string; name: string }[] = [];
-              chain.forEach((c: any) => (c.persons || []).forEach((p: string) => rows.push({ role: c.role, name: p })));
-              if (rows.length === 0) {
-                rows.push({ role: "Şöbə Müdiri", name: "Abbas Əliyev Aqil" });
-                rows.push({ role: "HR Admin", name: "Super Adminov Blink" });
+            const draft = cardDrafts[statusDialogCardId];
+            const evaluators: { role: string; name: string }[] = [];
+            (card?.subKpis || []).forEach(sk => {
+              const ev = (sk as any).evaluator;
+              if (ev?.type === "person" && Array.isArray(ev.persons)) {
+                ev.persons.forEach((p: any) => evaluators.push({ role: `${sk.name} · qiymətləndirici`, name: p.name }));
+              } else if (ev?.type === "self") {
+                evaluators.push({ role: `${sk.name} · özü qiymətləndirir`, name: card?.responsible || "—" });
+              } else if (ev?.type === "integration") {
+                evaluators.push({ role: `${sk.name} · inteqrasiya`, name: ev.integrationName || "Sistem" });
               }
-              return (
-                <ul className="space-y-2 py-2">
-                  {rows.map((r, i) => (
-                    <li key={i} className="flex items-center justify-between px-3 py-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">{i + 1}. {r.name}</span>
-                        <span className="text-[11px] text-muted-foreground">{r.role}</span>
-                      </div>
-                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Təsdiqləməlidir</span>
-                    </li>
-                  ))}
-                </ul>
-              );
+            });
+
+            const cfg: Record<string, { title: string; empty: string; rows: { role: string; name: string; tone?: "ok" | "wait" | "err" }[] }> = {
+              qaralama:        { title: "Qaralama — hazırlanır", empty: "Kart yaradılıb, hələ təyinə göndərilməyib.", rows: [{ role: "Yaradan", name: card?.responsible || "—", tone: "wait" }] },
+              natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "Təyin edən", name: a.name, tone: a.ok ? "ok" : "err" })) },
+              tesdiq_gozlenilir: { title: "Təsdiqləyəcək şəxslər", empty: "Təsdiq zənciri təyin edilməyib.", rows: [] },
+              imtina:          { title: "İmtina edən", empty: "—", rows: [{ role: (st as any).rejected_by || "Təsdiq mərhələsi", name: (st as any).rejection_reason || "İmtina edildi", tone: "err" }] },
+              aktiv:           { title: "İcra edən əməkdaşlar", empty: "Bu kart üçün icraçı tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "İcraçı", name: a.name, tone: "ok" })) },
+              qiymetlendirme:  { title: "Qiymətləndirəcək şəxslər", empty: "Qiymətləndirici təyin edilməyib.", rows: evaluators.map(e => ({ ...e, tone: "wait" as const })) },
+              tamamlanib:      { title: "Tamamlanıb — qiymətləndirənlər", empty: "—", rows: evaluators.map(e => ({ ...e, tone: "ok" as const })) },
+              legv_olundu:     { title: "Ləğv olunub", empty: "—", rows: [{ role: "Ləğv edən", name: card?.responsible || "—", tone: "err" }] },
+            };
+
+            if (st.status === "tesdiq_gozlenilir") {
+              const chain = (draft as any)?.approvalChain || (card as any)?.approvalChain || [];
+              chain.forEach((c: any) => (c.persons || []).forEach((p: string) => cfg.tesdiq_gozlenilir.rows.push({ role: c.role, name: p, tone: "wait" })));
+              if (cfg.tesdiq_gozlenilir.rows.length === 0) {
+                cfg.tesdiq_gozlenilir.rows.push({ role: "Şöbə Müdiri", name: "Abbas Əliyev Aqil", tone: "wait" });
+                cfg.tesdiq_gozlenilir.rows.push({ role: "HR Admin", name: "Super Adminov Blink", tone: "wait" });
+              }
             }
-            if (!st.assignees || st.assignees.length === 0) {
-              return <p className="text-sm text-muted-foreground py-4">Bu kart üçün təyin edən şəxslər tapılmadı.</p>;
-            }
+
+            const c = cfg[st.status] || cfg.qaralama;
+            const toneCls = {
+              ok:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+              wait: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+              err:  "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400",
+            };
+            const badgeText = {
+              ok: "Tamamlanıb", wait: "Gözlənilir", err: "Diqqət",
+            } as const;
+
             return (
-              <ul className="space-y-2 py-2">
-                {st.assignees.map((a, i) => (
-                  <li key={i} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-secondary/40">
-                    <span className="text-sm font-medium text-foreground">{a.name}</span>
-                    {a.ok ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
-                        <Check className="w-4 h-4" /> Təyin edilib
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 text-xs font-medium">
-                        <X className="w-4 h-4" /> Təyin edilməyib
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <>
+                <DialogHeader>
+                  <DialogTitle>{c.title}</DialogTitle>
+                </DialogHeader>
+                {c.rows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">{c.empty}</p>
+                ) : (
+                  <ul className="space-y-2 py-2">
+                    {c.rows.map((r, i) => (
+                      <li key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg border ${toneCls[r.tone || "wait"]}`}>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium text-foreground truncate">{i + 1}. {r.name}</span>
+                          <span className="text-[11px] text-muted-foreground truncate">{r.role}</span>
+                        </div>
+                        <span className="text-xs font-medium shrink-0 ml-2">{badgeText[r.tone || "wait"]}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             );
           })()}
         </DialogContent>
