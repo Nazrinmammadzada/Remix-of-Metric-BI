@@ -147,7 +147,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
     return list;
   }, [kpi.id, kpi.subKpis]);
 
-  const [openSubId, setOpenSubId] = useState<number | null>(null);
+  
 
   return (
     <div className="space-y-3">
