@@ -97,7 +97,7 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
   const [cardSearch, setCardSearch] = useState("");
   const [cardOpen, setCardOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
-  const [viewEmp, setViewEmp] = useState<{ id: number; fullName: string } | null>(null);
+  const [viewEmp, setViewEmp] = useState<{ id: number; fullName: string; cardIdx: number; cardName: string } | null>(null);
 
   const filteredCardOpts = KPI_CARDS.filter(c => c.toLowerCase().includes(cardSearch.trim().toLowerCase()));
   const allSelected = selectedCards.length === KPI_CARDS.length;
