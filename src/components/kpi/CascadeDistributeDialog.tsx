@@ -77,6 +77,20 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
   const [slices, setSlices] = useState<Record<number, string>>({});
 
+  // Hədəf dəyəri avtomatik olaraq hər əməkdaşın "təyin olunan dəyər" xanasına düşsün.
+  useEffect(() => {
+    if (!node || subordinates.length === 0) return;
+    setSlices(prev => {
+      const next = { ...prev };
+      let changed = false;
+      const def = String(node.limit ?? "");
+      subordinates.forEach(e => {
+        if (next[e.id] === undefined) { next[e.id] = def; changed = true; }
+      });
+      return changed ? next : prev;
+    });
+  }, [node?.id, node?.limit, subordinates]);
+
   const setSlice = (id: number, val: string) => {
     // yalnız rəqəm və nöqtə
     const clean = val.replace(/[^\d.]/g, "");
