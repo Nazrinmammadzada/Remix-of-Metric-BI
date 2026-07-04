@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Target, Scale, Info, ChevronDown, ChevronRight, User as UserIcon, Sliders } from "lucide-react";
+import { useMemo } from "react";
+import { User as UserIcon, Sliders } from "lucide-react";
 import { getEntriesForCard, type LimitSet, TIER_LABELS, suggestLimitsFromTarget } from "@/lib/kpiSetStore";
 
 interface SubKpiLike {
@@ -147,70 +147,68 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
     return list;
   }, [kpi.id, kpi.subKpis]);
 
-  const [openSubId, setOpenSubId] = useState<number | null>(null);
+  
 
   return (
     <div className="space-y-3">
-      {/* Hədəflər (əvvəllər Hədəflər) — kart daxilində ümumi hədəf yoxdur */}
       {mergedSubKpis.length > 0 && (
         <div className="rounded-lg border border-border bg-card">
           <div className="px-3 py-2 border-b border-border flex items-center justify-between">
             <p className="text-xs font-medium text-foreground">Hədəflər ({mergedSubKpis.length})</p>
-            <span className="text-[10px] text-muted-foreground">Açmaq üçün klikləyin — qiymət limitləri görünəcək</span>
+            <span className="text-[10px] text-muted-foreground">Hər hədəfin çəkisi, dəyəri və qiymət limitləri</span>
           </div>
           <div className="divide-y divide-border">
             {mergedSubKpis.map(sk => {
-              const isOpen = openSubId === sk.id;
               const assigner =
                 sk.assigner ||
                 sk.assignerFromSet ||
                 (sk.evaluator?.persons?.length ? sk.evaluator.persons.map((p: any) => p.name).join(", ") : null);
               const limits: LimitSet | undefined = sk.limits || (sk.target ? suggestLimitsFromTarget(sk.target) : undefined);
               return (
-                <div key={sk.id}>
-                  <button
-                    onClick={() => setOpenSubId(isOpen ? null : sk.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-secondary/40 transition-colors"
-                  >
+                <div key={sk.id} className="px-3 py-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
                       <span className="text-sm font-medium text-foreground truncate">{sk.name}</span>
-                      {sk.target && (
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">• Dəyər: {sk.target} {sk.unit || ""}</span>
-                      )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                      {typeof sk.weight === "number" && sk.weight > 0 && (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                          Çəki: {sk.weight}%
+                        </span>
+                      )}
+                      {sk.target && (
+                        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-secondary text-foreground">
+                          Hədəf: {sk.target} {sk.unit || ""}
+                        </span>
+                      )}
                       {assigner && (
                         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
                           <UserIcon className="w-3 h-3" /> {assigner}
                         </span>
                       )}
                     </div>
-                  </button>
-                  {isOpen && (
-                    <div className="px-3 pb-3 bg-secondary/20">
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2 mt-1">
-                        <Sliders className="w-3 h-3 text-primary" />
-                        Qiymət Limitləri {sk.limits ? "(KPI Set-dən)" : "(avtomatik təklif)"}
-                      </div>
-                      {limits ? (
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {TIER_LABELS.map(({ tier, score: sc, label }) => {
-                            const r = limits[tier];
-                            return (
-                              <div key={tier} className="rounded-md border border-border bg-background px-2 py-1.5 text-center">
-                                <p className="text-[10px] text-muted-foreground">{label}</p>
-                                <p className="text-[11px] font-semibold text-foreground tabular-nums mt-0.5">
-                                  {fmtUnit(r.min, sk.unit || "")} – {fmtUnit(r.max, sk.unit || "")}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-[11px] text-muted-foreground">Hələ limit təyin olunmayıb.</p>
-                      )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
+                    <Sliders className="w-3 h-3 text-primary" />
+                    Qiymət Limitləri {sk.limits ? "(KPI Set-dən)" : "(avtomatik təklif)"}
+                  </div>
+                  {limits ? (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {TIER_LABELS.map(({ tier, score: sc, label }) => {
+                        const r = limits[tier];
+                        return (
+                          <div key={tier} className="rounded-md border border-border bg-background px-2 py-1.5 text-center">
+                            <p className="text-[10px] text-muted-foreground">{label}</p>
+                            <p className="text-[11px] font-semibold text-foreground tabular-nums mt-0.5">
+                              {fmtUnit(r.min, sk.unit || "")} – {fmtUnit(r.max, sk.unit || "")}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">Hələ limit təyin olunmayıb.</p>
                   )}
                 </div>
               );

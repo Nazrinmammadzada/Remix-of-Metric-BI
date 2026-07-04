@@ -1,17 +1,20 @@
-// Kaskadlama bölgü dialoqu — Star rəhbər alt şəxslər arasında hədəf dəyərini paylayır.
-// DİQQƏT: Rəhbərin hədəf üçün yazdığı ümumi dəyər HƏR BİR əməkdaşa EYNİLƏ təyin olunur.
-// Bu, Cascade Load bucket-indən TAM AYRIDIR (o, başqa kartdan gələn və bölünən limitdir).
+// Kaskadlama bölgü dialoqu — Rəhbər hədəfi 2 fərqli qrup arasında bölüşdürür:
+//   1) Bütün tabelikdəki əməkdaşlar
+//   2) Tabelikdəki struktur rəhbərləri (star persons)
+// Alt bölgülərin cəmi rəhbərin cascade load-undan gəldiyi üçün ana hədəf dəyərini
+// aşa bilər — bu tamamilə qanunidir və heç bir səhv çıxarmır.
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { GitBranch, Crown, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { getEmployees, getSubordinatesOfStarHolder, findStructureById, getStructures } from "@/lib/orgStore";
-import { distribute, getChildren, remainingOf, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
+import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
+import { distribute, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Mövcud root (varsa) və ya root parametrlərindən yaradılır */
   existingNode?: CascadeTreeNode;
   bootstrap?: {
     cardName: string;
@@ -28,10 +31,11 @@ const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 
 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
+  const [tab, setTab] = useState<"all" | "leaders">("all");
+  const { remaining, total } = useCascadeLoad();
 
-  useEffect(() => { setNode(existingNode); setSlices({}); }, [existingNode?.id, open]);
+  useEffect(() => { setNode(existingNode); setSlices({}); setTab("all"); }, [existingNode?.id, open]);
 
-  // Lazy-create root when opening from KpiSet entry
   useEffect(() => {
     if (!open || existingNode || !bootstrap) return;
     const emp = bootstrap.assigneeId
@@ -46,10 +50,9 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     }));
   }, [open, existingNode, bootstrap]);
 
-  // Tabelikdəki şəxslər
+  // Tabelikdəki bütün şəxslər
   const subordinates = useMemo(() => {
     if (!node) return [];
-    // struktur vahidini şəxsin structurePath-i əsasında tap
     const emp = getEmployees().find(e => e.id === node.assigneeId);
     if (!emp) return [];
     const findUnitId = (): number | null => {
@@ -69,19 +72,19 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     return getSubordinatesOfStarHolder(node.assigneeId, unitId);
   }, [node?.id]);
 
+  const leaders = useMemo(() => subordinates.filter(e => e.isStarPerson), [subordinates]);
+  const currentList = tab === "all" ? subordinates : leaders;
+
   const [slices, setSlices] = useState<Record<number, string>>({});
 
-  useEffect(() => {
-    if (!node) return;
-    // Hər bir tabelikdəki əməkdaşa hədəfin dəyəri EYNİLƏ təyin olunur — bölünmür.
-    const seed: Record<number, string> = {};
-    subordinates.forEach(e => { seed[e.id] = String(node.limit); });
-    setSlices(seed);
-  }, [node?.id, subordinates.length, node?.limit]);
-
-  const setSlice = (id: number, val: string) => setSlices(prev => ({ ...prev, [id]: val }));
+  const setSlice = (id: number, val: string) => {
+    // yalnız rəqəm və nöqtə
+    const clean = val.replace(/[^\d.]/g, "");
+    setSlices(prev => ({ ...prev, [id]: clean }));
+  };
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = () => {
@@ -97,25 +100,12 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
         } : null;
       })
       .filter(Boolean) as any[];
-    // Kaskad ağacında hər əməkdaşa eyni dəyər verildiyi üçün valideynin limitini toplu-ya bərabərləşdiririk.
-    if (totalDist > node.limit) {
-      try {
-        const raw = localStorage.getItem("cascade_tree_nodes_v1");
-        if (raw) {
-          const all = JSON.parse(raw) as any[];
-          const idx = all.findIndex(n => n.id === node.id);
-          if (idx >= 0) { all[idx].limit = totalDist; localStorage.setItem("cascade_tree_nodes_v1", JSON.stringify(all)); }
-        }
-      } catch {}
-    }
     const res = distribute(node.id, rows);
     if (!res.ok) { setError(res.error || "Xəta"); return; }
     setError(null);
     onDistributed?.();
     onOpenChange(false);
   };
-
-  const StatusIcon = GitBranch;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,101 +116,112 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             Kaskadlama — {node?.goalName || bootstrap?.goalName}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {node?.cardName || bootstrap?.cardName} · Hədəf dəyəri (hər əməkdaşa): <b>{fmt(node?.limit || 0)} {node?.unit || bootstrap?.unit}</b>
+            {node?.cardName || bootstrap?.cardName} · Ana hədəf dəyəri: <b>{fmt(node?.limit || 0)} {node?.unit || bootstrap?.unit}</b>
           </p>
         </DialogHeader>
 
-        {/* Live totals — Hədəf dəyəri hər əməkdaşa eyni təyin olunur */}
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Hədəf dəyəri (hər əməkdaş)" value={fmt(node?.limit || 0)} unit={node?.unit || "AZN"} tone="neutral" />
-          <BigStat label="Əməkdaş sayı" value={String(subordinates.length)} unit="nəfər" tone="primary" />
-          <BigStat label="Ümumi paylanan" value={fmt(totalDist)} unit={node?.unit || ""} tone="success" />
+          <BigStat label="Ana hədəf" value={fmt(node?.limit || 0)} unit={node?.unit || "AZN"} tone="neutral" />
+          <BigStat label="Cascade Load qalıq" value={fmt(remaining)} unit={`/ ${fmt(total)} AZN`} tone="primary" />
+          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone="success" />
         </div>
 
         <div className="text-[11px] text-muted-foreground">
-          Rəhbərin təyin etdiyi hədəf dəyəri hər bir tabelikdəki əməkdaşa eynilə təyin olunur — bölünmür.
+          Alt bölgülərin cəmi rəhbərin ümumi cascade load-undan çıxıldığı üçün ana hədəf dəyərindən böyük ola bilər — bu düzgündür.
         </div>
 
-        {/* Subordinates */}
-        <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
-          {subordinates.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">Bu strukturda tabelikdə əməkdaş yoxdur.</div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-xs text-muted-foreground sticky top-0">
-                <tr>
-                  <th className="text-left px-3 py-2 font-medium w-10">#</th>
-                  <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
-                  <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
-                  <th className="text-right px-3 py-2 font-medium w-44">Təyin olunan dəyər ({node?.unit})</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subordinates.map((e, idx) => (
-                  <tr key={e.id} className="border-t border-border">
-                    <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-foreground">{e.firstName} {e.lastName}</span>
-                        {e.isStarPerson && <Crown className="w-3.5 h-3.5 text-amber-500" />}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">{e.positionName || "—"}</td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="inline-flex items-center justify-end w-36 px-2 py-1 border border-border rounded bg-secondary/30 tabular-nums font-medium">
-                        {fmt(parseFloat(slices[e.id] || "0"))}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="all" className="gap-2">
+              <Users className="w-4 h-4" /> Bütün tabelik ({subordinates.length})
+            </TabsTrigger>
+            <TabsTrigger value="leaders" className="gap-2">
+              <ShieldCheck className="w-4 h-4" /> Struktur rəhbərləri ({leaders.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="mt-3">
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
+          </TabsContent>
+          <TabsContent value="leaders" className="mt-3">
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
+          </TabsContent>
+        </Tabs>
 
         {error && <div className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {error}</div>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
-          <Button onClick={handleSave} disabled={subordinates.length === 0}>
-            Təyin et
+          <Button onClick={handleSave} disabled={selectedCount === 0}>
+            Bölüşdür və təyin et
           </Button>
         </DialogFooter>
-
       </DialogContent>
     </Dialog>
   );
 };
 
-const StatCard = ({ label, value, unit, accent, icon, negative }: { label: string; value: string; unit: string; accent?: string; icon?: React.ReactNode; negative?: boolean }) => (
-  <div className="rounded-lg border border-border bg-card p-3">
-    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-    <div className={`mt-1 text-lg font-semibold flex items-center gap-1 ${accent || "text-foreground"}`}>
-      {icon}
-      {negative ? "−" : ""}{value}
-      <span className="text-xs font-normal text-muted-foreground ml-1">{unit}</span>
-    </div>
+const SubTable = ({
+  list, unit, slices, setSlice,
+}: {
+  list: any[]; unit: string; slices: Record<number, string>; setSlice: (id: number, v: string) => void;
+}) => (
+  <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
+    {list.length === 0 ? (
+      <div className="p-6 text-center text-sm text-muted-foreground">Bu qrupda şəxs yoxdur.</div>
+    ) : (
+      <table className="w-full text-sm">
+        <thead className="bg-secondary/40 text-xs text-muted-foreground sticky top-0">
+          <tr>
+            <th className="text-left px-3 py-2 font-medium w-10">#</th>
+            <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
+            <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
+            <th className="text-right px-3 py-2 font-medium w-44">Təyin olunan dəyər ({unit})</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.map((e, idx) => (
+            <tr key={e.id} className="border-t border-border">
+              <td className="px-3 py-2 text-muted-foreground">{idx + 1}</td>
+              <td className="px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-foreground">{e.firstName} {e.lastName}</span>
+                  {e.isStarPerson && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                </div>
+              </td>
+              <td className="px-3 py-2 text-muted-foreground">{e.positionName || "—"}</td>
+              <td className="px-3 py-2 text-right">
+                <input
+                  inputMode="decimal"
+                  value={slices[e.id] ?? ""}
+                  onChange={(ev) => setSlice(e.id, ev.target.value)}
+                  placeholder="0"
+                  className="w-36 text-right px-2 py-1 border border-border rounded bg-background tabular-nums font-medium focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
   </div>
 );
 
-const BigStat = ({ label, value, unit, tone, negative }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "warning" | "danger"; negative?: boolean }) => {
+const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" }) => {
   const toneCls = {
     neutral: "border-border bg-card text-foreground",
     primary: "border-primary/30 bg-primary/5 text-primary",
     success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
-    warning: "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400",
-    danger:  "border-destructive/40 bg-destructive/5 text-destructive",
   }[tone];
   return (
     <div className={`rounded-xl border p-4 ${toneCls}`}>
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-1 text-2xl font-bold tabular-nums">
-        {negative ? "−" : ""}{value}
+        {value}
         <span className="ml-1.5 text-sm font-normal text-muted-foreground">{unit}</span>
       </div>
     </div>
   );
 };
-
 
 export default CascadeDistributeDialog;

@@ -117,15 +117,13 @@ export interface CascadeSliceInput {
   limit: number;
 }
 
-/** Bir node-u alt şəxslər arasında bölüşdürür. Cəm ana limiti keçə bilməz. */
+/** Bir node-u alt şəxslər arasında bölüşdürür.
+ *  Qeyd: Alt bölgülərin cəmi rəhbərin cascade load-undan gəldiyi üçün
+ *  ana hədəf dəyərindən böyük ola bilər — burada məhdudiyyət qoyulmur. */
 export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok: boolean; error?: string } => {
   const parent = getNode(parentId);
   if (!parent) return { ok: false, error: "Ana hədəf tapılmadı" };
   const filtered = slices.filter(s => s.assigneeId && Number(s.limit) > 0);
-  const sum = filtered.reduce((s, x) => s + Number(x.limit), 0);
-  if (sum > parent.limit + 0.0001) {
-    return { ok: false, error: `Alt bölgülərin cəmi (${fmt(sum)}) ana hədəfdən (${fmt(parent.limit)}) böyükdür` };
-  }
   const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
   const now = Date.now();
   const newKids: CascadeTreeNode[] = filtered.map(s => ({
