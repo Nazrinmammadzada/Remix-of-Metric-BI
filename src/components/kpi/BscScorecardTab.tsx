@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Target, Scale, Info, ChevronDown, ChevronRight, User as UserIcon, Sliders } from "lucide-react";
+import { useMemo } from "react";
+import { User as UserIcon, Sliders } from "lucide-react";
 import { getEntriesForCard, type LimitSet, TIER_LABELS, suggestLimitsFromTarget } from "@/lib/kpiSetStore";
 
 interface SubKpiLike {
