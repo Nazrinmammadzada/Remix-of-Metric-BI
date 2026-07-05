@@ -537,7 +537,7 @@ const MetaRow = ({ label, value }: { label: string; value: React.ReactNode }) =>
 );
 
 // ============================================================
-// SUBORDINATES VIEW — Tree grid + sticky detail panel
+// SUBORDINATES VIEW — Dynamic tree from real org data
 // ============================================================
 type SubTab = "info" | "history" | "comments" | "reminders" | "notify" | "risk";
 type NodeKind = "company" | "region" | "department" | "division" | "team" | "employee";
@@ -547,39 +547,20 @@ interface TreeNode {
   name: string;
   kind: NodeKind;
   parent?: string;
-  employees: number;   // əhatə dairəsi
+  employees: number;
   avgPct: number;
   completed: number;
   atRisk: number;
   delayed: number;
   trend: "up" | "down" | "flat";
-  // employee-only
   position?: string;
   team?: string;
   division?: string;
   status?: KpiStatus;
-  photo?: string;
+  empId?: number;
   riskReasons?: string[];
   managerNote?: string;
 }
-
-const TREE: TreeNode[] = [
-  { id: "all", name: "Bütün şirkət", kind: "company", employees: 1248, avgPct: 78, completed: 812, atRisk: 112, delayed: 56, trend: "up" },
-  { id: "r1", name: "Bakı Regionu", kind: "region", parent: "all", employees: 687, avgPct: 79, completed: 465, atRisk: 58, delayed: 27, trend: "up" },
-  { id: "d1", name: "Satış Departamenti", kind: "department", parent: "r1", employees: 245, avgPct: 88, completed: 178, atRisk: 12, delayed: 5, trend: "up" },
-  { id: "s1", name: "Daxili Satış Şöbəsi", kind: "division", parent: "d1", employees: 98, avgPct: 92, completed: 72, atRisk: 6, delayed: 4, trend: "up" },
-  { id: "t1", name: "Team A", kind: "team", parent: "s1", employees: 12, avgPct: 96, completed: 10, atRisk: 1, delayed: 1, trend: "up" },
-  { id: "e1", name: "Nicat Əliyev", kind: "employee", parent: "t1", employees: 1, avgPct: 93, completed: 5, atRisk: 0, delayed: 1, trend: "up",
-    position: "Satış meneceri", team: "Team A", division: "Daxili Satış Şöbəsi", status: "in_progress",
-    riskReasons: ["Deadline yaxınlaşır", "Fakt hədəfdən 7% geridədir"], managerNote: "May kampaniyası ilə qapatmalıdır." },
-  { id: "e2", name: "Aysel Məmmədova", kind: "employee", parent: "t1", employees: 1, avgPct: 98, completed: 5, atRisk: 0, delayed: 0, trend: "up",
-    position: "Satış meneceri", team: "Team A", division: "Daxili Satış Şöbəsi", status: "completed" },
-  { id: "e3", name: "Ramil Quliyev", kind: "employee", parent: "t1", employees: 1, avgPct: 88, completed: 4, atRisk: 1, delayed: 0, trend: "flat",
-    position: "Satış mütəxəssisi", team: "Team A", division: "Daxili Satış Şöbəsi", status: "in_progress" },
-  { id: "e4", name: "Elvin Həsənov", kind: "employee", parent: "t1", employees: 1, avgPct: 85, completed: 4, atRisk: 1, delayed: 0, trend: "down",
-    position: "Satış mütəxəssisi", team: "Team A", division: "Daxili Satış Şöbəsi", status: "at_risk",
-    riskReasons: ["Məlumat daxil edilməyib", "Plan geriliyi"], managerNote: "Həftəlik status yeniləməsi tələb olunur." },
-];
 
 const kindIcon: Record<NodeKind, any> = {
   company: Building2, region: MapPin, department: Layers, division: Layers, team: Users, employee: User,
@@ -588,20 +569,132 @@ const kindLabel: Record<NodeKind, string> = {
   company: "Şirkət", region: "Region", department: "Departament", division: "Şöbə", team: "Komanda", employee: "Əməkdaş",
 };
 
-const childrenOf = (id: string) => TREE.filter(n => n.parent === id);
+const hashStr = (s: string) => {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h;
+};
+
+const buildOrgTree = (): TreeNode[] => {
+  const emps = getEmployees().filter(e => e.active);
+  const structs = getStructures();
+
+  const empByPath = new Map<string, typeof emps>();
+  emps.forEach(e => {
+    const p = e.structurePath ?? "";
+    if (!empByPath.has(p)) empByPath.set(p, []);
+    empByPath.get(p)!.push(e);
+  });
+
+  const nodes: TreeNode[] = [];
+
+  const makeEmp = (e: (typeof emps)[number], parentId: string, pathLabel: string): TreeNode => {
+    const h = hashStr(`e${e.id}`);
+    const stats: KpiStatus[] = ["in_progress", "at_risk", "completed", "delayed"];
+    return {
+      id: `e${e.id}`, empId: e.id, kind: "employee", parent: parentId,
+      name: `${e.firstName} ${e.lastName}`,
+      position: e.positionName ?? "Əməkdaş",
+      team: pathLabel.split(" › ").slice(-1)[0] || "—",
+      division: pathLabel || "—",
+      employees: 1,
+      avgPct: 55 + (h % 45),
+      completed: (h % 5) + 1,
+      atRisk: (h >> 3) % 3,
+      delayed: (h >> 6) % 2,
+      trend: (["up", "down", "flat"] as const)[h % 3],
+      status: stats[h % 4],
+    };
+  };
+
+  const countSub = (s: OrgStructure, path: string): number => {
+    let c = (empByPath.get(path) ?? []).length;
+    s.children.forEach(ch => { c += countSub(ch, `${path} › ${ch.name}`); });
+    return c;
+  };
+
+  const walk = (s: OrgStructure, parentPath: string, parentId: string) => {
+    const path = parentPath ? `${parentPath} › ${s.name}` : s.name;
+    const id = `s${s.id}`;
+    const h = hashStr(id);
+    const t = s.type.toLowerCase();
+    const kind: NodeKind = t.includes("depart") ? "department"
+      : (t.includes("komanda") || t.includes("team")) ? "team"
+      : "division";
+    const empCount = countSub(s, path);
+    nodes.push({
+      id, name: s.name, kind, parent: parentId,
+      employees: empCount,
+      avgPct: 60 + (h % 40),
+      completed: (h % 30) + 3,
+      atRisk: (h >> 3) % 10,
+      delayed: (h >> 6) % 5,
+      trend: (["up", "down", "flat"] as const)[h % 3],
+    });
+    // Employees first (direct), then sub-structures
+    (empByPath.get(path) ?? []).forEach(e => nodes.push(makeEmp(e, id, path)));
+    s.children.forEach(ch => walk(ch, path, id));
+  };
+
+  const rootId = "all";
+  const rootEmpCount = emps.length;
+  const rootH = hashStr(rootId);
+  nodes.push({
+    id: rootId, name: "Bütün şirkət", kind: "company",
+    employees: rootEmpCount,
+    avgPct: 70 + (rootH % 20),
+    completed: Math.round(rootEmpCount * 0.6),
+    atRisk: Math.round(rootEmpCount * 0.12),
+    delayed: Math.round(rootEmpCount * 0.05),
+    trend: "up",
+  });
+  (empByPath.get("") ?? []).forEach(e => nodes.push(makeEmp(e, rootId, "Bütün şirkət")));
+  structs.forEach(s => walk(s, "", rootId));
+  return nodes;
+};
+
+// Per-employee KPI list (deterministic subset of MY_KPIS variants)
+interface EmpKpi { id: string; name: string; desc: string; plan: number; fakt: number; unit: string; status: KpiStatus; }
+const BASE_KPIS: Omit<EmpKpi, "id" | "fakt" | "status">[] = [
+  { name: "Satış Həcminin Artırılması",         desc: "Satış həcmini ötən rübə müqayisədə artırmaq", plan: 500_000, unit: "₼" },
+  { name: "Yeni Müştəri Qazanılması",           desc: "Yeni müştərilərin sayını artırmaq",            plan: 120,     unit: "" },
+  { name: "Müştəri Məmnuniyyətinin Artırılması", desc: "Müştəri məmnuniyyət səviyyəsini yüksəltmək",  plan: 90,      unit: "%" },
+  { name: "Kredit Borclarının Azaldılması",     desc: "Kredit borclarının minimuma endirilməsi",      plan: 200_000, unit: "₼" },
+  { name: "Yeni Məhsul Satışının Artırılması",  desc: "Yeni məhsul satışlarının artırılması",         plan: 150_000, unit: "₼" },
+];
+const buildEmpKpis = (empId: number): EmpKpi[] => {
+  const h = hashStr(`ek${empId}`);
+  return BASE_KPIS.map((b, i) => {
+    const hh = hashStr(`ek${empId}-${i}`);
+    const ratio = 0.6 + ((hh % 45) / 100); // 0.60..1.05
+    const fakt = Math.round(b.plan * ratio);
+    const pct = Math.round((fakt / b.plan) * 100);
+    const status: KpiStatus = pct >= 100 ? "completed" : pct >= 90 ? "in_progress" : pct >= 75 ? "at_risk" : "delayed";
+    return { id: `${empId}-k${i}`, ...b, fakt, status };
+  }).filter((_, i) => (h >> i) & 1 || i < 3); // at least 3
+};
 
 const SubordinatesView = () => {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["all", "r1", "d1", "s1", "t1"]));
-  const [selectedId, setSelectedId] = useState<string>("e1");
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const h = () => setTick(t => t + 1);
+    window.addEventListener("org-updated", h);
+    return () => window.removeEventListener("org-updated", h);
+  }, []);
+  const tree = useMemo(() => buildOrgTree(), [tick]);
+  const childrenOf = (id: string) => tree.filter(n => n.parent === id);
+
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useState<SubTab>("info");
   const [period, setPeriod] = useState("2025 / 1-ci rüb");
   const [metric, setMetric] = useState("avg");
   const [status, setStatus] = useState("all");
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
 
-  const selected = TREE.find(n => n.id === selectedId) || null;
+  const selected = selectedId ? tree.find(n => n.id === selectedId) ?? null : null;
 
   const toggle = (id: string) => {
     setExpanded(prev => {
@@ -618,30 +711,35 @@ const SubordinatesView = () => {
     setOpenMenu(null);
   };
 
-  // Flatten visible rows respecting expand state + search filter
+  // Flatten visible rows respecting expand state + search filter, employees first
   const rows = useMemo(() => {
     const out: { node: TreeNode; depth: number }[] = [];
     const s = q.trim().toLowerCase();
+    const sortChildren = (arr: TreeNode[]) => {
+      const emp = arr.filter(n => n.kind === "employee");
+      const rest = arr.filter(n => n.kind !== "employee");
+      return [...emp, ...rest];
+    };
     const walk = (parentId: string | undefined, depth: number) => {
-      TREE.filter(n => n.parent === parentId).forEach(n => {
+      sortChildren(tree.filter(n => n.parent === parentId)).forEach(n => {
         const match = !s || n.name.toLowerCase().includes(s);
         if (match) out.push({ node: n, depth });
         if (expanded.has(n.id)) walk(n.id, depth + 1);
       });
     };
-    // start from root(s) - nodes with no parent
-    TREE.filter(n => !n.parent).forEach(root => {
+    tree.filter(n => !n.parent).forEach(root => {
       out.push({ node: root, depth: 0 });
       if (expanded.has(root.id)) walk(root.id, 1);
     });
     return out;
-  }, [expanded, q]);
+  }, [expanded, q, tree]);
 
-  const totals = TREE.find(n => n.id === "all")!;
+  const totals = tree.find(n => n.id === "all") ?? { employees: 0, avgPct: 0, completed: 0, atRisk: 0, delayed: 0 } as TreeNode;
+  const deptCount = tree.filter(n => n.kind === "department").length;
 
   return (
     <div className="flex gap-4">
-      {/* LEFT: 70% */}
+      {/* LEFT */}
       <div className={`flex-1 min-w-0 ${panelOpen && selected ? "lg:pr-2" : ""}`}>
         <PageHero
           badge="Rəhbər Paneli"
@@ -650,9 +748,9 @@ const SubordinatesView = () => {
           subtitle="Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları"
         />
 
-        {/* Summary cards - 6 */}
+        {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
-          <SumCard icon={MapPin} label="Əhatə dairəsi" primary="6 Region" secondary="24 Departament" tone="indigo" />
+          <SumCard icon={MapPin} label="Əhatə dairəsi" primary={`${deptCount} Departament`} secondary={`${tree.filter(n => n.kind === "division").length} Şöbə`} tone="indigo" />
           <SumCard icon={Users} label="Ümumi əməkdaş" primary={fmt(totals.employees)} tone="violet" />
           <SumCard icon={LineChart} label="Ortalama icra faizi" primary={`${totals.avgPct}%`} tone="blue" />
           <SumCard icon={Check} label="Tamamlanan KPI" primary={fmt(totals.completed)} tone="green" />
@@ -732,8 +830,8 @@ const SubordinatesView = () => {
                   const isEmp = node.kind === "employee";
                   return (
                     <tr key={node.id}
-                      onClick={() => isEmp && openTab(node.id, "info")}
-                      className={`border-t border-border transition-colors ${isSel ? "bg-primary/5" : "hover:bg-secondary/20"} ${isEmp ? "cursor-pointer" : ""}`}>
+                      onClick={() => !isEmp && hasChildren && toggle(node.id)}
+                      className={`border-t border-border transition-colors ${isSel ? "bg-primary/5" : "hover:bg-secondary/20"} ${(!isEmp && hasChildren) ? "cursor-pointer" : ""}`}>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5" style={{ paddingLeft: `${depth * 20}px` }}>
                           {hasChildren ? (
@@ -773,21 +871,23 @@ const SubordinatesView = () => {
                         {node.trend === "flat" && <Minus className="w-4 h-4 text-muted-foreground inline" />}
                       </td>
                       <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
-                        <Popover open={openMenu === node.id} onOpenChange={o => setOpenMenu(o ? node.id : null)}>
-                          <PopoverTrigger asChild>
-                            <button className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" className="w-56 p-1">
-                            <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
-                            <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
-                            <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
-                            <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
-                            <MenuItem icon={Send} label="Bildiriş göndər" onClick={() => openTab(node.id, "notify")} />
-                            <MenuItem icon={ShieldAlert} label="Risk səbəbini göstər" onClick={() => openTab(node.id, "risk")} />
-                          </PopoverContent>
-                        </Popover>
+                        {isEmp ? (
+                          <Popover open={openMenu === node.id} onOpenChange={o => setOpenMenu(o ? node.id : null)}>
+                            <PopoverTrigger asChild>
+                              <button className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" aria-label="Əməliyyatlar">
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-56 p-1">
+                              <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
+                              <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
+                              <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
+                              <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
+                              <MenuItem icon={Send} label="Bildiriş göndər" onClick={() => openTab(node.id, "notify")} />
+                              <MenuItem icon={ShieldAlert} label="Risk səbəbini göstər" onClick={() => openTab(node.id, "risk")} />
+                            </PopoverContent>
+                          </Popover>
+                        ) : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
                     </tr>
                   );
@@ -797,12 +897,12 @@ const SubordinatesView = () => {
           </div>
           <div className="flex items-center justify-between px-4 py-3 border-t border-border text-xs text-muted-foreground">
             <span>Cəmi: {fmt(totals.employees)} əməkdaş, {fmt(totals.completed + totals.atRisk + totals.delayed)} KPI</span>
-            <span>Səhifə 1 / 3</span>
+            <span>Səhifə 1 / 1</span>
           </div>
         </div>
       </div>
 
-      {/* RIGHT: sticky panel ~30% */}
+      {/* RIGHT: sticky panel */}
       {panelOpen && selected && (
         <SubDetailPanel node={selected} tab={tab} setTab={setTab} onClose={() => setPanelOpen(false)} />
       )}
@@ -842,10 +942,10 @@ const SumCard = ({ icon: Icon, label, primary, secondary, tone }: {
 };
 
 // ============================================================
-// SUB DETAIL PANEL (sticky right, does not close on tab switch)
+// SUB DETAIL PANEL
 // ============================================================
 const subTabLabels: Record<SubTab, string> = {
-  info: "KPI-yə bax", history: "İcra tarixçəsi", comments: "Şərhlər",
+  info: "İcra məlumatı", history: "İcra tarixçəsi", comments: "Şərhlər",
   reminders: "Xatırlatmalar", notify: "Bildiriş göndər", risk: "Risk səbəbi",
 };
 
@@ -871,6 +971,7 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
   const comments = commentsMap[node.id] || [];
   const history = initialHistory(node.id);
   const reminders = initialReminders(node.id);
+  const empKpis = useMemo(() => node.empId ? buildEmpKpis(node.empId) : [], [node.empId]);
 
   const sendComment = () => {
     const t = draft.trim(); if (!t) return;
@@ -897,7 +998,7 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
   const riskLabel = riskLevel === "high" ? "Yüksək" : riskLevel === "med" ? "Orta" : "Aşağı";
 
   return (
-    <aside className="hidden lg:flex sticky top-4 h-[calc(100vh-2rem)] w-[420px] shrink-0 flex-col rounded-xl border border-border bg-card shadow-lg overflow-hidden animate-in slide-in-from-right duration-300">
+    <aside className="hidden lg:flex sticky top-4 h-[calc(100vh-2rem)] w-[440px] shrink-0 flex-col rounded-xl border border-border bg-card shadow-lg overflow-hidden animate-in slide-in-from-right duration-300">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">{subTabLabels[tab]}</h3>
         <button onClick={onClose} className="w-7 h-7 rounded-md hover:bg-secondary inline-flex items-center justify-center text-muted-foreground hover:text-foreground">
@@ -915,32 +1016,10 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-foreground truncate">{node.name}</div>
               <div className="text-[11px] text-muted-foreground truncate">
-                {isEmp ? `${node.position} · ${node.team} / ${node.division}` : kindLabel[node.kind]}
+                {isEmp ? `${node.position} · ${node.division}` : kindLabel[node.kind]}
               </div>
             </div>
             <Badge className={stampBadge.cls}>{stampBadge.label}</Badge>
-          </div>
-
-          {/* Info cards */}
-          <div className="grid grid-cols-2 gap-2 mt-3">
-            <div className="rounded-lg border border-border bg-background p-2.5 space-y-1.5">
-              <MetaRow label="Dövr" value="2025 / 1-ci rüb" />
-              <MetaRow label="Status" value={<span className="text-emerald-600">{isEmp && node.status ? statusMeta[node.status].label : "Aktiv"}</span>} />
-              <MetaRow label="Deadline" value="29.05.2025" />
-              <MetaRow label="Məsul rəhbər" value="Aysel Məmmədova" />
-            </div>
-            <div className="rounded-lg border border-border bg-background p-2.5 space-y-1.5">
-              <MetaRow label="Plan" value="500,000 ₼" />
-              <MetaRow label="Fakt" value="465,000 ₼" />
-              <div>
-                <div className="text-[11px] text-muted-foreground">İcra faizi</div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Progress value={node.avgPct} className="h-1.5 flex-1" />
-                  <span className="text-xs font-medium tabular-nums">{node.avgPct}%</span>
-                </div>
-              </div>
-              <MetaRow label="Son yenilənmə" value="15.05.2025 14:45" />
-            </div>
           </div>
         </div>
 
@@ -948,22 +1027,61 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
         <div className="p-4">
           <Tabs value={tab} onValueChange={(v) => setTab(v as SubTab)}>
             <TabsList className="w-full grid grid-cols-4 mb-3">
-              <TabsTrigger value="info" className="text-xs">İcra</TabsTrigger>
+              <TabsTrigger value="info" className="text-xs">İcra məlumatı</TabsTrigger>
               <TabsTrigger value="history" className="text-xs">Tarixçə</TabsTrigger>
               <TabsTrigger value="comments" className="text-xs">Şərhlər</TabsTrigger>
               <TabsTrigger value="reminders" className="text-xs">Xatırlat.</TabsTrigger>
             </TabsList>
 
             <TabsContent value="info">
-              <div className="rounded-lg border border-border p-3 space-y-2">
-                <div className="text-xs font-semibold text-foreground mb-1">İcra detalları</div>
-                <MetaRow label="Ölçü vahidi" value="AZN" />
-                <MetaRow label="Hədəf tipi" value="Rüblük" />
-                <MetaRow label="Hesablama üsulu" value="Toplam satış həcmi" />
-                <MetaRow label="Çəki" value="20%" />
-                <MetaRow label="Cari nəticə" value="465,000 ₼ / 500,000 ₼" />
-                <MetaRow label="Qalan hədəf" value="35,000 ₼" />
-                <MetaRow label="Növbəti icmal tarixi" value="05.06.2025" />
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="px-3 py-2.5 border-b border-border bg-secondary/30">
+                  <div className="text-sm font-semibold text-foreground">KPI-ların siyahısı</div>
+                </div>
+                {isEmp && empKpis.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-secondary/20 text-muted-foreground">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">KPI</th>
+                          <th className="text-right px-3 py-2 font-medium">Plan</th>
+                          <th className="text-right px-3 py-2 font-medium">Fakt</th>
+                          <th className="text-left px-3 py-2 font-medium w-24">İcra %</th>
+                          <th className="text-center px-3 py-2 font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {empKpis.map(k => {
+                          const pct = Math.round((k.fakt / k.plan) * 100);
+                          const barColor = pct >= 100 ? "bg-emerald-500" : pct >= 90 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-rose-500";
+                          return (
+                            <tr key={k.id} className="border-t border-border align-top">
+                              <td className="px-3 py-2.5">
+                                <div className="font-medium text-foreground">{k.name}</div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{k.desc}</div>
+                              </td>
+                              <td className="px-3 py-2.5 text-right tabular-nums">{fmt(k.plan)} {k.unit}</td>
+                              <td className="px-3 py-2.5 text-right tabular-nums">{fmt(k.fakt)} {k.unit}</td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                                    <div className={`h-full ${barColor}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                                  </div>
+                                  <span className="tabular-nums font-medium w-8 text-right">{pct}%</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                <Badge className={`${statusMeta[k.status].cls} text-[10px] px-1.5 py-0.5`}>{statusMeta[k.status].label}</Badge>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-4 text-xs text-muted-foreground text-center">Bu səviyyə üçün KPI siyahısı yalnız əməkdaş səviyyəsində göstərilir.</div>
+                )}
               </div>
             </TabsContent>
 
@@ -1028,7 +1146,6 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
             </TabsContent>
           </Tabs>
 
-          {/* Notify — full section (only when active) */}
           {tab === "notify" && (
             <div className="mt-3 rounded-lg border border-border p-3 space-y-3">
               <div className="text-xs font-semibold text-foreground">Bildiriş göndər — {node.name}</div>
@@ -1058,7 +1175,6 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
             </div>
           )}
 
-          {/* Risk — full section (only when active) */}
           {tab === "risk" && (
             <div className="mt-3 space-y-3">
               <div className={`rounded-lg border p-3 ${riskColor}`}>
@@ -1101,3 +1217,4 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
 };
 
 export default ManagerKpiTrackingPage;
+
