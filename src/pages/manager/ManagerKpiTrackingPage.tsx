@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { getEmployees } from "@/lib/orgStore";
 import {
-  Activity, User, Users, Network, ChevronLeft, ChevronRight, Search, Bell, Check, X, Clock,
-  MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip,
+  Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
+  MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
+  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon,
 } from "lucide-react";
 
 type Stage = "assigned" | "evaluated" | "pending_assign";
