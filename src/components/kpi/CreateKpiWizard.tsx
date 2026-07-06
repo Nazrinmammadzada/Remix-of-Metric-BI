@@ -318,8 +318,12 @@ function MultiSelectDropdown({
             })}
           </div>
           <div className="flex items-center justify-between px-2 py-1 border-t border-border">
-            <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
-            <div className="flex gap-1">
+            <button type="button" onClick={toggleAll}
+              className="text-[11px] text-primary hover:underline px-1 font-medium">
+              {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
+            </button>
+            <div className="flex gap-2 items-center">
+              <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
               {selected.length > 0 && (
                 <button type="button" onClick={() => onChange([])}
                   className="text-[11px] text-destructive hover:underline px-1">Təmizlə</button>
@@ -328,6 +332,7 @@ function MultiSelectDropdown({
                 className="text-[11px] text-primary hover:underline px-1">Bağla</button>
             </div>
           </div>
+
         </div>
       )}
       {selected.length > 0 && (
