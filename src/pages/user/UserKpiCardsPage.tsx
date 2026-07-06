@@ -11,6 +11,8 @@ import { getTeams, type TeamMember } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import KpiExtraTabContent, { isExtraTab } from "@/components/kpi/KpiExtraTabs";
 import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
+import { WeightInput } from "@/components/kpi/WeightInput";
+import { withKartSuffix } from "@/lib/utils";
 
 interface SubKpi {
   id: number; name: string; target: string; weight: number; current?: string; progress?: number;
