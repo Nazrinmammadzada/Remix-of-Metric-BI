@@ -152,6 +152,34 @@ const SEED: KpiSetEntry[] = [
     updatedAt: Date.now() - 3600000 * 2,
   },
 
+  // ============ KAMRAN QULİYEV (id=7, manager2@kpi.az) — Rəqəmsal Marketinq Şöbə Müdiri ============
+  // HR tərəfindən Orxan Bayramov üçün yaradılan KPI — Target Setter = Kamran Quliyev.
+  // Kamran Elvindən gələn kaskad məbləğini istifadə edib Orxana bölüşdürür.
+  {
+    id: "ks-kamran-1",
+    cardId: 201,
+    cardName: "Rəqəmsal Marketinq — Şöbə Kaskad Hədəfi",
+    subKpiId: 2001,
+    subKpiName: "Rəqəmsal marketinq gəliri (Orxan Bayramov üzrə)",
+    type: "Məbləğ",
+    target: "300000",
+    unit: "AZN",
+    assigneeId: 7,
+    assigneeName: "Kamran Quliyev",
+    ownerType: "manager",
+    status: "completed",
+    cascadable: true,
+    weight: 30,
+    limits: {
+      l5: { min: 240001, max: 300000 },
+      l4: { min: 180001, max: 240000 },
+      l3: { min: 120001, max: 180000 },
+      l2: { min: 60001, max: 120000 },
+      l1: { min: 0, max: 60000 },
+    },
+    updatedAt: Date.now() - 86400000 * 1,
+  },
+
   // ============ Digər rəhbərlər (nümunə) ============
   {
     id: "ks-1",
