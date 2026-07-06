@@ -84,15 +84,16 @@ const SEED: KpiSetEntry[] = [
     weightMin: 15, weightMax: 35,
     updatedAt: Date.now() - 3600000 * 6,
   },
-  // Completed WITH cascade load — Elvinə başqa kartdan gələn 120000 AZN cascade limit
+  // Completed WITH cascade — HR-in Elvinə verdiyi 500 000 AZN kaskadlana bilən hədəf.
+  // Elvin bunu Kamran Quliyevə (Manager 2) və digər tabeçilikdə olanlara bölüşdürür.
   {
     id: "ks-elvin-2",
     cardId: 102,
-    cardName: "İllik Marketinq Gəliri",
+    cardName: "İllik Marketinq Hədəfi 2026",
     subKpiId: 1002,
-    subKpiName: "Yeni müştəri gəliri",
+    subKpiName: "Ümumi marketinq gəliri",
     type: "Məbləğ",
-    target: "120000",
+    target: "500000",
     unit: "AZN",
     assigneeId: 4,
     assigneeName: "Elvin Rəhimov",
@@ -101,11 +102,11 @@ const SEED: KpiSetEntry[] = [
     cascadable: true,
     weight: 25,
     limits: {
-      l5: { min: 96001, max: 120000 },
-      l4: { min: 72001, max: 96000 },
-      l3: { min: 48001, max: 72000 },
-      l2: { min: 24001, max: 48000 },
-      l1: { min: 0, max: 24000 },
+      l5: { min: 400001, max: 500000 },
+      l4: { min: 300001, max: 400000 },
+      l3: { min: 200001, max: 300000 },
+      l2: { min: 100001, max: 200000 },
+      l1: { min: 0, max: 100000 },
     },
     updatedAt: Date.now() - 86400000 * 3,
   },
