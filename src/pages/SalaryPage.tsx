@@ -62,6 +62,7 @@ const SalaryPage = () => {
   const [importYear, setImportYear] = useState<string>("");
   const [importMonth, setImportMonth] = useState<string>("");
   const [viewUpload, setViewUpload] = useState<SalaryUpload | null>(null);
+  const [mismatchDialog, setMismatchDialog] = useState<{ fileName: string; issues: string[] } | null>(null);
 
   // Table controls
   const [openSearch, setOpenSearch] = useState<Record<string, boolean>>({});
@@ -175,6 +176,27 @@ const SalaryPage = () => {
     const yr = Number(importYear) || new Date().getFullYear();
     const mo = (importMonth || "Yanvar") as Month;
 
+    // Uyğunsuzluq nümunəsi: fayl adında "uygunsuz" / "mismatch" / "xeta" olarsa,
+    // sistemə yükləmə tam bloklanır və istifadəçiyə düzəldiş üçün pop-up göstərilir.
+    const nameLower = file.name.toLowerCase();
+    const looksInvalid = /(uygunsuz|uyğunsuz|mismatch|xeta|xəta|error)/.test(nameLower);
+
+    if (looksInvalid) {
+      setMismatchDialog({
+        fileName: file.name,
+        issues: [
+          "3-cü sətir: FIN kodu sistemdə tapılmadı (əməkdaş uyğunlaşdırıla bilmədi).",
+          "5-ci sətir: “Ay (məbləğ)” xanası boşdur — məcburi sahədir.",
+          "7-ci sətir: “Orta aylıq əmək haqqı” dəyəri mənfi ola bilməz.",
+          "Ümumi: 3 sətir uyğunsuzdur — sənəd sistemə yüklənmədi.",
+        ],
+      });
+      e.target.value = "";
+      setImportYear("");
+      setImportMonth("");
+      return; // Uyğunsuzluq düzələnə qədər sənəd sistemə yüklənmir.
+    }
+
     // Build details from real org employees (demo: static-matched)
     const details = employees.map((emp, i) => {
       const monthPay = emp.salary ?? 0;
@@ -234,6 +256,7 @@ const SalaryPage = () => {
     e.target.value = "";
     setActiveTab("uploads");
   };
+
 
   const downloadTemplate = () => {
     const headers = ["Ad", "Soyad", "Ata adı", "Ay (məbləğ)", "Cəmi ödənilmiş (AZN)", "Orta aylıq əmək haqqı", "Cari ay üçün orta (%)", "Cari ay üçün orta 12 ay (%)"];
@@ -630,6 +653,41 @@ const SalaryPage = () => {
       </Dialog>
 
       <UploadDetailDialog upload={viewUpload} onClose={() => setViewUpload(null)} />
+
+      {/* Uyğunsuzluq pop-up-ı: sənəd sistemə yüklənməyib */}
+      <Dialog open={!!mismatchDialog} onOpenChange={(o) => !o && setMismatchDialog(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <X className="w-5 h-5" />
+              Sənəddə uyğunsuzluq aşkarlandı
+            </DialogTitle>
+          </DialogHeader>
+          {mismatchDialog && (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground">
+                <span className="font-medium">“{mismatchDialog.fileName}”</span> faylında uyğunsuz və ya
+                çatışmayan məlumatlar var. Zəhmət olmasa aşağıdakı problemləri düzəldin və faylı yenidən yükləyin.
+              </p>
+              <ul className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm space-y-1.5 list-disc list-inside">
+                {mismatchDialog.issues.map((it, i) => (
+                  <li key={i} className="text-foreground/90">{it}</li>
+                ))}
+              </ul>
+              <div className="rounded-md bg-secondary/50 border border-border px-3 py-2 text-xs text-muted-foreground">
+                Uyğunsuzluq tam düzələnə qədər sənəd sistemə yüklənməyəcək.
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setMismatchDialog(null)}>Bağla</Button>
+                <Button onClick={() => { setMismatchDialog(null); fileInputRef.current?.click(); }}>
+                  Yenidən yüklə
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
 
 
       <AddSalaryDialog open={showAdd} onClose={() => setShowAdd(false)} employees={employees} />
