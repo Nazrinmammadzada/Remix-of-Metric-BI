@@ -150,7 +150,7 @@ const ManagerKpiTrackingPage = () => {
               name: `${withKartSuffix(c.name)} — ${t.name || "Hədəf"}`,
               description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
               period: c.startDate || "—",
-              target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
+              target, actual: 0, unit: t.unit || (t.type === "Məbləğ" ? "AZN" : ""),
               stage: "assigned",
               status: c.status === "aktiv" ? "in_progress" : "at_risk",
               deadline: c.endDate || "—",
