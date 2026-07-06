@@ -1,12 +1,13 @@
 // Kaskad yüklənməsi (Cascade Load) təsdiq pop-up-ı — rəhbər hədəf təyin etdikdən sonra çıxır.
+// `value` — yuxarı rəhbərdən gələn qalıq cascade load. Rəhbərin öz hədəfindən ASILI DEYİL.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GitBranch } from "lucide-react";
-import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** Yuxarı rəhbərdən gələn cascade load-un qalıq dəyəri */
   value: number;
   unit: string;
   onConfirm: () => void;
@@ -15,8 +16,7 @@ interface Props {
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
 const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }: Props) => {
-  const { total, remaining } = useCascadeLoad();
-  const hasLoad = remaining > 0;
+  const hasLoad = value > 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -31,8 +31,7 @@ const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }
             <div>
               Sizə <span className="italic">başqa KPI kartından</span> gələn
               <span className="font-semibold"> Cascade Load</span>:
-              <span className="ml-1 font-semibold">{fmt(remaining)} AZN</span>
-              <span className="text-muted-foreground"> / {fmt(total)} AZN</span>
+              <span className="ml-1 font-semibold">{fmt(value)} {unit || "AZN"}</span>
             </div>
             <div className="text-xs text-muted-foreground">
               Bu limit hazırda təyin etdiyiniz hədəflə əlaqəli deyil. Tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
@@ -40,7 +39,7 @@ const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">
-            Cascade Load tamamilə paylanıb ({fmt(total)} / {fmt(total)} AZN).
+            Sizə bölüşdürmək üçün Cascade Load yoxdur.
           </div>
         )}
         <DialogFooter>
@@ -55,3 +54,4 @@ const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }
 };
 
 export default CascadeLoadConfirmDialog;
+

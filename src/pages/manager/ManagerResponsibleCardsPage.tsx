@@ -310,8 +310,14 @@ const AssignView = () => {
             goalName: distribute.subKpiName || distribute.cardName,
             unit: distribute.unit,
             assigneeName: distribute.assigneeName,
-            assigneeId: distribute.assigneeId,
+            assigneeId: distribute.assigneeId ?? myOrgId ?? undefined,
+            /** Limit YALNIZ göstəriş üçündür — real limit dialoq daxilində
+             *  incomingLoadFor(assigneeId) vasitəsilə hesablanır. */
             limit: parseNum(distribute.target),
+            /** Hər əməkdaş üçün defolt təklif olunan dəyər (rəhbərin öz yazdığı hədəf) */
+            defaultPerAssignee: parseNum(distribute.target),
+            cardAssignees: distribute.cardAssignees,
+            cardStructures: distribute.cardStructures,
           }}
         />
       )}
@@ -324,14 +330,15 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          // Cascade load pəncərəsi: kartın hədəf dəyəri limit kimi göstərilir.
-          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
-          const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
+          // Cascade load pəncərəsi: incoming cascade tree-dən götürülür.
+          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId, entry.assigneeId);
+          if (!saved?.cascadable) return; // Cascade oluna bilər seçilməyibsə pop-up göstərmə
+          const value = incoming?.remaining ?? incoming?.value ?? 0;
+          const unit = incoming?.unit ?? entry.unit ?? "";
           const refreshed: KpiSetEntry = {
             ...entry,
-            target: String(value),
-            unit,
+            target: String(saved?.value ?? entry.target),
+            unit: saved?.unit ?? entry.unit,
             cascadable: true,
             subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
           };
@@ -351,6 +358,7 @@ const AssignView = () => {
           }}
         />
       )}
+
     </>
   );
 };

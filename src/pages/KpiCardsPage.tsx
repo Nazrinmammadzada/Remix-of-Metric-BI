@@ -618,27 +618,68 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       setStatusMap(next);
     } catch {}
 
-    // === Rəhbər üçün pending KpiSetEntry yarat ===
-    // "Digər əməkdaş təyin edir" seçildikdə həmin rəhbər öz "Məsul olduğum kartlar"
-    // modulundan bu hədəfi (ad/dəyər/limit/çəki/cascadable) təyin edir.
+    // === Dinamik Cascade + Pending entry yaradılması ===
+    // Qayda 1: HR (və ya başqa profil) özü hədəf təyin edir (createdBy=self) və
+    // targetValue > 0 verilibsə — KPI sahibi(ləri) üçün cascade tree-də root yaradılır.
+    // Beləliklə həmin şəxs "KPI İzlənməsi → Mənim KPI-larım"da bu KPI-nı görəcək.
+    // Qayda 2: Hədəfi başqa əməkdaş təyin edir (createdBy=other) — həmin rəhbər üçün
+    // pending KpiSetEntry yaradılır. KPI kartının assignee-ləri (cardAssignees)
+    // saxlanılır ki, kaskad zamanı yalnız onlar seçilə bilsin.
     try {
-      const seen = new Set<string>();
+      const emps = getEmployees();
+      const findEmp = (name: string) => emps.find(e => `${e.firstName} ${e.lastName}` === name);
+
+      // KPI kartının assignee (KPI sahibi) siyahısı
+      const cardAssigneeNames: string[] = d.mode === "individual"
+        ? [...(d.individualEmployees || [])]
+        : [...(d.bulkSelections?.persons || [])];
+      const cardStructureNames: string[] = d.mode === "bulk" ? [...(d.bulkSelections?.structures || [])] : [];
+
+      const cascadeMod = await import("@/lib/cascadeTreeStore");
+
+      const seenAssigners = new Set<string>();
       (d.targets || []).forEach((t: any) => {
-        if (t.createdBy === "other" && t.assigner && !seen.has(t.assigner)) {
-          seen.add(t.assigner);
-          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === t.assigner);
-          addPendingEntry({
-            cardId: id,
-            cardName: d.name,
-            assigneeName: t.assigner,
-            assigneeId: emp?.id,
-            ownerType: "manager",
-            weightMin: 5,
-            weightMax: 40,
+        const goalName = t.name || d.name;
+        const unit = t.currency || t.unit || (t.type === "Məbləğ" ? "AZN" : (t.type === "Faiz" ? "%" : ""));
+        const targetNum = parseFloat(String(t.targetValue || "").replace(/[^\d.\-]/g, "")) || 0;
+
+        if (t.createdBy === "other" && t.assigner) {
+          if (!seenAssigners.has(t.assigner)) {
+            seenAssigners.add(t.assigner);
+            const emp = findEmp(t.assigner);
+            addPendingEntry({
+              cardId: id,
+              cardName: d.name,
+              assigneeName: t.assigner,
+              assigneeId: emp?.id,
+              ownerType: "manager",
+              weightMin: 5,
+              weightMax: 40,
+              cardAssignees: cardAssigneeNames,
+              cardStructures: cardStructureNames,
+            });
+          }
+        } else if (t.createdBy === "self" && targetNum > 0) {
+          // Hər KPI sahibi üçün ayrıca cascade root
+          cardAssigneeNames.forEach(name => {
+            const emp = findEmp(name);
+            if (!emp) return;
+            const existing = cascadeMod.findRootByGoal(d.name, goalName, emp.id);
+            if (existing) return;
+            cascadeMod.createRoot({
+              cardName: d.name,
+              goalName,
+              unit,
+              assigneeId: emp.id,
+              assigneeName: `${emp.firstName} ${emp.lastName}`,
+              positionName: emp.positionName,
+              limit: targetNum,
+            });
           });
         }
       });
-    } catch (err) { console.warn("pending kpi set seed failed", err); }
+    } catch (err) { console.warn("cascade root / pending entry seed failed", err); }
+
 
 
     // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===

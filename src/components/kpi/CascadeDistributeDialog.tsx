@@ -1,16 +1,16 @@
-// Kaskadlama bölgü dialoqu — Rəhbər hədəfi 2 fərqli qrup arasında bölüşdürür:
-//   1) Bütün tabelikdəki əməkdaşlar
-//   2) Tabelikdəki struktur rəhbərləri (star persons)
-// Alt bölgülərin cəmi rəhbərin cascade load-undan gəldiyi üçün ana hədəf dəyərini
-// aşa bilər — bu tamamilə qanunidir və heç bir səhv çıxarmır.
+// Kaskadlama bölgü dialoqu — Rəhbər yuxarı rəhbərdən aldığı Cascade Load-u
+// öz tabeliyində olan (və KPI kartında seçilmiş) əməkdaşlar arasında bölüşdürür.
+// Limit HƏMİŞƏ incoming cascade node-un limitindən gəlir — rəhbərin öz KPI target-ından yox.
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
-import { distribute, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-
+import {
+  distribute, createRoot, findRootByGoal, findIncomingNodeForAssignee,
+  type CascadeTreeNode,
+} from "@/lib/cascadeTreeStore";
 
 interface Props {
   open: boolean;
@@ -22,7 +22,14 @@ interface Props {
     unit: string;
     assigneeName: string;
     assigneeId?: number;
+    /** Rəhbərin öz yazdığı hədəf — yalnız defolt təklif olaraq istifadə olunur */
     limit: number;
+    /** Hər əməkdaş üçün input defoltu (adətən limitə bərabər) */
+    defaultPerAssignee?: number;
+    /** KPI kartında seçilmiş əməkdaşların adları */
+    cardAssignees?: string[];
+    /** KPI kartında seçilmiş strukturların adları */
+    cardStructures?: string[];
   };
   onDistributed?: () => void;
 }
@@ -33,14 +40,19 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
   const [tab, setTab] = useState<"all" | "leaders">("all");
 
-  useEffect(() => { setNode(existingNode); setSlices({}); setReCascade({}); setTab("all"); }, [existingNode?.id, open]);
+  useEffect(() => { setNode(existingNode); setSlices({}); setTab("all"); }, [existingNode?.id, open]);
 
+  // Node seçimi: mövcud incoming cascade node → parent; yalnız o yoxdursa root yaradılır.
   useEffect(() => {
     if (!open || existingNode || !bootstrap) return;
     const emp = bootstrap.assigneeId
       ? getEmployees().find(e => e.id === bootstrap.assigneeId)
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
+    // 1) Yuxarı rəhbərdən gələn cascade node
+    const incoming = findIncomingNodeForAssignee(emp.id, bootstrap.cardName);
+    if (incoming) { setNode(incoming); return; }
+    // 2) Yoxdursa — bu KPI kartı üçün root yarat (fallback: rəhbər özü root olur)
     const existing = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
     setNode(existing || createRoot({
       cardName: bootstrap.cardName, goalName: bootstrap.goalName, unit: bootstrap.unit,
@@ -50,7 +62,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   }, [open, existingNode, bootstrap]);
 
   // Tabelikdəki bütün şəxslər
-  const subordinates = useMemo(() => {
+  const allSubordinates = useMemo(() => {
     if (!node) return [];
     const emp = getEmployees().find(e => e.id === node.assigneeId);
     if (!emp) return [];
@@ -71,32 +83,43 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     return getSubordinatesOfStarHolder(node.assigneeId, unitId);
   }, [node?.id]);
 
+  // KPI kartında seçilmiş assignee-lər varsa — yalnız onları göstər.
+  const allowedNames = useMemo(() => new Set(bootstrap?.cardAssignees || []), [bootstrap?.cardAssignees]);
+  const allowedStructures = useMemo(() => new Set(bootstrap?.cardStructures || []), [bootstrap?.cardStructures]);
+
+  const subordinates = useMemo(() => {
+    if (!allowedNames.size && !allowedStructures.size) return allSubordinates;
+    return allSubordinates.filter(e => {
+      const fullName = `${e.firstName} ${e.lastName}`;
+      if (allowedNames.has(fullName)) return true;
+      if (allowedStructures.size && e.structurePath && Array.from(allowedStructures).some(s => e.structurePath?.includes(s))) return true;
+      return false;
+    });
+  }, [allSubordinates, allowedNames, allowedStructures]);
+
   const leaders = useMemo(() => subordinates.filter(e => e.isStarPerson), [subordinates]);
   const currentList = tab === "all" ? subordinates : leaders;
 
   const [slices, setSlices] = useState<Record<number, string>>({});
-  const [reCascade, setReCascade] = useState<Record<number, boolean>>({});
 
-  // Hədəf dəyəri avtomatik olaraq hər əməkdaşın "təyin olunan dəyər" xanasına düşsün.
+  // Hər əməkdaş üçün defolt olaraq rəhbərin təklif etdiyi dəyər (defaultPerAssignee) düşür.
   useEffect(() => {
     if (!node || subordinates.length === 0) return;
     setSlices(prev => {
       const next = { ...prev };
       let changed = false;
-      const def = String(node.limit ?? "");
+      const def = String(bootstrap?.defaultPerAssignee ?? node.limit ?? "");
       subordinates.forEach(e => {
         if (next[e.id] === undefined) { next[e.id] = def; changed = true; }
       });
       return changed ? next : prev;
     });
-  }, [node?.id, node?.limit, subordinates]);
+  }, [node?.id, subordinates, bootstrap?.defaultPerAssignee]);
 
   const setSlice = (id: number, val: string) => {
-    // yalnız rəqəm və nöqtə
     const clean = val.replace(/[^\d.]/g, "");
     setSlices(prev => ({ ...prev, [id]: clean }));
   };
-  const toggleReCascade = (id: number) => setReCascade(prev => ({ ...prev, [id]: !prev[id] }));
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
@@ -115,7 +138,6 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           assigneeName: `${emp.firstName} ${emp.lastName}`,
           positionName: emp.positionName,
           limit: parseFloat(v),
-          canReCascade: !!reCascade[emp.id],
         } : null;
       })
       .filter(Boolean) as any[];
@@ -135,24 +157,24 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             Kaskadlama — {node?.goalName || bootstrap?.goalName}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {node?.cardName || bootstrap?.cardName} · Ana hədəf dəyəri: <b>{fmt(node?.limit || 0)} {node?.unit || bootstrap?.unit}</b>
+            {node?.cardName || bootstrap?.cardName} · Cascade Load: <b>{fmt(parentLimit)} {node?.unit || bootstrap?.unit}</b>
           </p>
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Ana hədəf" value={fmt(parentLimit)} unit={node?.unit || "AZN"} tone="neutral" />
+          <BigStat label="Cascade Load" value={fmt(parentLimit)} unit={node?.unit || "AZN"} tone="neutral" />
           <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone={overLimit ? "danger" : "success"} />
           <BigStat label="Qalan" value={fmt(remainingParent)} unit={node?.unit || "AZN"} tone="primary" />
         </div>
 
         <div className="text-[11px] text-muted-foreground">
-          Bölüşdürülən cəm ana hədəf limitini <b>keçə bilməz</b>. "Yenidən kaskadlaya bilər" seçili şəxs aldığı hədəfi öz tabeliyindəki əməkdaşlar arasında sonrakı səviyyəyə ötürə bilər.
+          Bölüşdürülən cəm <b>Cascade Load-u</b> keçə bilməz. Yalnız KPI kartında seçilmiş və sizin tabeliyinizdə olan şəxslər göstərilir.
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="all" className="gap-2">
-              <Users className="w-4 h-4" /> Bütün tabelik ({subordinates.length})
+              <Users className="w-4 h-4" /> Kartda seçilmiş şəxslər ({subordinates.length})
             </TabsTrigger>
             <TabsTrigger value="leaders" className="gap-2">
               <ShieldCheck className="w-4 h-4" /> Struktur rəhbərləri ({leaders.length})
@@ -160,10 +182,10 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           </TabsList>
 
           <TabsContent value="all" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} reCascade={reCascade} toggleReCascade={toggleReCascade} />
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
           </TabsContent>
           <TabsContent value="leaders" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} reCascade={reCascade} toggleReCascade={toggleReCascade} />
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
           </TabsContent>
         </Tabs>
 
@@ -181,11 +203,10 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 };
 
 const SubTable = ({
-  list, unit, slices, setSlice, reCascade, toggleReCascade,
+  list, unit, slices, setSlice,
 }: {
   list: any[]; unit: string;
   slices: Record<number, string>; setSlice: (id: number, v: string) => void;
-  reCascade: Record<number, boolean>; toggleReCascade: (id: number) => void;
 }) => (
   <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
     {list.length === 0 ? (
@@ -198,7 +219,6 @@ const SubTable = ({
             <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
             <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
             <th className="text-right px-3 py-2 font-medium w-44">Təyin olunan dəyər ({unit})</th>
-            <th className="text-center px-3 py-2 font-medium w-40">Yenidən kaskadlaya bilər</th>
           </tr>
         </thead>
         <tbody>
@@ -220,16 +240,6 @@ const SubTable = ({
                   placeholder="0"
                   className="w-36 text-right px-2 py-1 border border-border rounded bg-background tabular-nums font-medium focus:outline-none focus:ring-1 focus:ring-ring"
                 />
-              </td>
-              <td className="px-3 py-2 text-center">
-                <label className="inline-flex items-center justify-center gap-1.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!!reCascade[e.id]}
-                    onChange={() => toggleReCascade(e.id)}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-1 focus:ring-ring"
-                  />
-                </label>
               </td>
             </tr>
           ))}
