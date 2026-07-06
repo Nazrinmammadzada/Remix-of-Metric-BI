@@ -42,11 +42,13 @@ const ReportsPage = () => {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [showTeamDropdown, setShowTeamDropdown] = useState(false);
   const [teamSearch, setTeamSearch] = useState("");
+  const teamDropdownRef = useRef<HTMLDivElement>(null);
 
   // Targets dropdown (replaces structure)
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [targetSearch, setTargetSearch] = useState("");
+  const targetDropdownRef = useRef<HTMLDivElement>(null);
 
   const [generated, setGenerated] = useState(false);
   const chartsRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,28 @@ const ReportsPage = () => {
     window.addEventListener("teams-updated", refresh);
     return () => window.removeEventListener("teams-updated", refresh);
   }, []);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (showTeamDropdown && teamDropdownRef.current && !teamDropdownRef.current.contains(target)) setShowTeamDropdown(false);
+      if (showTargetDropdown && targetDropdownRef.current && !targetDropdownRef.current.contains(target)) setShowTargetDropdown(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (!showTeamDropdown && !showTargetDropdown) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setShowTeamDropdown(false);
+      setShowTargetDropdown(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [showTeamDropdown, showTargetDropdown]);
 
   // All available KPIs from selected teams
   const availableTargets = useMemo(() => {
@@ -190,7 +214,7 @@ const ReportsPage = () => {
             {/* Team multi-select */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Komandalar</label>
-              <div className="relative">
+              <div className="relative" ref={teamDropdownRef}>
                 <div onClick={() => setShowTeamDropdown(!showTeamDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
                   <span className={selectedTeams.length > 0 ? "text-foreground" : "text-muted-foreground"}>
                     {selectedTeams.length > 0 ? `${selectedTeams.length} komanda seçildi` : "Komanda seçin"}
@@ -214,6 +238,10 @@ const ReportsPage = () => {
                       ))}
                       {filteredTeams.length === 0 && <p className="px-3 py-3 text-xs text-muted-foreground">Tapılmadı</p>}
                     </div>
+                    <div className="p-2 border-t border-border flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground">{selectedTeams.length} seçildi</span>
+                      <button type="button" onClick={() => { setShowTeamDropdown(false); setTeamSearch(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -231,7 +259,7 @@ const ReportsPage = () => {
             {/* Targets multi-select dropdown */}
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Hədəflər</label>
-              <div className="relative">
+              <div className="relative" ref={targetDropdownRef}>
                 <div
                   onClick={() => selectedTeams.length > 0 && setShowTargetDropdown(!showTargetDropdown)}
                   className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${selectedTeams.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
@@ -268,6 +296,10 @@ const ReportsPage = () => {
                         );
                       })}
                       {displayedTargets.length === 0 && <p className="px-3 py-3 text-xs text-muted-foreground">Hədəf yoxdur</p>}
+                    </div>
+                    <div className="p-2 border-t border-border flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground">{selectedTargets.length} seçildi</span>
+                      <button type="button" onClick={() => { setShowTargetDropdown(false); setTargetSearch(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
                     </div>
                   </div>
                 )}

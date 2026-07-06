@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, Hourglass, CheckCircle2, Trash2, Check, ArrowUp, ArrowDown, Clock, GripVertical, Pencil, Sparkles } from "lucide-react";
@@ -147,6 +147,25 @@ const UserKpiCardsPage = () => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [typeSearchText, setTypeSearchText] = useState("");
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (showTypeDropdown && typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) setShowTypeDropdown(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || !showTypeDropdown) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setShowTypeDropdown(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [showTypeDropdown]);
 
   const myTeam = user ? getTeams().find(t => t.leader === user.name || t.members.some(m => m.name === user.name)) : undefined;
   const teamMemberNames = myTeam ? [myTeam.leader, ...myTeam.members.map(m => m.name)] : [];
@@ -642,7 +661,7 @@ const UserKpiCardsPage = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground">KPI Tipi</label>
-                  <div className="relative mt-1">
+                  <div className="relative mt-1" ref={typeDropdownRef}>
                     <div onClick={() => setShowTypeDropdown(!showTypeDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.types.length === 0 && <span className="text-muted-foreground">Seçin</span>}
                       {newKpi.types.map(t => (
@@ -661,6 +680,10 @@ const UserKpiCardsPage = () => {
                             <span>{type}</span>{newKpi.types.includes(type) && <Check className="w-4 h-4 text-primary" />}
                           </div>
                         ))}
+                        <div className="p-2 border-t border-border flex justify-between items-center">
+                          <span className="text-[11px] text-muted-foreground">{newKpi.types.length} seçildi</span>
+                          <button type="button" onClick={() => { setShowTypeDropdown(false); setTypeSearchText(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
+                        </div>
                       </div>
                     )}
                   </div>
