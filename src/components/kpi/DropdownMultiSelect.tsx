@@ -70,7 +70,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
             {filtered.map((o) => {
               const checked = selected.includes(o);
               return (
-                <div key={o} data-multiselect-option onClick={(e) => { e.stopPropagation(); onToggle(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
+                <div key={o} data-multiselect-option onClick={(e) => { e.stopPropagation(); onToggle(o); requestAnimationFrame(() => setOpen(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
                   <span className="truncate">{o}</span>
                   {checked && <Check className="w-4 h-4 text-primary shrink-0" />}
                 </div>
