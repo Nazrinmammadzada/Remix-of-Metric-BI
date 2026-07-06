@@ -179,22 +179,15 @@ export const getIncomingCascadeLoad = (
 ): { value: number; unit: string; cardName: string; remaining: number } | null => {
   // 1) cascade tree əsas mənbə
   if (assigneeId != null) {
-    try {
-      // dinamik import — circular istinaddan qorunmaq üçün
-      const mod = require("./cascadeTreeStore") as typeof import("./cascadeTreeStore");
-      const list = mod.getNodes().filter(n =>
-        n.assigneeId === assigneeId &&
-        (excludeCardId == null || true) // cardId yalnız kpiSet-də var — cascade tree cardName ilə saxlayır
-      );
-      if (list.length) {
-        // ən yeni gələn node
-        const node = list.sort((a, b) => b.createdAt - a.createdAt)[0];
-        const total = Number(node.limit) || 0;
-        const distributed = mod.getChildren(node.id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
-        return { value: total, unit: node.unit || "AZN", cardName: node.cardName, remaining: Math.max(0, total - distributed) };
-      }
-    } catch {}
+    const list = getCascadeNodes().filter(n => n.assigneeId === assigneeId);
+    if (list.length) {
+      const node = [...list].sort((a, b) => b.createdAt - a.createdAt)[0];
+      const total = Number(node.limit) || 0;
+      const distributed = getCascadeChildren(node.id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
+      return { value: total, unit: node.unit || "AZN", cardName: node.cardName, remaining: Math.max(0, total - distributed) };
+    }
   }
+
   // 2) Geri uyğunluq — köhnə kpi set entry-lərindən
   const list = load().filter(e =>
     e.assigneeName === assigneeName &&
