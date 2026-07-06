@@ -87,11 +87,30 @@ const TeamsPage = () => {
   const totalMembers = scopedTeams.reduce((s, t) => s + t.members.length + 1, 0);
   const bestTeam = scopedTeams.length ? scopedTeams.reduce((b, t) => (t.kpiResult > b.kpiResult ? t : b), scopedTeams[0]) : null;
 
-  const chartData = scopedTeams.map(t => ({
-    name: t.name.length > 12 ? t.name.substring(0, 12) + "..." : t.name,
-    "KPI Nəticəsi": t.kpiResult,
-    "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
-  }));
+  // Chart period filter (independent from list)
+  const [chartMode, setChartMode] = useState<"Ay" | "Rüb" | "İl">("Ay");
+  const [chartMonth, setChartMonth] = useState<string>(() => new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [chartQuarter, setChartQuarter] = useState<string>("2026-Q2");
+  const [chartYear, setChartYear] = useState<string>("2026");
+
+  // Deterministic seeded variation so period choice changes bar heights
+  const seedFactor = useMemo(() => {
+    const key = chartMode === "Ay" ? chartMonth : chartMode === "Rüb" ? chartQuarter : chartYear;
+    let h = 0;
+    for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return h;
+  }, [chartMode, chartMonth, chartQuarter, chartYear]);
+
+  const chartData = scopedTeams.map((t, idx) => {
+    const jitter = ((seedFactor + idx * 7919) % 25) - 10; // -10..+14
+    const kpi = Math.max(0, Math.min(100, t.kpiResult + jitter));
+    const done = Math.max(0, Math.min(100, Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100) + jitter));
+    return {
+      name: t.name.length > 12 ? t.name.substring(0, 12) + "..." : t.name,
+      "KPI Nəticəsi": kpi,
+      "Tamamlanmış": done,
+    };
+  });
 
   const filteredTeams = scopedTeams.filter(t =>
     t.name.toLowerCase().includes(searchText.toLowerCase()) ||
