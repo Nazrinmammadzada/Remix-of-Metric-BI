@@ -266,7 +266,8 @@ const SubTable = ({
       </table>
     )}
   </div>
-);
+  );
+};
 
 const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "danger" }) => {
   const toneCls = {
