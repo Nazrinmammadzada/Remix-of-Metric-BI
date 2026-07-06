@@ -258,11 +258,12 @@ const SubTable = ({
   </div>
 );
 
-const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" }) => {
+const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "danger" }) => {
   const toneCls = {
     neutral: "border-border bg-card text-foreground",
     primary: "border-primary/30 bg-primary/5 text-primary",
     success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
+    danger: "border-destructive/40 bg-destructive/5 text-destructive",
   }[tone];
   return (
     <div className={`rounded-xl border p-4 ${toneCls}`}>
