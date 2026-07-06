@@ -1733,8 +1733,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
       {/* KPI Detail Dialog */}
       <Dialog open={!!selectedKpi} onOpenChange={() => setSelectedKpi(null)}>
-        <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[90vw] max-w-[1500px] h-[88vh] min-h-[88vh] max-h-[88vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
             <div className="flex items-center gap-3">
               <DialogTitle className="text-xl">{selectedKpi?.name}</DialogTitle>
               {/* zone badge removed */}
@@ -1742,7 +1742,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           </DialogHeader>
 
           {selectedKpi && (
-            <div className="space-y-4">
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="px-6 pt-4 space-y-4 shrink-0">
               {(() => {
                 const st = getStatusFor(selectedKpi.id);
                 if (st.status !== "imtina") return null;
