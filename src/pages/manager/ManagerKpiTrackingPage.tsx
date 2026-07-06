@@ -197,7 +197,7 @@ const ManagerKpiTrackingPage = () => {
         )}
         {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
-        {view === "sub" && <SubordinatesView />}
+        {view === "sub" && <SubordinatesView scopePath={subScopePath} />}
       </main>
     </div>
   );
