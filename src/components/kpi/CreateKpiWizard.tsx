@@ -1415,10 +1415,11 @@ function Step2Targets({
               </div>
               <div className="col-span-6 md:col-span-2">
                 <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
-                <input type="number" min={0} max={100} value={t.weight} disabled={disabled}
-                  onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
-                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                <WeightInput value={t.weight} disabled={disabled}
+                  onChange={n => updHedef(t.id, { weight: n })}
+                  className="mt-0.5" />
               </div>
+
               <div className="col-span-12 md:col-span-3">
                 <label className="text-[11px] text-muted-foreground">
                   Hədəf dəyəri {isOther ? <span className="text-amber-600">(təyin edən dolduracaq)</span> : "*"}
