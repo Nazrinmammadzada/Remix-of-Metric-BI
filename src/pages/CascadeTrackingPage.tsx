@@ -12,7 +12,11 @@ const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 
 type NodeTone = "green" | "red" | "neutral";
 const toneOf = (n: CascadeTreeNode): NodeTone => {
   const kids = getChildren(n.id);
-  if (kids.length === 0) return "neutral";
+  if (kids.length === 0) {
+    // Root olub heç kaskadlanmayıbsa (limit > 0) — qırmızı zona.
+    if (n.parentId === null && (Number(n.limit) || 0) > 0) return "red";
+    return "neutral";
+  }
   const rem = remainingOf(n.id);
   return rem <= 0.0001 ? "green" : "red";
 };
