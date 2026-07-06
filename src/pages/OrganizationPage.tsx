@@ -426,11 +426,37 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
     setEditing(false);
   };
 
+  const hasActiveEmployees = (n: OrgStructure): boolean => {
+    for (const p of n.positions) for (const s of p.slots) if (s.employeeId != null) return true;
+    for (const c of n.children) if (hasActiveEmployees(c)) return true;
+    return false;
+  };
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`"${node.name}" strukturunu silmək istəyirsiniz?`)) return;
+    const hasSubs = node.children.length > 0;
+    const hasEmps = hasActiveEmployees(node);
+    if (hasSubs && hasEmps) {
+      toast.error("Bu struktur silinə bilməz. Həm alt strukturlar, həm də aktiv əməkdaşlar mövcuddur. Əvvəlcə alt strukturları və əməkdaşları çıxarın.");
+      return;
+    }
+    if (hasSubs) {
+      toast.error("Bu struktur silinə bilməz. Daxilində alt strukturlar mövcuddur. Əvvəlcə bütün alt strukturları silin.");
+      return;
+    }
+    if (hasEmps) {
+      toast.error("Bu struktur silinə bilməz. Struktur daxilində aktiv əməkdaşlar mövcuddur. Zəhmət olmasa əvvəlcə bütün əməkdaşları strukturdan çıxarın.");
+      return;
+    }
+    setConfirmDelete(true);
+  };
+
+  const doDelete = () => {
     removeStructure(node.id);
     toast.success("Struktur silindi");
+    setConfirmDelete(false);
   };
 
   return (
