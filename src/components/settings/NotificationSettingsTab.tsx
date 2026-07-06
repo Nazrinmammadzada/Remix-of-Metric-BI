@@ -132,21 +132,34 @@ const NotificationSettingsTab = () => {
         <div className="max-h-[600px] overflow-y-auto divide-y divide-border">
           {filtered.map(s => {
             const active = s.id === selectedId;
+            const isCustom = s.id.startsWith("custom_");
             return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => startEdit(s)}
-                className={`w-full text-left px-3 py-3 transition-colors ${active ? "bg-primary/10" : "hover:bg-secondary/50"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}>{s.title}</span>
-                  <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-success" : "bg-muted-foreground/40"}`} />
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{s.description}</p>
-              </button>
+              <div key={s.id} className={`relative group ${active ? "bg-primary/10" : "hover:bg-secondary/50"} transition-colors`}>
+                <button
+                  type="button"
+                  onClick={() => startEdit(s)}
+                  className="w-full text-left px-3 py-3"
+                >
+                  <div className="flex items-center justify-between gap-2 pr-6">
+                    <span className={`text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}>{s.title}</span>
+                    <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-success" : "bg-muted-foreground/40"}`} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{s.description}</p>
+                </button>
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(s.id, s.title)}
+                    className="absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-opacity"
+                    title="Sil"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </button>
+                )}
+              </div>
             );
           })}
+
           {filtered.length === 0 && (
             <p className="p-4 text-sm text-muted-foreground text-center">Nəticə tapılmadı</p>
           )}
