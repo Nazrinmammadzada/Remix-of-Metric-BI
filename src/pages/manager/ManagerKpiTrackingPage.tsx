@@ -227,7 +227,7 @@ const initialReminders = (kpiId: string): ReminderItem[] => [
   { id: `${kpiId}-r3`, date: "15.04.2025", time: "09:15", author: "Aysel Məmmədova", text: "KPI icra vəziyyətini yeniləməyi xatırladırıq.", read: true },
 ];
 
-const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: string; data: Kpi[] }) => {
+const OwnKpisView = ({ title, subtitle, data, emptyLabel }: { title: string; subtitle: string; data: Kpi[]; emptyLabel?: string }) => {
   const [statusF, setStatusF] = useState<string>("all");
   const [periodF, setPeriodF] = useState<string>("all");
   const [q, setQ] = useState("");
