@@ -216,7 +216,17 @@ const SubTable = ({
 }: {
   list: any[]; unit: string; slices: Record<number, string>; setSlice: (id: number, v: string) => void;
   defaultValue?: number;
-}) => (
+}) => {
+  useEffect(() => {
+    if (!defaultValue || defaultValue <= 0) return;
+    list.forEach(e => {
+      if (slices[e.id] === undefined || slices[e.id] === "") {
+        setSlice(e.id, String(defaultValue));
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list.map(e => e.id).join(","), defaultValue]);
+  return (
   <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
     {list.length === 0 ? (
       <div className="p-6 text-center text-sm text-muted-foreground">Bu qrupda şəxs yoxdur.</div>
