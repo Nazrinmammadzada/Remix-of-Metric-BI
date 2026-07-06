@@ -285,18 +285,15 @@ const UserWhistleblowerPage = () => {
             </div>
             <DialogTitle className="text-center">Bildiriş uğurla göndərildi</DialogTitle>
             <DialogDescription className="text-center">
-              Məlumatınız qəbul edildi və araşdırılacaq.
+              Məlumatınız tam anonim şəkildə qəbul edildi və araşdırılacaq.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1">Unikal ID</p>
-            <Badge variant="secondary" className="text-base px-3 py-1 font-mono">#{successId}</Badge>
-          </div>
           <DialogFooter>
             <Button className="w-full" onClick={() => setSuccessId(null)}>Bağla</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 };
