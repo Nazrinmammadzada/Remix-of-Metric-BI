@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
 import { distribute, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-
+import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
@@ -32,8 +32,9 @@ const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
   const [tab, setTab] = useState<"all" | "leaders">("all");
+  const { remaining, total } = useCascadeLoad();
 
-  useEffect(() => { setNode(existingNode); setSlices({}); setReCascade({}); setTab("all"); }, [existingNode?.id, open]);
+  useEffect(() => { setNode(existingNode); setSlices({}); setTab("all"); }, [existingNode?.id, open]);
 
   useEffect(() => {
     if (!open || existingNode || !bootstrap) return;
@@ -75,7 +76,6 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   const currentList = tab === "all" ? subordinates : leaders;
 
   const [slices, setSlices] = useState<Record<number, string>>({});
-  const [reCascade, setReCascade] = useState<Record<number, boolean>>({});
 
   // Hədəf dəyəri avtomatik olaraq hər əməkdaşın "təyin olunan dəyər" xanasına düşsün.
   useEffect(() => {
@@ -96,14 +96,10 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     const clean = val.replace(/[^\d.]/g, "");
     setSlices(prev => ({ ...prev, [id]: clean }));
   };
-  const toggleReCascade = (id: number) => setReCascade(prev => ({ ...prev, [id]: !prev[id] }));
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
   const [error, setError] = useState<string | null>(null);
-  const parentLimit = node?.limit || 0;
-  const overLimit = totalDist > parentLimit;
-  const remainingParent = Math.max(0, parentLimit - totalDist);
 
   const handleSave = () => {
     if (!node) return;
@@ -115,7 +111,6 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           assigneeName: `${emp.firstName} ${emp.lastName}`,
           positionName: emp.positionName,
           limit: parseFloat(v),
-          canReCascade: !!reCascade[emp.id],
         } : null;
       })
       .filter(Boolean) as any[];
@@ -140,13 +135,13 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Ana hədəf" value={fmt(parentLimit)} unit={node?.unit || "AZN"} tone="neutral" />
-          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone={overLimit ? "danger" : "success"} />
-          <BigStat label="Qalan" value={fmt(remainingParent)} unit={node?.unit || "AZN"} tone="primary" />
+          <BigStat label="Ana hədəf" value={fmt(node?.limit || 0)} unit={node?.unit || "AZN"} tone="neutral" />
+          <BigStat label="Cascade Load qalıq" value={fmt(remaining)} unit={`/ ${fmt(total)} AZN`} tone="primary" />
+          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone="success" />
         </div>
 
         <div className="text-[11px] text-muted-foreground">
-          Bölüşdürülən cəm ana hədəf limitini <b>keçə bilməz</b>. "Yenidən kaskadlaya bilər" seçili şəxs aldığı hədəfi öz tabeliyindəki əməkdaşlar arasında sonrakı səviyyəyə ötürə bilər.
+          Alt bölgülərin cəmi rəhbərin ümumi cascade load-undan çıxıldığı üçün ana hədəf dəyərindən böyük ola bilər — bu düzgündür.
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
@@ -160,10 +155,10 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           </TabsList>
 
           <TabsContent value="all" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} reCascade={reCascade} toggleReCascade={toggleReCascade} />
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
           </TabsContent>
           <TabsContent value="leaders" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} reCascade={reCascade} toggleReCascade={toggleReCascade} />
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
           </TabsContent>
         </Tabs>
 
@@ -171,7 +166,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
-          <Button onClick={handleSave} disabled={selectedCount === 0 || overLimit}>
+          <Button onClick={handleSave} disabled={selectedCount === 0}>
             Bölüşdür və təyin et
           </Button>
         </DialogFooter>
@@ -181,11 +176,9 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 };
 
 const SubTable = ({
-  list, unit, slices, setSlice, reCascade, toggleReCascade,
+  list, unit, slices, setSlice,
 }: {
-  list: any[]; unit: string;
-  slices: Record<number, string>; setSlice: (id: number, v: string) => void;
-  reCascade: Record<number, boolean>; toggleReCascade: (id: number) => void;
+  list: any[]; unit: string; slices: Record<number, string>; setSlice: (id: number, v: string) => void;
 }) => (
   <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
     {list.length === 0 ? (
@@ -198,7 +191,6 @@ const SubTable = ({
             <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
             <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
             <th className="text-right px-3 py-2 font-medium w-44">Təyin olunan dəyər ({unit})</th>
-            <th className="text-center px-3 py-2 font-medium w-40">Yenidən kaskadlaya bilər</th>
           </tr>
         </thead>
         <tbody>
@@ -221,16 +213,6 @@ const SubTable = ({
                   className="w-36 text-right px-2 py-1 border border-border rounded bg-background tabular-nums font-medium focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </td>
-              <td className="px-3 py-2 text-center">
-                <label className="inline-flex items-center justify-center gap-1.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!!reCascade[e.id]}
-                    onChange={() => toggleReCascade(e.id)}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-1 focus:ring-ring"
-                  />
-                </label>
-              </td>
             </tr>
           ))}
         </tbody>
@@ -239,12 +221,11 @@ const SubTable = ({
   </div>
 );
 
-const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "danger" }) => {
+const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" }) => {
   const toneCls = {
     neutral: "border-border bg-card text-foreground",
     primary: "border-primary/30 bg-primary/5 text-primary",
     success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
-    danger: "border-destructive/40 bg-destructive/5 text-destructive",
   }[tone];
   return (
     <div className={`rounded-xl border p-4 ${toneCls}`}>

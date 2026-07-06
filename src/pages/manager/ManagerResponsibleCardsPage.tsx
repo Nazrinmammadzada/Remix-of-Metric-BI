@@ -15,7 +15,6 @@ import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSe
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
-import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
 import {
   useSubKpis, getKpiCardsFor, calcCompletion, isEvaluated, type SubKpi, type KpiCardInfo,
 } from "@/lib/kpiEvaluationStore";
@@ -66,13 +65,9 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const rows = useKpiSet();
   const { user } = useAuth();
   const meId = getCurrentEmployeeId(user);
-  const myOrgId = getCurrentOrgEmployeeId(user);
   const evalItems = useSubKpis(meId || "");
 
-  const assignCount = useMemo(
-    () => rows.filter(r => r.ownerType === "manager" && (myOrgId == null || r.assigneeId === myOrgId)).length,
-    [rows, myOrgId],
-  );
+  const assignCount = useMemo(() => rows.filter(r => r.ownerType === "manager").length, [rows]);
   const evalCount = evalItems.length;
 
   return (
@@ -134,8 +129,6 @@ const HubCard = ({
 const AssignView = () => {
   const rows = useKpiSet();
   useCascadeTree();
-  const { user } = useAuth();
-  const myOrgId = getCurrentOrgEmployeeId(user);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const [distribute, setDistribute] = useState<KpiSetEntry | null>(null);
@@ -143,9 +136,7 @@ const AssignView = () => {
   const [cascadeConfirm, setCascadeConfirm] = useState<{ entry: KpiSetEntry; value: number; unit: string } | null>(null);
 
   const groups = useMemo<CardGroup[]>(() => {
-    const managerRows = rows.filter(
-      r => r.ownerType === "manager" && (myOrgId == null || r.assigneeId === myOrgId),
-    );
+    const managerRows = rows.filter(r => r.ownerType === "manager");
     const map = new Map<number, CardGroup>();
     for (const r of managerRows) {
       if (!map.has(r.cardId)) map.set(r.cardId, { cardId: r.cardId, cardName: r.cardName, entries: [] });
@@ -158,7 +149,7 @@ const AssignView = () => {
       g.cardName.toLowerCase().includes(s) ||
       g.entries.some(e => e.subKpiName.toLowerCase().includes(s))
     );
-  }, [rows, q, myOrgId]);
+  }, [rows, q]);
 
   const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
 

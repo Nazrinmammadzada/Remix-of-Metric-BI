@@ -64,23 +64,8 @@ const demoProfiles: { email: string; user: AuthUser }[] = [
       email: "manager@kpi.az",
       role: "MANAGER",
       avatar: "E",
-      department: "Marketinq Departamenti",
-      team: "Marketinq Rəhbərliyi",
-      permissions: [
-        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
-        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
-      ],
-    },
-  },
-  {
-    email: "manager2@kpi.az",
-    user: {
-      name: "Kamran Quliyev",
-      email: "manager2@kpi.az",
-      role: "MANAGER",
-      avatar: "K",
-      department: "Rəqəmsal Marketinq Şöbəsi",
-      team: "Rəqəmsal Marketinq Komandası",
+      department: "Satış Departamenti",
+      team: "Elite Satış Komandası",
       permissions: [
         "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
         "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",

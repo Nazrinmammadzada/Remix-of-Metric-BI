@@ -60,11 +60,11 @@ export interface KpiSetEntry {
 }
 
 
-const KEY = "kpi_set_entries_v7";
+const KEY = "kpi_set_entries_v6";
 const EVT = "kpi-set-updated";
 
 // Köhnə versiyaları təmizlə — istifadəçi tərəfindən yaradılan hədəfləri silir.
-try { ["kpi_set_entries_v1","kpi_set_entries_v2","kpi_set_entries_v3","kpi_set_entries_v4","kpi_set_entries_v5","kpi_set_entries_v6"].forEach(k => localStorage.removeItem(k)); } catch {}
+try { ["kpi_set_entries_v1","kpi_set_entries_v2","kpi_set_entries_v3","kpi_set_entries_v4","kpi_set_entries_v5"].forEach(k => localStorage.removeItem(k)); } catch {}
 
 const SEED: KpiSetEntry[] = [
   // ============ ELVİN RƏHİMOV (id=4, manager@kpi.az) — Marketinq Departamenti rəhbəri ============
@@ -84,16 +84,15 @@ const SEED: KpiSetEntry[] = [
     weightMin: 15, weightMax: 35,
     updatedAt: Date.now() - 3600000 * 6,
   },
-  // Completed WITH cascade — HR-in Elvinə verdiyi 500 000 AZN kaskadlana bilən hədəf.
-  // Elvin bunu Kamran Quliyevə (Manager 2) və digər tabeçilikdə olanlara bölüşdürür.
+  // Completed WITH cascade load — Elvinə başqa kartdan gələn 120000 AZN cascade limit
   {
     id: "ks-elvin-2",
     cardId: 102,
-    cardName: "İllik Marketinq Hədəfi 2026",
+    cardName: "İllik Marketinq Gəliri",
     subKpiId: 1002,
-    subKpiName: "Ümumi marketinq gəliri",
+    subKpiName: "Yeni müştəri gəliri",
     type: "Məbləğ",
-    target: "500000",
+    target: "120000",
     unit: "AZN",
     assigneeId: 4,
     assigneeName: "Elvin Rəhimov",
@@ -102,11 +101,11 @@ const SEED: KpiSetEntry[] = [
     cascadable: true,
     weight: 25,
     limits: {
-      l5: { min: 400001, max: 500000 },
-      l4: { min: 300001, max: 400000 },
-      l3: { min: 200001, max: 300000 },
-      l2: { min: 100001, max: 200000 },
-      l1: { min: 0, max: 100000 },
+      l5: { min: 96001, max: 120000 },
+      l4: { min: 72001, max: 96000 },
+      l3: { min: 48001, max: 72000 },
+      l2: { min: 24001, max: 48000 },
+      l1: { min: 0, max: 24000 },
     },
     updatedAt: Date.now() - 86400000 * 3,
   },
@@ -150,34 +149,6 @@ const SEED: KpiSetEntry[] = [
     status: "pending",
     weightMin: 10, weightMax: 25,
     updatedAt: Date.now() - 3600000 * 2,
-  },
-
-  // ============ KAMRAN QULİYEV (id=7, manager2@kpi.az) — Rəqəmsal Marketinq Şöbə Müdiri ============
-  // HR tərəfindən Orxan Bayramov üçün yaradılan KPI — Target Setter = Kamran Quliyev.
-  // Kamran Elvindən gələn kaskad məbləğini istifadə edib Orxana bölüşdürür.
-  {
-    id: "ks-kamran-1",
-    cardId: 201,
-    cardName: "Rəqəmsal Marketinq — Şöbə Kaskad Hədəfi",
-    subKpiId: 2001,
-    subKpiName: "Rəqəmsal marketinq gəliri (Orxan Bayramov üzrə)",
-    type: "Məbləğ",
-    target: "300000",
-    unit: "AZN",
-    assigneeId: 7,
-    assigneeName: "Kamran Quliyev",
-    ownerType: "manager",
-    status: "completed",
-    cascadable: true,
-    weight: 30,
-    limits: {
-      l5: { min: 240001, max: 300000 },
-      l4: { min: 180001, max: 240000 },
-      l3: { min: 120001, max: 180000 },
-      l2: { min: 60001, max: 120000 },
-      l1: { min: 0, max: 60000 },
-    },
-    updatedAt: Date.now() - 86400000 * 1,
   },
 
   // ============ Digər rəhbərlər (nümunə) ============
