@@ -310,8 +310,8 @@ function MultiSelectDropdown({
       </button>
       {open && (
         <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg" onMouseDown={(e) => e.stopPropagation()}>
-          <div className="p-1.5 border-b border-border">
-            <div className="relative">
+          <div className="p-1.5 border-b border-border flex items-center gap-1.5">
+            <div className="relative flex-1">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <input
                 autoFocus value={q} onChange={e => setQ(e.target.value)}
@@ -319,6 +319,14 @@ function MultiSelectDropdown({
                 className="w-full pl-7 pr-2 py-1.5 text-xs border border-border rounded bg-background"
               />
             </div>
+            <button
+              type="button"
+              aria-label="Dropdown-u bağla"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
+              className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center hover:bg-secondary"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
           </div>
           <div className="max-h-56 overflow-y-auto py-1">
             {filtered.length === 0 ? (
@@ -348,8 +356,6 @@ function MultiSelectDropdown({
                   <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange([]); }}
                   className="text-[11px] text-destructive hover:underline px-1">Təmizlə</button>
               )}
-              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
-                className="text-[11px] text-primary hover:underline px-1">Bağla</button>
             </div>
           </div>
 
@@ -1039,6 +1045,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                                       options={opts}
                                       selected={currentList}
                                       onToggle={toggle}
+                                      onChange={(next) => updReview(r.id, { reviewerNames: next, reviewerName: next[0] || "" })}
                                       placeholder="Şəxs(lər) seçin — bir neçə seçilə bilər"
                                       searchPlaceholder="Şəxs axtar (ad, vəzifə)…"
                                     />

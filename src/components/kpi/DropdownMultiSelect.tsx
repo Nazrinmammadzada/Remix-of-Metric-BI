@@ -53,11 +53,19 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
       </div>
       {open && (
         <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
-          <div className="p-2 border-b border-border">
-            <div className="relative">
+          <div className="p-2 border-b border-border flex items-center gap-1.5">
+            <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={searchPlaceholder} className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background focus:outline-none" onClick={(e) => e.stopPropagation()} />
             </div>
+            <button
+              type="button"
+              aria-label="Dropdown-u bağla"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
+              className="h-8 w-8 rounded-md border border-border bg-background flex items-center justify-center hover:bg-secondary"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
           </div>
           <div className="max-h-48 overflow-y-auto">
             {filtered.map((o) => {
@@ -74,10 +82,10 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
             {filtered.length === 0 && <p className="px-3 py-3 text-xs text-muted-foreground text-center">Tapılmadı</p>}
           </div>
           <div className="flex items-center justify-between px-2 py-1 border-t border-border">
-            <button type="button" onClick={(e) => { e.stopPropagation(); toggleAll(); }} className="text-[11px] text-primary hover:underline px-1 font-medium">
+            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleAll(); }} className="text-[11px] text-primary hover:underline px-1 font-medium">
               {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
             </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(false); }} className="text-[11px] text-primary hover:underline px-1">Bağla</button>
+            <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
           </div>
         </div>
       )}
