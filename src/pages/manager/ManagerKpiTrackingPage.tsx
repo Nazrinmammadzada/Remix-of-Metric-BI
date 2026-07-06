@@ -132,29 +132,34 @@ const ManagerKpiTrackingPage = () => {
         measure: n.unit || "AZN", type: "Cascade", method: "Cascade paylanma", weight: 20,
       });
     });
-    // 2) SharedKpiCard-lar (owner = user)
+    // 2) SharedKpiCard-lar — cari istifadəçi assignee (və ya owner) olduğu kartlar.
+    // HR yaradan olsa da, kart Elvinə təyin edilibsə, Elvinin KPI-larında görünməlidir,
+    // yaradan HR-in "Mənim KPI-larım"-da yox.
     const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === user.name);
     if (emp) {
       const empKey = `e${emp.id}`;
-      sharedCards.filter(c => c.ownerId === empKey && (c.status === "aktiv" || c.status === "natamam")).forEach(c => {
-        (c.targets || []).forEach((t: any) => {
-          const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
-          result.push({
-            id: `sk-${c.id}-${t.id}`,
-            name: `${c.name} — ${t.name || "Hədəf"}`,
-            description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
-            period: c.startDate || "—",
-            target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
-            stage: "assigned",
-            status: c.status === "aktiv" ? "in_progress" : "at_risk",
-            deadline: c.endDate || "—",
-            createdAt: c.createdAt?.slice(0, 10) || "—",
-            updatedAt: c.updatedAt?.slice(0, 10) || "—",
-            responsible: { name: user.name, role: emp.positionName || "İcraçı" },
-            measure: t.type || "—", type: c.frequency || "—", method: t.name || "—", weight: t.weight || 20,
+      sharedCards
+        .filter(c => (c.status === "aktiv" || c.status === "natamam") &&
+          (c.assigneeIds?.includes(empKey) || (!c.assigneeIds?.length && c.ownerId === empKey)))
+        .forEach(c => {
+          (c.targets || []).forEach((t: any) => {
+            const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
+            result.push({
+              id: `sk-${c.id}-${t.id}`,
+              name: `${c.name} — ${t.name || "Hədəf"}`,
+              description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
+              period: c.startDate || "—",
+              target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
+              stage: "assigned",
+              status: c.status === "aktiv" ? "in_progress" : "at_risk",
+              deadline: c.endDate || "—",
+              createdAt: c.createdAt?.slice(0, 10) || "—",
+              updatedAt: c.updatedAt?.slice(0, 10) || "—",
+              responsible: { name: user.name, role: emp.positionName || "İcraçı" },
+              measure: t.type || "—", type: c.frequency || "—", method: t.name || "—", weight: t.weight || 20,
+            });
           });
         });
-      });
     }
     return result;
   }, [tree, sharedCards, user?.name]);
