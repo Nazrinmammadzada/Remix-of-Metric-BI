@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
-import { getNode, useCascadeTree } from "@/lib/cascadeTreeStore";
+import { getNode, updateNodeDetails, useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
 import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
@@ -333,6 +333,15 @@ const AssignView = () => {
           const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
           const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
           if (!saved.cascadable) return;
+          if (entry.cascadeNodeId) {
+            updateNodeDetails(entry.cascadeNodeId, {
+              goalName: saved.goalName || entry.subKpiName || entry.cardName,
+              unit,
+              limit: value,
+              sourceTargetId: entry.sourceTargetId,
+              sourceEntryId: entry.id,
+            });
+          }
           const refreshed: KpiSetEntry = {
             ...entry,
             target: String(value),
