@@ -751,6 +751,30 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   // Per-level struktur axtarış mətnləri
   const [structSearch, setStructSearch] = useState<Record<number, string>>({});
   const [openStructLevel, setOpenStructLevel] = useState<number | null>(null);
+  // Multi-select dropdown wrappers — outside click / Escape ilə bağlanır
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const positionDropdownRef = useRef<HTMLDivElement>(null);
+  const structDropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (showTypeDropdown && typeDropdownRef.current && !typeDropdownRef.current.contains(t)) setShowTypeDropdown(false);
+      if (showUserDropdown && userDropdownRef.current && !userDropdownRef.current.contains(t)) setShowUserDropdown(false);
+      if (showPositionDropdown && positionDropdownRef.current && !positionDropdownRef.current.contains(t)) setShowPositionDropdown(false);
+      if (openStructLevel !== null && structDropdownRef.current && !structDropdownRef.current.contains(t)) setOpenStructLevel(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setShowTypeDropdown(false);
+      setShowUserDropdown(false);
+      setShowPositionDropdown(false);
+      setOpenStructLevel(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [showTypeDropdown, showUserDropdown, showPositionDropdown, openStructLevel]);
   useEffect(() => {
     const refresh = () => setOrgStructures(getStructures());
     window.addEventListener("org-updated", refresh);
@@ -760,6 +784,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       window.removeEventListener("storage", refresh);
     };
   }, []);
+
   // Evaluator picker (per hədəf)
   const [evaluatorEditingSubId, setEvaluatorEditingSubId] = useState<number | null>(null);
   const [evDraft, setEvDraft] = useState<EvaluatorConfig>({ type: null, persons: [] });
