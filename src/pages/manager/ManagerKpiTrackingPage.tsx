@@ -105,6 +105,27 @@ type View = "hub" | "own" | "team" | "sub";
 
 const ManagerKpiTrackingPage = () => {
   const [view, setView] = useState<View>("hub");
+  const { user } = useAuth();
+  const allNodes = useCascadeTree();
+  const meId = getCurrentOrgEmployeeId(user);
+
+  // "Mənim KPI-larım" — bu istifadəçiyə birbaşa təyin olunmuş cascade node-lar
+  // (həm root kimi, həm də üst rəhbərdən kaskadla düşən hədəflər).
+  const myNodes = useMemo(
+    () => (meId ? allNodes.filter(n => n.assigneeId === meId) : []),
+    [allNodes, meId],
+  );
+
+  // "Komanda KPI-ları" — mənim node-larımdan tabeliyimdəkilərə paylaşdığım hədəflər.
+  const teamNodes = useMemo(() => {
+    if (!meId) return [];
+    const myIds = new Set(myNodes.map(n => n.id));
+    return allNodes.filter(n => n.parentId && myIds.has(n.parentId));
+  }, [allNodes, myNodes, meId]);
+
+  const myKpis = useMemo(() => myNodes.map(nodeToKpi), [myNodes]);
+  const teamKpis = useMemo(() => teamNodes.map(nodeToKpi), [teamNodes]);
+
   return (
     <div className="min-h-screen">
       <Header title="KPI İzlənməsi" />
@@ -118,21 +139,51 @@ const ManagerKpiTrackingPage = () => {
           <>
             <PageHero badge="Rəhbər Paneli" icon={Activity} title="KPI İzlənməsi" subtitle="Fərdi, komanda və tabeçilik KPI-larını fərqli baxış bucaqlarından izləyin." />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
-              <HubCard icon={User} title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." count={MY_KPIS.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
-              <HubCard icon={Users} title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." count={TEAM_KPIS.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("team")} />
+              <HubCard icon={User} title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." count={myKpis.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
+              <HubCard icon={Users} title="Komanda KPI-ları" subtitle="Tabeliyinizdəkilərə paylaşdığınız hədəflər — komanda icra vəziyyəti." count={teamKpis.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("team")} />
               <HubCard icon={Network} title="Tabeçiliyimdəkilərin KPI-ları" subtitle="İyerarxik görünüş, mərhələ nəzarəti və gecikmə bildirişləri." count={HIERARCHY.length} gradient="from-amber-500/15 via-amber-500/5 to-transparent border-amber-400/40" onClick={() => setView("sub")} />
             </div>
           </>
         )}
-        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={MY_KPIS} />}
-        {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
+        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti — cascadeTreeStore əsasında real vaxtda yenilənir." data={myKpis} emptyLabel="Sizə heç bir KPI təyin edilməyib." />}
+        {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Tabeliyinizdəki əməkdaşlara paylaşdığınız hədəflər." data={teamKpis} emptyLabel="Komandaya hələ heç bir hədəf paylaşmamısınız." />}
         {view === "sub" && <SubordinatesView />}
       </main>
     </div>
   );
 };
 
-const HubCard = ({ icon: Icon, title, subtitle, count, gradient, onClick }: any) => (
+// Cascade node → Kpi obyektinə çevrilmə. Bütün dəyərlər real store-dan gəlir.
+const CASCADE_STATUS_TO_KPI: Record<ReturnType<typeof statusOf>, KpiStatus> = {
+  done: "completed",
+  in_progress: "in_progress",
+  problem: "at_risk",
+  wait: "delayed",
+};
+function nodeToKpi(n: CascadeTreeNode): Kpi {
+  const actual = distributedOf(n.id);
+  const st = CASCADE_STATUS_TO_KPI[statusOf(n.id)];
+  const fmtDate = (t: number) => new Date(t).toLocaleDateString("az-AZ");
+  return {
+    id: n.id,
+    name: n.goalName || n.cardName,
+    description: n.cardName,
+    period: "—",
+    target: Number(n.limit) || 0,
+    actual,
+    unit: n.unit || "",
+    stage: "assigned",
+    status: st,
+    deadline: "—",
+    createdAt: fmtDate(n.createdAt),
+    updatedAt: fmtDate(n.updatedAt),
+    responsible: { name: n.assigneeName, role: n.positionName || "—" },
+    measure: n.unit || "",
+    type: "Kaskad",
+    method: "Cascade Tree",
+    weight: 0,
+  };
+}
   <button onClick={onClick} className={`text-left rounded-2xl border bg-gradient-to-br ${gradient} p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all group`}>
     <div className="flex items-start justify-between mb-4">
       <div className="w-14 h-14 rounded-xl bg-white/70 backdrop-blur border border-white flex items-center justify-center shadow-sm">
