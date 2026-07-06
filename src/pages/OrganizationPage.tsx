@@ -1114,9 +1114,7 @@ const EmployeesTab = () => {
                 </div>
               ),
             },
-            { key: "firstName", label: "Ad", filterType: "text", accessor: (e) => e.firstName, render: (e) => <span className="font-medium">{e.firstName}</span> },
-            { key: "lastName", label: "Soyad", filterType: "text", accessor: (e) => e.lastName },
-            { key: "fatherName", label: "Ata adı", filterType: "text", accessor: (e) => e.fatherName || "", render: (e) => e.fatherName || <span className="text-muted-foreground italic">—</span> },
+            { key: "fullName", label: "Əməkdaşın A.S.A.", filterType: "text", accessor: (e) => fullNameOf(e), render: (e) => <span className="font-medium">{fullNameOf(e) || <span className="text-muted-foreground italic">—</span>}</span> },
             { key: "email", label: "Email", filterType: "text", accessor: (e) => e.email, render: (e) => <span className="text-muted-foreground">{e.email}</span> },
             ...structCols,
             { key: "position", label: "Vəzifə", filterType: "text", accessor: (e) => e.positionName || "", render: (e) => e.positionName || <span className="text-muted-foreground italic">—</span> },
