@@ -144,7 +144,7 @@ const ManagerKpiTrackingPage = () => {
           (c.assigneeIds?.includes(empKey) || (!c.assigneeIds?.length && c.ownerId === empKey)))
         .forEach(c => {
           (c.targets || []).forEach((t: any) => {
-            const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
+            const target = parseFloat(String(t.targetValue ?? t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
             result.push({
               id: `sk-${c.id}-${t.id}`,
               name: `${withKartSuffix(c.name)} — ${t.name || "Hədəf"}`,
