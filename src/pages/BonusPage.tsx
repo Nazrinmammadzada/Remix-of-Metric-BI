@@ -479,9 +479,9 @@ const BonusResultTable = ({ result, setDetailEmp }: { result: CalcRow[] | null; 
           ),
         },
         {
-          key: "name", label: "Ad, Soyad", filterType: "text",
-          accessor: (r) => `${r.employee.firstName} ${r.employee.lastName}`,
-          render: (r) => <span className="font-medium">{r.employee.firstName} {r.employee.lastName}</span>,
+          key: "name", label: "Əməkdaşın A.S.A.", filterType: "text",
+          accessor: (r) => fullNameOf(r.employee),
+          render: (r) => <span className="font-medium">{fullNameOf(r.employee)}</span>,
         },
         { key: "dep", label: "Departament", filterType: "select", selectOptions: departments, accessor: (r) => r.employee.department },
         { key: "pos", label: "Vəzifə", filterType: "select", selectOptions: positions, accessor: (r) => r.employee.position },
