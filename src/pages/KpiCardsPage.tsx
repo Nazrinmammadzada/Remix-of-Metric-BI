@@ -28,6 +28,8 @@ import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
 import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStore";
+import { withKartSuffix } from "@/lib/utils";
+import { WeightInput } from "@/components/kpi/WeightInput";
 import { findRootByGoal, createRoot } from "@/lib/cascadeTreeStore";
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
@@ -375,7 +377,7 @@ const isInverseKpi = (typeAndName: string) => /(xərc|müddət|şikayət|cost|ti
 const computeKpiGsr = (card: { type: string; name: string; target: string; current: string }) => {
   const t = parseNumLoose(card.target);
   const a = parseNumLoose(card.current);
-  const inv = isInverseKpi(`${card.type} ${card.name}`);
+  const inv = isInverseKpi(`${card.type} ${withKartSuffix(card.name)}`);
   if (inv) return a === 0 ? 0 : (t / a) * 100;
   return t === 0 ? 0 : (a / t) * 100;
 };
@@ -1030,7 +1032,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const handleDeleteCard = (card: KpiCard) => {
     // Unapproved → birbaşa silinir
     if (card.approvalStatus === "pending") {
-      if (!confirm(`"${card.name}" KPI-ı silinsin?`)) return;
+      if (!confirm(`"${withKartSuffix(card.name)}" KPI-ı silinsin?`)) return;
       setKpiCards(prev => prev.filter(c => c.id !== card.id));
       toast.success("KPI silindi");
       return;
@@ -1248,7 +1250,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
                           return (
                             <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td className="py-2 px-2 font-medium text-foreground">{card.name}</td>
+                              <td className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{getAssignKindFor(card.id)}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{getCreatedAtFor(card.id)}</td>
                               <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
@@ -1284,7 +1286,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                     onClick={async (e) => {
                                       e.stopPropagation();
                                       const newId = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
-                                      const copy: KpiCard = { ...card, id: newId, name: `${card.name} (kopya)`, approvalStatus: "pending" };
+                                      const copy: KpiCard = { ...card, id: newId, name: `${withKartSuffix(card.name)} (kopya)`, approvalStatus: "pending" };
                                       setKpiCards(prev => [copy, ...prev]);
                                       try {
                                         await upsertStatus({ card_id: newId, status: "natamam", use_matrix: false, submitted_for_approval: false, assignees: [] });
@@ -1303,7 +1305,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                     <button
                                       onClick={async (e) => {
                                         e.stopPropagation();
-                                        if (!confirm(`"${card.name}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
+                                        if (!confirm(`"${withKartSuffix(card.name)}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
                                         // Optimistic local update — ensures seed cards (which have no DB row) flip status immediately
                                         setStatusMap(prev => ({
                                           ...prev,
@@ -1334,7 +1336,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                           draft?.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
                                           assigners.forEach(a => nmod.pushNotification?.({
                                             toEmployeeName: a, kind: "info",
-                                            message: `"${card.name}" KPI kartı HR tərəfindən tamamən ləğv olundu.`
+                                            message: `"${withKartSuffix(card.name)}" KPI kartı HR tərəfindən tamamən ləğv olundu.`
                                           } as any));
                                         } catch {}
                                       }}
@@ -1348,7 +1350,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                     <button
                                       onClick={async (e) => {
                                         e.stopPropagation();
-                                        if (!confirm(`"${card.name}" kartını silmək istədiyinizə əminsiniz?`)) return;
+                                        if (!confirm(`"${withKartSuffix(card.name)}" kartını silmək istədiyinizə əminsiniz?`)) return;
                                         setKpiCards(prev => prev.filter(c => c.id !== card.id));
                                         try {
                                           const { supabase } = await import("@/integrations/supabase/client");
@@ -1486,7 +1488,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         {card.frozen && <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">Dondurulmuş</span>}
                       </div>
                     </div>
-                    <h3 className="font-semibold text-foreground text-sm mb-2">{card.name}</h3>
+                    <h3 className="font-semibold text-foreground text-sm mb-2">{withKartSuffix(card.name)}</h3>
                     <div className="space-y-1 mb-1">
                       <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Hədəf</span>
@@ -1590,7 +1592,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           <tr><td colSpan={7} className="py-6 text-center text-xs text-muted-foreground">Nəticə yoxdur</td></tr>
                         ) : listFiltered.map(card => (
                           <tr key={card.id} onClick={() => openDetail(card)} className="border-b border-border last:border-0 hover:bg-secondary/40 cursor-pointer">
-                            <td className="py-2 px-2 font-medium text-foreground">{card.name}</td>
+                            <td className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
                             <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
                             <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
                             <td className="py-2 px-2">{card.target} {card.unit}</td>
@@ -1635,7 +1637,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     <div key={card.id} className="py-3 flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-medium text-foreground truncate">{card.name}</span>
+                          <span className="font-medium text-foreground truncate">{withKartSuffix(card.name)}</span>
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[st.status]}`}>{STATUS_LABELS[st.status]}</span>
                         </div>
                         <div className="text-[11px] text-muted-foreground">{card.period} · Hədəf {card.target} {card.unit} · Cari {card.current} {card.unit}</div>
@@ -1736,7 +1738,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         <DialogContent className="w-[90vw] max-w-[1500px] h-[88vh] min-h-[88vh] max-h-[88vh] p-0 flex flex-col overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
             <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl">{selectedKpi?.name}</DialogTitle>
+              <DialogTitle className="text-xl">{withKartSuffix(selectedKpi?.name)}</DialogTitle>
               {/* zone badge removed */}
             </div>
           </DialogHeader>
@@ -2630,9 +2632,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 </div>
                               ) : (
                                 <div className="relative">
-                                  <input type="number" value={sk.weight} onChange={e => updateSub({ weight: Number(e.target.value) })} className="w-full min-w-0 px-2 py-1.5 pr-6 text-sm border border-border rounded-lg bg-background" />
+                                  <WeightInput value={sk.weight} onChange={n => updateSub({ weight: n })} className="pr-6 rounded-lg" />
                                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                                 </div>
+
                               )}
                             </div>
                             <div className="col-span-1 flex items-center justify-end">
@@ -3072,7 +3075,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 <span className="flex-1 text-sm">{m.name}</span>
                                 {sel && (
                                   <div className="flex items-center gap-1">
-                                    <input type="number" value={sel.weight} onChange={e => updateWeight(m.name, Number(e.target.value))} className="w-16 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                    <WeightInput value={sel.weight} onChange={n => updateWeight(m.name, n)} className="w-16 !px-2 !py-1 text-xs" />
                                     <span className="text-xs text-muted-foreground">%</span>
                                   </div>
                                 )}
@@ -3112,7 +3115,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <span className="flex-1 text-sm">{name}</span>
                               {sel && (
                                 <div className="flex items-center gap-1">
-                                  <input type="number" value={sel.weight} onChange={e => updateWeight(name, Number(e.target.value))} className="w-16 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                  <WeightInput value={sel.weight} onChange={n => updateWeight(name, n)} className="w-16 !px-2 !py-1 text-xs" />
                                   <span className="text-xs text-muted-foreground">%</span>
                                 </div>
                               )}

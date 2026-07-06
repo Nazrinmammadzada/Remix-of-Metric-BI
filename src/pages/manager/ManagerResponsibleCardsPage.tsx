@@ -1,4 +1,5 @@
 // Manager · "Məsul olduğum kartlar" — hub with two big cards:
+import { withKartSuffix } from "@/lib/utils";
 //  1) Hədəf təyin etmə — assign & cascade goals
 //  2) Hədəf qiymətləndirmə — evaluate goals (mirrors user's KPI evaluation)
 import { useMemo, useState } from "react";
@@ -426,7 +427,7 @@ const EvaluateView = () => {
                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <ClipboardCheck className="w-4 h-4" />
                   </div>
-                  <span className="font-semibold text-foreground truncate">{c.name}</span>
+                  <span className="font-semibold text-foreground truncate">{withKartSuffix(c.name)}</span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                     {cardItems.length} hədəf
                   </span>
@@ -459,7 +460,7 @@ const EvaluateView = () => {
                         return (
                           <tr key={k.id} className="border-t border-border hover:bg-secondary/20">
                             <td className="px-4 py-3">
-                              <p className="font-medium text-foreground">{k.name}</p>
+                              <p className="font-medium text-foreground">{withKartSuffix(k.name)}</p>
                               <p className="text-xs text-muted-foreground line-clamp-1">{k.description}</p>
                             </td>
                             <td className="px-4 py-3 text-right text-foreground tabular-nums">{fmtEval(k.target)} {k.unit}</td>

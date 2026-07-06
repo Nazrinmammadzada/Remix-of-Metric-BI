@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
+import { WeightInput } from "@/components/kpi/WeightInput";
+
 import { toast } from "sonner";
 
 // ============ TYPES ============
@@ -1413,10 +1415,11 @@ function Step2Targets({
               </div>
               <div className="col-span-6 md:col-span-2">
                 <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
-                <input type="number" min={0} max={100} value={t.weight} disabled={disabled}
-                  onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
-                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                <WeightInput value={t.weight} disabled={disabled}
+                  onChange={n => updHedef(t.id, { weight: n })}
+                  className="mt-0.5" />
               </div>
+
               <div className="col-span-12 md:col-span-3">
                 <label className="text-[11px] text-muted-foreground">
                   Hədəf dəyəri {isOther ? <span className="text-amber-600">(təyin edən dolduracaq)</span> : "*"}
@@ -1597,10 +1600,11 @@ function UnifiedEvaluatorsEditor({ employeeOptions, evaluators, onChange }: {
             <option value="">— Əməkdaş seçin —</option>
             {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <input type="number" min={0} max={100} value={ev.weight}
-            onChange={e => onChange(evaluators.map(x => x.id === ev.id ? { ...x, weight: Number(e.target.value) } : x))}
+          <WeightInput value={ev.weight}
+            onChange={n => onChange(evaluators.map(x => x.id === ev.id ? { ...x, weight: n } : x))}
             placeholder="%"
-            className="col-span-3 px-2 py-1.5 text-xs border border-border rounded bg-background" />
+            className="col-span-3 !py-1.5 !px-2 text-xs" />
+
           <button type="button" onClick={() => onChange(evaluators.filter(x => x.id !== ev.id))}
             className="col-span-1 p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
             <Trash2 className="w-3.5 h-3.5" />

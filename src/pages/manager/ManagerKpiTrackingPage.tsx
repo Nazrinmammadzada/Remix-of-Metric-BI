@@ -1,4 +1,5 @@
 // Rəhbər · KPI İzlənməsi — 3 kart: Mənim KPI-larım / Komanda KPI-ları / Tabeçilikdəkilərin KPI-ları.
+import { withKartSuffix } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
@@ -146,7 +147,7 @@ const ManagerKpiTrackingPage = () => {
             const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
             result.push({
               id: `sk-${c.id}-${t.id}`,
-              name: `${c.name} — ${t.name || "Hədəf"}`,
+              name: `${withKartSuffix(c.name)} — ${t.name || "Hədəf"}`,
               description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
               period: c.startDate || "—",
               target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
@@ -355,7 +356,7 @@ const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: strin
               return (
                 <tr key={k.id} className="border-t border-border hover:bg-secondary/20 align-top">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{k.name}</div>
+                    <div className="font-medium text-foreground">{withKartSuffix(k.name)}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">{k.description}</div>
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">{fmt(k.target)} {k.unit === "AZN" ? "₼" : ""}</td>
@@ -481,7 +482,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
           {/* Title */}
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
-              <div className="text-base font-semibold text-foreground">{kpi.name}</div>
+              <div className="text-base font-semibold text-foreground">{withKartSuffix(kpi.name)}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{kpi.description}</div>
             </div>
             <Badge className={statusMeta[kpi.status].cls}>{statusMeta[kpi.status].label}</Badge>
@@ -1195,7 +1196,7 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
                           return (
                             <tr key={k.id} className="border-t border-border align-top">
                               <td className="px-3 py-2.5">
-                                <div className="font-medium text-foreground">{k.name}</div>
+                                <div className="font-medium text-foreground">{withKartSuffix(k.name)}</div>
                                 <div className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{k.desc}</div>
                               </td>
                               <td className="px-3 py-2.5 text-right tabular-nums">{fmt(k.plan)} {k.unit}</td>

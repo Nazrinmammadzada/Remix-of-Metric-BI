@@ -11,6 +11,8 @@ import { getTeams, type TeamMember } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import KpiExtraTabContent, { isExtraTab } from "@/components/kpi/KpiExtraTabs";
 import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
+import { WeightInput } from "@/components/kpi/WeightInput";
+import { withKartSuffix } from "@/lib/utils";
 
 interface SubKpi {
   id: number; name: string; target: string; weight: number; current?: string; progress?: number;
@@ -338,7 +340,7 @@ const UserKpiCardsPage = () => {
                       </div>
                       <div>
                         <button onClick={() => { setSelectedKpi(card); setDetailTab("general"); }} className="text-left">
-                          <h3 className="font-semibold text-foreground text-base hover:text-primary transition-colors">{card.name}</h3>
+                          <h3 className="font-semibold text-foreground text-base hover:text-primary transition-colors">{withKartSuffix(card.name)}</h3>
                         </button>
                         <p className="text-xs text-muted-foreground mt-0.5">Hədəf: <span className="font-medium text-foreground">{card.target} {card.unit}</span> · Dövr: {card.period}</p>
                       </div>
@@ -395,7 +397,7 @@ const UserKpiCardsPage = () => {
                   </div>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${zoneBg[getCardZone(card.progress)]} mr-9`}>{zoneLabel[getCardZone(card.progress)]}</span>
                 </div>
-                <h3 className="font-semibold text-foreground text-sm mb-2">{card.name}</h3>
+                <h3 className="font-semibold text-foreground text-sm mb-2">{withKartSuffix(card.name)}</h3>
                 <div className="space-y-1 mb-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Hədəf</span>
@@ -436,7 +438,7 @@ const UserKpiCardsPage = () => {
         <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl">{selectedKpi?.name}</DialogTitle>
+              <DialogTitle className="text-xl">{withKartSuffix(selectedKpi?.name)}</DialogTitle>
               {selectedKpi && <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${zoneBg[getCardZone(selectedKpi.progress)]}`}>{zoneLabel[getCardZone(selectedKpi.progress)]}</span>}
             </div>
           </DialogHeader>
@@ -724,7 +726,7 @@ const UserKpiCardsPage = () => {
                         <input value={sk.name} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], name: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Hədəf adı" className="col-span-5 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
                         <input value={sk.target} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], target: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Hədəf" className="col-span-3 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
                         <div className="col-span-3 flex items-center gap-1">
-                          <input type="number" value={sk.weight} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], weight: Number(e.target.value) }; setNewKpi(p => ({ ...p, subKpis: s })); }} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
+                          <WeightInput value={sk.weight} onChange={n => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], weight: n }; setNewKpi(p => ({ ...p, subKpis: s })); }} className="rounded-lg" />
                           <span className="text-xs text-muted-foreground">%</span>
                         </div>
                         <button onClick={() => setNewKpi(p => ({ ...p, subKpis: p.subKpis.filter((_, idx) => idx !== i) }))} className="col-span-1 w-7 h-7 rounded bg-zone-red-bg text-zone-red-text flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
