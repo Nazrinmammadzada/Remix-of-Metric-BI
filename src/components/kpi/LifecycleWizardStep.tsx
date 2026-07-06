@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, Target, Star, Wallet, RefreshCw } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Target, Star, Wallet, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getPeriods, formatPeriodRange } from "@/lib/teamsStore";
 import type { CardLifecycle, LifecycleStage, LifecycleReview } from "@/lib/kpiLifecycleStore";
+
 
 type Draft = Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">;
 
