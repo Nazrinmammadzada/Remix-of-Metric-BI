@@ -312,8 +312,7 @@ export const getIncomingCascadeLoad = (
 ): { value: number; unit: string; cardName: string } | null => {
   // 1) Cascade ağacında parent node
   try {
-    const { getNodes } = require("@/lib/cascadeTreeStore") as typeof import("@/lib/cascadeTreeStore");
-    const treeNode = getNodes().find(
+    const treeNode = getCascadeNodes().find(
       n => n.assigneeName === assigneeName && n.parentId !== null && (Number(n.limit) || 0) > 0,
     );
     if (treeNode) {
@@ -323,8 +322,6 @@ export const getIncomingCascadeLoad = (
 
   // 2) SharedKpiCard-lardan owner=setter olan (HR-in Owner tipli kartı)
   try {
-    const { getEmployees } = require("@/lib/orgStore") as typeof import("@/lib/orgStore");
-    const { getSharedKpiCards } = require("@/lib/kpiCardStore") as typeof import("@/lib/kpiCardStore");
     const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === assigneeName);
     if (emp) {
       const empKey = `e${emp.id}`;
