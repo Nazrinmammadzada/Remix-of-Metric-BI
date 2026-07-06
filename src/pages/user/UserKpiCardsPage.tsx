@@ -127,7 +127,7 @@ const UserKpiCardsPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [filterStatus, setFilterStatus] = useState("Hamısı");
-  const [filterView, setFilterView] = useState<"own" | "team">("own");
+  const [filterView, setFilterView] = useState<"own" | "team" | "structure">("own");
   const [searchText, setSearchText] = useState("");
   const [hoveredMinTarget, setHoveredMinTarget] = useState<number | null>(null);
 
