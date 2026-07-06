@@ -1,26 +1,30 @@
 // Rəhbər · Nəticələrim — 3 kart (Fərdi / Komanda / Tabeçilik).
-// Hər kartın daxili HR-in KPI Nəticələri modulunun eynisi (KpiScoresPage komponenti).
+// Fərdi / Komanda — HR-in KPI Nəticələri modulunun eynisi (KpiScoresPage).
+// Tabeçilik — KPI İzlənməsi tabeçilik moduluyla eyni iyerarxik struktur;
+// Əməliyyatlar yalnız Eye ikonu ilə saxlanılır (⋮ menyu yox), Eye seçilmiş
+// əməkdaşın KpiScoresPage nəticələrini modalda açır.
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Trophy, User, Users, Network, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import KpiScoresPage from "@/pages/KpiScoresPage";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
 import { useAuth } from "@/contexts/AuthContext";
+import { SubordinatesView } from "@/pages/manager/ManagerKpiTrackingPage";
 
 type View = "hub" | "own" | "team" | "sub";
 
 const ManagerResultsPage = () => {
   const [view, setView] = useState<View>("hub");
   const { user } = useAuth();
+  const [detail, setDetail] = useState<{ empId: number; name: string } | null>(null);
 
-  const { own, team, sub } = useMemo(() => {
+  const { own, team, sub, mePath } = useMemo(() => {
     const all = getEmployees().filter(e => e.active);
     const me = all.find(e => e.email === user?.email) || all.find(e => `${e.firstName} ${e.lastName}` === user?.name);
-    if (!me) return { own: [], team: [], sub: [] };
-    // Marketinq Departamenti komandası
+    if (!me) return { own: [], team: [], sub: [], mePath: null as string | null };
     const teamMembers = all.filter(e => (e.structurePath || "").startsWith(me.structurePath || ""));
-    // Bilavasitə tabeliyi tap
     const findUnitId = (): number | null => {
       const walk = (list: any[], path: string[]): number | null => {
         for (const n of list) {
@@ -35,8 +39,17 @@ const ManagerResultsPage = () => {
     };
     const unitId = findUnitId();
     const subs = unitId ? getSubordinatesOfStarHolder(me.id, unitId) : [];
-    return { own: [me], team: teamMembers, sub: subs };
+    return { own: [me], team: teamMembers, sub: subs, mePath: me.structurePath || null };
   }, [user?.email, user?.name]);
+
+  // Struktur əhatəsi: HR/SuperAdmin → bütün şirkət; Rəhbər → yalnız öz strukturu.
+  const scopePath = user?.role === "HR" || user?.role === "SUPER_ADMIN" ? null : mePath;
+
+  // Detail-də tək əməkdaşın nəticələri KpiScoresPage ilə göstərilir.
+  const detailEmployee = useMemo(() => {
+    if (!detail) return null;
+    return getEmployees().find(e => e.id === detail.empId) || null;
+  }, [detail]);
 
   return (
     <div className="min-h-screen">
@@ -72,12 +85,29 @@ const ManagerResultsPage = () => {
           </>
         )}
         {view === "sub" && (
-          <>
-            <PageHero badge="Rəhbər Paneli" icon={Network} title="Tabeçiliyimdəki nəticələr" subtitle="Tabeliyinizdəki şəxslərin KPI nəticələri." />
-            <KpiScoresPage employeesOverride={sub as any} hideChrome />
-          </>
+          <SubordinatesView
+            scopePath={scopePath}
+            actionsMode="results"
+            title="Tabeçiliyimdəkilərin Nəticələri"
+            subtitle="Əsas səhifə / KPI Nəticələri / Tabeçiliyimdəkilərin Nəticələri"
+            onOpenEmployee={(empId, name) => setDetail({ empId, name })}
+          />
         )}
       </main>
+
+      {/* Nəticələr detalı — Eye ikonuna əsaslanan mövcud KpiScoresPage baxışı */}
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="w-[90vw] max-w-[1500px] h-[88vh] min-h-[88vh] max-h-[88vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
+            <DialogTitle className="text-xl">Nəticələr — {detail?.name ?? "—"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {detailEmployee && (
+              <KpiScoresPage employeesOverride={[detailEmployee] as any} hideChrome />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
