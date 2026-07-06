@@ -119,6 +119,7 @@ export const createRoot = (payload: {
   };
   persist([...load(), node]);
   setEntryCascadeNodeId(payload.sourceEntryId, id);
+  upsertCascadeEntry(node);
   return node;
 };
 
