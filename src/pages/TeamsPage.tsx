@@ -363,7 +363,7 @@ const TeamsPage = () => {
                   </p>
                 </div>
                 <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Filial / Struktur</p>
+                  <p className="text-xs text-muted-foreground">Struktur</p>
                   <p className="font-semibold text-foreground mt-1">{selectedTeam.branch}</p>
                 </div>
                 <div className="border border-border rounded-lg p-3">
@@ -372,7 +372,7 @@ const TeamsPage = () => {
                 </div>
                 <div className="border border-border rounded-lg p-3">
                   <p className="text-xs text-muted-foreground">Yaradılma</p>
-                  <p className="font-semibold text-foreground mt-1">{new Date(selectedTeam.id).toLocaleDateString("az-AZ")}</p>
+                  <p className="font-semibold text-foreground mt-1">{selectedTeam.createdAt ? new Date(selectedTeam.createdAt).toLocaleDateString("az-AZ") : "—"}</p>
                 </div>
               </div>
               <div className="border border-border rounded-lg p-4">
