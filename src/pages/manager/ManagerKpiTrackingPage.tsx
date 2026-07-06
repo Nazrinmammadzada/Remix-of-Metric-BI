@@ -835,8 +835,21 @@ export const SubordinatesView = ({
     return out;
   }, [expanded, q, tree]);
 
-  const totals = tree.find(n => n.id === "all") ?? { employees: 0, avgPct: 0, completed: 0, atRisk: 0, delayed: 0 } as TreeNode;
+  const totals = useMemo(() => {
+    const rootFull = tree.find(n => n.id === "all");
+    if (rootFull) return rootFull;
+    // Scoped tree: aggregate top-level roots
+    const roots = tree.filter(n => !n.parent);
+    const sum = (k: keyof TreeNode) => roots.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const employees = sum("employees");
+    const completed = sum("completed");
+    const atRisk = sum("atRisk");
+    const delayed = sum("delayed");
+    const avgPct = roots.length ? Math.round(roots.reduce((a, r) => a + r.avgPct, 0) / roots.length) : 0;
+    return { employees, avgPct, completed, atRisk, delayed } as TreeNode;
+  }, [tree]);
   const deptCount = tree.filter(n => n.kind === "department").length;
+
 
   return (
     <div className="flex gap-4">
