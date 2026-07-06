@@ -133,6 +133,22 @@ const TeamsPage = () => {
     "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
   }));
 
+  // Chart period filter — Ay / Rüb / İl (calendar seçici)
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>({ mode: "month", date: new Date() });
+
+  // Seçilən dövrə görə komanda müqayisə datası — deterministik variasiya (real dövr filteri backend gələndə əvəz olunacaq)
+  const comparisonData = useMemo(() => {
+    const y = chartPeriod.date.getFullYear();
+    const seedBase = chartPeriod.mode === "year" ? y * 10 : chartPeriod.mode === "quarter" ? y * 100 + Math.floor(chartPeriod.date.getMonth() / 3) : y * 100 + chartPeriod.date.getMonth();
+    return chartData.map((row, i) => {
+      const h = ((seedBase + i * 37) % 25) - 12; // -12..+12 delta
+      const kpi = Math.max(20, Math.min(100, (row["KPI Nəticəsi"] as number) + h));
+      const done = Math.max(0, Math.min(100, (row["Tamamlanmış"] as number) + Math.round(h / 2)));
+      return { ...row, "KPI Nəticəsi": kpi, "Tamamlanmış": done };
+    });
+  }, [chartData, chartPeriod]);
+
+
   const filteredTeams = scopedTeams.filter(t =>
     t.name.toLowerCase().includes(searchText.toLowerCase()) ||
     t.leader.toLowerCase().includes(searchText.toLowerCase())
