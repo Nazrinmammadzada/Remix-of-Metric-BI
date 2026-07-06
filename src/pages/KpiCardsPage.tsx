@@ -2208,7 +2208,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               {newKpi.targetMode.position && (
                 <div className="p-3 rounded-lg border border-border bg-secondary/40 space-y-2">
                   <label className="text-xs font-semibold text-foreground">Vəzifə seçimi (multiselect)</label>
-                  <div className="relative">
+                  <div className="relative" ref={positionDropdownRef}>
+
                     <div onClick={() => setShowPositionDropdown(!showPositionDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.assignedPositions.length === 0 && <span className="text-muted-foreground">Vəzifələri seçin</span>}
                       {newKpi.assignedPositions.map(pos => (
