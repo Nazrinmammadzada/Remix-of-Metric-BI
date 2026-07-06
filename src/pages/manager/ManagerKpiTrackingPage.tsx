@@ -166,6 +166,16 @@ const ManagerKpiTrackingPage = () => {
 
   const myKpis = useMemo(() => [...dynamicMyKpis, ...MY_KPIS], [dynamicMyKpis]);
 
+  // Rəhbər yalnız öz strukturunu görməlidir, HR/SUPER_ADMIN isə bütün şirkəti.
+  const subScopePath = useMemo<string | null>(() => {
+    if (!user) return null;
+    if (user.role === "HR" || user.role === "SUPER_ADMIN") return null;
+    const emps = getEmployees().filter(e => e.active);
+    const me = emps.find(e => e.email === user.email) || emps.find(e => `${e.firstName} ${e.lastName}` === user.name);
+    return me?.structurePath || null;
+  }, [user?.email, user?.name, user?.role]);
+
+
   return (
     <div className="min-h-screen">
       <Header title="KPI İzlənməsi" />
@@ -187,7 +197,7 @@ const ManagerKpiTrackingPage = () => {
         )}
         {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
-        {view === "sub" && <SubordinatesView />}
+        {view === "sub" && <SubordinatesView scopePath={subScopePath} />}
       </main>
     </div>
   );
@@ -639,7 +649,7 @@ const hashStr = (s: string) => {
   return h;
 };
 
-const buildOrgTree = (): TreeNode[] => {
+const buildOrgTree = (scopePath?: string | null): TreeNode[] => {
   const emps = getEmployees().filter(e => e.active);
   const structs = getStructures();
 
@@ -687,7 +697,7 @@ const buildOrgTree = (): TreeNode[] => {
       : "division";
     const empCount = countSub(s, path);
     nodes.push({
-      id, name: s.name, kind, parent: parentId,
+      id, name: s.name, kind, parent: parentId || undefined,
       employees: empCount,
       avgPct: 60 + (h % 40),
       completed: (h % 30) + 3,
@@ -699,6 +709,27 @@ const buildOrgTree = (): TreeNode[] => {
     (empByPath.get(path) ?? []).forEach(e => nodes.push(makeEmp(e, id, path)));
     s.children.forEach(ch => walk(ch, path, id));
   };
+
+  // Manager scope: root the tree at the manager's own structure unit
+  if (scopePath) {
+    let target: OrgStructure | null = null;
+    const search = (list: OrgStructure[], parentArr: string[]) => {
+      for (const n of list) {
+        if (target) return;
+        const cur = [...parentArr, n.name];
+        if (cur.join(" › ") === scopePath) { target = n; return; }
+        if (n.children.length) search(n.children, cur);
+      }
+    };
+    search(structs, []);
+    if (target) {
+      const parentPath = scopePath.split(" › ").slice(0, -1).join(" › ");
+      walk(target, parentPath, "");
+      return nodes;
+    }
+    // scope path not found → return empty
+    return nodes;
+  }
 
   const rootId = "all";
   const rootEmpCount = emps.length;
@@ -716,6 +747,7 @@ const buildOrgTree = (): TreeNode[] => {
   structs.forEach(s => walk(s, "", rootId));
   return nodes;
 };
+
 
 // Per-employee KPI list (deterministic subset of MY_KPIS variants)
 interface EmpKpi { id: string; name: string; desc: string; plan: number; fakt: number; unit: string; status: KpiStatus; }
@@ -738,14 +770,29 @@ const buildEmpKpis = (empId: number): EmpKpi[] => {
   }).filter((_, i) => (h >> i) & 1 || i < 3); // at least 3
 };
 
-const SubordinatesView = () => {
+interface SubordinatesViewProps {
+  scopePath?: string | null;
+  actionsMode?: "tracking" | "results";
+  onOpenEmployee?: (empId: number, name: string) => void;
+  title?: string;
+  subtitle?: string;
+}
+
+export const SubordinatesView = ({
+  scopePath,
+  actionsMode = "tracking",
+  onOpenEmployee,
+  title = "Tabeçiliyimdəkilərin KPI-ları",
+  subtitle = "Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları",
+}: SubordinatesViewProps = {}) => {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const h = () => setTick(t => t + 1);
     window.addEventListener("org-updated", h);
     return () => window.removeEventListener("org-updated", h);
   }, []);
-  const tree = useMemo(() => buildOrgTree(), [tick]);
+  const tree = useMemo(() => buildOrgTree(scopePath), [tick, scopePath]);
+
   const childrenOf = (id: string) => tree.filter(n => n.parent === id);
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -798,8 +845,21 @@ const SubordinatesView = () => {
     return out;
   }, [expanded, q, tree]);
 
-  const totals = tree.find(n => n.id === "all") ?? { employees: 0, avgPct: 0, completed: 0, atRisk: 0, delayed: 0 } as TreeNode;
+  const totals = useMemo(() => {
+    const rootFull = tree.find(n => n.id === "all");
+    if (rootFull) return rootFull;
+    // Scoped tree: aggregate top-level roots
+    const roots = tree.filter(n => !n.parent);
+    const sum = (k: keyof TreeNode) => roots.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const employees = sum("employees");
+    const completed = sum("completed");
+    const atRisk = sum("atRisk");
+    const delayed = sum("delayed");
+    const avgPct = roots.length ? Math.round(roots.reduce((a, r) => a + r.avgPct, 0) / roots.length) : 0;
+    return { employees, avgPct, completed, atRisk, delayed } as TreeNode;
+  }, [tree]);
   const deptCount = tree.filter(n => n.kind === "department").length;
+
 
   return (
     <div className="flex gap-4">
@@ -808,9 +868,10 @@ const SubordinatesView = () => {
         <PageHero
           badge="Rəhbər Paneli"
           icon={Network}
-          title="Tabeçiliyimdəkilərin KPI-ları"
-          subtitle="Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları"
+          title={title}
+          subtitle={subtitle}
         />
+
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
@@ -936,23 +997,35 @@ const SubordinatesView = () => {
                       </td>
                       <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
                         {isEmp ? (
-                          <Popover open={openMenu === node.id} onOpenChange={o => setOpenMenu(o ? node.id : null)}>
-                            <PopoverTrigger asChild>
-                              <button className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" aria-label="Əməliyyatlar">
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent align="end" className="w-56 p-1">
-                              <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
-                              <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
-                              <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
-                              <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
-                              <MenuItem icon={Send} label="Bildiriş göndər" onClick={() => openTab(node.id, "notify")} />
-                              <MenuItem icon={ShieldAlert} label="Risk səbəbini göstər" onClick={() => openTab(node.id, "risk")} />
-                            </PopoverContent>
-                          </Popover>
+                          actionsMode === "results" ? (
+                            <button
+                              onClick={() => { if (node.empId != null) onOpenEmployee?.(node.empId, node.name); }}
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="Nəticələrə bax"
+                              title="Nəticələrə bax"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <Popover open={openMenu === node.id} onOpenChange={o => setOpenMenu(o ? node.id : null)}>
+                              <PopoverTrigger asChild>
+                                <button className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" aria-label="Əməliyyatlar">
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent align="end" className="w-56 p-1">
+                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
+                                <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
+                                <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
+                                <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
+                                <MenuItem icon={Send} label="Bildiriş göndər" onClick={() => openTab(node.id, "notify")} />
+                                <MenuItem icon={ShieldAlert} label="Risk səbəbini göstər" onClick={() => openTab(node.id, "risk")} />
+                              </PopoverContent>
+                            </Popover>
+                          )
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
+
                     </tr>
                   );
                 })}
@@ -966,16 +1039,17 @@ const SubordinatesView = () => {
         </div>
       </div>
 
-      {/* RIGHT: sticky panel */}
-      {panelOpen && selected && (
+      {/* RIGHT: sticky panel (yalnız tracking rejimində) */}
+      {actionsMode === "tracking" && panelOpen && selected && (
         <SubDetailPanel node={selected} tab={tab} setTab={setTab} onClose={() => setPanelOpen(false)} />
       )}
-      {!panelOpen && selected && (
+      {actionsMode === "tracking" && !panelOpen && selected && (
         <button onClick={() => setPanelOpen(true)}
           className="fixed right-4 top-24 z-30 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5 hover:opacity-90">
           <ChevronLeft className="w-4 h-4" /> Detal paneli
         </button>
       )}
+
     </div>
   );
 };
