@@ -1973,12 +1973,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       ))}
                     </div>
                     {showTypeDropdown && (
-                      <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      <div data-multiselect-content onPointerDownCapture={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
                         <div className="p-2">
                           <input value={typeSearchText} onChange={e => setTypeSearchText(e.target.value)} placeholder="Axtar..." className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background" onClick={e => e.stopPropagation()} />
                         </div>
                         {kpiTypeOptions.filter(t => t.toLowerCase().includes(typeSearchText.toLowerCase())).map(type => (
-                          <div key={type} data-multiselect-option onClick={e => { e.stopPropagation(); toggleKpiType(type); requestAnimationFrame(() => setShowTypeDropdown(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newKpi.types.includes(type) ? 'bg-primary/5' : ''}`}>
+                          <div key={type} data-multiselect-option onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }} onClick={e => { e.preventDefault(); e.stopPropagation(); toggleKpiType(type); requestAnimationFrame(() => setShowTypeDropdown(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newKpi.types.includes(type) ? 'bg-primary/5' : ''}`}>
                             <span>{type}</span>{newKpi.types.includes(type) && <Check className="w-4 h-4 text-primary" />}
                           </div>
                         ))}
@@ -2070,7 +2070,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
                       </div>
                       {showUserDropdown && (
-                        <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                        <div data-multiselect-content onPointerDownCapture={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
                           <div className="p-2">
                             <div className="relative">
                               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2084,7 +2084,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                             }).map(person => {
                               const checked = selectedList.includes(person);
                               return (
-                                <div key={person} data-multiselect-option onClick={e => { e.stopPropagation(); toggle(person); requestAnimationFrame(() => setShowUserDropdown(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? 'bg-primary/5' : ''}`}>
+                                <div key={person} data-multiselect-option onMouseDown={e => { e.preventDefault(); e.stopPropagation(); }} onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(person); requestAnimationFrame(() => setShowUserDropdown(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? 'bg-primary/5' : ''}`}>
                                   <span>{formatUserWithRole(person)}</span>
                                   {checked && <Check className="w-4 h-4 text-primary" />}
                                 </div>
@@ -2151,7 +2151,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <ChevronDown className="w-4 h-4 text-muted-foreground" />
                             </div>
                             {isOpen && (
-                              <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                              <div data-multiselect-content onPointerDownCapture={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
                                 <div className="p-2">
                                   <div className="relative">
                                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2171,7 +2171,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                     <div
                                       key={o.id}
                                       data-multiselect-option
-                                      onClick={() => {
+                                      onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
                                         setNewKpi(p => {
                                           const path = p.structurePath.slice(0, level);
                                           path[level] = o.id;
@@ -2221,7 +2224,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />
                     </div>
                     {showPositionDropdown && (
-                      <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                      <div data-multiselect-content onPointerDownCapture={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
                         <div className="p-2">
                           <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2232,7 +2235,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           {positionOptions.filter(p => p.toLowerCase().includes(positionSearchText.toLowerCase())).map(pos => {
                             const selected = newKpi.assignedPositions.includes(pos);
                             return (
-                              <div key={pos} data-multiselect-option onClick={(e) => { e.stopPropagation(); setNewKpi(p => ({ ...p, assignedPositions: selected ? p.assignedPositions.filter(x => x !== pos) : [...p.assignedPositions, pos] })); requestAnimationFrame(() => setShowPositionDropdown(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${selected ? "bg-primary/5" : ""}`}>
+                              <div key={pos} data-multiselect-option onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setNewKpi(p => ({ ...p, assignedPositions: selected ? p.assignedPositions.filter(x => x !== pos) : [...p.assignedPositions, pos] })); requestAnimationFrame(() => setShowPositionDropdown(true)); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${selected ? "bg-primary/5" : ""}`}>
                                 <span>{pos}</span>{selected && <Check className="w-4 h-4 text-primary" />}
                               </div>
                             );
