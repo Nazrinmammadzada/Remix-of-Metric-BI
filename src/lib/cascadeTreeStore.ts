@@ -190,6 +190,14 @@ export const freezeNode = (id: string, frozen: boolean) => {
   persist(load().map(n => n.id === id ? { ...n, frozen, updatedAt: Date.now() } : n));
 };
 
+export const updateNodeDetails = (id: string, patch: Partial<Pick<CascadeTreeNode, "cardName" | "goalName" | "unit" | "limit" | "sourceTargetId" | "sourceEntryId">>) => {
+  const next = load().map(n => n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n);
+  persist(next);
+  const updated = next.find(n => n.id === id);
+  if (updated) upsertCascadeEntry(updated);
+  return updated;
+};
+
 /** Root-un mövcud olub-olmadığını yoxlayır (KpiSet entry üçün id əsasında). */
 export const findRootByGoal = (cardName: string, goalName: string, assigneeId: number, sourceTargetId?: string): CascadeTreeNode | undefined =>
   load().find(n => n.parentId === null && n.cardName === cardName && n.goalName === goalName && n.assigneeId === assigneeId && (!sourceTargetId || n.sourceTargetId === sourceTargetId));
