@@ -218,7 +218,7 @@ const TeamsPage = () => {
     if (!leader) { toast.error("Seçilən lider siyahıda tapılmadı"); return; }
 
     const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leader.name);
-    const branch = subStructures[0] || structures[0] || "Mərkəzi Filial";
+    const branch = subStructures[0] || structures[0] || "Satış Departamenti";
     const team: Team = {
       id: Date.now(),
       name: newTeamName.trim(),
@@ -230,6 +230,7 @@ const TeamsPage = () => {
       completedKpi: 0,
       totalKpi: 0,
       members: memberObjs,
+      createdAt: new Date().toISOString(),
     };
     addTeam(team);
     setTeams(getTeams());
