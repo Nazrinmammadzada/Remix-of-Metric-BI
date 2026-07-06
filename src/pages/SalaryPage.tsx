@@ -62,6 +62,7 @@ const SalaryPage = () => {
   const [importYear, setImportYear] = useState<string>("");
   const [importMonth, setImportMonth] = useState<string>("");
   const [viewUpload, setViewUpload] = useState<SalaryUpload | null>(null);
+  const [mismatchDialog, setMismatchDialog] = useState<{ fileName: string; issues: string[] } | null>(null);
 
   // Table controls
   const [openSearch, setOpenSearch] = useState<Record<string, boolean>>({});
