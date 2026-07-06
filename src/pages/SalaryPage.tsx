@@ -176,6 +176,27 @@ const SalaryPage = () => {
     const yr = Number(importYear) || new Date().getFullYear();
     const mo = (importMonth || "Yanvar") as Month;
 
+    // Uyğunsuzluq nümunəsi: fayl adında "uygunsuz" / "mismatch" / "xeta" olarsa,
+    // sistemə yükləmə tam bloklanır və istifadəçiyə düzəldiş üçün pop-up göstərilir.
+    const nameLower = file.name.toLowerCase();
+    const looksInvalid = /(uygunsuz|uyğunsuz|mismatch|xeta|xəta|error)/.test(nameLower);
+
+    if (looksInvalid) {
+      setMismatchDialog({
+        fileName: file.name,
+        issues: [
+          "3-cü sətir: FIN kodu sistemdə tapılmadı (əməkdaş uyğunlaşdırıla bilmədi).",
+          "5-ci sətir: “Ay (məbləğ)” xanası boşdur — məcburi sahədir.",
+          "7-ci sətir: “Orta aylıq əmək haqqı” dəyəri mənfi ola bilməz.",
+          "Ümumi: 3 sətir uyğunsuzdur — sənəd sistemə yüklənmədi.",
+        ],
+      });
+      e.target.value = "";
+      setImportYear("");
+      setImportMonth("");
+      return; // Uyğunsuzluq düzələnə qədər sənəd sistemə yüklənmir.
+    }
+
     // Build details from real org employees (demo: static-matched)
     const details = employees.map((emp, i) => {
       const monthPay = emp.salary ?? 0;
@@ -235,6 +256,7 @@ const SalaryPage = () => {
     e.target.value = "";
     setActiveTab("uploads");
   };
+
 
   const downloadTemplate = () => {
     const headers = ["Ad", "Soyad", "Ata adı", "Ay (məbləğ)", "Cəmi ödənilmiş (AZN)", "Orta aylıq əmək haqqı", "Cari ay üçün orta (%)", "Cari ay üçün orta 12 ay (%)"];
