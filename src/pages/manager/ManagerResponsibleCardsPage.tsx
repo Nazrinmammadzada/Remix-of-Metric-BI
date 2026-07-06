@@ -132,6 +132,7 @@ const HubCard = ({
 /* ============================== ASSIGN ============================== */
 const AssignView = () => {
   const rows = useKpiSet();
+  const { user } = useAuth();
   useCascadeTree();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<number, boolean>>({});
@@ -140,7 +141,10 @@ const AssignView = () => {
   const [cascadeConfirm, setCascadeConfirm] = useState<{ entry: KpiSetEntry; value: number; unit: string } | null>(null);
 
   const groups = useMemo<CardGroup[]>(() => {
-    const managerRows = rows.filter(r => r.ownerType === "manager");
+    // Yalnız cari istifadəçi target-setter olan entry-lər
+    const managerRows = rows.filter(
+      r => r.ownerType === "manager" && r.assigneeName === user?.name,
+    );
     const map = new Map<number, CardGroup>();
     for (const r of managerRows) {
       if (!map.has(r.cardId)) map.set(r.cardId, { cardId: r.cardId, cardName: r.cardName, entries: [] });
@@ -153,7 +157,7 @@ const AssignView = () => {
       g.cardName.toLowerCase().includes(s) ||
       g.entries.some(e => e.subKpiName.toLowerCase().includes(s))
     );
-  }, [rows, q]);
+  }, [rows, q, user?.name]);
 
   const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
 
