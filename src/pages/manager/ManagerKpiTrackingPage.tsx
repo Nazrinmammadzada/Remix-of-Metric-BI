@@ -1029,16 +1029,17 @@ export const SubordinatesView = ({
         </div>
       </div>
 
-      {/* RIGHT: sticky panel */}
-      {panelOpen && selected && (
+      {/* RIGHT: sticky panel (yalnız tracking rejimində) */}
+      {actionsMode === "tracking" && panelOpen && selected && (
         <SubDetailPanel node={selected} tab={tab} setTab={setTab} onClose={() => setPanelOpen(false)} />
       )}
-      {!panelOpen && selected && (
+      {actionsMode === "tracking" && !panelOpen && selected && (
         <button onClick={() => setPanelOpen(true)}
           className="fixed right-4 top-24 z-30 rounded-full bg-primary text-primary-foreground shadow-lg px-4 py-2 text-sm font-medium inline-flex items-center gap-1.5 hover:opacity-90">
           <ChevronLeft className="w-4 h-4" /> Detal paneli
         </button>
       )}
+
     </div>
   );
 };
