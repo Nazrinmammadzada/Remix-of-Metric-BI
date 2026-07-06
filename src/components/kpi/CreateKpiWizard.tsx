@@ -909,18 +909,16 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </>
                 ) : (
                   <Field label="Başlama tarixi" required span="col-span-6 md:col-span-3">
-                    <input type="date" value={draft.startDate} onChange={e => setStartDate(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background" />
+                    <DatePickerField value={draft.startDate} onChange={setStartDate} />
                   </Field>
                 )}
 
                 <Field label="Bitmə tarixi" required span="col-span-6 md:col-span-3">
-                  <input
-                    type="date"
+                  <DatePickerField
                     value={draft.endDate}
-                    onChange={e => update({ endDate: e.target.value })}
+                    onChange={(v) => update({ endDate: v })}
                     disabled={draft.frequency !== "Custom"}
-                    className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background disabled:opacity-70" />
+                  />
                   {draft.frequency !== "Custom" && (
                     <p className="text-[11px] text-muted-foreground mt-0.5">Dövrə əsasən avtomatik hesablanır</p>
                   )}
@@ -1004,13 +1002,11 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                             </div>
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[11px] text-muted-foreground">Başlama</label>
-                              <input type="date" value={r.start} onChange={e => updReview(r.id, { start: e.target.value })}
-                                className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+                              <DatePickerField value={r.start} onChange={(v) => updReview(r.id, { start: v })} className="mt-0.5 px-2 py-1.5 rounded" />
                             </div>
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[11px] text-muted-foreground">Bitmə</label>
-                              <input type="date" value={r.end} onChange={e => updReview(r.id, { end: e.target.value })}
-                                className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+                              <DatePickerField value={r.end} onChange={(v) => updReview(r.id, { end: v })} className="mt-0.5 px-2 py-1.5 rounded" />
                             </div>
                             <div className="col-span-12 md:col-span-2">
                               <button type="button" onClick={() => removeReview(r.id)}
