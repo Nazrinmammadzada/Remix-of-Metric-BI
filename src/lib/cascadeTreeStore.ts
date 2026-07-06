@@ -24,6 +24,8 @@ export interface CascadeTreeNode {
   updatedAt: number;
   /** Rəhbər bu hədəfi daha aşağı kaskadlamamaq qərarı verib */
   frozen?: boolean;
+  /** Bu şəxsə kaskadlanmış hədəfi növbəti səviyyəyə ötürmək icazəsi var */
+  canReCascade?: boolean;
 }
 
 const KEY = "cascade_tree_nodes_v4";
