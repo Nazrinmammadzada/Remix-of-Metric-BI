@@ -459,7 +459,7 @@ const EvaluateView = () => {
                         return (
                           <tr key={k.id} className="border-t border-border hover:bg-secondary/20">
                             <td className="px-4 py-3">
-                              <p className="font-medium text-foreground">{k.name}</p>
+                              <p className="font-medium text-foreground">{withKartSuffix(k.name)}</p>
                               <p className="text-xs text-muted-foreground line-clamp-1">{k.description}</p>
                             </td>
                             <td className="px-4 py-3 text-right text-foreground tabular-nums">{fmtEval(k.target)} {k.unit}</td>

@@ -340,7 +340,7 @@ const UserKpiCardsPage = () => {
                       </div>
                       <div>
                         <button onClick={() => { setSelectedKpi(card); setDetailTab("general"); }} className="text-left">
-                          <h3 className="font-semibold text-foreground text-base hover:text-primary transition-colors">{card.name}</h3>
+                          <h3 className="font-semibold text-foreground text-base hover:text-primary transition-colors">{withKartSuffix(card.name)}</h3>
                         </button>
                         <p className="text-xs text-muted-foreground mt-0.5">Hədəf: <span className="font-medium text-foreground">{card.target} {card.unit}</span> · Dövr: {card.period}</p>
                       </div>
@@ -397,7 +397,7 @@ const UserKpiCardsPage = () => {
                   </div>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${zoneBg[getCardZone(card.progress)]} mr-9`}>{zoneLabel[getCardZone(card.progress)]}</span>
                 </div>
-                <h3 className="font-semibold text-foreground text-sm mb-2">{card.name}</h3>
+                <h3 className="font-semibold text-foreground text-sm mb-2">{withKartSuffix(card.name)}</h3>
                 <div className="space-y-1 mb-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Hədəf</span>
@@ -438,7 +438,7 @@ const UserKpiCardsPage = () => {
         <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl">{selectedKpi?.name}</DialogTitle>
+              <DialogTitle className="text-xl">{withKartSuffix(selectedKpi?.name)}</DialogTitle>
               {selectedKpi && <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${zoneBg[getCardZone(selectedKpi.progress)]}`}>{zoneLabel[getCardZone(selectedKpi.progress)]}</span>}
             </div>
           </DialogHeader>

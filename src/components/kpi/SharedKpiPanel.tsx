@@ -62,7 +62,7 @@ export default function SharedKpiPanel({ title = "Sizə aid KPI kartları", empt
               <li key={card.id} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{card.name}</span>
+                    <span className="font-medium truncate">{withKartSuffix(card.name)}</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border border-border ${
                       card.status === "aktiv" ? "bg-emerald-500/15 text-emerald-700"
                       : card.status === "tesdiq_gozlenilir" ? "bg-blue-500/15 text-blue-700"
