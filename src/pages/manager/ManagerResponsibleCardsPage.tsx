@@ -338,7 +338,7 @@ const AssignView = () => {
             cascadable: true,
             cascadeLimit: value,
             defaultSliceValue: assignedValue,
-            subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
+            subKpiName: saved?.name || entry.subKpiName,
           } as KpiSetEntry;
           setCascadeConfirm({ entry: refreshed, value, unit });
         }}
