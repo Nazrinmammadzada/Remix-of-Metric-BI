@@ -406,7 +406,7 @@ export const canRemoveStructure = (structureId: number): { ok: true } | { ok: fa
 
 export const removeStructure = (structureId: number) => {
   const check = canRemoveStructure(structureId);
-  if (!check.ok) throw new Error(check.reason);
+  if (!check.ok) throw new Error((check as { reason: string }).reason);
   const list = cloneStructures(getStructures());
   const visit = (nodes: OrgStructure[]): boolean => {
     const i = nodes.findIndex(n => n.id === structureId);
