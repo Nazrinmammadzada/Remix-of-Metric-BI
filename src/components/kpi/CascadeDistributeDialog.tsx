@@ -23,6 +23,8 @@ interface Props {
     assigneeName: string;
     assigneeId?: number;
     limit: number;
+    sourceTargetId?: string;
+    sourceEntryId?: string;
   };
   onDistributed?: () => void;
 }
@@ -41,11 +43,13 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       ? getEmployees().find(e => e.id === bootstrap.assigneeId)
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
-    const existing = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
+    const existing = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id, bootstrap.sourceTargetId);
     setNode(existing || createRoot({
       cardName: bootstrap.cardName, goalName: bootstrap.goalName, unit: bootstrap.unit,
       assigneeId: emp.id, assigneeName: `${emp.firstName} ${emp.lastName}`,
       positionName: emp.positionName, limit: bootstrap.limit,
+      sourceTargetId: bootstrap.sourceTargetId,
+      sourceEntryId: bootstrap.sourceEntryId,
     }));
   }, [open, existingNode, bootstrap]);
 

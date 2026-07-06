@@ -3,6 +3,7 @@
 // Cascading Matrix tələb etmir; təşkilati struktur `orgStore`-dan alınır.
 import { useEffect, useState } from "react";
 import { getEmployees, isStarPerson } from "@/lib/orgStore";
+import { removeCascadeEntriesByNodeIds, setEntryCascadeNodeId, upsertCascadeEntry } from "@/lib/kpiSetStore";
 
 export interface CascadeTreeNode {
   id: string;
@@ -26,6 +27,9 @@ export interface CascadeTreeNode {
   frozen?: boolean;
   /** Bu şəxsə kaskadlanmış hədəfi növbəti səviyyəyə ötürmək icazəsi var */
   canReCascade?: boolean;
+  /** KPI wizard / KpiSet entry ilə sabit əlaqə */
+  sourceTargetId?: string;
+  sourceEntryId?: string;
 }
 
 const KEY = "cascade_tree_nodes_v5";
@@ -75,6 +79,7 @@ export const statusOf = (id: string): CascadeStatus => {
   if (kids.length === 0) {
     // son icraçı və ya hələ bölünməyib
     if (n.frozen) return "done";
+    if (n.canReCascade === false) return "done";
     if (n.limit === 0) return "wait";
     // Star deyilsə son icraçı sayılır
     return isStarPerson(n.assigneeId) ? "wait" : "done";
@@ -94,6 +99,8 @@ export const createRoot = (payload: {
   assigneeName: string;
   positionName?: string;
   limit: number;
+  sourceTargetId?: string;
+  sourceEntryId?: string;
 }): CascadeTreeNode => {
   const id = crypto.randomUUID();
   const node: CascadeTreeNode = {
@@ -106,9 +113,14 @@ export const createRoot = (payload: {
     positionName: payload.positionName,
     isStar: isStarPerson(payload.assigneeId),
     limit: Number(payload.limit) || 0,
+    canReCascade: true,
+    sourceTargetId: payload.sourceTargetId,
+    sourceEntryId: payload.sourceEntryId,
     createdAt: Date.now(), updatedAt: Date.now(),
   };
   persist([...load(), node]);
+  setEntryCascadeNodeId(payload.sourceEntryId, id);
+  upsertCascadeEntry(node);
   return node;
 };
 
@@ -125,6 +137,9 @@ export interface CascadeSliceInput {
 export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok: boolean; error?: string } => {
   const parent = getNode(parentId);
   if (!parent) return { ok: false, error: "Ana hədəf tapılmadı" };
+  if (parent.canReCascade === false) {
+    return { ok: false, error: "Bu hədəf üçün yenidən kaskadlama icazəsi verilməyib." };
+  }
   const filtered = slices.filter(s => s.assigneeId && Number(s.limit) > 0);
   const total = filtered.reduce((s, sl) => s + Number(sl.limit), 0);
   const parentLimit = Number(parent.limit) || 0;
@@ -134,7 +149,20 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
       error: `Bölüşdürülən cəm (${new Intl.NumberFormat("az-AZ").format(total)}) ana hədəfdən (${new Intl.NumberFormat("az-AZ").format(parentLimit)}) böyük ola bilməz.`,
     };
   }
-  const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
+  const all = load();
+  const drop = new Set<string>();
+  all.filter(n => n.parentId === parentId).forEach(n => drop.add(n.id));
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const n of all) {
+      if (n.parentId && drop.has(n.parentId) && !drop.has(n.id)) {
+        drop.add(n.id);
+        changed = true;
+      }
+    }
+  }
+  const list = all.filter(n => !drop.has(n.id)); // köhnə bölgü və alt qolları sil
   const now = Date.now();
   const newKids: CascadeTreeNode[] = filtered.map(s => ({
     id: crypto.randomUUID(),
@@ -152,6 +180,8 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
     createdAt: now, updatedAt: now,
   }));
   persist([...list, ...newKids]);
+  removeCascadeEntriesByNodeIds(Array.from(drop));
+  newKids.filter(k => k.canReCascade).forEach(upsertCascadeEntry);
   return { ok: true };
 };
 
@@ -160,9 +190,17 @@ export const freezeNode = (id: string, frozen: boolean) => {
   persist(load().map(n => n.id === id ? { ...n, frozen, updatedAt: Date.now() } : n));
 };
 
+export const updateNodeDetails = (id: string, patch: Partial<Pick<CascadeTreeNode, "cardName" | "goalName" | "unit" | "limit" | "sourceTargetId" | "sourceEntryId">>) => {
+  const next = load().map(n => n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n);
+  persist(next);
+  const updated = next.find(n => n.id === id);
+  if (updated) upsertCascadeEntry(updated);
+  return updated;
+};
+
 /** Root-un mövcud olub-olmadığını yoxlayır (KpiSet entry üçün id əsasında). */
-export const findRootByGoal = (cardName: string, goalName: string, assigneeId: number): CascadeTreeNode | undefined =>
-  load().find(n => n.parentId === null && n.cardName === cardName && n.goalName === goalName && n.assigneeId === assigneeId);
+export const findRootByGoal = (cardName: string, goalName: string, assigneeId: number, sourceTargetId?: string): CascadeTreeNode | undefined =>
+  load().find(n => n.parentId === null && n.cardName === cardName && n.goalName === goalName && n.assigneeId === assigneeId && (!sourceTargetId || n.sourceTargetId === sourceTargetId));
 
 export const deleteSubtree = (id: string) => {
   const all = load();
