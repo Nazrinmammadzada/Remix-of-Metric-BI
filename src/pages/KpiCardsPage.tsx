@@ -1302,17 +1302,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               }
               return (
                 <div className="bg-card border border-border rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-4 gap-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
-                    </div>
-                    <button
-                      onClick={() => { setEditingCardId(null); setWizardOpen(true); }}
-                      className="flex items-center gap-2 px-5 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
-                    >
-                      <Plus className="w-5 h-5" /> Yeni KPI Kartı
-                    </button>
+                  <div className="mb-4">
+                    <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
