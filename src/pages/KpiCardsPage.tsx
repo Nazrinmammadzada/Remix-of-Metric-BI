@@ -2127,7 +2127,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   {orgStructures.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Təşkilat modulunda hələ struktur yaradılmayıb.</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2" ref={structDropdownRef}>
+
                       {visibleStructLevels.map(level => {
                         const options = getStructuresAtLevel(level);
                         if (options.length === 0) return null;
