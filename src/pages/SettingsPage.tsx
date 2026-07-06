@@ -84,11 +84,12 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "reject", label: "Rədd etmək" },
     { key: "comment", label: "Şərh əlavə etmək" },
   ]},
-  { key: "reporting", label: "Hesabat", actions: [
+  { key: "reporting", label: "Hesabatlar", actions: [
     { key: "view_own", label: "Yalnız öz hesabatları" },
     { key: "view_team", label: "Komanda hesabatları" },
     { key: "view_all", label: "Bütün hesabatlar" },
     { key: "export_pdf", label: "PDF export" },
+    { key: "export_excel", label: "Excel export" },
     { key: "use_ai", label: "AI köməkçisi" },
   ]},
   { key: "teams", label: "Komandalar", actions: [
@@ -98,6 +99,7 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "create", label: "Yeni komanda" },
     { key: "edit", label: "Redaktə" },
     { key: "delete", label: "Silmək" },
+    { key: "manage_members", label: "Üzvləri idarə etmək" },
   ]},
   { key: "formulas", label: "Hesablama Düsturları", actions: [
     { key: "view", label: "Baxış" },
@@ -112,20 +114,23 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "view_outgoing", label: "Ötürülən məlumatlar" },
     { key: "select_data_fields", label: "Məlumat sahələrini seçmək" },
     { key: "view_errors", label: "Xəta detallarına baxmaq" },
-    { key: "connect", label: "Qoşulma" },
-    { key: "disconnect", label: "Bağlantını kəsmə" },
+    { key: "connect", label: "Qoşulmaq" },
+    { key: "disconnect", label: "Ayırmaq" },
     { key: "configure", label: "Konfiqurasiya" },
+    { key: "sync", label: "Sinxronizasiya" },
     { key: "export", label: "Cədvəli export etmək" },
   ]},
   { key: "matrix", label: "Təsdiqləmə Matrisi", actions: [
     { key: "view", label: "Baxış" },
     { key: "create", label: "Yeni matris yaratmaq" },
     { key: "edit", label: "Redaktə etmək" },
+    { key: "delete", label: "Silmək" },
     { key: "request_delete", label: "KPI silinmə sorğusu yaratmaq" },
     { key: "approve_delete", label: "Silinmə təsdiqləmək" },
   ]},
-  { key: "organization", label: "Təşkilat", actions: [
+  { key: "organization", label: "Struktur / Təşkilat", actions: [
     { key: "view", label: "Baxış" },
+    { key: "edit", label: "Redaktə" },
     { key: "manage_structure", label: "Strukturları idarə" },
     { key: "manage_positions", label: "Vəzifələri idarə" },
     { key: "manage_employees", label: "Əməkdaşları idarə" },
@@ -133,7 +138,11 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
   ]},
   { key: "evaluation", label: "Qiymətləndirmə", actions: [
     { key: "view", label: "Baxış" },
-    { key: "create_assignment", label: "Təyinat yaratmaq" },
+    { key: "create_assignment", label: "Qiymətləndirmə yaratmaq" },
+    { key: "edit", label: "Redaktə" },
+    { key: "send", label: "Qiymətləndirmə göndərmək" },
+    { key: "approve", label: "Təsdiqləmək" },
+    { key: "manual_score", label: "Manual bal vermək" },
     { key: "random_assign", label: "Təsadüfi təyinat" },
     { key: "manual_assign", label: "Manual təyinat" },
     { key: "view_status", label: "Status izləmək" },
@@ -142,6 +151,7 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "toggle_season", label: "Sezon açmaq/bağlamaq" },
     { key: "export", label: "Hesabat export" },
   ]},
+
   { key: "bonus", label: "Bonus Hesablanması", actions: [
     { key: "view", label: "Baxış" },
     { key: "calculate", label: "Bonus hesablamaq" },
