@@ -377,8 +377,57 @@ const NotificationSettingsTab = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" /> Yeni bildiriş yarat
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground">Bildiriş adı</label>
+              <input
+                value={newNotif.title}
+                onChange={e => setNewNotif(p => ({ ...p, title: e.target.value }))}
+                placeholder="Məsələn: Həftəlik komanda hesabatı"
+                className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Qısa təsvir</label>
+              <textarea
+                value={newNotif.description}
+                onChange={e => setNewNotif(p => ({ ...p, description: e.target.value }))}
+                rows={3}
+                placeholder="Bu bildirişin nə vaxt və nə üçün göndərildiyini yazın"
+                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background resize-none"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-2.5">
+              Yaradıldıqdan sonra sağ paneldə kanalları, tezliyi, alıcıları və şablon mətnini tənzimləyin.
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleCreate}
+                className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium"
+              >
+                Yadda saxla
+              </button>
+              <button
+                onClick={() => setCreateOpen(false)}
+                className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card"
+              >
+                Ləğv et
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default NotificationSettingsTab;
