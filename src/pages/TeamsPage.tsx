@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, ChevronDown, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Plus, Trophy, TrendingUp, Users, X, Check, ChevronDown, Sparkles, ArrowLeft, Crown } from "lucide-react";
 
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
