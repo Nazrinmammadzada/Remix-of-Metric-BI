@@ -382,7 +382,31 @@ export const removePosition = (positionId: number) => {
   return list;
 };
 
+/** Struktur boş deyilsə (alt struktur və ya təyin olunmuş əməkdaş varsa) səbəbi qaytarır. */
+export const canRemoveStructure = (structureId: number): { ok: true } | { ok: false; hasChildren: boolean; hasEmployees: boolean; reason: string } => {
+  const findNode = (nodes: OrgStructure[]): OrgStructure | null => {
+    for (const n of nodes) {
+      if (n.id === structureId) return n;
+      const r = findNode(n.children);
+      if (r) return r;
+    }
+    return null;
+  };
+  const node = findNode(getStructures());
+  if (!node) return { ok: true };
+  const hasChildren = node.children.length > 0;
+  const hasEmployees = node.positions.some(p => p.slots.some(s => s.employeeId != null));
+  if (!hasChildren && !hasEmployees) return { ok: true };
+  let reason = "";
+  if (hasChildren && hasEmployees) reason = "Bu struktur silinə bilməz. Həm alt strukturlar, həm də aktiv əməkdaşlar mövcuddur. Əvvəlcə əməkdaşları çıxarın və alt strukturları silin.";
+  else if (hasChildren) reason = "Bu struktur silinə bilməz. Daxilində alt strukturlar mövcuddur. Əvvəlcə bütün alt strukturları silin.";
+  else reason = "Bu struktur silinə bilməz. Struktur daxilində aktiv əməkdaşlar mövcuddur. Zəhmət olmasa əvvəlcə bütün əməkdaşları strukturdan çıxarın.";
+  return { ok: false, hasChildren, hasEmployees, reason };
+};
+
 export const removeStructure = (structureId: number) => {
+  const check = canRemoveStructure(structureId);
+  if (!check.ok) throw new Error(check.reason);
   const list = cloneStructures(getStructures());
   const visit = (nodes: OrgStructure[]): boolean => {
     const i = nodes.findIndex(n => n.id === structureId);
@@ -394,6 +418,7 @@ export const removeStructure = (structureId: number) => {
   setStructures(list);
   return list;
 };
+
 
 // ---------- Sync employees with current assignments ----------
 
