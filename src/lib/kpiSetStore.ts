@@ -104,7 +104,7 @@ const SEED: KpiSetEntry[] = [
     assigneeName: "Elvin Rəhimov",
     ownerType: "manager",
     status: "completed",
-    cascadable: true,
+    cascadable: node.canReCascade !== false,
     weight: 25,
     limits: {
       l5: { min: 400001, max: 500000 },

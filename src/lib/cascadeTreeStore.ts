@@ -180,7 +180,7 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
   }));
   persist([...list, ...newKids]);
   removeCascadeEntriesByNodeIds(Array.from(drop));
-  newKids.filter(k => k.canReCascade || k.isStar).forEach(upsertCascadeEntry);
+  newKids.filter(k => k.canReCascade).forEach(upsertCascadeEntry);
   return { ok: true };
 };
 
