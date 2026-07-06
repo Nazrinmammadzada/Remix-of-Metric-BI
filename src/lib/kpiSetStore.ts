@@ -328,10 +328,10 @@ export const getIncomingCascadeLoad = (
       const cards = getSharedKpiCards().filter(c => c.ownerId === empKey);
       for (const c of cards) {
         const sum = (c.targets || []).reduce((s, t) => {
-          const n = parseFloat(String((t as any).target ?? (t as any).value ?? "").replace(/[^\d.\-]/g, "")) || 0;
+          const n = parseFloat(String((t as any).targetValue ?? (t as any).target ?? (t as any).value ?? "").replace(/[^\d.\-]/g, "")) || 0;
           return s + n;
         }, 0);
-        if (sum > 0) return { value: sum, unit: "", cardName: c.name };
+        if (sum > 0) return { value: sum, unit: (c.targets?.[0] as any)?.unit || "", cardName: c.name };
       }
     }
   } catch {}
