@@ -371,7 +371,7 @@ const OwnKpisView = ({ title, subtitle, data, emptyLabel }: { title: string; sub
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">KPI tapılmadı.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">{emptyLabel || "KPI tapılmadı."}</td></tr>
             )}
           </tbody>
         </table>
