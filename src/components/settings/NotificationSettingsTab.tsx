@@ -33,6 +33,10 @@ const NotificationSettingsTab = () => {
   const [remDraft, setRemDraft] = useState<string>("");
   const [personOpen, setPersonOpen] = useState(false);
   const [personSearch, setPersonSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newNotif, setNewNotif] = useState({ title: "", description: "" });
+
+
 
   const filtered = useMemo(
     () => settings.filter(s => s.title.toLowerCase().includes(search.toLowerCase())),
