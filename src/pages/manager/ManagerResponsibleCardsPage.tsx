@@ -1,4 +1,5 @@
 // Manager · "Məsul olduğum kartlar" — hub with two big cards:
+import { withKartSuffix } from "@/lib/utils";
 //  1) Hədəf təyin etmə — assign & cascade goals
 //  2) Hədəf qiymətləndirmə — evaluate goals (mirrors user's KPI evaluation)
 import { useMemo, useState } from "react";

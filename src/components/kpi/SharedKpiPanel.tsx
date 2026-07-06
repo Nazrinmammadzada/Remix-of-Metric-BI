@@ -1,4 +1,5 @@
 // Shared widget: shows the slice of cross-panel KPI cards that's visible
+import { withKartSuffix } from "@/lib/utils";
 // to the currently logged-in user (HR / Manager / User). Lets the assignee
 // update their execution status — the change reflects everywhere instantly.
 
