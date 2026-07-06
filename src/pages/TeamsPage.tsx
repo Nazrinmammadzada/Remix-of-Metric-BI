@@ -6,11 +6,51 @@ import { Search, Plus, Trophy, TrendingUp, Users, X, Check, ChevronDown, Sparkle
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore";
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useAuth } from "@/contexts/AuthContext";
+
+type ChartPeriodMode = "month" | "quarter" | "year";
+interface ChartPeriod { mode: ChartPeriodMode; date: Date }
+
+const MONTHS_AZ = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
+const chartPeriodLabel = (p: ChartPeriod) => {
+  const y = p.date.getFullYear();
+  if (p.mode === "year") return `${y}`;
+  if (p.mode === "quarter") return `${Math.floor(p.date.getMonth() / 3) + 1}-ci rüb ${y}`;
+  return `${MONTHS_AZ[p.date.getMonth()]} ${y}`;
+};
+
+const ChartPeriodFilter = ({ value, onChange }: { value: ChartPeriod; onChange: (v: ChartPeriod) => void }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex items-center gap-2">
+      <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+        {(["month", "quarter", "year"] as ChartPeriodMode[]).map(m => (
+          <button key={m} type="button" onClick={() => onChange({ ...value, mode: m })}
+            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${value.mode === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {m === "month" ? "Ay" : m === "quarter" ? "Rüb" : "İl"}
+          </button>
+        ))}
+      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button type="button" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/40 transition-colors">
+            <CalendarIcon className="w-3.5 h-3.5" /> {chartPeriodLabel(value)}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <Calendar mode="single" selected={value.date} onSelect={(d) => { if (d) { onChange({ ...value, date: d }); setOpen(false); } }} initialFocus className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
 
 const allPeople: TeamMember[] = [
   { name: "Samir Həsənov", role: "Komanda Lideri", kpiScore: 90, avatar: "S" },
