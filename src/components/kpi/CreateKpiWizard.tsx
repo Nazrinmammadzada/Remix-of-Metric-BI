@@ -571,13 +571,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   // Validation per target — for "Save draft" we don't strictly require everything
   const validateHedef = (t: WizardHedef): string | null => {
-    if (!t.name.trim()) return "Hədəf adı boşdur";
-    if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
+    // "Digər əməkdaş təyin edir" — name/weight/scores təyin edən dolduracaq.
+    // Bu addımda yalnız Təyin edici və Qiymətləndirici tələb olunur.
     if (t.createdBy === "other") {
-      if (!t.assigner) return `"${t.name}" üçün Təyin edici seçilməlidir`;
-      // "other" mode: only assigner needed; evaluators & scores are filled by that person later
+      if (!t.assigner) return `Hədəf #${(t.name || "").trim() || "?"} üçün Təyin edici seçilməlidir`;
+      if (t.evaluators.length === 0) return `Hədəf üçün ən az 1 Qiymətləndirici seçin`;
       return null;
     }
+    if (!t.name.trim()) return "Hədəf adı boşdur";
+    if (!t.weight || t.weight <= 0) return "Hədəf çəkisi 0-dan böyük olmalıdır";
     if (t.evaluators.length === 0) return `"${t.name}" üçün ən az 1 Qiymətləndirici seçin`;
     if (t.evaluators.length > 1) {
       const sum = t.evaluators.reduce((s, e) => s + (Number(e.weight) || 0), 0);

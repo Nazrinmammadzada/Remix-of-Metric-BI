@@ -279,8 +279,8 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                 getData={() => ({
                   title: `KPI Qiymətləri ${month} ${year}`,
                   fileName: `kpi-qiymetleri-${year}-${month}`,
-                  headers: ["Əməkdaşın A.S.A", "Ata adı", "KPI Kartının Adı", "Dövr", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
-                  rows: rows.map(r => [r.fullName, r.fatherName, r.cardName, r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
+                  headers: ["Əməkdaşın A.S.A.", "KPI Kartının Adı", "Dövr", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
+                  rows: rows.map(r => [[r.fullName, r.fatherName].filter(Boolean).join(" "), r.cardName, r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
                 })}
               />
             </div>
@@ -291,7 +291,6 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
               <thead className="bg-secondary/40">
                 <tr className="text-left text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Əməkdaşın A.S.A.</th>
-                  <th className="px-4 py-3 font-medium">Ata adı</th>
                   <th className="px-4 py-3 font-medium">KPI Kartının Adı</th>
                   <th className="px-4 py-3 font-medium">Dövr</th>
                   <th className="px-4 py-3 font-medium">Başlama Tarixi</th>
@@ -302,15 +301,14 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
               </thead>
               <tbody>
                 {selectedCards.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
+                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     Cədvəli görmək üçün il, ay və ən azı bir KPI kartı seçin
                   </td></tr>
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">Nəticə tapılmadı</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nəticə tapılmadı</td></tr>
                 ) : rows.map((r, i) => (
                   <tr key={`${r.empId}-${r.cardIdx}-${i}`} className="border-t border-border hover:bg-secondary/30">
-                    <td className="px-4 py-2.5 font-medium text-foreground">{r.fullName}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{r.fatherName || "—"}</td>
+                    <td className="px-4 py-2.5 font-medium text-foreground">{[r.fullName, r.fatherName].filter(Boolean).join(" ")}</td>
                     <td className="px-4 py-2.5">{r.cardName}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{r.periodLabel}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{r.startDate}</td>
