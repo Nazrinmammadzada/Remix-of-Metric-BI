@@ -292,7 +292,7 @@ const UserKpiCardsPage = () => {
   // Pre-fill form when editing a card
   useEffect(() => {
     if (editingCardId === null) return;
-    const card = userKpiCards.find(c => c.id === editingCardId);
+    const card = allKpiCards.find(c => c.id === editingCardId);
     if (!card) return;
     setNewKpi({
       name: card.name,
@@ -309,7 +309,7 @@ const UserKpiCardsPage = () => {
       ],
     });
     setTargetError("");
-  }, [editingCardId]);
+  }, [editingCardId, allKpiCards]);
 
   return (
     <div className="min-h-screen">
