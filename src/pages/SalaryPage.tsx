@@ -654,6 +654,41 @@ const SalaryPage = () => {
 
       <UploadDetailDialog upload={viewUpload} onClose={() => setViewUpload(null)} />
 
+      {/* Uyğunsuzluq pop-up-ı: sənəd sistemə yüklənməyib */}
+      <Dialog open={!!mismatchDialog} onOpenChange={(o) => !o && setMismatchDialog(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <X className="w-5 h-5" />
+              Sənəddə uyğunsuzluq aşkarlandı
+            </DialogTitle>
+          </DialogHeader>
+          {mismatchDialog && (
+            <div className="space-y-3">
+              <p className="text-sm text-foreground">
+                <span className="font-medium">“{mismatchDialog.fileName}”</span> faylında uyğunsuz və ya
+                çatışmayan məlumatlar var. Zəhmət olmasa aşağıdakı problemləri düzəldin və faylı yenidən yükləyin.
+              </p>
+              <ul className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm space-y-1.5 list-disc list-inside">
+                {mismatchDialog.issues.map((it, i) => (
+                  <li key={i} className="text-foreground/90">{it}</li>
+                ))}
+              </ul>
+              <div className="rounded-md bg-secondary/50 border border-border px-3 py-2 text-xs text-muted-foreground">
+                Uyğunsuzluq tam düzələnə qədər sənəd sistemə yüklənməyəcək.
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setMismatchDialog(null)}>Bağla</Button>
+                <Button onClick={() => { setMismatchDialog(null); fileInputRef.current?.click(); }}>
+                  Yenidən yüklə
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+
 
       <AddSalaryDialog open={showAdd} onClose={() => setShowAdd(false)} employees={employees} />
 
