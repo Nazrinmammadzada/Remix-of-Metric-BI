@@ -335,7 +335,10 @@ const AssignView = () => {
           if (!entry) return;
           // Cascade Load popup-u yuxarı rəhbərin verdiyi node/root limitini göstərir.
           // Paylanma sətrindəki default isə təyinetmə zamanı yazılmış hədəf dəyəridir.
-          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
+          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId, {
+            cardName: entry.cardName,
+            goalName: saved?.name || entry.subKpiName || entry.cardName,
+          });
           const value = incoming?.value ?? parseNum(entry.target);
           const assignedValue = saved?.value ?? parseNum(entry.target);
           const unit = incoming?.unit ?? saved?.unit ?? entry.unit ?? "";
