@@ -858,9 +858,10 @@ export const SubordinatesView = ({
         <PageHero
           badge="Rəhbər Paneli"
           icon={Network}
-          title="Tabeçiliyimdəkilərin KPI-ları"
-          subtitle="Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları"
+          title={title}
+          subtitle={subtitle}
         />
+
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
