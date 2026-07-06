@@ -212,9 +212,10 @@ const AudienceRadio = ({
 
 
 const SubTable = ({
-  list, unit, slices, setSlice,
+  list, unit, slices, setSlice, defaultValue,
 }: {
   list: any[]; unit: string; slices: Record<number, string>; setSlice: (id: number, v: string) => void;
+  defaultValue?: number;
 }) => (
   <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
     {list.length === 0 ? (
