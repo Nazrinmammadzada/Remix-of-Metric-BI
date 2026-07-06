@@ -1,106 +1,69 @@
 
-# Dinamik KPI Workflow — Mövcud Store-ların Düzgün Bağlanması
+# Kaskadlama axınının tam düzəldilməsi
 
-Yeni entity, yeni store, yeni sahə yaratmıram. Mövcud strukturu istifadə edirəm:
+Aşağıdakı 5 dəyişikliyi 1 addımda tətbiq edəcəyəm. Hər dəyişiklik konkret fayl və funksiyaya toxunur — mövcud UI/dizayn dəyişmir.
 
-| Biznes mərhələsi | İstifadə olunacaq mövcud sahə |
-|---|---|
-| HR kart yaradır (Owner tipli) | `SharedKpiCard.ownerId` = seçilmiş əməkdaş |
-| HR kart yaradır (Target Setter tipli) | Wizard artıq `addPendingEntry(... ownerType: "manager")` çağırır → `KpiSetEntry.assigneeName = <setter adı>` |
-| "Məsul olduğum kartlar → Hədəf təyin etmə" | `KpiSetEntry` (ownerType `manager` + `assigneeName == user.name`) |
-| Setter dəyər/limit/çəki yazır | mövcud `setEntryDetails()` |
-| "Cascade oluna bilər" | mövcud `KpiSetEntry.cascadable` |
-| Cascade Load popup | mövcud `getIncomingCascadeLoad()` — amma mənbəyi düzəldilir (aşağı bax) |
-| Cascade dialog | mövcud `CascadeDistributeDialog` |
-| Cascade ağacı | mövcud `cascadeTreeStore` (`createRoot`, `distribute`) |
-| "Mənim KPI-larım" | mövcud `useCascadeTree()` node-ları + `useSharedKpiCards()` |
+## 1) Cascade Load = HR-in verdiyi kök hədəf (bütün mənbələri əhatə edən)
 
-Yeni fayl yaratmıram; yalnız aşağıdakı mövcud fayllarda cərrahi düzəlişlər edirəm.
+**Fayl:** `src/lib/kpiSetStore.ts` → `getIncomingCascadeLoad`
 
----
+Hazırda funksiya cascade tree-də node axtarır, sonra yalnız `ownerId === empKey` olan SharedKpiCard-lara baxır. Elvin `assigneeIds`-də olduğu (HR-in ona verdiyi) cascadable kartlar nəzərə alınmır — nəticədə köhnə seed 500 000 qayıdır.
 
-## Aşkar etdiyim əsl problemlər (nə qırılıb)
+Dəyişiklik:
+- Step 2-ni `ownerId === empKey || assigneeIds.includes(empKey)` şəklinə genişləndir.
+- `updatedAt` DESC ilə sırala → yenidən yaradılan "ŞELVİN KPİ KART" (70 700) birinci gəlsin.
+- `excludeCardId` cari kartı istisna edir (Elvin öz "MARKETINGIN İLLİK KARTI"-nı təyin edərkən özündən pay çəkməsin).
 
-1. **`ManagerResponsibleCardsPage`** `KpiSetEntry`-ni yalnız `ownerType === "manager"` ilə süzür — `assigneeName === user.name` filtri yoxdur. Nəticə: Elvin və Kamran eyni siyahını görür.
-2. **`KpiCardsPage` wizard** kart tamamlananda `addPendingEntry` çağırır, amma HR-in seçdiyi target-setter-in adı entry-yə keçmir (assigneeName başqa mənbədən götürülür). Nəticə: kart heç kimin "Hədəf təyin etmə"-sinə düşmür və ya səhv setter-ə düşür.
-3. **`getIncomingCascadeLoad`** cascade load-u başqa KpiSetEntry-nin `target` sahəsindən oxuyur → istifadəçinin dediyi kimi bu səhv məntiqdir. Load **`cascadeTreeStore`**-dan gəlməlidir: user-in üstündə parent node varsa, load = həmin parent node-un ona ayırdığı `limit`. Root setter üçün load = HR-in kartda yazdığı ümumi target.
-4. **`CascadeDistributeDialog`** artıq tab-larla açılır (`all` / digər), amma:
-   - "Yenidən kaskadlaya bilər" checkbox-u varsa silinir.
-   - Default olaraq bütün işçilər göstərilir; istifadəçinin istədiyi kimi əvvəl 2-radio ("Tabeliyimdə olan bütün əməkdaşlar" / "Struktur rəhbərləri") təyinat növü seçilməlidir, sonra siyahı gəlsin.
-   - Limit prop-u yazılmış target-dan yox, cascade load-dan gəlməlidir (bootstrap-da düzəldirik).
-5. **`ManagerKpiTrackingPage`** ("Mənim KPI-larım") `cascadeTreeStore`-dakı user-a düşən node-ları göstərmir → cascade nəticələri Kamran-da / Orxan-da görünmür.
+Nəticə: Popup (şəkil 3) və Kaskadlama pəncərəsinin "Cascade Load" xanası (şəkil 4) həmişə şəkil 1-dəki kök dəyəri (70 700) göstərəcək.
 
----
+## 2) Kaskadlama sətir default-u = təyinetmə zamanı yazılan hədəf dəyəri
 
-## Mərhələ-mərhələ dəyişikliklər (hər biri mövcud fayla toxunur)
+**Fayl:** `src/pages/manager/ManagerResponsibleCardsPage.tsx` (artıq `defaultSliceValue: assignedValue` göndərilir — dəyişiklik yoxdur, sadəcə #1-dən sonra düzgün işləyəcək).
 
-### M1 — Wizard → Target Setter düzgün yazılsın
-**Fayl:** `src/pages/KpiCardsPage.tsx` (ətrafında sətir 620–656)
-- Wizard-dakı mövcud "hədəf təyinat şəxsləri" seçimini oxuyub, hər seçilmiş setter üçün `addPendingEntry({ cardId, cardName, assigneeId, assigneeName, ownerType: "manager", unit })` çağırırıq.
-- "Struktur" seçilsə: `orgStore`-dan həmin strukturun `isStarPerson=true` rəhbərini tap və setter et.
-- **Yeni sahə əlavə edilmir** — sadəcə mövcud `addPendingEntry` doğru `assigneeName` ilə çağırılır.
+**Fayl:** `src/components/kpi/CascadeDistributeDialog.tsx` — `SubTable` `defaultValue` prop-u `bootstrap?.defaultSliceValue` istifadə edir. Bunu qoruyuruq.
 
-**Yoxlama:** HR kart yaradanda `localStorage["kpi_set_entries_v6"]`-də yeni sətir `assigneeName: "Elvin Rəhimov"` (və ya seçilmiş şəxs) ilə görünsün.
+Əlavə: Manager KPI İzlənməsindən "Kaskadla" düyməsi ilə açıldıqda (`existingNode` yolu) sətir default-u root limitinin bərabər hissəyə bölünməsi kimi qalır (bu yol AssignGoalDialog-dan keçmir → hədəf dəyəri yoxdur).
 
-### M2 — Responsible Cards istifadəçi əsasında süzülsün
-**Fayl:** `src/pages/manager/ManagerResponsibleCardsPage.tsx` (sətir 65–160)
-- `rows.filter(r => r.ownerType === "manager")` → `rows.filter(r => r.ownerType === "manager" && r.assigneeName === user?.name)`
-- Sayğaclar da eyni filtri istifadə etsin.
-- HR hesabı üçün özəl davranış yoxdur — HR öz adı ilə eşleşmədiyi üçün siyahı boş olur (istifadəçinin istədiyi budur).
+## 3) Kaskadlama zamanı tam paylanmayan root = qırmızı
 
-**Yoxlama:** Kart yaradıldıqdan sonra yalnız setter-in hesabında "Hədəf təyin etmə"-də görünsün; HR-də boş qalsın.
+**Fayl:** `src/pages/CascadeTrackingPage.tsx` → `toneOf` və sol siyahıdakı `toneOf(r)`.
 
-### M3 — Cascade Load-un mənbəyi düzəldilsin
-**Fayl:** `src/lib/kpiSetStore.ts` (`getIncomingCascadeLoad`)
-- Funksiyanın imzasını qoruyuruq (çağıran yerlər sınmasın).
-- Daxildə əvvəl `cascadeTreeStore.getNodes()`-dan `assigneeName === setter` və `parentId !== null` olan node axtarırıq (yəni: setter yuxarı rəhbərdən pay alıbmı?).
-  - Varsa → `{ value: node.limit, unit: node.unit, cardName: node.cardName }`.
-- Tapılmasa: setter root-dursa (HR-in owner-i olduğu kart), fallback olaraq mövcud `SharedKpiCard.targets` cəmindən HR-in verdiyi ümumi target-i oxuyuruq (kart cardId ilə bağlıdır).
-- Köhnə "başqa cascadable entry-dən oxuma" məntiqi silinir — istifadəçinin dediyi səhv budur.
+Hazırda root üçün `kids.length === 0` → "neutral" (boz). Root heç kaskadlanmayıbsa (kids yoxdur, amma limit > 0) — qırmızı olmalıdır.
 
-**Yoxlama:** Elvin 200.000 yazır → popup 750.000 göstərir (çünki HR kartın target-i budur). Kamran 100.000 yazır → popup Elvinin ona ayırdığı 300.000-i göstərir.
+Dəyişiklik: `toneOf`-da xüsusi hal — `parentId === null && limit > 0 && kids.length === 0` → **qırmızı**; `parentId === null && kids.length === 0 && limit === 0` → neytral.
 
-### M4 — Wizard tərəfindən cascade root avtomatik yaradılsın
-**Fayl:** `src/pages/KpiCardsPage.tsx`
-- HR kartı yaradanda (`buildSharedCardFromDraft` çağırışından sonra), əgər `cascadable === true`-dursa və kart Owner tiplidirsə (HR-in seçdiyi ownerId var), `createRoot({ assigneeId: ownerEmpId, limit: kartda yazılan target, cardName, goalName: targets[0].name, unit })` çağırırıq.
-- Bu, Elvinin sonradan cascade edə bilməsi üçün ağacın kökünü yaradır. Duplikat qorunması üçün `findRootByGoal` istifadə olunur.
+## 4) Yeni kaskadlama tam əvvəlki zəncirin davamı kimi görünsün
 
-**Yoxlama:** Kart yaradıldıqdan dərhal sonra `localStorage["cascade_tree_nodes_v4"]`-də uyğun root peyda olsun.
+**Fayl:** `src/components/kpi/CascadeDistributeDialog.tsx` — bootstrap `useEffect`.
 
-### M5 — CascadeDistributeDialog təmizliyi
-**Fayl:** `src/components/kpi/CascadeDistributeDialog.tsx`
-- "Yenidən kaskadlaya bilər" checkbox-u və uyğun state varsa tamamilə silinir.
-- Mövcud `Tabs` (all/leaders — koda baxınca artıq var) əvəzinə **məcburi 2-radio seçimi** (əvvəldən heç biri seçili olmasın):
-  - `"Tabeliyimdə olan bütün əməkdaşlar"` → `getSubordinatesOfStarHolder(user)` (mövcud helper)
-  - `"Struktur rəhbərləri"` → eyni siyahının `isStarPerson` filtri (mövcud kod)
-- Seçim edilməyincə audience siyahısı gizlədilsin.
-- Bootstrap-a ötürülən `limit` = Cascade Load (M3 mənbəsi), yazılmış target deyil (`ManagerResponsibleCardsPage`-də `cascadeConfirm.value` yerinə `getIncomingCascadeLoad(...).value` ötürürük).
-- Cəm > Cascade Load olduqda validation.
+Hazırkı məntiq: setter üçün öncəlik CHILD node (yuxarıdan pay alınmış node); yoxdursa öz ROOT-u. Bu düzgündür.
 
-**Yoxlama:** Dialoq açılanda əvvəl 2 radio → seçim → yalnız uyğun subordinate-lar → cəm limit-i keçə bilməsin.
+Amma Elvin öz "MARKETINGIN İLLİK KARTI"-nı təyin edir və HR-in "ŞELVİN KPİ KART"-ı ilə bağlantı yoxdur — cardName/goalName fərqli. Nəticədə eyni ağaca bağlanma məntiqli deyil (bunlar müstəqil hədəflərdir).
 
-### M6 — "Mənim KPI-larım" cascade node-larını göstərsin
-**Fayl:** `src/pages/manager/ManagerKpiTrackingPage.tsx`
-- Mövcud data mənbəyinə `useCascadeTree()`-dən `n.assigneeName === user.name` filtri əlavə edirik.
-- Hər node bir sətir kimi (kart adı = `n.cardName`, hədəf adı = `n.goalName`, dəyər = `n.limit`).
-- `useSharedKpiCards()`-dən owner=user olan kartlar da göstərilir (əgər hazırda göstərilmirsə).
+Nəticə: Hər kart öz root-u ilə qalacaq. Kaskadlama tarixçəsi Cascade İzlənmə səhifəsində HƏR ROOT üçün ayrıca kart kimi görünəcək (mövcud davranış). Root-un dəyəri = HR-in verdiyi ilkin dəyər ("Cascade Load" #1-dən).
 
-**Yoxlama:** Elvin cascade edəndən sonra Kamran hesabında "Mənim KPI-larım"-da yeni sətir çıxır. Kamran cascade edəndə Orxan hesabında çıxır.
+## 5) Kamran üçün eyni məntiq — resurs sıralama düzəldilməsi
 
-### M7 — Cascade Xəritəsi zəncirin tamlığı
-**Fayl:** `src/pages/CascadingHubPage.tsx` (yoxlanılır — çox güman ki artıq `useCascadeTree`-yə bağlıdır)
-- Yalnız root-un `cardName`-inin yeni yaradılmış kartları da tanıdığından əmin oluruq. Əlavə kod tələb olunmasa toxunulmur.
+**Fayl:** `src/lib/kpiSetStore.ts` (eyni #1 dəyişikliyinin nəticəsi).
 
-**Yoxlama:** Wizard → dəyər → cascade → cascade → cascade zənciri (HR→Elvin→Kamran→Orxan) xəritədə tam ağac kimi görünür.
+Kamran öz "Məsul olduğum kartlar"-ında hədəf təyin etdikdə:
+- Step 1 cascade tree-də Kamran üçün CHILD node tapır (Elvin tərəfindən paylanan) → onun limitini qaytarır.
+- Popup göstərir: "Sizə başqa KPI kartından gələn Cascade Load: X AZN" (Elvinin ona verdiyi rəqəm).
+- "Bəli" → CascadeDistributeDialog Kamran üçün açılır, onun CHILD node-una əsaslanaraq alt bölgü yaradır → eyni ağaca əlavə olunur (Elvin → Kamran → Orxan zənciri qırılmaz).
+
+Bu artıq mövcud kod tərəfindən dəstəklənir; #1 ilə düzgün dəyər qayıdacaq.
 
 ---
 
-## Toxunulmayanlar
+## Toxunulacaq fayllar
 
-- Bütün mövcud seed data (`seed-1..5`, `ks-elvin-*`, `cn-s-root`, `cn-m-root` və s.) olduğu kimi qalır.
-- `authStore`, `orgStore`, `SharedKpiCard`, `KpiSetEntry`, `CascadeTreeNode` tipləri **dəyişmir**.
-- Yeni fayl yoxdur.
+- `src/lib/kpiSetStore.ts` — `getIncomingCascadeLoad` (Step 2 genişlənməsi + sıralama)
+- `src/pages/CascadeTrackingPage.tsx` — `toneOf` (kaskadlanmayan root qırmızı)
 
-## İş qaydası
+## Yoxlanış
 
-M1 → yoxlayaq → M2 → yoxlayaq → ... M7. Hər mərhələdən sonra sizə "hazırdır, X hesabından test edin" deyəcəm. Yalnız sizin OK-nizdən sonra növbəti mərhələyə keçəcəm ki, flow-un heç bir hissəsi yarımçıq qalmasın.
+Dəyişikliklərdən sonra:
+1. Elvinin AssignGoalDialog → Yadda saxla → popup **HR-in verdiyi 70 700** göstərir.
+2. Distribute pəncərəsi: Cascade Load = 70 700, sətir default-u = 7 000 (təyinetmədə yazılan).
+3. Bölüşdürüldükdən sonra root-un altında budaqlar görünür; tam paylanmayıbsa root qırmızı.
+4. Kamran da eyni axını təkrarlayır; hər addım Cascade İzlənmə səhifəsində əks olunur.
