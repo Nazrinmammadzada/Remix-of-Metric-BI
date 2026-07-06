@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { Search, Plus, Trophy, TrendingUp, Users, X, Check, ChevronDown, Sparkles, ArrowLeft, Crown, Calendar as CalendarIcon } from "lucide-react";
