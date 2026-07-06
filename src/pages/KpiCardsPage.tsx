@@ -1403,8 +1403,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th className="py-2 px-2">Əməkdaş</th>
-                          <th className="py-2 px-2">Ata adı</th>
+                          <th className="py-2 px-2">Əməkdaşın A.S.A.</th>
                           <th className="py-2 px-2">Vəzifə</th>
                           <th className="py-2 px-2 text-center">KPI kartlarının sayı</th>
                           <th className="py-2 px-2">Ortalama Progress</th>
@@ -1417,17 +1416,17 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
                           const parts = person.split(" ");
                           const empMatch = getEmployees().find(e => `${e.firstName} ${e.lastName}` === person || `${e.lastName} ${e.firstName}` === person || (parts.length >= 2 && e.firstName === parts[0] && e.lastName === parts[1]));
-                          const fatherName = empMatch?.fatherName || "—";
+                          const fatherName = empMatch?.fatherName || "";
+                          const displayName = [person, fatherName].filter(Boolean).join(" ");
                           const positionName = empMatch?.positionName || cards[0]?.subdivision || "Əməkdaş";
                           return (
                             <tr key={person} className="border-b border-border last:border-0 hover:bg-secondary/40">
                               <td className="py-2.5 px-2">
                                 <div className="flex items-center gap-2.5">
                                   <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-semibold">{initial}</div>
-                                  <span className="font-medium text-foreground">{person}</span>
+                                  <span className="font-medium text-foreground">{displayName}</span>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-2 text-muted-foreground text-xs">{fatherName}</td>
                               <td className="py-2.5 px-2 text-xs">{positionName}</td>
                               <td className="py-2.5 px-2 text-center">
                                 <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">{cards.length}</span>
