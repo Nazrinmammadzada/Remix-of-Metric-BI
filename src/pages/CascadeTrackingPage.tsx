@@ -246,7 +246,7 @@ const Topology = ({ root, compact, highlightId }: { root: CascadeTreeNode; compa
     <div className="cascade-tree inline-block min-w-full">
       <style>{treeCss}</style>
       <ul className="cascade-root">
-        <TopoNode node={root} depth={0} maxDepth={compact ? 2 : 99} highlightId={highlightId ?? null} />
+        <TopoNode node={root} depth={0} maxDepth={99} highlightId={highlightId ?? null} />
       </ul>
     </div>
   );
