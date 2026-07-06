@@ -9,7 +9,7 @@ import BonusPage, { type Employee } from "@/pages/BonusPage";
 // Elvin (Marketinq Direktoru) — öz bonusu
 const OWN_EMPLOYEES: Employee[] = [
   {
-    id: "e4", firstName: "Elvin", lastName: "Rəhimov", department: "Marketinq Departamenti",
+    id: "e4", firstName: "Elvin", lastName: "Rəhimov", fatherName: "Tofiq", department: "Marketinq Departamenti",
     position: "Marketinq Direktoru", baseSalary: 4600, targetBonusPct: 25,
     subKpis: [
       { name: "Departament satış həcmi",   weight: 40, evaluator: "Farid Həsənov",  score: 92 },
@@ -22,7 +22,7 @@ const OWN_EMPLOYEES: Employee[] = [
 // Elvin'in tabeliyində olan əməkdaşlar
 const SUB_EMPLOYEES: Employee[] = [
   {
-    id: "e7", firstName: "Kamran", lastName: "Quliyev", department: "Rəqəmsal Marketinq",
+    id: "e7", firstName: "Kamran", lastName: "Quliyev", fatherName: "Zaur", department: "Rəqəmsal Marketinq",
     position: "Şöbə Müdiri", baseSalary: 2900, targetBonusPct: 20,
     subKpis: [
       { name: "Rəqəmsal ROI",               weight: 50, evaluator: "Elvin Rəhimov", score: 95 },
@@ -31,7 +31,7 @@ const SUB_EMPLOYEES: Employee[] = [
     ],
   },
   {
-    id: "e8", firstName: "Aynur", lastName: "Cəfərova", department: "Brend",
+    id: "e8", firstName: "Aynur", lastName: "Cəfərova", fatherName: "Elşən", department: "Brend",
     position: "Şöbə Müdiri", baseSalary: 2900, targetBonusPct: 20,
     subKpis: [
       { name: "Brend awareness",            weight: 40, evaluator: "Elvin Rəhimov", score: 82 },
@@ -40,7 +40,7 @@ const SUB_EMPLOYEES: Employee[] = [
     ],
   },
   {
-    id: "e15", firstName: "Orxan", lastName: "Bayramov", department: "Rəqəmsal Marketinq",
+    id: "e15", firstName: "Orxan", lastName: "Bayramov", fatherName: "Cavid", department: "Rəqəmsal Marketinq",
     position: "Marketinq Mütəxəssisi", baseSalary: 1900, targetBonusPct: 15,
     subKpis: [
       { name: "Google Ads performans",      weight: 40, evaluator: "Kamran Quliyev", score: 78 },
@@ -49,7 +49,7 @@ const SUB_EMPLOYEES: Employee[] = [
     ],
   },
   {
-    id: "e16", firstName: "Aytac", lastName: "Kərimova", department: "Brend",
+    id: "e16", firstName: "Aytac", lastName: "Kərimova", fatherName: "Elmar", department: "Brend",
     position: "Brend Mütəxəssisi", baseSalary: 1900, targetBonusPct: 15,
     subKpis: [
       { name: "Sosial media follower artımı", weight: 40, evaluator: "Aynur Cəfərova", score: 90 },

@@ -218,7 +218,7 @@ const TeamsPage = () => {
     if (!leader) { toast.error("Seçilən lider siyahıda tapılmadı"); return; }
 
     const memberObjs = allPeople.filter(p => selectedMembers.includes(p.name) && p.name !== leader.name);
-    const branch = subStructures[0] || structures[0] || "Mərkəzi Filial";
+    const branch = subStructures[0] || structures[0] || "Satış Departamenti";
     const team: Team = {
       id: Date.now(),
       name: newTeamName.trim(),
@@ -230,6 +230,7 @@ const TeamsPage = () => {
       completedKpi: 0,
       totalKpi: 0,
       members: memberObjs,
+      createdAt: new Date().toISOString(),
     };
     addTeam(team);
     setTeams(getTeams());
@@ -363,7 +364,7 @@ const TeamsPage = () => {
                   </p>
                 </div>
                 <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Filial / Struktur</p>
+                  <p className="text-xs text-muted-foreground">Struktur</p>
                   <p className="font-semibold text-foreground mt-1">{selectedTeam.branch}</p>
                 </div>
                 <div className="border border-border rounded-lg p-3">
@@ -372,7 +373,7 @@ const TeamsPage = () => {
                 </div>
                 <div className="border border-border rounded-lg p-3">
                   <p className="text-xs text-muted-foreground">Yaradılma</p>
-                  <p className="font-semibold text-foreground mt-1">{new Date(selectedTeam.id).toLocaleDateString("az-AZ")}</p>
+                  <p className="font-semibold text-foreground mt-1">{selectedTeam.createdAt ? new Date(selectedTeam.createdAt).toLocaleDateString("az-AZ") : "—"}</p>
                 </div>
               </div>
               <div className="border border-border rounded-lg p-4">
