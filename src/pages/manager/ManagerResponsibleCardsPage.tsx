@@ -427,7 +427,7 @@ const EvaluateView = () => {
                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <ClipboardCheck className="w-4 h-4" />
                   </div>
-                  <span className="font-semibold text-foreground truncate">{c.name}</span>
+                  <span className="font-semibold text-foreground truncate">{withKartSuffix(c.name)}</span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                     {cardItems.length} hədəf
                   </span>
