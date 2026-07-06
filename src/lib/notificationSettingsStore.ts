@@ -185,6 +185,27 @@ export const updateNotificationSetting = (id: string, patch: Partial<Notificatio
   persist(load().map(n => n.id === id ? { ...n, ...patch } : n));
 };
 
+export const addNotificationSetting = (title: string, description: string): NotificationSetting => {
+  const id = `custom_${Date.now()}`;
+  const created: NotificationSetting = {
+    id, title, description,
+    enabled: true,
+    channels: ["in_app"],
+    frequency: "on_event",
+    reminders: [0],
+    sendTime: "09:00",
+    recipients: [],
+    template: "",
+  };
+  persist([...load(), created]);
+  return created;
+};
+
+export const deleteNotificationSetting = (id: string) => {
+  persist(load().filter(n => n.id !== id));
+};
+
+
 export const useNotificationSettings = (): NotificationSetting[] => {
   const [list, setList] = useState<NotificationSetting[]>(() => load());
   useEffect(() => {

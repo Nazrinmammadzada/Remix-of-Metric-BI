@@ -5,11 +5,12 @@ interface Props {
   options: string[];
   selected: string[];
   onToggle: (v: string) => void;
+  onChange?: (next: string[]) => void;
   placeholder?: string;
   searchPlaceholder?: string;
 }
 
-const DropdownMultiSelect = ({ options, selected, onToggle, placeholder = "Seçin", searchPlaceholder = "Axtar..." }: Props) => {
+const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholder = "Seçin", searchPlaceholder = "Axtar..." }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -18,11 +19,29 @@ const DropdownMultiSelect = ({ options, selected, onToggle, placeholder = "Seçi
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   const filtered = options.filter((o) => o.toLowerCase().includes(search.toLowerCase()));
+  const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o));
+  const toggleAll = () => {
+    if (!onChange) {
+      filtered.forEach(o => {
+        const isSel = selected.includes(o);
+        if (allSelected && isSel) onToggle(o);
+        else if (!allSelected && !isSel) onToggle(o);
+      });
+      return;
+    }
+    if (allSelected) onChange(selected.filter(v => !filtered.includes(v)));
+    else onChange(Array.from(new Set([...selected, ...filtered])));
+  };
 
   return (
     <div className="relative mt-1" ref={ref}>
@@ -51,6 +70,12 @@ const DropdownMultiSelect = ({ options, selected, onToggle, placeholder = "Seçi
               );
             })}
             {filtered.length === 0 && <p className="px-3 py-3 text-xs text-muted-foreground text-center">Tapılmadı</p>}
+          </div>
+          <div className="flex items-center justify-between px-2 py-1 border-t border-border">
+            <button type="button" onClick={(e) => { e.stopPropagation(); toggleAll(); }} className="text-[11px] text-primary hover:underline px-1 font-medium">
+              {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setOpen(false); }} className="text-[11px] text-primary hover:underline px-1">Bağla</button>
           </div>
         </div>
       )}

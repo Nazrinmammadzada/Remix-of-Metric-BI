@@ -1,13 +1,15 @@
 import { useMemo, useState, useEffect } from "react";
-import { Bell, Mail, MessageSquare, Smartphone, Search, Save, Users as UsersIcon, X, ChevronDown } from "lucide-react";
+import { Bell, Mail, MessageSquare, Smartphone, Search, Save, Users as UsersIcon, X, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useNotificationSettings, updateNotificationSetting,
+  useNotificationSettings, updateNotificationSetting, addNotificationSetting, deleteNotificationSetting,
   CHANNEL_LABELS, FREQUENCY_LABELS, RECIPIENT_LABELS,
   type NotificationSetting, type NotificationChannel,
 } from "@/lib/notificationSettingsStore";
 import { useRoles } from "@/lib/rolesStore";
 import { getEmployees } from "@/lib/orgStore";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 const channelIcon: Record<NotificationChannel, React.ComponentType<{ className?: string }>> = {
   in_app: Bell,
@@ -31,6 +33,10 @@ const NotificationSettingsTab = () => {
   const [remDraft, setRemDraft] = useState<string>("");
   const [personOpen, setPersonOpen] = useState(false);
   const [personSearch, setPersonSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newNotif, setNewNotif] = useState({ title: "", description: "" });
+
+
 
   const filtered = useMemo(
     () => settings.filter(s => s.title.toLowerCase().includes(search.toLowerCase())),
@@ -82,10 +88,36 @@ const NotificationSettingsTab = () => {
     [employees, personSearch],
   );
 
+  const handleCreate = () => {
+    const title = newNotif.title.trim();
+    const desc = newNotif.description.trim();
+    if (!title) { toast.error("Bildiriş adı daxil edin"); return; }
+    const created = addNotificationSetting(title, desc);
+    setSelectedId(created.id);
+    setDraft(null);
+    setNewNotif({ title: "", description: "" });
+    setCreateOpen(false);
+    toast.success("Yeni bildiriş yaradıldı");
+  };
+
+  const handleDelete = (id: string, title: string) => {
+    if (!confirm(`"${title}" bildirişini silmək istəyirsiniz?`)) return;
+    deleteNotificationSetting(id);
+    if (selectedId === id) { setSelectedId(null); setDraft(null); }
+    toast.success("Bildiriş silindi");
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-4">
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border space-y-2">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Yeni bildiriş yarat
+          </button>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -96,24 +128,38 @@ const NotificationSettingsTab = () => {
             />
           </div>
         </div>
+
         <div className="max-h-[600px] overflow-y-auto divide-y divide-border">
           {filtered.map(s => {
             const active = s.id === selectedId;
+            const isCustom = s.id.startsWith("custom_");
             return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => startEdit(s)}
-                className={`w-full text-left px-3 py-3 transition-colors ${active ? "bg-primary/10" : "hover:bg-secondary/50"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}>{s.title}</span>
-                  <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-success" : "bg-muted-foreground/40"}`} />
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{s.description}</p>
-              </button>
+              <div key={s.id} className={`relative group ${active ? "bg-primary/10" : "hover:bg-secondary/50"} transition-colors`}>
+                <button
+                  type="button"
+                  onClick={() => startEdit(s)}
+                  className="w-full text-left px-3 py-3"
+                >
+                  <div className="flex items-center justify-between gap-2 pr-6">
+                    <span className={`text-sm font-medium ${active ? "text-primary" : "text-foreground"}`}>{s.title}</span>
+                    <span className={`w-2 h-2 rounded-full ${s.enabled ? "bg-success" : "bg-muted-foreground/40"}`} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{s.description}</p>
+                </button>
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(s.id, s.title)}
+                    className="absolute right-2 top-2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-opacity"
+                    title="Sil"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </button>
+                )}
+              </div>
             );
           })}
+
           {filtered.length === 0 && (
             <p className="p-4 text-sm text-muted-foreground text-center">Nəticə tapılmadı</p>
           )}
@@ -331,8 +377,57 @@ const NotificationSettingsTab = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" /> Yeni bildiriş yarat
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground">Bildiriş adı</label>
+              <input
+                value={newNotif.title}
+                onChange={e => setNewNotif(p => ({ ...p, title: e.target.value }))}
+                placeholder="Məsələn: Həftəlik komanda hesabatı"
+                className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Qısa təsvir</label>
+              <textarea
+                value={newNotif.description}
+                onChange={e => setNewNotif(p => ({ ...p, description: e.target.value }))}
+                rows={3}
+                placeholder="Bu bildirişin nə vaxt və nə üçün göndərildiyini yazın"
+                className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background resize-none"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground bg-secondary/40 rounded-lg p-2.5">
+              Yaradıldıqdan sonra sağ paneldə kanalları, tezliyi, alıcıları və şablon mətnini tənzimləyin.
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={handleCreate}
+                className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium"
+              >
+                Yadda saxla
+              </button>
+              <button
+                onClick={() => setCreateOpen(false)}
+                className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card"
+              >
+                Ləğv et
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default NotificationSettingsTab;

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getEmployees } from "@/lib/orgStore";
@@ -249,6 +249,7 @@ function MultiSelectDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const wrapRef = useRef<HTMLDivElement>(null);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return options;
@@ -256,8 +257,27 @@ function MultiSelectDropdown({
   }, [q, options]);
   const toggle = (v: string) =>
     onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o.value));
+  const toggleAll = () => {
+    if (allSelected) onChange(selected.filter(v => !filtered.some(o => o.value === v)));
+    else onChange(Array.from(new Set([...selected, ...filtered.map(o => o.value)])));
+  };
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapRef}>
+
       <button
         type="button"
         aria-label={ariaLabel}
@@ -298,8 +318,12 @@ function MultiSelectDropdown({
             })}
           </div>
           <div className="flex items-center justify-between px-2 py-1 border-t border-border">
-            <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
-            <div className="flex gap-1">
+            <button type="button" onClick={toggleAll}
+              className="text-[11px] text-primary hover:underline px-1 font-medium">
+              {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
+            </button>
+            <div className="flex gap-2 items-center">
+              <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
               {selected.length > 0 && (
                 <button type="button" onClick={() => onChange([])}
                   className="text-[11px] text-destructive hover:underline px-1">Təmizlə</button>
@@ -308,6 +332,7 @@ function MultiSelectDropdown({
                 className="text-[11px] text-primary hover:underline px-1">Bağla</button>
             </div>
           </div>
+
         </div>
       )}
       {selected.length > 0 && (
