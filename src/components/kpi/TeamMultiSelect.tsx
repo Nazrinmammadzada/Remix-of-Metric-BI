@@ -50,6 +50,8 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
     onChange(next);
     if (next.length < 2 && shared) onSharedChange(false);
     requestAnimationFrame(() => setOpen(true));
+    window.setTimeout(() => setOpen(true), 0);
+    window.setTimeout(() => setOpen(true), 50);
   };
 
   const filtered = teams.filter(
