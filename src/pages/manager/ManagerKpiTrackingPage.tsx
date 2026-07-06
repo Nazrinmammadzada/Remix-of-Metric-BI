@@ -639,7 +639,7 @@ const hashStr = (s: string) => {
   return h;
 };
 
-const buildOrgTree = (): TreeNode[] => {
+const buildOrgTree = (scopePath?: string | null): TreeNode[] => {
   const emps = getEmployees().filter(e => e.active);
   const structs = getStructures();
 
@@ -687,7 +687,7 @@ const buildOrgTree = (): TreeNode[] => {
       : "division";
     const empCount = countSub(s, path);
     nodes.push({
-      id, name: s.name, kind, parent: parentId,
+      id, name: s.name, kind, parent: parentId || undefined,
       employees: empCount,
       avgPct: 60 + (h % 40),
       completed: (h % 30) + 3,
@@ -699,6 +699,27 @@ const buildOrgTree = (): TreeNode[] => {
     (empByPath.get(path) ?? []).forEach(e => nodes.push(makeEmp(e, id, path)));
     s.children.forEach(ch => walk(ch, path, id));
   };
+
+  // Manager scope: root the tree at the manager's own structure unit
+  if (scopePath) {
+    let target: OrgStructure | null = null;
+    const search = (list: OrgStructure[], parentArr: string[]) => {
+      for (const n of list) {
+        if (target) return;
+        const cur = [...parentArr, n.name];
+        if (cur.join(" › ") === scopePath) { target = n; return; }
+        if (n.children.length) search(n.children, cur);
+      }
+    };
+    search(structs, []);
+    if (target) {
+      const parentPath = scopePath.split(" › ").slice(0, -1).join(" › ");
+      walk(target, parentPath, "");
+      return nodes;
+    }
+    // scope path not found → return empty
+    return nodes;
+  }
 
   const rootId = "all";
   const rootEmpCount = emps.length;
@@ -716,6 +737,7 @@ const buildOrgTree = (): TreeNode[] => {
   structs.forEach(s => walk(s, "", rootId));
   return nodes;
 };
+
 
 // Per-employee KPI list (deterministic subset of MY_KPIS variants)
 interface EmpKpi { id: string; name: string; desc: string; plan: number; fakt: number; unit: string; status: KpiStatus; }
