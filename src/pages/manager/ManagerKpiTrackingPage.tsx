@@ -482,7 +482,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
           {/* Title */}
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
-              <div className="text-base font-semibold text-foreground">{kpi.name}</div>
+              <div className="text-base font-semibold text-foreground">{withKartSuffix(kpi.name)}</div>
               <div className="text-xs text-muted-foreground mt-0.5">{kpi.description}</div>
             </div>
             <Badge className={statusMeta[kpi.status].cls}>{statusMeta[kpi.status].label}</Badge>
