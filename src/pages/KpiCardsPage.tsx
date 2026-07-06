@@ -665,7 +665,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
     // === Cross-panel sync: mirror the wizard outcome into the shared KPI store ===
     try {
-      const ownerId = getCurrentEmployeeId(user) || "e1";
+      const employeesAll2 = getEmployees();
+      // Kartın həqiqi assignee-ləri (Elvin və s.). HR yaradan olsa da, kart onların KPI-dir.
+      const assigneeEmpIds = ownerAssigneeNames
+        .map(n => employeesAll2.find(e => `${e.firstName} ${e.lastName}` === n))
+        .filter(Boolean)
+        .map(e => `e${(e as any).id}`);
+      const creatorId = getCurrentEmployeeId(user) || "e1";
+      // ownerId = birinci assignee (əgər varsa), əks halda yaradanın id-si.
+      const ownerId = assigneeEmpIds[0] || creatorId;
       const sharedStatus: "natamam" | "tesdiq_gozlenilir" | "aktiv" =
         nextStatus === "aktiv" ? "aktiv" : "natamam";
       const sharedId = `legacy-${id}`;
@@ -675,18 +683,17 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         ownerId,
         status: sharedStatus,
         matrixId: d.useMatrix ? (d.approvalMatrixId || null) : null,
+        assigneeIds: assigneeEmpIds.length > 0 ? assigneeEmpIds : undefined,
       });
       upsertSharedKpiCard(shared);
       // If submitted to a matrix, push to approval queue so MANAGER sees it.
       if (action === "submit" && d.useMatrix && d.approvalMatrixId) {
-        // Demo: the Sales manager (e8) acts as approver. Real implementation would
-        // resolve approver employee ids from the selected matrix steps.
         enqueueApproval({
           kpiCardId: sharedId,
           kpiName: shared.name,
           matrixId: d.approvalMatrixId,
           approverIds: ["e8"],
-          createdBy: ownerId,
+          createdBy: creatorId,
         });
       }
     } catch (err) {
