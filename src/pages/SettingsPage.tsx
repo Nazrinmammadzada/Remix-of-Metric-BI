@@ -365,7 +365,9 @@ const SettingsPage = () => {
   const [newFormula, setNewFormula] = useState({ name: "", description: "", kpiName: "", variables: [""] as string[], formula: "" });
 
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [usersRole, setUsersRole] = useState<Role | null>(null);
   const [roleUserSearch, setRoleUserSearch] = useState("");
+
 
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: number; name: string; usedIn?: string } | null>(null);
