@@ -32,9 +32,8 @@ const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
   const [tab, setTab] = useState<"all" | "leaders">("all");
-  const { remaining, total } = useCascadeLoad();
 
-  useEffect(() => { setNode(existingNode); setSlices({}); setTab("all"); }, [existingNode?.id, open]);
+  useEffect(() => { setNode(existingNode); setSlices({}); setReCascade({}); setTab("all"); }, [existingNode?.id, open]);
 
   useEffect(() => {
     if (!open || existingNode || !bootstrap) return;
