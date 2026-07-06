@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/layout/Header";
 import { Search, Plus, Pencil, Trash2, Check, X, Users, Calculator, ChevronDown, AlertTriangle, Calendar as CalendarIcon, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
@@ -341,14 +341,12 @@ const SettingsPage = () => {
   const [newTarget, setNewTarget] = useState({ name: "", structure: "", calcTypes: [] as string[], active: true });
   const [targetCalcSearch, setTargetCalcSearch] = useState("");
   const [showTargetCalcDropdown, setShowTargetCalcDropdown] = useState(false);
-  const targetCalcDropdownRef = useRef<HTMLDivElement>(null);
 
   const [showCreateKpiType, setShowCreateKpiType] = useState(false);
   const [editingKpiType, setEditingKpiType] = useState<typeof initialKpiTypes[0] | null>(null);
   const [newKpiType, setNewKpiType] = useState({ name: "", category: "", units: [] as string[], description: "", active: true });
   const [kpiUnitSearch, setKpiUnitSearch] = useState("");
   const [showKpiUnitDropdown, setShowKpiUnitDropdown] = useState(false);
-  const kpiUnitDropdownRef = useRef<HTMLDivElement>(null);
 
   const [showCreateSubKpi, setShowCreateSubKpi] = useState(false);
   const [editingSubKpi, setEditingSubKpi] = useState<typeof initialSubKpis[0] | null>(null);
@@ -357,31 +355,6 @@ const SettingsPage = () => {
   const [subKpiKpiSearch, setSubKpiKpiSearch] = useState("");
   const [showSubKpiUnitDropdown, setShowSubKpiUnitDropdown] = useState(false);
   const [subKpiUnitSearch, setSubKpiUnitSearch] = useState("");
-  const subKpiUnitDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (showTargetCalcDropdown && targetCalcDropdownRef.current && !targetCalcDropdownRef.current.contains(target)) setShowTargetCalcDropdown(false);
-      if (showKpiUnitDropdown && kpiUnitDropdownRef.current && !kpiUnitDropdownRef.current.contains(target)) setShowKpiUnitDropdown(false);
-      if (showSubKpiUnitDropdown && subKpiUnitDropdownRef.current && !subKpiUnitDropdownRef.current.contains(target)) setShowSubKpiUnitDropdown(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (!showTargetCalcDropdown && !showKpiUnitDropdown && !showSubKpiUnitDropdown) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setShowTargetCalcDropdown(false);
-      setShowKpiUnitDropdown(false);
-      setShowSubKpiUnitDropdown(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey, true);
-    };
-  }, [showTargetCalcDropdown, showKpiUnitDropdown, showSubKpiUnitDropdown]);
 
   const [showCreateDataType, setShowCreateDataType] = useState(false);
   const [newDataType, setNewDataType] = useState({ name: "", type: "", structure: "", description: "" });
@@ -703,7 +676,7 @@ const SettingsPage = () => {
             <div><label className="text-sm font-medium text-foreground">Aid Olduğu Struktur</label><select value={newTarget.structure} onChange={e => setNewTarget(p => ({ ...p, structure: e.target.value }))} className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background"><option value="">Struktur seçin</option>{structures.map(s => <option key={s}>{s}</option>)}</select></div>
             <div>
               <label className="text-sm font-medium text-foreground">Hesablama Tipi (çoxlu seçim)</label>
-              <div className="relative mt-1" ref={targetCalcDropdownRef}>
+              <div className="relative mt-1">
                 <div onClick={() => setShowTargetCalcDropdown(!showTargetCalcDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                   {newTarget.calcTypes.length === 0 && <span className="text-muted-foreground">Tip seçin</span>}
                   {newTarget.calcTypes.map(t => <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{t}<X className="w-3 h-3 cursor-pointer" onClick={e => { e.stopPropagation(); toggleCalcType(t); }} /></span>)}
@@ -714,10 +687,6 @@ const SettingsPage = () => {
                     {calcTypes.filter(c => c.toLowerCase().includes(targetCalcSearch.toLowerCase())).map(c => (
                       <div key={c} onClick={e => { e.stopPropagation(); toggleCalcType(c); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newTarget.calcTypes.includes(c) ? 'bg-primary/5' : ''}`}><span>{c}</span>{newTarget.calcTypes.includes(c) && <Check className="w-4 h-4 text-primary" />}</div>
                     ))}
-                    <div className="p-2 border-t border-border flex justify-between items-center">
-                      <span className="text-[11px] text-muted-foreground">{newTarget.calcTypes.length} seçildi</span>
-                      <button type="button" onClick={() => { setShowTargetCalcDropdown(false); setTargetCalcSearch(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -743,7 +712,7 @@ const SettingsPage = () => {
             <div><label className="text-sm font-medium text-foreground">Aid Olduğu Kateqoriya</label><select value={newKpiType.category} onChange={e => setNewKpiType(p => ({ ...p, category: e.target.value }))} className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background"><option value="">Kateqoriya seçin</option>{kpiCategories.map(c => <option key={c}>{c}</option>)}</select></div>
             <div>
               <label className="text-sm font-medium text-foreground">Ölçü Vahidi (çoxlu seçim)</label>
-              <div className="relative mt-1" ref={kpiUnitDropdownRef}>
+              <div className="relative mt-1">
                 <div onClick={() => setShowKpiUnitDropdown(!showKpiUnitDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                   {newKpiType.units.length === 0 && <span className="text-muted-foreground">Vahid seçin</span>}
                   {newKpiType.units.map(u => <span key={u} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{u}<X className="w-3 h-3 cursor-pointer" onClick={e => { e.stopPropagation(); toggleKpiUnit(u); }} /></span>)}
@@ -754,10 +723,6 @@ const SettingsPage = () => {
                     {kpiUnits.filter(u => u.toLowerCase().includes(kpiUnitSearch.toLowerCase())).map(u => (
                       <div key={u} onClick={e => { e.stopPropagation(); toggleKpiUnit(u); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newKpiType.units.includes(u) ? 'bg-primary/5' : ''}`}><span>{u}</span>{newKpiType.units.includes(u) && <Check className="w-4 h-4 text-primary" />}</div>
                     ))}
-                    <div className="p-2 border-t border-border flex justify-between items-center">
-                      <span className="text-[11px] text-muted-foreground">{newKpiType.units.length} seçildi</span>
-                      <button type="button" onClick={() => { setShowKpiUnitDropdown(false); setKpiUnitSearch(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
-                    </div>
                   </div>
                 )}
               </div>
@@ -799,7 +764,7 @@ const SettingsPage = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium text-foreground">Ölçü Vahidi (çoxlu seçim)</label>
-                <div className="relative mt-1" ref={subKpiUnitDropdownRef}>
+                <div className="relative mt-1">
                   <div onClick={() => setShowSubKpiUnitDropdown(!showSubKpiUnitDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                     {newSubKpi.units.length === 0 && <span className="text-muted-foreground">Vahid seçin</span>}
                     {newSubKpi.units.map(u => <span key={u} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{u}<X className="w-3 h-3 cursor-pointer" onClick={e => { e.stopPropagation(); toggleSubKpiUnit(u); }} /></span>)}
@@ -810,10 +775,6 @@ const SettingsPage = () => {
                       {subKpiUnitOptions.filter(u => u.toLowerCase().includes(subKpiUnitSearch.toLowerCase())).map(u => (
                         <div key={u} onClick={e => { e.stopPropagation(); toggleSubKpiUnit(u); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newSubKpi.units.includes(u) ? 'bg-primary/5' : ''}`}><span>{u}</span>{newSubKpi.units.includes(u) && <Check className="w-4 h-4 text-primary" />}</div>
                       ))}
-                      <div className="p-2 border-t border-border flex justify-between items-center">
-                        <span className="text-[11px] text-muted-foreground">{newSubKpi.units.length} seçildi</span>
-                        <button type="button" onClick={() => { setShowSubKpiUnitDropdown(false); setSubKpiUnitSearch(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
-                      </div>
                     </div>
                   )}
                 </div>

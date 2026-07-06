@@ -28,121 +28,24 @@ export interface CascadeTreeNode {
   canReCascade?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v7";
-const LEGACY_KEYS = ["cascade_tree_nodes_v6", "cascade_tree_nodes_v5", "cascade_tree_nodes_v4", "cascade_tree_nodes_v3", "cascade_tree_nodes_v2", "cascade_tree_nodes_v1"];
+const KEY = "cascade_tree_nodes_v5";
+// köhnə seed versiyalarını təmizlə
+try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3","cascade_tree_nodes_v4"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
-
-const DEMO_AT = Date.now() - 1000 * 60 * 60 * 24 * 7;
-const DEMO_SEED: CascadeTreeNode[] = [
-  {
-    id: "demo-cascade-marketing-root",
-    rootId: "demo-cascade-marketing-root",
-    parentId: null,
-    cardName: "Marketinq Kampaniyalarının ROI-si",
-    goalName: "ROI gəliri",
-    unit: "AZN",
-    assigneeId: 4,
-    assigneeName: "Elvin Rəhimov",
-    positionName: "Marketinq Direktoru",
-    isStar: true,
-    limit: 750000,
-    createdAt: DEMO_AT,
-    updatedAt: DEMO_AT,
-    canReCascade: true,
-  },
-  {
-    id: "demo-cascade-marketing-kamran",
-    rootId: "demo-cascade-marketing-root",
-    parentId: "demo-cascade-marketing-root",
-    cardName: "Marketinq Kampaniyalarının ROI-si",
-    goalName: "ROI gəliri",
-    unit: "AZN",
-    assigneeId: 7,
-    assigneeName: "Kamran Quliyev",
-    positionName: "Rəqəmsal Marketinq Şöbə Müdiri",
-    isStar: true,
-    limit: 350000,
-    createdAt: DEMO_AT + 1,
-    updatedAt: DEMO_AT + 1,
-    canReCascade: true,
-  },
-  {
-    id: "demo-cascade-marketing-orxan",
-    rootId: "demo-cascade-marketing-root",
-    parentId: "demo-cascade-marketing-kamran",
-    cardName: "Marketinq Kampaniyalarının ROI-si",
-    goalName: "ROI gəliri",
-    unit: "AZN",
-    assigneeId: 15,
-    assigneeName: "Orxan Bayramov",
-    positionName: "Marketinq Mütəxəssisi",
-    isStar: false,
-    limit: 150000,
-    createdAt: DEMO_AT + 2,
-    updatedAt: DEMO_AT + 2,
-  },
-];
-
-const mergeDemoRows = (rows: CascadeTreeNode[]): CascadeTreeNode[] => {
-  const ids = new Set(rows.map(r => r.id));
-  const missing = DEMO_SEED.filter(r => !ids.has(r.id));
-  return missing.length ? [...missing, ...rows] : rows;
-};
 
 const load = (): CascadeTreeNode[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const rows = mergeDemoRows(JSON.parse(raw));
-      localStorage.setItem(KEY, JSON.stringify(rows));
-      return rows;
-    }
-    for (const legacyKey of LEGACY_KEYS) {
-      const legacy = localStorage.getItem(legacyKey);
-      if (!legacy) continue;
-      const rows = mergeDemoRows(JSON.parse(legacy));
-      localStorage.setItem(KEY, JSON.stringify(rows));
-      return rows;
-    }
+    if (raw) return JSON.parse(raw);
   } catch {}
-  localStorage.setItem(KEY, JSON.stringify(DEMO_SEED));
-  return DEMO_SEED;
+  const seed = seedNodes();
+  localStorage.setItem(KEY, JSON.stringify(seed));
+  return seed;
 };
 
 const persist = (rows: CascadeTreeNode[]) => {
   localStorage.setItem(KEY, JSON.stringify(rows));
   window.dispatchEvent(new Event(EVT));
-};
-
-/** Verilən şəxs üçün "gələn kaskad yükü" — yəni yuxarı rəhbərdən ona kaskadlanan
- *  hər hansı bir node. Bu node child və ya root ola bilər. Bu node-un limiti
- *  o şəxsin öz tabeliyində bölüşdürə biləcəyi maksimum həddir.
- *  `excludeCardName` — cari kartı istisna etmək üçün (özünü kaskadlamamaq üçün). */
-export const findIncomingNodeForAssignee = (
-  assigneeId: number,
-  cardName?: string,
-  goalName?: string,
-): CascadeTreeNode | undefined => {
-  let list = load().filter(n => n.assigneeId === assigneeId);
-  if (cardName) {
-    const byCard = list.filter(n => n.cardName === cardName);
-    if (byCard.length) list = byCard;
-  }
-  if (goalName) {
-    const byGoal = list.filter(n => n.goalName === goalName);
-    if (byGoal.length) list = byGoal;
-  }
-  if (list.length === 0) return undefined;
-  // Ən yeni olanı seçirik.
-  return list.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))[0];
-};
-
-export const incomingLoadFor = (assigneeId: number, cardName?: string, goalName?: string): { total: number; remaining: number; node?: CascadeTreeNode } => {
-  const node = findIncomingNodeForAssignee(assigneeId, cardName, goalName);
-  if (!node) return { total: 0, remaining: 0 };
-  const total = Number(node.limit) || 0;
-  const distributed = getChildren(node.id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
-  return { total, remaining: Math.max(0, total - distributed), node };
 };
 
 export const getNodes = (): CascadeTreeNode[] => load();
@@ -231,10 +134,8 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
       error: `Bölüşdürülən cəm (${new Intl.NumberFormat("az-AZ").format(total)}) ana hədəfdən (${new Intl.NumberFormat("az-AZ").format(parentLimit)}) böyük ola bilməz.`,
     };
   }
+  const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
   const now = Date.now();
-  const list = load()
-    .filter(n => n.parentId !== parentId) // köhnə bölgüləri sil
-    .map(n => n.id === parentId ? { ...n, updatedAt: now } : n);
   const newKids: CascadeTreeNode[] = filtered.map(s => ({
     id: crypto.randomUUID(),
     rootId: parent.rootId,
@@ -287,3 +188,95 @@ export const useCascadeTree = (): CascadeTreeNode[] => {
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
+// ------- Seed: tam paylanmış çoxsəviyyəli nümunə + qismən paylanmış nümunə -------
+function seedNodes(): CascadeTreeNode[] {
+  const emps = getEmployees();
+  const byName = (n: string) => emps.find(e => `${e.firstName} ${e.lastName}` === n);
+  const now = Date.now();
+  const rows: CascadeTreeNode[] = [];
+
+  const mk = (id: string, parentId: string | null, rootId: string, name: string, emp: any, limit: number, cardName: string, goalName: string): CascadeTreeNode => ({
+    id, rootId, parentId,
+    cardName, goalName, unit: "AZN",
+    assigneeId: emp.id,
+    assigneeName: `${emp.firstName} ${emp.lastName}`,
+    positionName: emp.positionName,
+    isStar: !!emp.isStarPerson,
+    limit, createdAt: now, updatedAt: now,
+  });
+
+  // 1) Satış — tam paylanmış, geniş topologiya:
+  // Samir → Rəşad + Leyla; Rəşad və Leyla da öz tabeliyindəkilərə bölüşdürür.
+  const samir = byName("Samir Həsənov");
+  const reshad = byName("Rəşad Əliyev");
+  const leyla = byName("Leyla Məmmədova");
+  const emin = byName("Emin Məmmədov");
+  const nermin = byName("Nərmin Vəliyeva");
+  const ceyhun = byName("Ceyhun Abbasov");
+  const gunay = byName("Günay Salmanova");
+  const ramil = byName("Ramil Səfərov");
+  const nezrin = byName("Nəzrin Qurbanova");
+  const vusal = byName("Vüsal Mirzəyev");
+  const tural = byName("Tural Abbasov");
+  const ulviyye = byName("Ülviyyə Nəbiyeva");
+  const nergiz = byName("Nərgiz Əhmədova");
+  const togrul = byName("Toğrul Kərimov");
+  const nurlan = byName("Nurlan Bağırov");
+  if (samir && reshad && leyla && emin && nermin && ceyhun && gunay && ramil && nezrin && vusal && tural && ulviyye && nergiz && togrul && nurlan) {
+    const card = "İllik Satış Hədəfi 2026"; const goal = "Ümumi Satış Həcmi";
+    rows.push(mk("cn-s-root", null, "cn-s-root", "root", samir, 1_000_000, card, goal));
+    rows.push(mk("cn-s-a", "cn-s-root", "cn-s-root", "", reshad, 600_000, card, goal));
+    rows.push(mk("cn-s-b", "cn-s-root", "cn-s-root", "", leyla, 400_000, card, goal));
+
+    // Rəşad Əliyev öz hədəfini tabeliyindəki əməkdaşlar arasında tam paylaşır.
+    rows.push(mk("cn-s-a1", "cn-s-a", "cn-s-root", "", emin, 250_000, card, goal));
+    rows.push(mk("cn-s-a2", "cn-s-a", "cn-s-root", "", ceyhun, 150_000, card, goal));
+    rows.push(mk("cn-s-a3", "cn-s-a", "cn-s-root", "", gunay, 100_000, card, goal));
+    rows.push(mk("cn-s-a4", "cn-s-a", "cn-s-root", "", ramil, 100_000, card, goal));
+
+    // Leyla Məmmədova da öz hədəfini tabeliyindəki əməkdaşlar arasında tam paylaşır.
+    rows.push(mk("cn-s-b1", "cn-s-b", "cn-s-root", "", nermin, 140_000, card, goal));
+    rows.push(mk("cn-s-b2", "cn-s-b", "cn-s-root", "", nezrin, 90_000, card, goal));
+    rows.push(mk("cn-s-b3", "cn-s-b", "cn-s-root", "", vusal, 90_000, card, goal));
+    rows.push(mk("cn-s-b4", "cn-s-b", "cn-s-root", "", tural, 80_000, card, goal));
+
+    // Nümunə daha dərin görünsün deyə iki alt qolda komanda daxili mikro-bölgü var.
+    rows.push(mk("cn-s-a1-1", "cn-s-a1", "cn-s-root", "", ulviyye, 125_000, card, goal));
+    rows.push(mk("cn-s-a1-2", "cn-s-a1", "cn-s-root", "", nergiz, 125_000, card, goal));
+    rows.push(mk("cn-s-b1-1", "cn-s-b1", "cn-s-root", "", togrul, 70_000, card, goal));
+    rows.push(mk("cn-s-b1-2", "cn-s-b1", "cn-s-root", "", nurlan, 70_000, card, goal));
+  }
+
+  // 2) Marketinq — HR → Elvin → Kamran (Manager 2) → Orxan (3 səviyyə, re-cascade aktiv)
+  const elvin = byName("Elvin Rəhimov");
+  const kamran = byName("Kamran Quliyev");
+  const aynur = byName("Aynur Cəfərova");
+  const orxan = byName("Orxan Bayramov");
+  const aytac = byName("Aytac Kərimova");
+  if (elvin && kamran && aynur && orxan && aytac) {
+    const card = "İllik Marketinq Hədəfi 2026"; const goal = "Ümumi marketinq gəliri";
+    rows.push(mk("cn-m-root", null, "cn-m-root", "", elvin, 500_000, card, goal));
+    // Elvin → Kamran: 300 000 AZN, yenidən kaskadlaya bilər
+    const kNode = mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal);
+    kNode.canReCascade = true;
+    rows.push(kNode);
+    // Elvin → Aynur: 200 000 AZN, yenidən kaskadlaya bilər
+    const ayNode = mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal);
+    ayNode.canReCascade = true;
+    rows.push(ayNode);
+    // Kamran → Orxan: 150 000 AZN (yerdə qalan 150 000 hələ bölüşdürülməyib)
+    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 150_000, card, goal));
+    rows.push(mk("cn-m-b1", "cn-m-b", "cn-m-root", "", aytac, 200_000, card, goal));
+  }
+
+  // 3) Maliyyə — qismən paylanmış (qırmızı zona nümunəsi)
+  const nigar = byName("Nigar Hüseynova");
+  const turan = byName("Turan Nəsibov");
+  if (nigar && turan) {
+    const card = "Maliyyə Effektivlik Hədəfi"; const goal = "Xərc Optimizasiyası";
+    rows.push(mk("cn-f-root", null, "cn-f-root", "", nigar, 800_000, card, goal));
+    rows.push(mk("cn-f-a", "cn-f-root", "cn-f-root", "", turan, 300_000, card, goal));
+  }
+
+  return rows;
+}

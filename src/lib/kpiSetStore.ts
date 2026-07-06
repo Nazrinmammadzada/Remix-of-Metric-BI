@@ -4,8 +4,6 @@
 // Limitlər təyin olunduqda status "completed" olur, əks halda "pending".
 
 import { useEffect, useState } from "react";
-import { getNodes as getCascadeNodes, getChildren as getCascadeChildren } from "./cascadeTreeStore";
-
 
 export type LimitTier = "l1" | "l2" | "l3" | "l4" | "l5";
 
@@ -58,91 +56,204 @@ export interface KpiSetEntry {
   weightMin?: number;
   weightMax?: number;
   cascadable?: boolean;
-  /** KPI kartında seçilmiş assignee-lərin adları — kaskad bölgüsündə yalnız
-   *  bu şəxslər (və ya struktur rəhbərləri) görünə bilər. */
-  cardAssignees?: string[];
-  /** KPI kartında seçilmiş strukturların adları — kaskad bölgüsündə yalnız bu
-   *  strukturların rəhbərləri görünə bilər. */
-  cardStructures?: string[];
   updatedAt: number;
 }
 
 
-const KEY = "kpi_set_entries_v9";
+const KEY = "kpi_set_entries_v7";
 const EVT = "kpi-set-updated";
 
-const LEGACY_KEYS = ["kpi_set_entries_v8", "kpi_set_entries_v7", "kpi_set_entries_v6", "kpi_set_entries_v5", "kpi_set_entries_v4", "kpi_set_entries_v3", "kpi_set_entries_v2", "kpi_set_entries_v1"];
+// Köhnə versiyaları təmizlə — istifadəçi tərəfindən yaradılan hədəfləri silir.
+try { ["kpi_set_entries_v1","kpi_set_entries_v2","kpi_set_entries_v3","kpi_set_entries_v4","kpi_set_entries_v5","kpi_set_entries_v6"].forEach(k => localStorage.removeItem(k)); } catch {}
 
-const DEMO_UPDATED_AT = Date.now() - 1000 * 60 * 60 * 24 * 7;
 const SEED: KpiSetEntry[] = [
+  // ============ ELVİN RƏHİMOV (id=4, manager@kpi.az) — Marketinq Departamenti rəhbəri ============
+  // Pending: HR yeni hədəf təyin edir, Elvin təfsilatı doldurmalıdır
   {
-    id: "demo-kset-elvin-roi",
-    cardId: 91001,
-    cardName: "Marketinq Kampaniyalarının ROI-si",
-    subKpiId: 9100101,
-    subKpiName: "ROI gəliri",
+    id: "ks-elvin-1",
+    cardId: 101,
+    cardName: "Q1 2026 — Marketinq Büdcə Hədəfi",
+    subKpiId: 1001,
+    subKpiName: "",
+    target: "",
+    unit: "",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "pending",
+    weightMin: 15, weightMax: 35,
+    updatedAt: Date.now() - 3600000 * 6,
+  },
+  // Completed WITH cascade — HR-in Elvinə verdiyi 500 000 AZN kaskadlana bilən hədəf.
+  // Elvin bunu Kamran Quliyevə (Manager 2) və digər tabeçilikdə olanlara bölüşdürür.
+  {
+    id: "ks-elvin-2",
+    cardId: 102,
+    cardName: "İllik Marketinq Hədəfi 2026",
+    subKpiId: 1002,
+    subKpiName: "Ümumi marketinq gəliri",
     type: "Məbləğ",
-    target: "750000",
+    target: "500000",
     unit: "AZN",
     assigneeId: 4,
     assigneeName: "Elvin Rəhimov",
     ownerType: "manager",
     status: "completed",
-    weight: 40,
     cascadable: true,
-    cardAssignees: ["Kamran Quliyev", "Orxan Bayramov"],
-    cardStructures: ["Rəqəmsal Marketinq Şöbəsi"],
-    updatedAt: DEMO_UPDATED_AT,
+    weight: 25,
+    limits: {
+      l5: { min: 400001, max: 500000 },
+      l4: { min: 300001, max: 400000 },
+      l3: { min: 200001, max: 300000 },
+      l2: { min: 100001, max: 200000 },
+      l1: { min: 0, max: 100000 },
+    },
+    updatedAt: Date.now() - 86400000 * 3,
   },
+  // Completed WITHOUT cascade — sadəcə qiymətləndirmə
   {
-    id: "demo-kset-kamran-roi",
-    cardId: 91001,
-    cardName: "Marketinq Kampaniyalarının ROI-si",
-    subKpiId: 9100102,
-    subKpiName: "Rəqəmsal kampaniya gəliri",
+    id: "ks-elvin-3",
+    cardId: 103,
+    cardName: "Brend Tanınırlıq Auditi",
+    subKpiId: 1003,
+    subKpiName: "Sosial media əhatəsi",
+    type: "Faiz",
+    target: "80",
+    unit: "%",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "completed",
+    cascadable: false,
+    weight: 15,
+    limits: {
+      l5: { min: 76, max: 80 },
+      l4: { min: 61, max: 75 },
+      l3: { min: 46, max: 60 },
+      l2: { min: 31, max: 45 },
+      l1: { min: 0, max: 30 },
+    },
+    updatedAt: Date.now() - 86400000 * 5,
+  },
+  // Pending 2 — yeni hədəf gözləyir
+  {
+    id: "ks-elvin-4",
+    cardId: 104,
+    cardName: "Rəqəmsal Kampaniyalar",
+    subKpiId: 1004,
+    subKpiName: "",
+    target: "",
+    unit: "",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "pending",
+    weightMin: 10, weightMax: 25,
+    updatedAt: Date.now() - 3600000 * 2,
+  },
+
+  // ============ KAMRAN QULİYEV (id=7, manager2@kpi.az) — Rəqəmsal Marketinq Şöbə Müdiri ============
+  // HR tərəfindən Orxan Bayramov üçün yaradılan KPI — Target Setter = Kamran Quliyev.
+  // Kamran Elvindən gələn kaskad məbləğini istifadə edib Orxana bölüşdürür.
+  {
+    id: "ks-kamran-1",
+    cardId: 201,
+    cardName: "Rəqəmsal Marketinq — Şöbə Kaskad Hədəfi",
+    subKpiId: 2001,
+    subKpiName: "Rəqəmsal marketinq gəliri (Orxan Bayramov üzrə)",
     type: "Məbləğ",
-    target: "350000",
+    target: "300000",
     unit: "AZN",
     assigneeId: 7,
     assigneeName: "Kamran Quliyev",
     ownerType: "manager",
     status: "completed",
-    weight: 35,
     cascadable: true,
-    cardAssignees: ["Orxan Bayramov"],
-    cardStructures: ["Rəqəmsal Marketinq Şöbəsi"],
-    updatedAt: DEMO_UPDATED_AT + 1,
+    weight: 30,
+    limits: {
+      l5: { min: 240001, max: 300000 },
+      l4: { min: 180001, max: 240000 },
+      l3: { min: 120001, max: 180000 },
+      l2: { min: 60001, max: 120000 },
+      l1: { min: 0, max: 60000 },
+    },
+    updatedAt: Date.now() - 86400000 * 1,
+  },
+
+  // ============ Digər rəhbərlər (nümunə) ============
+  {
+    id: "ks-1",
+    cardId: 1,
+    cardName: "Aylıq Satış Hədəfi",
+    subKpiId: 101,
+    subKpiName: "",
+    target: "",
+    unit: "",
+    assigneeId: 11,
+    assigneeName: "Samir Həsənov",
+    ownerType: "manager",
+    status: "pending",
+    weightMin: 10, weightMax: 30,
+    updatedAt: Date.now() - 86400000 * 2,
+  },
+  {
+    id: "ks-4",
+    cardId: 1,
+    cardName: "Aylıq Satış Hədəfi",
+    subKpiId: 103,
+    subKpiName: "Online Satış",
+    type: "Məbləğ",
+    target: "50000",
+    unit: "AZN",
+    assigneeId: 13,
+    assigneeName: "Rəşad Əliyev",
+    ownerType: "manager",
+    status: "completed",
+    cascadable: true,
+    weight: 20,
+    limits: {
+      l5: { min: 40001, max: 50000 },
+      l4: { min: 30001, max: 40000 },
+      l3: { min: 20001, max: 30000 },
+      l2: { min: 10001, max: 20000 },
+      l1: { min: 0, max: 10000 },
+    },
+    updatedAt: Date.now() - 86400000 * 4,
+  },
+  {
+    id: "ks-5",
+    cardId: 3,
+    cardName: "Müştəri Əldə Etmə",
+    subKpiId: 302,
+    subKpiName: "Referral Müştərilər",
+    type: "Say",
+    target: "150",
+    unit: "ədəd",
+    assigneeId: 22,
+    assigneeName: "Emin Məmmədov",
+    ownerType: "hr",
+    status: "completed",
+    cascadable: false,
+    weight: 12,
+    limits: {
+      l5: { min: 121, max: 150 },
+      l4: { min: 91, max: 120 },
+      l3: { min: 61, max: 90 },
+      l2: { min: 31, max: 60 },
+      l1: { min: 0, max: 30 },
+    },
+    updatedAt: Date.now() - 86400000 * 6,
   },
 ];
-
-const mergeSeedRows = (rows: KpiSetEntry[]): KpiSetEntry[] => {
-  const ids = new Set(rows.map(r => r.id));
-  const missing = SEED.filter(r => !ids.has(r.id));
-  return missing.length ? [...missing, ...rows] : rows;
-};
-
 
 const load = (): KpiSetEntry[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const rows = mergeSeedRows(JSON.parse(raw));
-      localStorage.setItem(KEY, JSON.stringify(rows));
-      return rows;
-    }
-    for (const legacyKey of LEGACY_KEYS) {
-      const legacy = localStorage.getItem(legacyKey);
-      if (!legacy) continue;
-      const rows = mergeSeedRows(JSON.parse(legacy));
-      localStorage.setItem(KEY, JSON.stringify(rows));
-      return rows;
-    }
+    if (raw) return JSON.parse(raw);
   } catch {}
-  const rows = mergeSeedRows([]);
-  localStorage.setItem(KEY, JSON.stringify(rows));
-  return rows;
+  localStorage.setItem(KEY, JSON.stringify(SEED));
+  return SEED;
 };
-
 
 const persist = (rows: KpiSetEntry[]) => {
   localStorage.setItem(KEY, JSON.stringify(rows));
@@ -158,61 +269,27 @@ export const addPendingEntry = (input: {
   assigneeName: string;
   assigneeId?: number;
   ownerType?: "manager" | "hr";
-  status?: "pending" | "completed";
-  subKpiName?: string;
-  type?: KpiEntryType;
-  target?: string;
-  weight?: number;
-  cascadable?: boolean;
   weightMin?: number;
   weightMax?: number;
   unit?: string;
-  cardAssignees?: string[];
-  cardStructures?: string[];
 }): KpiSetEntry => {
   const list = load();
-  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName);
-  if (dupe) {
-    // Yeniləyirik ki, sonrakı yaradılışlarda cardAssignees/cardStructures artmış olsa əks olunsun.
-    const updated = {
-      ...dupe,
-      assigneeId: input.assigneeId ?? dupe.assigneeId,
-      subKpiName: input.subKpiName ?? dupe.subKpiName,
-      type: input.type ?? dupe.type,
-      target: input.target ?? dupe.target,
-      unit: input.unit ?? dupe.unit,
-      ownerType: input.ownerType ?? dupe.ownerType,
-      status: input.status ?? dupe.status,
-      weight: input.weight ?? dupe.weight,
-      cascadable: input.cascadable ?? dupe.cascadable,
-      weightMin: input.weightMin ?? dupe.weightMin,
-      weightMax: input.weightMax ?? dupe.weightMax,
-      cardAssignees: input.cardAssignees ?? dupe.cardAssignees,
-      cardStructures: input.cardStructures ?? dupe.cardStructures,
-      updatedAt: Date.now(),
-    };
-    persist(list.map(e => e.id === dupe.id ? updated : e));
-    return updated;
-  }
+  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName && e.status === "pending");
+  if (dupe) return dupe;
   const entry: KpiSetEntry = {
     id: `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     cardId: input.cardId,
     cardName: input.cardName,
     subKpiId: Date.now(),
-    subKpiName: input.subKpiName || "",
-    type: input.type,
-    target: input.target || "",
+    subKpiName: "",
+    target: "",
     unit: input.unit || "",
     assigneeId: input.assigneeId,
     assigneeName: input.assigneeName,
     ownerType: input.ownerType || "manager",
-    status: input.status || "pending",
-    weight: input.weight,
-    cascadable: input.cascadable,
+    status: "pending",
     weightMin: input.weightMin,
     weightMax: input.weightMax,
-    cardAssignees: input.cardAssignees,
-    cardStructures: input.cardStructures,
     updatedAt: Date.now(),
   };
   persist([entry, ...list]);
@@ -246,35 +323,11 @@ export const setEntryDetails = (
   }));
 };
 
-/**
- * Cari şəxsə yuxarı rəhbərdən gələn "Cascade Load".
- * Əvvəlcə cascade ağacında bu şəxsin gələn node-una baxırıq (əsas mənbə).
- * Yalnız orada tapılmasa, geriyə uyğunluq üçün köhnə kpi set entry-lərinə baxırıq.
- */
+/** Rəhbərin başqa kartlardan alınmış Cascade Load-u — bu kart istisna edilir. */
 export const getIncomingCascadeLoad = (
   assigneeName: string,
-  excludeCardId?: number,
-  assigneeId?: number,
-): { value: number; unit: string; cardName: string; remaining: number } | null => {
-  // 1) cascade tree əsas mənbə
-  if (assigneeId != null) {
-    const currentEntry = excludeCardId != null
-      ? load().find(e => e.cardId === excludeCardId && (e.assigneeId === assigneeId || e.assigneeName === assigneeName))
-      : undefined;
-    let list = getCascadeNodes().filter(n => n.assigneeId === assigneeId);
-    if (currentEntry?.cardName) {
-      const sameCard = list.filter(n => n.cardName === currentEntry.cardName);
-      if (sameCard.length) list = sameCard;
-    }
-    if (list.length) {
-      const node = [...list].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))[0];
-      const total = Number(node.limit) || 0;
-      const distributed = getCascadeChildren(node.id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
-      return { value: total, unit: node.unit || "AZN", cardName: node.cardName, remaining: Math.max(0, total - distributed) };
-    }
-  }
-
-  // 2) Geri uyğunluq — köhnə kpi set entry-lərindən
+  excludeCardId?: number
+): { value: number; unit: string; cardName: string } | null => {
   const list = load().filter(e =>
     e.assigneeName === assigneeName &&
     e.cascadable &&
@@ -284,9 +337,8 @@ export const getIncomingCascadeLoad = (
   if (!list.length) return null;
   const first = list[0];
   const num = parseFloat(String(first.target).replace(/[^\d.\-]/g, "")) || 0;
-  return { value: num, unit: first.unit, cardName: first.cardName, remaining: num };
+  return { value: num, unit: first.unit, cardName: first.cardName };
 };
-
 
 
 /** Bir KPI kartına aid bütün KPI Set entry-ləri (tamamlanmışlar — hədəf kimi göstərmək üçün). */

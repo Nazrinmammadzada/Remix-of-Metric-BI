@@ -26,32 +26,17 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
   }, []);
 
   useEffect(() => {
-    if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(false);
-      }
-    };
     document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey, true);
-    };
-  }, [open]);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
   const toggle = (id: number) => {
     const next = value.includes(id) ? value.filter((x) => x !== id) : [...value, id];
     onChange(next);
     if (next.length < 2 && shared) onSharedChange(false);
-    requestAnimationFrame(() => setOpen(true));
-    window.setTimeout(() => setOpen(true), 0);
-    window.setTimeout(() => setOpen(true), 50);
   };
 
   const filtered = teams.filter(
@@ -78,12 +63,7 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
         </div>
 
         {open && (
-          <div
-            data-multiselect-content
-            onPointerDownCapture={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden"
-          >
+          <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
             <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -107,10 +87,7 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
                 return (
                   <div
                     key={t.id}
-                    data-multiselect-option
-                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onClick={(e) => {
-                      e.preventDefault();
                       e.stopPropagation();
                       toggle(t.id);
                     }}
@@ -129,10 +106,6 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
                   </div>
                 );
               })}
-            </div>
-            <div className="p-2 border-t border-border flex justify-between items-center">
-              <span className="text-[11px] text-muted-foreground">{value.length} seçildi</span>
-              <button type="button" onClick={() => { setOpen(false); setSearch(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
             </div>
           </div>
         )}

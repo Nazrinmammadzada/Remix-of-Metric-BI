@@ -12,11 +12,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
-import { createRoot, findRootByGoal, useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
 import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
-import { getEmployees } from "@/lib/orgStore";
 import {
   useSubKpis, getKpiCardsFor, calcCompletion, isEvaluated, type SubKpi, type KpiCardInfo,
 } from "@/lib/kpiEvaluationStore";
@@ -307,19 +306,12 @@ const AssignView = () => {
           open={!!distribute}
           onOpenChange={(o) => !o && setDistribute(null)}
           bootstrap={{
-            cardId: distribute.cardId,
             cardName: distribute.cardName,
             goalName: distribute.subKpiName || distribute.cardName,
             unit: distribute.unit,
             assigneeName: distribute.assigneeName,
-            assigneeId: distribute.assigneeId ?? myOrgId ?? undefined,
-            /** Limit YALNIZ göstəriş üçündür — real limit dialoq daxilində
-             *  incomingLoadFor(assigneeId) vasitəsilə hesablanır. */
+            assigneeId: distribute.assigneeId,
             limit: parseNum(distribute.target),
-            /** Hər əməkdaş üçün defolt təklif olunan dəyər (rəhbərin öz yazdığı hədəf) */
-            defaultPerAssignee: parseNum(distribute.target),
-            cardAssignees: distribute.cardAssignees,
-            cardStructures: distribute.cardStructures,
           }}
         />
       )}
@@ -332,35 +324,16 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          // Cascade load pəncərəsi: incoming cascade tree-dən götürülür.
-          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId, entry.assigneeId);
-          if (!saved?.cascadable) return; // Cascade oluna bilər seçilməyibsə pop-up göstərmə
-          let fallbackLoad = Number(saved.value) || parseNum(entry.target);
-          const emp = getEmployees().find(e => e.id === (entry.assigneeId ?? myOrgId));
-          if (emp && !getIncomingCascadeLoad(entry.assigneeName, entry.cardId, emp.id)) {
-            const goalName = saved.name || entry.subKpiName || entry.cardName;
-            const existing = findRootByGoal(entry.cardName, goalName, emp.id);
-            if (!existing) {
-              const root = createRoot({
-                cardName: entry.cardName,
-                goalName,
-                unit: saved.unit ?? entry.unit,
-                assigneeId: emp.id,
-                assigneeName: `${emp.firstName} ${emp.lastName}`,
-                positionName: emp.positionName,
-                limit: fallbackLoad,
-              });
-              fallbackLoad = root.limit;
-            }
-          }
-          const value = incoming?.remaining ?? incoming?.value ?? fallbackLoad;
-          const unit = incoming?.unit ?? entry.unit ?? "";
+          // Cascade load pəncərəsi: kartın hədəf dəyəri limit kimi göstərilir.
+          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
+          const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
+          const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
           const refreshed: KpiSetEntry = {
             ...entry,
-            target: String(saved?.value ?? entry.target),
-            unit: saved?.unit ?? entry.unit,
+            target: String(value),
+            unit,
             cascadable: true,
-            subKpiName: saved?.name || entry.subKpiName,
+            subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
           };
           setCascadeConfirm({ entry: refreshed, value, unit });
         }}
@@ -378,7 +351,6 @@ const AssignView = () => {
           }}
         />
       )}
-
     </>
   );
 };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { Plus, Pencil, Trash2, BookOpen, X, Check, ChevronDown, ChevronLeft, Search, AlertTriangle, Sparkles } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
@@ -25,7 +25,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
   const [editing, setEditing] = useState<Formula | null>(null);
   const [form, setForm] = useState({ name: "", description: "", variables: [] as string[], formula: "" });
   const [showVarDropdown, setShowVarDropdown] = useState(false);
-  const varDropdownRef = useRef<HTMLDivElement>(null);
 
   const [deleteConfirm, setDeleteConfirm] = useState<Formula | null>(null);
 
@@ -38,24 +37,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
       window.removeEventListener("storage", refresh);
     };
   }, []);
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (showVarDropdown && varDropdownRef.current && !varDropdownRef.current.contains(e.target as Node)) setShowVarDropdown(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || !showVarDropdown) return;
-      e.preventDefault();
-      e.stopPropagation();
-      setShowVarDropdown(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey, true);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey, true);
-    };
-  }, [showVarDropdown]);
 
   const persistFormulas = (next: Formula[]) => { setFormulas(next); saveFormulas(next); };
 
@@ -248,7 +229,7 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
             <div><label className="text-sm font-medium">Təsvir</label><input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Düsturun təsviri..." className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-background" /></div>
             <div>
               <label className="text-sm font-medium">Dəyişənlər (kitabdan seçim)</label>
-              <div className="relative mt-1" ref={varDropdownRef}>
+              <div className="relative mt-1">
                 <div onClick={() => setShowVarDropdown(!showVarDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                   {form.variables.length === 0 && <span className="text-muted-foreground">Dəyişən seçin</span>}
                   {form.variables.map(s => <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{s}<X className="w-3 h-3 cursor-pointer" onClick={e => { e.stopPropagation(); toggleVar(s); }} /></span>)}
@@ -263,10 +244,6 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
                         {form.variables.includes(v.short) && <Check className="w-4 h-4 text-primary" />}
                       </div>
                     ))}
-                    <div className="p-2 border-t border-border flex justify-between items-center">
-                      <span className="text-[11px] text-muted-foreground">{form.variables.length} seçildi</span>
-                      <button type="button" onClick={() => setShowVarDropdown(false)} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
-                    </div>
                   </div>
                 )}
               </div>

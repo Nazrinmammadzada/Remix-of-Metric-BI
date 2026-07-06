@@ -255,29 +255,19 @@ function MultiSelectDropdown({
     if (!s) return options;
     return options.filter(o => o.label.toLowerCase().includes(s));
   }, [q, options]);
-  const toggle = (v: string) => {
+  const toggle = (v: string) =>
     onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
-    requestAnimationFrame(() => setOpen(true));
-    window.setTimeout(() => setOpen(true), 0);
-    window.setTimeout(() => setOpen(true), 50);
-  };
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        setOpen(false);
-      }
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("keydown", onKey);
     };
   }, [open]);
   const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o.value));
@@ -301,12 +291,7 @@ function MultiSelectDropdown({
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div
-          data-multiselect-content
-          onPointerDownCapture={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg"
-        >
+        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg">
           <div className="p-1.5 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -323,9 +308,8 @@ function MultiSelectDropdown({
             ) : filtered.map(o => {
               const sel = selected.includes(o.value);
               return (
-                <button key={o.value} type="button" data-multiselect-option
-                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(o.value); }}
+                <button key={o.value} type="button"
+                  onClick={() => toggle(o.value)}
                   className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center justify-between hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
                   <span className="truncate">{o.label}</span>
                   {sel && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
@@ -397,7 +381,6 @@ interface Props {
 export default function CreateKpiWizard({ open, onOpenChange, initial, onComplete }: Props) {
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<CreateKpiWizardDraft>(() => ({ ...emptyKpiWizardDraft(), ...(initial || {}) }));
-  const dialogScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -434,21 +417,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const positionOptions = useMemo(() => flattenPositions(structureTree).map(p => ({ value: p.id, label: p.label })), [structureTree]);
 
   const update = (patch: Partial<CreateKpiWizardDraft>) => setDraft(p => ({ ...p, ...patch }));
-  const preserveDialogScroll = (run: () => void) => {
-    const host = dialogScrollRef.current;
-    const y = host?.scrollTop ?? 0;
-    run();
-    const restore = () => {
-      if (host) host.scrollTop = y;
-    };
-    requestAnimationFrame(() => {
-      restore();
-      requestAnimationFrame(restore);
-      window.setTimeout(restore, 0);
-    });
-  };
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
-    preserveDialogScroll(() => setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } })));
+    setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
 
   // ===== Frequency-driven date auto-fill =====
   const setFrequency = (f: string) => {
@@ -726,7 +696,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); else onOpenChange(true); }}>
-        <DialogContent ref={dialogScrollRef} className="max-w-4xl w-[92vw] max-h-[88vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[92vw] max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="w-5 h-5 text-primary" />
@@ -1349,22 +1319,22 @@ function Step2Targets({
             <div className="grid grid-cols-12 gap-2">
               <div className="col-span-12 md:col-span-5">
                 <label className="text-[11px] text-muted-foreground">Hədəf adı *</label>
-                <input value={t.name} onChange={e => updHedef(t.id, { name: e.target.value })}
+                <input value={t.name} disabled={disabled} onChange={e => updHedef(t.id, { name: e.target.value })}
                   placeholder="Məsələn: Rüblük satış həcmi"
-                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
               </div>
               <div className="col-span-12 md:col-span-3">
                 <label className="text-[11px] text-muted-foreground">Hədəf növü *</label>
-                <select value={t.type} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
-                  className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
+                <select value={t.type} disabled={disabled} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
+                  className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
                   {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
               <div className="col-span-6 md:col-span-2">
                 <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
-                <input type="number" min={0} max={100} value={t.weight}
+                <input type="number" min={0} max={100} value={t.weight} disabled={disabled}
                   onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
-                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
               </div>
               <div className="col-span-12 md:col-span-3">
                 <label className="text-[11px] text-muted-foreground">

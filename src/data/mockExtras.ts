@@ -29,7 +29,7 @@ export const mockStructures: MockStructure[] = [
 export const mockTeams: MockTeam[] = [
   { id: "t_sales_elite", name: "Elite Satış Komandası", structureId: "s_sales",  leaderId: "e8",  memberIds: ["e4", "e8", "e11"] },
   { id: "t_it_core",     name: "IT Core Komandası",      structureId: "s_it",     leaderId: "e2",  memberIds: ["e2", "e6", "e9", "e10"] },
-  { id: "t_market_team", name: "Marketinq Komandası",    structureId: "s_market", leaderId: "e12",  memberIds: ["e3", "e12", "e13"] },
+  { id: "t_market_team", name: "Marketinq Komandası",    structureId: "s_market", leaderId: "e3",  memberIds: ["e3", "e12", "e13"] },
   { id: "t_fin_team",    name: "Maliyyə Komandası",      structureId: "s_fin",    leaderId: "e15", memberIds: ["e5", "e14", "e15"] },
   { id: "t_hr_team",     name: "HR Komandası",           structureId: "s_hr",     leaderId: "e1",  memberIds: ["e1", "e7", "e16"] },
 ];
@@ -40,7 +40,7 @@ export const employeeManagerId: Record<string, string | null> = (() => {
   for (const s of mockStructures) {
     for (const t of mockTeams.filter(t => t.structureId === s.id)) {
       for (const m of t.memberIds) {
-        map[m] = m === s.managerId ? null : (m === t.leaderId ? s.managerId : t.leaderId);
+        map[m] = m === s.managerId ? null : s.managerId;
       }
     }
   }
@@ -69,8 +69,7 @@ export const enrichedEmployees: EnrichedEmployee[] = mockEmployees.map(e => {
 /** Login email → mock employee id mapping (so AuthUser maps to a known person). */
 export const EMAIL_TO_EMPLOYEE_ID: Record<string, string> = {
   "hr@kpi.az":      "e1",  // Aysel Məmmədova (HR rəhbəri)
-  "manager@kpi.az": "e8",  // Elvin Rəhimov (Manager 1)
-  "manager2@kpi.az": "e12", // Kamran Quliyev (Manager 2)
+  "manager@kpi.az": "e8",  // Kamran Rzayev (Satış Meneceri)
   "user@kpi.az":    "e4",  // Elvin Quliyev (Satış Təmsilçisi)
 };
 

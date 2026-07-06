@@ -37,24 +37,7 @@ const EVT = "shared-kpi-cards-updated";
 const load = (): SharedKpiCard[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const rows = JSON.parse(raw) as SharedKpiCard[];
-      const seed = seedCards();
-      const byId = new Map(rows.map(c => [c.id, c] as const));
-      seed.forEach(seedCard => {
-        const existing = byId.get(seedCard.id);
-        byId.set(seedCard.id, existing ? {
-          ...existing,
-          evaluatorIds: Array.from(new Set([...(existing.evaluatorIds || []), ...seedCard.evaluatorIds])),
-          assigneeIds: Array.from(new Set([...(existing.assigneeIds || []), ...seedCard.assigneeIds])),
-          structureIds: Array.from(new Set([...(existing.structureIds || []), ...seedCard.structureIds])),
-          teamIds: Array.from(new Set([...(existing.teamIds || []), ...seedCard.teamIds])),
-        } : seedCard);
-      });
-      const merged = Array.from(byId.values());
-      localStorage.setItem(KEY, JSON.stringify(merged));
-      return merged;
-    }
+    if (raw) return JSON.parse(raw);
   } catch {}
   const seed = seedCards();
   localStorage.setItem(KEY, JSON.stringify(seed));
@@ -238,8 +221,8 @@ function seedCards(): SharedKpiCard[] {
       numericId: 1005,
       name: "Marketinq Kampaniyalarının ROI-si",
       ownerId: "e8",
-      evaluatorIds: ["e8", "e12"],
-      assigneeIds: ["e4", "e11", "e12"],
+      evaluatorIds: ["e8"],
+      assigneeIds: ["e4", "e11"],
       structureIds: ["s_marketing"],
       teamIds: ["t_marketing"],
       matrixId: "matrix-standard",
@@ -254,26 +237,6 @@ function seedCards(): SharedKpiCard[] {
         { ts: now, actor: "e1", action: "created:tesdiq_gozlenilir" },
         { ts: now, actor: "HR Direktoru", action: "status:imtina", note: "Qiymətləndirici seçimi tələblərə uyğun deyil." },
       ],
-      createdAt: now, updatedAt: now,
-    },
-    {
-      id: "seed-manager2-1",
-      numericId: 1006,
-      name: "Rəqəmsal Marketinq — Lead Konversiyası",
-      ownerId: "e12",
-      evaluatorIds: ["e12", "e8"],
-      assigneeIds: ["e12", "e13"],
-      structureIds: ["s_market"],
-      teamIds: ["t_market_team"],
-      matrixId: null,
-      status: "aktiv",
-      startDate: "2026-01-01", endDate: "2026-03-31", frequency: "Rüblük", scoringSystem: "1-5",
-      targets: [
-        { id: "tg-m2-1", name: "Lead konversiyası", type: "Faiz", weight: 60, scoreLimit: 5 },
-        { id: "tg-m2-2", name: "Kampaniya gəliri", type: "Məbləğ", weight: 40, scoreLimit: 5 },
-      ],
-      execution: { e12: "icrada", e13: "baslanmayib" },
-      history: [{ ts: now, actor: "e8", action: "created:aktiv" }],
       createdAt: now, updatedAt: now,
     },
   ];
