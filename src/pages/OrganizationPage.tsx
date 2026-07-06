@@ -948,6 +948,8 @@ const EmployeesTab = () => {
   const [colFilters, setColFilters] = useState<Record<string, string>>({});
   const setColFilter = (k: string, v: string) => setColFilters(p => ({ ...p, [k]: v }));
 
+  const fullNameOf = (e: OrgEmployee) => [e.firstName, e.lastName, e.fatherName].filter(Boolean).join(" ");
+
   const filtered = useMemo(() => employees.filter(e => {
     if (search && !`${e.firstName} ${e.lastName} ${e.fatherName || ""} ${e.fin} ${e.email}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterStructure && e.structurePath !== filterStructure) return false;
@@ -956,9 +958,7 @@ const EmployeesTab = () => {
     if (filterStatus === "inactive" && e.active) return false;
     const l = (s: string) => s.toLowerCase();
     const cf = colFilters;
-    if (cf.firstName && !l(e.firstName).includes(l(cf.firstName))) return false;
-    if (cf.lastName && !l(e.lastName).includes(l(cf.lastName))) return false;
-    if (cf.fatherName && !l(e.fatherName || "").includes(l(cf.fatherName))) return false;
+    if (cf.fullName && !l(fullNameOf(e)).includes(l(cf.fullName))) return false;
     if (cf.email && !l(e.email).includes(l(cf.email))) return false;
     if (cf.position && !l(e.positionName || "").includes(l(cf.position))) return false;
     if (cf.salary && !String(e.salary ?? "").toLowerCase().includes(l(cf.salary))) return false;
