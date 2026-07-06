@@ -1961,7 +1961,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground">KPI Tipi</label>
-                  <div className="relative mt-1">
+                  <div className="relative mt-1" ref={typeDropdownRef}>
+
                     <div onClick={() => setShowTypeDropdown(!showTypeDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.types.length === 0 && <span className="text-muted-foreground">Seçin</span>}
                       {newKpi.types.map(t => (
