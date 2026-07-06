@@ -54,15 +54,15 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
     // Bir workflow üçün YALNIZ BİR cascade ağacı olmalıdır.
-    // Bu şəxs artıq ağacda hər hansı bir node kimi (root və ya child) mövcuddursa,
-    // yeni root yaratmadan mövcud node-u istifadə edirik — bütün yeni bölgülər
-    // eyni ağacın davamı kimi əlavə olunsun.
-    const anyNode = getNodes().find(
-      n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0,
-    );
-    if (anyNode) { setNode(anyNode); return; }
-    // Yalnız ilk dəfə (heç bir cascade ağacında yoxdursa) yeni root yaradırıq —
-    // bu HR-in bu şəxsə verdiyi ilk Owner kartına uyğundur.
+    // Öncəlik: bu şəxsin CHILD node-u (yəni yuxarı rəhbərdən pay aldığı node) —
+    // belədə onun paylanması eyni ağacın davamı olur (HR→Elvin→Kamran→Orxan zənciri qırılmır).
+    // Yalnız child yoxdursa öz root-una düşürük.
+    const nodes = getNodes().filter(n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0);
+    const childNode = nodes.find(n => n.parentId !== null);
+    const rootNode = nodes.find(n => n.parentId === null);
+    if (childNode) { setNode(childNode); return; }
+    if (rootNode) { setNode(rootNode); return; }
+    // Ağacda yoxdursa: bu HR-in bu şəxsə verdiyi ilk Owner kartına uyğundur — yeni root yaradırıq.
     const existingRoot = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
     if (existingRoot) { setNode(existingRoot); return; }
     setNode(createRoot({
@@ -106,11 +106,11 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
   const cascadeLoad = Number(node?.limit) || 0;
-  const overLimit = totalDist > cascadeLoad;
+  // Alt bölgülərin cəmi Cascade Load-dan böyük ola bilər (icazəlidir).
+  const overLimit = false;
 
   const handleSave = () => {
     if (!node) return;
-    if (overLimit) { setError(`Paylanan cəm (${fmt(totalDist)}) Cascade Load-u (${fmt(cascadeLoad)}) keçə bilməz.`); return; }
     const rows = Object.entries(slices)
       .map(([id, v]) => {
         const emp = subordinates.find(e => e.id === Number(id));
@@ -175,7 +175,9 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             unit={node?.unit || ""}
             slices={slices}
             setSlice={setSlice}
-            defaultValue={cascadeLoad > 0 && currentList.length > 0 ? Math.floor(cascadeLoad / currentList.length) : 0}
+            // Default = rəhbərin təyin etdiyi hədəf dəyəri (redaktə oluna bilər).
+            // Bu, kaskadlanan dəyər DEYİL — sadəcə rahatlıq üçün ilkin təklifdir.
+            defaultValue={cascadeLoad > 0 ? cascadeLoad : 0}
           />
         )}
 
