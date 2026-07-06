@@ -588,78 +588,71 @@ const SettingsPage = () => {
                 <Plus className="w-4 h-4" /> Yeni Rol Yarat
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {roles.map(role => {
                 const permCount = totalPermissionCount(role.permissions);
                 const isProtected = role.name.toUpperCase() === "HR";
                 return (
-                  <div key={role.id} className="border border-border rounded-xl p-5 hover:border-primary/40 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h4 className="font-bold tracking-wider text-lg text-foreground">{role.name}</h4>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-secondary-foreground font-medium">
-                          {role.users.length} istifadəçi
-                        </span>
-                        <span className="text-xs px-2.5 py-0.5 rounded-full border border-border text-muted-foreground font-medium">
-                          {permCount}/{totalAvailablePermissions} icazə
-                        </span>
-                        {isProtected && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase tracking-wider font-semibold">Sistem</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
+                  <div
+                    key={role.id}
+                    className="group relative border border-border rounded-xl p-5 bg-card hover:border-primary/50 hover:shadow-md transition-all duration-200 flex flex-col"
+                  >
+                    {/* Hover actions */}
+                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={() => { setUsersRole({ ...role }); setRoleUserSearch(""); }}
+                        className="p-1.5 rounded-md bg-background border border-border hover:bg-secondary transition-colors"
+                        title="İstifadəçiləri idarə et"
+                      >
+                        <Users className="w-3.5 h-3.5 text-primary" />
+                      </button>
+                      <button
+                        onClick={() => { setEditingRole({ ...role, permissions: { ...role.permissions }, description: role.description || "", language: role.language || "AZ" }); }}
+                        className="p-1.5 rounded-md bg-background border border-border hover:bg-secondary transition-colors"
+                        title="Rolu redaktə et"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                      {!isProtected && (
                         <button
-                          onClick={() => { setEditingRole({ ...role, permissions: { ...role.permissions }, description: role.description || "", language: role.language || "AZ" }); setRoleUserSearch(""); }}
-                          className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                          title="Redaktə"
+                          onClick={() => handleDeleteRole(role)}
+                          className="p-1.5 rounded-md bg-background border border-border hover:bg-zone-red-bg transition-colors"
+                          title="Sil"
                         >
-                          <Pencil className="w-4 h-4 text-muted-foreground" />
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </button>
-                        {!isProtected && (
-                          <button
-                            onClick={() => handleDeleteRole(role)}
-                            className="p-2 rounded-lg hover:bg-zone-red-bg transition-colors"
-                            title="Sil"
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-start gap-3 mb-3 pr-16">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-bold text-primary tracking-wider">{role.name.slice(0, 2).toUpperCase()}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold tracking-wider text-sm text-foreground truncate">{role.name}</h4>
+                        {isProtected && (
+                          <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-wider font-semibold">Sistem</span>
                         )}
                       </div>
                     </div>
-                    {role.description && (
-                      <p className="text-sm text-muted-foreground mb-3 italic">{role.description}</p>
-                    )}
-                    <div className="space-y-2 mb-3">
-                      {permissionModules.map(mod => {
-                        const acts = role.permissions[mod.key] || [];
-                        if (acts.length === 0) return null;
-                        return (
-                          <div key={mod.key} className="flex items-start gap-2 text-sm">
-                            <span className="font-medium text-foreground min-w-[160px]">{mod.label}:</span>
-                            <div className="flex flex-wrap gap-1">
-                              {acts.map(a => {
-                                const action = mod.actions.find(x => x.key === a);
-                                return <span key={a} className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">{action?.label || a}</span>;
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+
+                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2 min-h-[2rem]">
+                      {role.description || "Təsvir əlavə edilməyib"}
+                    </p>
+
+                    <div className="mt-auto flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-secondary text-secondary-foreground font-medium">
+                        <Users className="w-3 h-3" /> {role.users.length} istifadəçi
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border border-border text-muted-foreground font-medium">
+                        {permCount}/{totalAvailablePermissions} icazə
+                      </span>
                     </div>
-                    {role.users.length > 0 && (
-                      <div className="border-t border-border pt-3">
-                        <p className="text-xs text-muted-foreground mb-2">İstifadəçilər:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {role.users.map((u, i) => (
-                            <span key={i} className="bg-secondary text-secondary-foreground text-xs px-2 py-0.5 rounded">{u}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
             </div>
+
           </div>
         )}
 
