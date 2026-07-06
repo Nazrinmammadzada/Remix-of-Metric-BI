@@ -2654,8 +2654,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           )}
 
           {createStep === 2 && (
-            <div className="space-y-4">
-              <LifecycleWizardStep value={lifecycleDraft} onChange={setLifecycleDraft} />
+            <div className="space-y-4" ref={(el) => { if (el) (el as any).__scrollHost = el.closest('[role="dialog"]'); }}>
+              <LifecycleWizardStep
+                value={lifecycleDraft}
+                onChange={(v) => {
+                  const host = document.querySelector('[role="dialog"]') as HTMLElement | null;
+                  const y = host ? host.scrollTop : 0;
+                  setLifecycleDraft(v);
+                  requestAnimationFrame(() => { if (host) host.scrollTop = y; });
+                }}
+              />
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setCreateStep(1)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">← Geri</button>
                 <button
