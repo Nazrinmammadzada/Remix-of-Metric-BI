@@ -66,9 +66,13 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const rows = useKpiSet();
   const { user } = useAuth();
   const meId = getCurrentEmployeeId(user);
+  const myOrgId = getCurrentOrgEmployeeId(user);
   const evalItems = useSubKpis(meId || "");
 
-  const assignCount = useMemo(() => rows.filter(r => r.ownerType === "manager").length, [rows]);
+  const assignCount = useMemo(
+    () => rows.filter(r => r.ownerType === "manager" && (myOrgId == null || r.assigneeId === myOrgId)).length,
+    [rows, myOrgId],
+  );
   const evalCount = evalItems.length;
 
   return (
