@@ -2054,7 +2054,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return (
                   <div>
                     <label className="text-sm font-medium text-foreground">Şəxs(lər) seçin</label>
-                    <div className="relative mt-1">
+                    <div className="relative mt-1" ref={userDropdownRef}>
+
                       <div onClick={() => setShowUserDropdown(!showUserDropdown)} className="w-full min-h-[38px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between gap-2">
                         <div className="flex flex-wrap gap-1 flex-1">
                           {selectedList.length === 0
