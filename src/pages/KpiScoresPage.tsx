@@ -291,7 +291,6 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
               <thead className="bg-secondary/40">
                 <tr className="text-left text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Əməkdaşın A.S.A.</th>
-                  <th className="px-4 py-3 font-medium">Ata adı</th>
                   <th className="px-4 py-3 font-medium">KPI Kartının Adı</th>
                   <th className="px-4 py-3 font-medium">Dövr</th>
                   <th className="px-4 py-3 font-medium">Başlama Tarixi</th>
