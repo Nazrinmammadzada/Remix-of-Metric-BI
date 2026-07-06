@@ -67,7 +67,11 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const meId = getCurrentEmployeeId(user);
   const evalItems = useSubKpis(meId || "");
 
-  const assignCount = useMemo(() => rows.filter(r => r.ownerType === "manager").length, [rows]);
+  // Yalnız cari istifadəçiyə həvalə olunmuş target-setter entry-ləri
+  const assignCount = useMemo(
+    () => rows.filter(r => r.ownerType === "manager" && r.assigneeName === user?.name).length,
+    [rows, user?.name],
+  );
   const evalCount = evalItems.length;
 
   return (
