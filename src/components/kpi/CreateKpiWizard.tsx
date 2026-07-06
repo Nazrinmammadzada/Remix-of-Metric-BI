@@ -249,6 +249,7 @@ function MultiSelectDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const wrapRef = useRef<HTMLDivElement>(null);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return options;
@@ -256,8 +257,27 @@ function MultiSelectDropdown({
   }, [q, options]);
   const toggle = (v: string) =>
     onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o.value));
+  const toggleAll = () => {
+    if (allSelected) onChange(selected.filter(v => !filtered.some(o => o.value === v)));
+    else onChange(Array.from(new Set([...selected, ...filtered.map(o => o.value)])));
+  };
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapRef}>
+
       <button
         type="button"
         aria-label={ariaLabel}
