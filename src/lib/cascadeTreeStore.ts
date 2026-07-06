@@ -79,6 +79,7 @@ export const statusOf = (id: string): CascadeStatus => {
   if (kids.length === 0) {
     // son icraçı və ya hələ bölünməyib
     if (n.frozen) return "done";
+    if (n.canReCascade === false) return "done";
     if (n.limit === 0) return "wait";
     // Star deyilsə son icraçı sayılır
     return isStarPerson(n.assigneeId) ? "wait" : "done";
