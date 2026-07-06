@@ -241,20 +241,51 @@ const allUsers = [
 
 const initialRoles: Role[] = [
   {
-    id: 1, name: "USER",
+    id: 1, name: "USER", description: "Adi əməkdaş — yalnız öz məlumatları və KPI kartları",
     permissions: {
-      home: ["view"], kpi: ["view_own", "view_team"], approvals: ["view", "comment"],
-      reporting: ["view_own", "view_team"], teams: ["view_own", "view_compare"],
-      evaluation: ["view"], whistleblower: ["view", "submit"],
+      home: ["view"],
+      kpi: ["view_own", "view_team", "view_results"],
+      kpi_scores: ["view"],
+      approvals: ["view", "comment"],
+      reporting: ["view_own", "view_team"],
+      teams: ["view_own", "view_compare"],
+      evaluation: ["view"],
+      whistleblower: ["view", "submit"],
+      notifications: ["send"],
+      settings: ["view"],
     },
     users: ["Samir Həsənov", "Leyla Məmmədova", "Rəşad Əliyev", "Farid Həsənov", "Emin Məmmədov"]
   },
   {
-    id: 2, name: "HR",
+    id: 2, name: "HR", description: "İnsan resursları admin — bütün modullara tam giriş",
     permissions: Object.fromEntries(permissionModules.map(m => [m.key, m.actions.map(a => a.key)])),
     users: ["Günel Əlizadə", "Nigar Hüseynova"]
   },
+  {
+    id: 3, name: "MANAGER", description: "Rəhbər — komandası, KPI-lər, cascading və qiymətləndirmə üzrə idarəetmə",
+    permissions: {
+      home: ["view", "view_widgets"],
+      kpi: ["view_own", "view_team", "create", "edit", "copy", "archive", "view_results", "view_calc_details"],
+      kpi_scores: ["view", "view_calc_details", "view_evaluator_scores", "view_weights", "export"],
+      approvals: ["view", "approve", "reject", "comment"],
+      reporting: ["view_own", "view_team", "export_pdf", "export_excel", "use_ai"],
+      teams: ["view_own", "view_compare", "view_all", "manage_members"],
+      evaluation: ["view", "create_assignment", "send", "approve", "manual_score", "manual_assign", "view_status"],
+      cascading: ["view", "distribute", "set_slice_limits", "edit", "cascade_push", "cascade_pull", "approve", "reject"],
+      cascade_matrix: ["view"],
+      kpi_lifecycle: ["view", "view_detail"],
+      bonus: ["view", "send_reminder", "view_details"],
+      whistleblower: ["view", "submit"],
+      notifications: ["send"],
+      organization: ["view"],
+      matrix: ["view"],
+      settings: ["view"],
+      notifications_settings: ["view"],
+    },
+    users: ["Elvin Rəhimov", "Kamran Quliyev"]
+  },
 ];
+
 
 const SettingsPage = () => {
   const [tab, setTab] = useState(0);
