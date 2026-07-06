@@ -427,12 +427,28 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
     setEditing(false);
   };
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`"${node.name}" strukturunu silmək istəyirsiniz?`)) return;
-    removeStructure(node.id);
-    toast.success("Struktur silindi");
+    const check = canRemoveStructure(node.id);
+    if (!check.ok) {
+      toast.error(check.reason, { duration: 6000 });
+      return;
+    }
+    setConfirmDelete(true);
   };
+
+  const doDelete = () => {
+    try {
+      removeStructure(node.id);
+      toast.success("Struktur silindi");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Silinmə mümkün olmadı");
+    }
+    setConfirmDelete(false);
+  };
+
 
   return (
     <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in">
