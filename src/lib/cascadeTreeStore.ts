@@ -117,15 +117,23 @@ export interface CascadeSliceInput {
   assigneeName: string;
   positionName?: string;
   limit: number;
+  canReCascade?: boolean;
 }
 
 /** Bir node-u alt şəxslər arasında bölüşdürür.
- *  Qeyd: Alt bölgülərin cəmi rəhbərin cascade load-undan gəldiyi üçün
- *  ana hədəf dəyərindən böyük ola bilər — burada məhdudiyyət qoyulmur. */
+ *  Alt bölgülərin cəmi ana hədəf limitindən böyük ola bilməz. */
 export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok: boolean; error?: string } => {
   const parent = getNode(parentId);
   if (!parent) return { ok: false, error: "Ana hədəf tapılmadı" };
   const filtered = slices.filter(s => s.assigneeId && Number(s.limit) > 0);
+  const total = filtered.reduce((s, sl) => s + Number(sl.limit), 0);
+  const parentLimit = Number(parent.limit) || 0;
+  if (total > parentLimit) {
+    return {
+      ok: false,
+      error: `Bölüşdürülən cəm (${new Intl.NumberFormat("az-AZ").format(total)}) ana hədəfdən (${new Intl.NumberFormat("az-AZ").format(parentLimit)}) böyük ola bilməz.`,
+    };
+  }
   const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
   const now = Date.now();
   const newKids: CascadeTreeNode[] = filtered.map(s => ({
@@ -140,6 +148,7 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
     positionName: s.positionName,
     isStar: isStarPerson(s.assigneeId),
     limit: Number(s.limit),
+    canReCascade: !!s.canReCascade,
     createdAt: now, updatedAt: now,
   }));
   persist([...list, ...newKids]);
