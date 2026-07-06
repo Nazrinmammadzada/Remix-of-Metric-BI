@@ -28,9 +28,9 @@ export interface CascadeTreeNode {
   canReCascade?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v4";
+const KEY = "cascade_tree_nodes_v5";
 // köhnə seed versiyalarını təmizlə
-try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3"].forEach(k => localStorage.removeItem(k)); } catch {}
+try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3","cascade_tree_nodes_v4"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
 const load = (): CascadeTreeNode[] => {
