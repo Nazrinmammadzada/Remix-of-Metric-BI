@@ -258,6 +258,8 @@ function MultiSelectDropdown({
   const toggle = (v: string) => {
     onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
     requestAnimationFrame(() => setOpen(true));
+    window.setTimeout(() => setOpen(true), 0);
+    window.setTimeout(() => setOpen(true), 50);
   };
   useEffect(() => {
     if (!open) return;
