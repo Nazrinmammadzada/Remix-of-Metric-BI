@@ -104,9 +104,9 @@ const DateField = ({ label, value, onChange }: { label: string; value: string; o
         <PopoverTrigger asChild>
           <button
             type="button"
-            onClick={(e) => e.preventDefault()}
-            className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded bg-background flex items-center justify-between gap-2 text-left"
+            className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded bg-background flex items-center justify-between gap-2 text-left hover:bg-secondary/40"
           >
+
             <span className={selected ? "text-foreground" : "text-muted-foreground"}>
               {selected ? selected.toLocaleDateString("az-AZ") : "Tarix seçin"}
             </span>
