@@ -4,6 +4,9 @@
 // Limitlər təyin olunduqda status "completed" olur, əks halda "pending".
 
 import { useEffect, useState } from "react";
+import { getNodes as getCascadeNodes } from "@/lib/cascadeTreeStore";
+import { getSharedKpiCards } from "@/lib/kpiCardStore";
+import { getEmployees } from "@/lib/orgStore";
 
 export type LimitTier = "l1" | "l2" | "l3" | "l4" | "l5";
 
@@ -294,11 +297,46 @@ export const setEntryDetails = (
   }));
 };
 
-/** Rəhbərin başqa kartlardan alınmış Cascade Load-u — bu kart istisna edilir. */
+/**
+ * Rəhbərə yuxarı rəhbərdən (və ya HR-in yaratdığı Owner kartından) gələn Cascade Load.
+ * Mənbə ardıcıllığı:
+ *   1) `cascadeTreeStore`-da assigneeName == setter, parentId != null olan node varsa,
+ *      həmin parent onu bölüşdürmüşdür → node.limit qaytarılır.
+ *   2) Yoxdursa: mövcud `SharedKpiCard`-lar arasında ownerId setter-ə uyğun və
+ *      cascadable olanın targets cəmi (istifadəçinin özünə HR verdiyi ana KPI).
+ *   3) Fallback: köhnə davranış (başqa cascadable KpiSetEntry-nin target-i).
+ */
 export const getIncomingCascadeLoad = (
   assigneeName: string,
   excludeCardId?: number
 ): { value: number; unit: string; cardName: string } | null => {
+  // 1) Cascade ağacında parent node
+  try {
+    const treeNode = getCascadeNodes().find(
+      n => n.assigneeName === assigneeName && n.parentId !== null && (Number(n.limit) || 0) > 0,
+    );
+    if (treeNode) {
+      return { value: Number(treeNode.limit) || 0, unit: treeNode.unit || "", cardName: treeNode.cardName };
+    }
+  } catch {}
+
+  // 2) SharedKpiCard-lardan owner=setter olan (HR-in Owner tipli kartı)
+  try {
+    const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === assigneeName);
+    if (emp) {
+      const empKey = `e${emp.id}`;
+      const cards = getSharedKpiCards().filter(c => c.ownerId === empKey);
+      for (const c of cards) {
+        const sum = (c.targets || []).reduce((s, t) => {
+          const n = parseFloat(String((t as any).target ?? (t as any).value ?? "").replace(/[^\d.\-]/g, "")) || 0;
+          return s + n;
+        }, 0);
+        if (sum > 0) return { value: sum, unit: "", cardName: c.name };
+      }
+    }
+  } catch {}
+
+  // 3) Fallback: köhnə davranış — başqa cascadable KpiSetEntry
   const list = load().filter(e =>
     e.assigneeName === assigneeName &&
     e.cascadable &&

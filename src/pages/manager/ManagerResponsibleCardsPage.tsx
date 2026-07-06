@@ -67,7 +67,11 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const meId = getCurrentEmployeeId(user);
   const evalItems = useSubKpis(meId || "");
 
-  const assignCount = useMemo(() => rows.filter(r => r.ownerType === "manager").length, [rows]);
+  // Yalnız cari istifadəçiyə həvalə olunmuş target-setter entry-ləri
+  const assignCount = useMemo(
+    () => rows.filter(r => r.ownerType === "manager" && r.assigneeName === user?.name).length,
+    [rows, user?.name],
+  );
   const evalCount = evalItems.length;
 
   return (
@@ -128,6 +132,7 @@ const HubCard = ({
 /* ============================== ASSIGN ============================== */
 const AssignView = () => {
   const rows = useKpiSet();
+  const { user } = useAuth();
   useCascadeTree();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<number, boolean>>({});
@@ -136,7 +141,10 @@ const AssignView = () => {
   const [cascadeConfirm, setCascadeConfirm] = useState<{ entry: KpiSetEntry; value: number; unit: string } | null>(null);
 
   const groups = useMemo<CardGroup[]>(() => {
-    const managerRows = rows.filter(r => r.ownerType === "manager");
+    // Yalnız cari istifadəçi target-setter olan entry-lər
+    const managerRows = rows.filter(
+      r => r.ownerType === "manager" && r.assigneeName === user?.name,
+    );
     const map = new Map<number, CardGroup>();
     for (const r of managerRows) {
       if (!map.has(r.cardId)) map.set(r.cardId, { cardId: r.cardId, cardName: r.cardName, entries: [] });
@@ -149,7 +157,7 @@ const AssignView = () => {
       g.cardName.toLowerCase().includes(s) ||
       g.entries.some(e => e.subKpiName.toLowerCase().includes(s))
     );
-  }, [rows, q]);
+  }, [rows, q, user?.name]);
 
   const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
 
@@ -315,10 +323,11 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          // Cascade load pəncərəsi: kartın hədəf dəyəri limit kimi göstərilir.
+          // Cascade Load popup-u: dəyər HƏMİŞƏ yuxarıdan gələn cascade load
+          // əsasında hesablanır (istifadəçinin yazdığı KPI dəyəri deyil).
           const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
-          const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
+          const value = incoming?.value ?? saved?.value ?? parseNum(entry.target);
+          const unit = incoming?.unit ?? saved?.unit ?? entry.unit ?? "";
           const refreshed: KpiSetEntry = {
             ...entry,
             target: String(value),
