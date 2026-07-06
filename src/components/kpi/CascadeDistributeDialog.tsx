@@ -141,13 +141,13 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Ana hədəf" value={fmt(node?.limit || 0)} unit={node?.unit || "AZN"} tone="neutral" />
-          <BigStat label="Cascade Load qalıq" value={fmt(remaining)} unit={`/ ${fmt(total)} AZN`} tone="primary" />
-          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone="success" />
+          <BigStat label="Ana hədəf" value={fmt(parentLimit)} unit={node?.unit || "AZN"} tone="neutral" />
+          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone={overLimit ? "danger" : "success"} />
+          <BigStat label="Qalan" value={fmt(remainingParent)} unit={node?.unit || "AZN"} tone="primary" />
         </div>
 
         <div className="text-[11px] text-muted-foreground">
-          Alt bölgülərin cəmi rəhbərin ümumi cascade load-undan çıxıldığı üçün ana hədəf dəyərindən böyük ola bilər — bu düzgündür.
+          Bölüşdürülən cəm ana hədəf limitini <b>keçə bilməz</b>. "Yenidən kaskadlaya bilər" seçili şəxs aldığı hədəfi öz tabeliyindəki əməkdaşlar arasında sonrakı səviyyəyə ötürə bilər.
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
@@ -161,10 +161,10 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           </TabsList>
 
           <TabsContent value="all" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} reCascade={reCascade} toggleReCascade={toggleReCascade} />
           </TabsContent>
           <TabsContent value="leaders" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
+            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} reCascade={reCascade} toggleReCascade={toggleReCascade} />
           </TabsContent>
         </Tabs>
 
@@ -172,7 +172,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
-          <Button onClick={handleSave} disabled={selectedCount === 0}>
+          <Button onClick={handleSave} disabled={selectedCount === 0 || overLimit}>
             Bölüşdür və təyin et
           </Button>
         </DialogFooter>
