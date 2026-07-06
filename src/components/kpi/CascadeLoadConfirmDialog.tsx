@@ -2,6 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { GitBranch } from "lucide-react";
+import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
@@ -14,7 +15,8 @@ interface Props {
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
 const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }: Props) => {
-  const hasLoad = value > 0;
+  const { total, remaining } = useCascadeLoad();
+  const hasLoad = remaining > 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -29,15 +31,16 @@ const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }
             <div>
               Sizə <span className="italic">başqa KPI kartından</span> gələn
               <span className="font-semibold"> Cascade Load</span>:
-              <span className="ml-1 font-semibold">{fmt(value)} {unit}</span>
+              <span className="ml-1 font-semibold">{fmt(remaining)} AZN</span>
+              <span className="text-muted-foreground"> / {fmt(total)} AZN</span>
             </div>
             <div className="text-xs text-muted-foreground">
-              Bu limit hazırda təyin etdiyiniz real hədəfdən götürülür. Tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
+              Bu limit hazırda təyin etdiyiniz hədəflə əlaqəli deyil. Tabeliyinizdəki əməkdaşlar arasında bölüşdürmək istəyirsiniz?
             </div>
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">
-            Bu hədəf üçün bölüşdürülə bilən dəyər yoxdur.
+            Cascade Load tamamilə paylanıb ({fmt(total)} / {fmt(total)} AZN).
           </div>
         )}
         <DialogFooter>

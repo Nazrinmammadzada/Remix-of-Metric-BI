@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
-import { useCascadeTree, getChildren, distributedOf, statusOf, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { useCascadeTree, distributedOf, statusOf, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
 import {
@@ -631,36 +631,7 @@ const hashStr = (s: string) => {
   return h;
 };
 
-const cascadeKpisForEmployee = (empId: number, nodes: CascadeTreeNode[]): EmpKpi[] =>
-  nodes.filter(n => n.assigneeId === empId).map(n => {
-    const st = CASCADE_STATUS_TO_KPI[statusOf(n.id)];
-    const children = getChildren(n.id);
-    const fakt = children.length === 0 && st === "completed" ? n.limit : distributedOf(n.id);
-    return {
-      id: n.id,
-      name: n.goalName || n.cardName,
-      desc: n.cardName,
-      plan: Number(n.limit) || 0,
-      fakt,
-      unit: n.unit || "",
-      status: st,
-    };
-  });
-
-const summarizeEmployeeKpis = (empIds: number[], nodes: CascadeTreeNode[]) => {
-  const kpis = empIds.flatMap(id => cascadeKpisForEmployee(id, nodes));
-  const total = kpis.length;
-  const avgPct = total ? Math.round(kpis.reduce((s, k) => s + (k.plan ? Math.min(100, (k.fakt / k.plan) * 100) : 0), 0) / total) : 0;
-  return {
-    avgPct,
-    completed: kpis.filter(k => k.status === "completed").length,
-    atRisk: kpis.filter(k => k.status === "at_risk").length,
-    delayed: kpis.filter(k => k.status === "delayed").length,
-    status: (kpis.some(k => k.status === "delayed") ? "delayed" : kpis.some(k => k.status === "at_risk") ? "at_risk" : kpis.some(k => k.status === "in_progress") ? "in_progress" : "completed") as KpiStatus,
-  };
-};
-
-const buildOrgTree = (cascadeNodes: CascadeTreeNode[]): TreeNode[] => {
+const buildOrgTree = (): TreeNode[] => {
   const emps = getEmployees().filter(e => e.active);
   const structs = getStructures();
 
@@ -674,8 +645,8 @@ const buildOrgTree = (cascadeNodes: CascadeTreeNode[]): TreeNode[] => {
   const nodes: TreeNode[] = [];
 
   const makeEmp = (e: (typeof emps)[number], parentId: string, pathLabel: string): TreeNode => {
-    const sum = summarizeEmployeeKpis([e.id], cascadeNodes);
     const h = hashStr(`e${e.id}`);
+    const stats: KpiStatus[] = ["in_progress", "at_risk", "completed", "delayed"];
     return {
       id: `e${e.id}`, empId: e.id, kind: "employee", parent: parentId,
       name: `${e.firstName} ${e.lastName}`,
@@ -683,12 +654,12 @@ const buildOrgTree = (cascadeNodes: CascadeTreeNode[]): TreeNode[] => {
       team: pathLabel.split(" › ").slice(-1)[0] || "—",
       division: pathLabel || "—",
       employees: 1,
-      avgPct: sum.avgPct,
-      completed: sum.completed,
-      atRisk: sum.atRisk,
-      delayed: sum.delayed,
+      avgPct: 55 + (h % 45),
+      completed: (h % 5) + 1,
+      atRisk: (h >> 3) % 3,
+      delayed: (h >> 6) % 2,
       trend: (["up", "down", "flat"] as const)[h % 3],
-      status: sum.status,
+      status: stats[h % 4],
     };
   };
 
@@ -707,15 +678,13 @@ const buildOrgTree = (cascadeNodes: CascadeTreeNode[]): TreeNode[] => {
       : (t.includes("komanda") || t.includes("team")) ? "team"
       : "division";
     const empCount = countSub(s, path);
-    const empIds = emps.filter(e => e.structurePath && (e.structurePath === path || e.structurePath.startsWith(`${path} › `))).map(e => e.id);
-    const sum = summarizeEmployeeKpis(empIds, cascadeNodes);
     nodes.push({
       id, name: s.name, kind, parent: parentId,
       employees: empCount,
-      avgPct: sum.avgPct,
-      completed: sum.completed,
-      atRisk: sum.atRisk,
-      delayed: sum.delayed,
+      avgPct: 60 + (h % 40),
+      completed: (h % 30) + 3,
+      atRisk: (h >> 3) % 10,
+      delayed: (h >> 6) % 5,
       trend: (["up", "down", "flat"] as const)[h % 3],
     });
     // Employees first (direct), then sub-structures
@@ -725,14 +694,14 @@ const buildOrgTree = (cascadeNodes: CascadeTreeNode[]): TreeNode[] => {
 
   const rootId = "all";
   const rootEmpCount = emps.length;
-  const rootSum = summarizeEmployeeKpis(emps.map(e => e.id), cascadeNodes);
+  const rootH = hashStr(rootId);
   nodes.push({
     id: rootId, name: "Bütün şirkət", kind: "company",
     employees: rootEmpCount,
-    avgPct: rootSum.avgPct,
-    completed: rootSum.completed,
-    atRisk: rootSum.atRisk,
-    delayed: rootSum.delayed,
+    avgPct: 70 + (rootH % 20),
+    completed: Math.round(rootEmpCount * 0.6),
+    atRisk: Math.round(rootEmpCount * 0.12),
+    delayed: Math.round(rootEmpCount * 0.05),
     trend: "up",
   });
   (empByPath.get("") ?? []).forEach(e => nodes.push(makeEmp(e, rootId, "Bütün şirkət")));
@@ -740,18 +709,35 @@ const buildOrgTree = (cascadeNodes: CascadeTreeNode[]): TreeNode[] => {
   return nodes;
 };
 
-// Per-employee KPI list from cascade store
+// Per-employee KPI list (deterministic subset of MY_KPIS variants)
 interface EmpKpi { id: string; name: string; desc: string; plan: number; fakt: number; unit: string; status: KpiStatus; }
+const BASE_KPIS: Omit<EmpKpi, "id" | "fakt" | "status">[] = [
+  { name: "Satış Həcminin Artırılması",         desc: "Satış həcmini ötən rübə müqayisədə artırmaq", plan: 500_000, unit: "₼" },
+  { name: "Yeni Müştəri Qazanılması",           desc: "Yeni müştərilərin sayını artırmaq",            plan: 120,     unit: "" },
+  { name: "Müştəri Məmnuniyyətinin Artırılması", desc: "Müştəri məmnuniyyət səviyyəsini yüksəltmək",  plan: 90,      unit: "%" },
+  { name: "Kredit Borclarının Azaldılması",     desc: "Kredit borclarının minimuma endirilməsi",      plan: 200_000, unit: "₼" },
+  { name: "Yeni Məhsul Satışının Artırılması",  desc: "Yeni məhsul satışlarının artırılması",         plan: 150_000, unit: "₼" },
+];
+const buildEmpKpis = (empId: number): EmpKpi[] => {
+  const h = hashStr(`ek${empId}`);
+  return BASE_KPIS.map((b, i) => {
+    const hh = hashStr(`ek${empId}-${i}`);
+    const ratio = 0.6 + ((hh % 45) / 100); // 0.60..1.05
+    const fakt = Math.round(b.plan * ratio);
+    const pct = Math.round((fakt / b.plan) * 100);
+    const status: KpiStatus = pct >= 100 ? "completed" : pct >= 90 ? "in_progress" : pct >= 75 ? "at_risk" : "delayed";
+    return { id: `${empId}-k${i}`, ...b, fakt, status };
+  }).filter((_, i) => (h >> i) & 1 || i < 3); // at least 3
+};
 
 const SubordinatesView = () => {
-  const cascadeNodes = useCascadeTree();
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const h = () => setTick(t => t + 1);
     window.addEventListener("org-updated", h);
     return () => window.removeEventListener("org-updated", h);
   }, []);
-  const tree = useMemo(() => buildOrgTree(cascadeNodes), [tick, cascadeNodes]);
+  const tree = useMemo(() => buildOrgTree(), [tick]);
   const childrenOf = (id: string) => tree.filter(n => n.parent === id);
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -918,7 +904,7 @@ const SubordinatesView = () => {
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-foreground truncate">{node.name}</div>
-                  {isEmp && <div className="text-[11px] text-muted-foreground truncate">{node.position}</div>}
+                            {isEmp && <div className="text-[11px] text-muted-foreground truncate">{node.position}</div>}
                           </div>
                         </div>
                       </td>
@@ -974,7 +960,7 @@ const SubordinatesView = () => {
 
       {/* RIGHT: sticky panel */}
       {panelOpen && selected && (
-        <SubDetailPanel node={selected} tab={tab} setTab={setTab} cascadeNodes={cascadeNodes} onClose={() => setPanelOpen(false)} />
+        <SubDetailPanel node={selected} tab={tab} setTab={setTab} onClose={() => setPanelOpen(false)} />
       )}
       {!panelOpen && selected && (
         <button onClick={() => setPanelOpen(true)}
@@ -1019,8 +1005,8 @@ const subTabLabels: Record<SubTab, string> = {
   reminders: "Xatırlatmalar", notify: "Bildiriş göndər", risk: "Risk səbəbi",
 };
 
-const SubDetailPanel = ({ node, tab, setTab, cascadeNodes, onClose }: {
-  node: TreeNode; tab: SubTab; setTab: (t: SubTab) => void; cascadeNodes: CascadeTreeNode[]; onClose: () => void;
+const SubDetailPanel = ({ node, tab, setTab, onClose }: {
+  node: TreeNode; tab: SubTab; setTab: (t: SubTab) => void; onClose: () => void;
 }) => {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [draft, setDraft] = useState("");
@@ -1041,7 +1027,7 @@ const SubDetailPanel = ({ node, tab, setTab, cascadeNodes, onClose }: {
   const comments = commentsMap[node.id] || [];
   const history = initialHistory(node.id);
   const reminders = initialReminders(node.id);
-  const empKpis = useMemo(() => node.empId ? cascadeKpisForEmployee(node.empId, cascadeNodes) : [], [node.empId, cascadeNodes]);
+  const empKpis = useMemo(() => node.empId ? buildEmpKpis(node.empId) : [], [node.empId]);
 
   const sendComment = () => {
     const t = draft.trim(); if (!t) return;

@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
-import { getNode, updateNodeDetails, useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
 import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
@@ -133,7 +133,7 @@ const HubCard = ({
 /* ============================== ASSIGN ============================== */
 const AssignView = () => {
   const rows = useKpiSet();
-  const cascadeNodes = useCascadeTree();
+  useCascadeTree();
   const { user } = useAuth();
   const myOrgId = getCurrentOrgEmployeeId(user);
   const [q, setQ] = useState("");
@@ -272,9 +272,8 @@ const AssignView = () => {
                                   size="icon"
                                   variant="ghost"
                                   title="Bax"
-                                  onClick={() => e.cascadable && setDistribute(e)}
+                                  onClick={() => setDistribute(e)}
                                   className="h-8 w-8"
-                                  disabled={!e.cascadable}
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
@@ -306,7 +305,6 @@ const AssignView = () => {
         <CascadeDistributeDialog
           open={!!distribute}
           onOpenChange={(o) => !o && setDistribute(null)}
-          existingNode={distribute.cascadeNodeId ? (cascadeNodes.find(n => n.id === distribute.cascadeNodeId) || getNode(distribute.cascadeNodeId)) : undefined}
           bootstrap={{
             cardName: distribute.cardName,
             goalName: distribute.subKpiName || distribute.cardName,
@@ -314,8 +312,6 @@ const AssignView = () => {
             assigneeName: distribute.assigneeName,
             assigneeId: distribute.assigneeId,
             limit: parseNum(distribute.target),
-            sourceTargetId: distribute.sourceTargetId,
-            sourceEntryId: distribute.id,
           }}
         />
       )}
@@ -332,22 +328,12 @@ const AssignView = () => {
           const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
           const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
           const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
-          if (!saved.cascadable) return;
-          if (entry.cascadeNodeId) {
-            updateNodeDetails(entry.cascadeNodeId, {
-              goalName: saved.goalName || entry.subKpiName || entry.cardName,
-              unit,
-              limit: value,
-              sourceTargetId: entry.sourceTargetId,
-              sourceEntryId: entry.id,
-            });
-          }
           const refreshed: KpiSetEntry = {
             ...entry,
             target: String(value),
             unit,
             cascadable: true,
-            subKpiName: saved.goalName || entry.subKpiName,
+            subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
           };
           setCascadeConfirm({ entry: refreshed, value, unit });
         }}

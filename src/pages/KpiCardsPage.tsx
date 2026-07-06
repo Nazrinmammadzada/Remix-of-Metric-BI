@@ -10,7 +10,7 @@ import FilterTeamSelect from "@/components/kpi/FilterTeamSelect";
 import { getTeams } from "@/lib/teamsStore";
 import { validateTarget, getTargetPlaceholder, getTargetUnitSuffix } from "@/lib/kpiValidation";
 import { getApprovalMatrices, getDeletionMatrix, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, type ApprovalMatrix } from "@/lib/matrixStore";
-import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, getFlatStructureNodes, type OrgStructure } from "@/lib/orgStore";
+import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -30,7 +30,6 @@ import { upsertStatus } from "@/lib/kpiCardStatusStore";
 import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStore";
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
-import { createRoot, findRootByGoal } from "@/lib/cascadeTreeStore";
 
 const STATUS_LABELS = {
   qaralama: "Qaralama", natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
@@ -618,72 +617,23 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       setStatusMap(next);
     } catch {}
 
-    // === Dynamic KPI Set + Cascade root sync ===
-    // Demo nümunəsinə bağlı deyil: hər yeni wizard hədəfi sourceTargetId ilə ümumi store-lara düşür.
+    // === Rəhbər üçün pending KpiSetEntry yarat ===
+    // "Digər əməkdaş təyin edir" seçildikdə həmin rəhbər öz "Məsul olduğum kartlar"
+    // modulundan bu hədəfi (ad/dəyər/limit/çəki/cascadable) təyin edir.
     try {
-      const employees = getEmployees();
-      const byName = (name: string) => employees.find(e => `${e.firstName} ${e.lastName}` === name);
-      const assignedNames = new Set<string>();
-      if (d.mode === "individual") d.individualEmployees.forEach(n => assignedNames.add(n));
-      else {
-        d.bulkSelections.persons.forEach(n => assignedNames.add(n));
-        const teams = getTeams();
-        d.bulkSelections.teams.forEach(name => {
-          const t = teams.find(x => x.name === name);
-          if (!t) return;
-          assignedNames.add(t.leader);
-          t.members.forEach(m => assignedNames.add(m.name));
-        });
-        const flat = getFlatStructureNodes();
-        d.bulkSelections.structures.forEach(pathOrName => {
-          const node = flat.find(s => s.path === pathOrName || s.name === pathOrName);
-          if (!node) return;
-          const prefix = node.path;
-          employees.filter(e => e.active && e.structurePath && (e.structurePath === prefix || e.structurePath.startsWith(`${prefix} › `)))
-            .forEach(e => assignedNames.add(`${e.firstName} ${e.lastName}`));
-        });
-        d.bulkSelections.positions.forEach(pos => {
-          employees.filter(e => e.active && e.positionName === pos).forEach(e => assignedNames.add(`${e.firstName} ${e.lastName}`));
-        });
-      }
-      const unitFor = (t: any) => t.type === "Məbləğ" ? (t.currency || "AZN") : t.type === "Faiz" ? "%" : t.type === "Say" ? "ədəd" : t.type === "Nisbət" ? "əmsal" : "";
-      const targetNum = (t: any) => parseFloat(String(t.targetValue || t.max || t.scoreLimit || "").replace(/[^\d.\-]/g, "")) || 0;
+      const seen = new Set<string>();
       (d.targets || []).forEach((t: any) => {
-        if (t.createdBy === "other" && t.assigner) {
-          const emp = byName(t.assigner);
+        if (t.createdBy === "other" && t.assigner && !seen.has(t.assigner)) {
+          seen.add(t.assigner);
+          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === t.assigner);
           addPendingEntry({
             cardId: id,
             cardName: d.name,
             assigneeName: t.assigner,
             assigneeId: emp?.id,
             ownerType: "manager",
-            subKpiName: t.name,
-            type: t.type,
-            cascadable: !!t.cascading,
-            weight: Number(t.weight) || undefined,
-            sourceTargetId: t.id,
             weightMin: 5,
             weightMax: 40,
-            unit: unitFor(t),
-          });
-        }
-        if (t.createdBy !== "other" && t.cascading) {
-          const value = targetNum(t);
-          if (value <= 0) return;
-          Array.from(assignedNames).forEach(name => {
-            const emp = byName(name);
-            if (!emp) return;
-            const existing = findRootByGoal(d.name, t.name, emp.id, t.id);
-            if (!existing) createRoot({
-              cardName: d.name,
-              goalName: t.name,
-              unit: unitFor(t),
-              assigneeId: emp.id,
-              assigneeName: `${emp.firstName} ${emp.lastName}`,
-              positionName: emp.positionName,
-              limit: value,
-              sourceTargetId: t.id,
-            });
           });
         }
       });
