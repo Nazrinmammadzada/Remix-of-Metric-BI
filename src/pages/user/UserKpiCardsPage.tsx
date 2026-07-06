@@ -148,9 +148,18 @@ const UserKpiCardsPage = () => {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [typeSearchText, setTypeSearchText] = useState("");
 
+  const myTeam = user ? getTeams().find(t => t.leader === user.name || t.members.some(m => m.name === user.name)) : undefined;
+  const teamMemberNames = myTeam ? [myTeam.leader, ...myTeam.members.map(m => m.name)] : [];
+  const myDept = userKpiCards.find(c => c.responsible === user?.name)?.department;
+
   const filteredCards = userKpiCards.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase());
-    const matchesView = filterView === "own" ? c.responsible === user?.name : c.responsible !== user?.name;
+    const matchesView =
+      filterView === "own"
+        ? c.responsible === user?.name
+        : filterView === "team"
+        ? (teamMemberNames.length ? teamMemberNames.includes(c.responsible) : c.responsible !== user?.name)
+        : /* structure */ (myDept ? c.department === myDept : true);
     const matchesStatus = filterStatus === "Hamısı" ||
       (filterStatus === "Təsdiq gözləyən" && c.approvalStatus === "pending") ||
       (filterStatus === "Təsdiq edilmiş" && c.approvalStatus === "approved");
