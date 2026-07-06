@@ -1210,13 +1210,11 @@ function LifecycleStage({ title, start, end, onStart, onEnd }: {
       </div>
       <div className="col-span-6 md:col-span-4">
         <label className="text-[11px] text-muted-foreground">Başlama tarixi</label>
-        <input type="date" value={start} onChange={e => onStart(e.target.value)}
-          className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+        <DatePickerField value={start} onChange={onStart} className="mt-0.5 px-2 py-1.5 rounded" />
       </div>
       <div className="col-span-6 md:col-span-4">
         <label className="text-[11px] text-muted-foreground">Bitmə tarixi</label>
-        <input type="date" value={end} onChange={e => onEnd(e.target.value)}
-          className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background" />
+        <DatePickerField value={end} onChange={onEnd} className="mt-0.5 px-2 py-1.5 rounded" />
       </div>
     </div>
   );
