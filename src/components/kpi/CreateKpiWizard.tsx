@@ -273,8 +273,14 @@ function MultiSelectDropdown({
     if (!s) return options;
     return options.filter(o => o.label.toLowerCase().includes(s));
   }, [q, options]);
-  const toggle = (v: string) =>
+  const keepOpen = () => {
+    setOpen(true);
+    requestAnimationFrame(() => setOpen(true));
+  };
+  const toggle = (v: string) => {
     onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+    keepOpen();
+  };
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -292,6 +298,7 @@ function MultiSelectDropdown({
   const toggleAll = () => {
     if (allSelected) onChange(selected.filter(v => !filtered.some(o => o.value === v)));
     else onChange(Array.from(new Set([...selected, ...filtered.map(o => o.value)])));
+    keepOpen();
   };
   return (
     <div className="relative" ref={wrapRef}>
@@ -309,7 +316,7 @@ function MultiSelectDropdown({
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <div className="p-1.5 border-b border-border flex items-center gap-1.5">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -335,6 +342,8 @@ function MultiSelectDropdown({
               const sel = selected.includes(o.value);
               return (
                 <button key={o.value} type="button"
+                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(o.value); }}
                   className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center gap-2 hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
                   <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${sel ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}>
