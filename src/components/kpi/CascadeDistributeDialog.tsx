@@ -182,9 +182,11 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 };
 
 const SubTable = ({
-  list, unit, slices, setSlice,
+  list, unit, slices, setSlice, reCascade, toggleReCascade,
 }: {
-  list: any[]; unit: string; slices: Record<number, string>; setSlice: (id: number, v: string) => void;
+  list: any[]; unit: string;
+  slices: Record<number, string>; setSlice: (id: number, v: string) => void;
+  reCascade: Record<number, boolean>; toggleReCascade: (id: number) => void;
 }) => (
   <div className="rounded-lg border border-border max-h-[320px] overflow-auto">
     {list.length === 0 ? (
@@ -197,6 +199,7 @@ const SubTable = ({
             <th className="text-left px-3 py-2 font-medium">Əməkdaş</th>
             <th className="text-left px-3 py-2 font-medium">Vəzifə</th>
             <th className="text-right px-3 py-2 font-medium w-44">Təyin olunan dəyər ({unit})</th>
+            <th className="text-center px-3 py-2 font-medium w-40">Yenidən kaskadlaya bilər</th>
           </tr>
         </thead>
         <tbody>
@@ -219,6 +222,16 @@ const SubTable = ({
                   className="w-36 text-right px-2 py-1 border border-border rounded bg-background tabular-nums font-medium focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </td>
+              <td className="px-3 py-2 text-center">
+                <label className="inline-flex items-center justify-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!reCascade[e.id]}
+                    onChange={() => toggleReCascade(e.id)}
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-1 focus:ring-ring"
+                  />
+                </label>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -227,11 +240,12 @@ const SubTable = ({
   </div>
 );
 
-const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" }) => {
+const BigStat = ({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: "neutral" | "primary" | "success" | "danger" }) => {
   const toneCls = {
     neutral: "border-border bg-card text-foreground",
     primary: "border-primary/30 bg-primary/5 text-primary",
     success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400",
+    danger: "border-destructive/40 bg-destructive/5 text-destructive",
   }[tone];
   return (
     <div className={`rounded-xl border p-4 ${toneCls}`}>
