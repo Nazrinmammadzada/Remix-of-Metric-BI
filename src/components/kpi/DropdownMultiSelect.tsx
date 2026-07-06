@@ -52,7 +52,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </div>
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
           <div className="p-2 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -63,9 +63,11 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
             {filtered.map((o) => {
               const checked = selected.includes(o);
               return (
-                <div key={o} onClick={(e) => { e.stopPropagation(); onToggle(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
-                  <span className="truncate">{o}</span>
-                  {checked && <Check className="w-4 h-4 text-primary shrink-0" />}
+                <div key={o} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}>
+                    {checked && <Check className="w-3 h-3" />}
+                  </span>
+                  <span className="truncate flex-1">{o}</span>
                 </div>
               );
             })}
