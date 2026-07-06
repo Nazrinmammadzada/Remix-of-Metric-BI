@@ -247,18 +247,25 @@ function seedNodes(): CascadeTreeNode[] {
     rows.push(mk("cn-s-b1-2", "cn-s-b1", "cn-s-root", "", nurlan, 70_000, card, goal));
   }
 
-  // 2) Marketinq — tam paylanmış (3 səviyyə, çoxlu qollar)
+  // 2) Marketinq — HR → Elvin → Kamran (Manager 2) → Orxan (3 səviyyə, re-cascade aktiv)
   const elvin = byName("Elvin Rəhimov");
   const kamran = byName("Kamran Quliyev");
   const aynur = byName("Aynur Cəfərova");
   const orxan = byName("Orxan Bayramov");
   const aytac = byName("Aytac Kərimova");
   if (elvin && kamran && aynur && orxan && aytac) {
-    const card = "Marketinq Kampaniya Hədəfi"; const goal = "Lead Generation Həcmi";
+    const card = "İllik Marketinq Hədəfi 2026"; const goal = "Ümumi marketinq gəliri";
     rows.push(mk("cn-m-root", null, "cn-m-root", "", elvin, 500_000, card, goal));
-    rows.push(mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal));
-    rows.push(mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal));
-    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 300_000, card, goal));
+    // Elvin → Kamran: 300 000 AZN, yenidən kaskadlaya bilər
+    const kNode = mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal);
+    kNode.canReCascade = true;
+    rows.push(kNode);
+    // Elvin → Aynur: 200 000 AZN, yenidən kaskadlaya bilər
+    const ayNode = mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal);
+    ayNode.canReCascade = true;
+    rows.push(ayNode);
+    // Kamran → Orxan: 150 000 AZN (yerdə qalan 150 000 hələ bölüşdürülməyib)
+    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 150_000, card, goal));
     rows.push(mk("cn-m-b1", "cn-m-b", "cn-m-root", "", aytac, 200_000, card, goal));
   }
 
