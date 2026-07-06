@@ -1259,25 +1259,38 @@ const EmployeesTab = () => {
 
 
       {/* Create employee */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) setForm(emptyEmployeeForm); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Yeni əməkdaş yarat</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Ad" value={form.firstName} onChange={v => setForm(p => ({ ...p, firstName: v }))} />
-            <Field label="Soyad" value={form.lastName} onChange={v => setForm(p => ({ ...p, lastName: v }))} />
-            <Field label="Ata adı" value={form.fatherName} onChange={v => setForm(p => ({ ...p, fatherName: v }))} />
-            <Field label="FİN" value={form.fin} onChange={v => setForm(p => ({ ...p, fin: v }))} mono />
-            <Field label="Telefon nömrəsi" value={form.phone} onChange={v => setForm(p => ({ ...p, phone: v }))} />
+            <ValidatedField label="Ad" value={form.firstName} error={createErrors.firstName}
+              onChange={v => setForm(p => ({ ...p, firstName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Soyad" value={form.lastName} error={createErrors.lastName}
+              onChange={v => setForm(p => ({ ...p, lastName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Ata adı" value={form.fatherName} error={createErrors.fatherName}
+              onChange={v => setForm(p => ({ ...p, fatherName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="FİN" value={form.fin} mono error={createErrors.fin}
+              onChange={v => setForm(p => ({ ...p, fin: sanitizeFin(v) }))} />
+            <ValidatedField label="Telefon nömrəsi" value={form.phone} error={createErrors.phone}
+              placeholder="+994 50 123 45 67"
+              onChange={v => setForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
-              <Field label="Email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} />
+              <ValidatedField label="Email" value={form.email} error={createErrors.email}
+                onChange={v => setForm(p => ({ ...p, email: v.trim() }))} />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Struktur, vəzifə və əməkhaqqı məlumatları yalnız <span className="text-foreground font-medium">Struktur</span> tabından təyin oluna bilər.
           </p>
           <div className="flex gap-3 pt-2">
-            <button onClick={handleCreate} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Yarat</button>
-            <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
+            <button
+              onClick={handleCreate}
+              disabled={!createValid}
+              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Yarat
+            </button>
+            <button onClick={() => { setShowCreate(false); setForm(emptyEmployeeForm); }} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1287,9 +1300,12 @@ const EmployeesTab = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Əməkdaşı redaktə et</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Ad" value={editForm.firstName} onChange={v => setEditForm(p => ({ ...p, firstName: v }))} />
-            <Field label="Soyad" value={editForm.lastName} onChange={v => setEditForm(p => ({ ...p, lastName: v }))} />
-            <Field label="Ata adı" value={editForm.fatherName} onChange={v => setEditForm(p => ({ ...p, fatherName: v }))} />
+            <ValidatedField label="Ad" value={editForm.firstName} error={editErrors.firstName}
+              onChange={v => setEditForm(p => ({ ...p, firstName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Soyad" value={editForm.lastName} error={editErrors.lastName}
+              onChange={v => setEditForm(p => ({ ...p, lastName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Ata adı" value={editForm.fatherName} error={editErrors.fatherName}
+              onChange={v => setEditForm(p => ({ ...p, fatherName: sanitizeName(v).slice(0, 50) }))} />
             <div>
               <label className="text-sm font-medium text-foreground">FİN <span className="text-[10px] text-muted-foreground font-normal">(dəyişdirilə bilməz)</span></label>
               <input
@@ -1299,17 +1315,27 @@ const EmployeesTab = () => {
                 className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-muted/40 font-mono cursor-not-allowed text-muted-foreground"
               />
             </div>
-            <Field label="Telefon nömrəsi" value={editForm.phone} onChange={v => setEditForm(p => ({ ...p, phone: v }))} />
+            <ValidatedField label="Telefon nömrəsi" value={editForm.phone} error={editErrors.phone}
+              placeholder="+994 50 123 45 67"
+              onChange={v => setEditForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
-              <Field label="Email" value={editForm.email} onChange={v => setEditForm(p => ({ ...p, email: v }))} />
+              <ValidatedField label="Email" value={editForm.email} error={editErrors.email}
+                onChange={v => setEditForm(p => ({ ...p, email: v.trim() }))} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={saveEdit} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Yadda Saxla</button>
+            <button
+              onClick={saveEdit}
+              disabled={!editValid}
+              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Yadda Saxla
+            </button>
             <button onClick={() => setEditing(null)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
           </div>
         </DialogContent>
       </Dialog>
+
 
       {/* OTP */}
       <Dialog open={!!otpDialog} onOpenChange={() => setOtpDialog(null)}>
