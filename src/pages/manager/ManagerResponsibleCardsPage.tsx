@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
@@ -28,6 +29,13 @@ import CascadeLoadConfirmDialog from "@/components/kpi/CascadeLoadConfirmDialog"
 const fmt = (n: number) =>
   new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 const parseNum = (v: string) => parseFloat(String(v).replace(/[^\d.\-]/g, "")) || 0;
+
+const isEntryAssignedToSetter = (entry: KpiSetEntry, userName?: string, sharedCards: ReturnType<typeof useSharedKpiCards> = []) => {
+  if (entry.ownerType !== "manager" || entry.assigneeName !== userName) return false;
+  const shared = sharedCards.find(c => c.numericId === entry.cardId || c.name === entry.cardName);
+  if (!shared) return true;
+  return shared.targets.some(t => t.createdBy === "other" && t.assigner === userName);
+};
 
 type View = "hub" | "assign" | "evaluate";
 
@@ -64,14 +72,15 @@ const ManagerResponsibleCardsPage = () => {
 /* ============================== HUB ============================== */
 const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const rows = useKpiSet();
+  const sharedCards = useSharedKpiCards();
   const { user } = useAuth();
   const meId = getCurrentEmployeeId(user);
   const evalItems = useSubKpis(meId || "");
 
   // Yalnız cari istifadəçiyə həvalə olunmuş target-setter entry-ləri
   const assignCount = useMemo(
-    () => rows.filter(r => r.ownerType === "manager" && r.assigneeName === user?.name).length,
-    [rows, user?.name],
+    () => rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards)).length,
+    [rows, sharedCards, user?.name],
   );
   const evalCount = evalItems.length;
 
@@ -133,6 +142,7 @@ const HubCard = ({
 /* ============================== ASSIGN ============================== */
 const AssignView = () => {
   const rows = useKpiSet();
+  const sharedCards = useSharedKpiCards();
   const { user } = useAuth();
   useCascadeTree();
   const [q, setQ] = useState("");
@@ -143,9 +153,7 @@ const AssignView = () => {
 
   const groups = useMemo<CardGroup[]>(() => {
     // Yalnız cari istifadəçi target-setter olan entry-lər
-    const managerRows = rows.filter(
-      r => r.ownerType === "manager" && r.assigneeName === user?.name,
-    );
+    const managerRows = rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards));
     const map = new Map<number, CardGroup>();
     for (const r of managerRows) {
       if (!map.has(r.cardId)) map.set(r.cardId, { cardId: r.cardId, cardName: r.cardName, entries: [] });
@@ -158,7 +166,7 @@ const AssignView = () => {
       g.cardName.toLowerCase().includes(s) ||
       g.entries.some(e => e.subKpiName.toLowerCase().includes(s))
     );
-  }, [rows, q, user?.name]);
+  }, [rows, sharedCards, q, user?.name]);
 
   const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
 
@@ -311,7 +319,8 @@ const AssignView = () => {
             unit: distribute.unit,
             assigneeName: distribute.assigneeName,
             assigneeId: distribute.assigneeId,
-            limit: parseNum(distribute.target),
+            limit: (distribute as any).cascadeLimit ?? parseNum(distribute.target),
+            defaultSliceValue: (distribute as any).defaultSliceValue ?? parseNum(distribute.target),
           }}
         />
       )}
@@ -324,18 +333,24 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          // Cascade Load popup-u: dəyər HƏMİŞƏ yuxarıdan gələn cascade load
-          // əsasında hesablanır (istifadəçinin yazdığı KPI dəyəri deyil).
-          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          const value = incoming?.value ?? saved?.value ?? parseNum(entry.target);
+          // Cascade Load popup-u yuxarı rəhbərin verdiyi node/root limitini göstərir.
+          // Paylanma sətrindəki default isə təyinetmə zamanı yazılmış hədəf dəyəridir.
+          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId, {
+            cardName: entry.cardName,
+            goalName: saved?.name || entry.subKpiName || entry.cardName,
+          });
+          const value = incoming?.value ?? parseNum(entry.target);
+          const assignedValue = saved?.value ?? parseNum(entry.target);
           const unit = incoming?.unit ?? saved?.unit ?? entry.unit ?? "";
           const refreshed: KpiSetEntry = {
             ...entry,
-            target: String(value),
+            target: String(assignedValue),
             unit,
             cascadable: true,
-            subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
-          };
+            cascadeLimit: value,
+            defaultSliceValue: assignedValue,
+            subKpiName: saved?.name || entry.subKpiName,
+          } as KpiSetEntry;
           setCascadeConfirm({ entry: refreshed, value, unit });
         }}
       />

@@ -11,13 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
-import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
-  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon,
+  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch,
 } from "lucide-react";
 
 type Stage = "assigned" | "evaluated" | "pending_assign";
@@ -28,6 +29,7 @@ interface Kpi {
   status: KpiStatus; deadline: string; createdAt: string; updatedAt: string;
   responsible: { name: string; role: string };
   measure: string; type: string; method: string; weight: number;
+  cascadeNodeId?: string;
 }
 interface Person { id: string; name: string; position: string; parent?: string; level: number; assigned: boolean; stage: Stage; }
 
@@ -115,11 +117,11 @@ const ManagerKpiTrackingPage = () => {
     if (!user?.name) return [];
     const result: Kpi[] = [];
     // 1) Cascade tree node-ları (yuxarıdan pay alınmış hədəflər)
-    tree.filter(n => n.assigneeName === user.name && n.parentId !== null).forEach(n => {
+    tree.filter(n => n.assigneeName === user.name).forEach(n => {
       result.push({
         id: `ct-${n.id}`,
         name: `${n.cardName} — ${n.goalName || "Ana hədəf"}`,
-        description: `Yuxarı rəhbərdən pay: ${new Intl.NumberFormat("az-AZ").format(n.limit)} ${n.unit}`,
+        description: `${n.parentId ? "Yuxarı rəhbərdən pay" : "HR tərəfindən təyin edilmiş hədəf"}: ${new Intl.NumberFormat("az-AZ").format(n.limit)} ${n.unit}`,
         period: new Date(n.createdAt).toLocaleDateString("az-AZ"),
         target: Number(n.limit) || 0,
         actual: 0,
@@ -131,6 +133,7 @@ const ManagerKpiTrackingPage = () => {
         updatedAt: new Date(n.updatedAt).toLocaleDateString("az-AZ"),
         responsible: { name: n.assigneeName, role: n.positionName || "İcraçı" },
         measure: n.unit || "AZN", type: "Cascade", method: "Cascade paylanma", weight: 20,
+        cascadeNodeId: n.id,
       });
     });
     // 2) SharedKpiCard-lar — cari istifadəçi assignee (və ya owner) olduğu kartlar.
@@ -144,6 +147,8 @@ const ManagerKpiTrackingPage = () => {
           (c.assigneeIds?.includes(empKey) || (!c.assigneeIds?.length && c.ownerId === empKey)))
         .forEach(c => {
           (c.targets || []).forEach((t: any) => {
+            const existsInCascadeTree = tree.some(n => n.assigneeName === user.name && n.cardName === c.name && n.goalName === (t.name || "Ana hədəf"));
+            if (existsInCascadeTree) return;
             const target = parseFloat(String(t.targetValue ?? t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
             result.push({
               id: `sk-${c.id}-${t.id}`,
@@ -196,7 +201,7 @@ const ManagerKpiTrackingPage = () => {
             </div>
           </>
         )}
-        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} />}
+        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} cascadeNodes={tree} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
         {view === "sub" && <SubordinatesView scopePath={subScopePath} />}
       </main>
@@ -246,13 +251,14 @@ const initialReminders = (kpiId: string): ReminderItem[] => [
   { id: `${kpiId}-r3`, date: "15.04.2025", time: "09:15", author: "Aysel Məmmədova", text: "KPI icra vəziyyətini yeniləməyi xatırladırıq.", read: true },
 ];
 
-const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: string; data: Kpi[] }) => {
+const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: string; subtitle: string; data: Kpi[]; cascadeNodes?: CascadeTreeNode[] }) => {
   const [statusF, setStatusF] = useState<string>("all");
   const [periodF, setPeriodF] = useState<string>("all");
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [drawerKpi, setDrawerKpi] = useState<Kpi | null>(null);
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("info");
+  const [distributeNode, setDistributeNode] = useState<CascadeTreeNode | null>(null);
 
   const periods = useMemo(() => Array.from(new Set(data.map(d => d.period))), [data]);
   const rows = useMemo(() => {
@@ -383,6 +389,17 @@ const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: strin
                         <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openDrawer(k, "history")} />
                         <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openDrawer(k, "comments")} />
                         <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "reminders")} />
+                        {k.cascadeNodeId && (
+                          <MenuItem
+                            icon={GitBranch}
+                            label="Kaskadla"
+                            onClick={() => {
+                              const node = cascadeNodes.find(n => n.id === k.cascadeNodeId);
+                              if (node) setDistributeNode(node);
+                              setOpenMenu(null);
+                            }}
+                          />
+                        )}
                       </PopoverContent>
                     </Popover>
                   </td>
@@ -397,6 +414,12 @@ const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: strin
       </div>
 
       <KpiDrawer kpi={drawerKpi} tab={drawerTab} setTab={setDrawerTab} onClose={() => setDrawerKpi(null)} />
+      <CascadeDistributeDialog
+        open={!!distributeNode}
+        onOpenChange={(o) => !o && setDistributeNode(null)}
+        existingNode={distributeNode || undefined}
+        onDistributed={() => setDistributeNode(null)}
+      />
     </>
   );
 };

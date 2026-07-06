@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
 import { distribute, createRoot, findRootByGoal, getNodes, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
@@ -22,6 +21,7 @@ interface Props {
     assigneeName: string;
     assigneeId?: number;
     limit: number;
+    defaultSliceValue?: number;
   };
   onDistributed?: () => void;
 }
@@ -33,7 +33,6 @@ const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
   const [audience, setAudience] = useState<AudienceMode | null>(null);
-  const { remaining, total } = useCascadeLoad();
   const [slices, setSlices] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -58,8 +57,10 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     // belədə onun paylanması eyni ağacın davamı olur (HR→Elvin→Kamran→Orxan zənciri qırılmır).
     // Yalnız child yoxdursa öz root-una düşürük.
     const nodes = getNodes().filter(n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0);
-    const childNode = nodes.find(n => n.parentId !== null);
-    const rootNode = nodes.find(n => n.parentId === null);
+    const exact = nodes.filter(n => n.cardName === bootstrap.cardName && n.goalName === bootstrap.goalName);
+    const pool = exact.length > 0 ? exact : nodes;
+    const childNode = pool.find(n => n.parentId !== null);
+    const rootNode = pool.find(n => n.parentId === null);
     if (childNode) { setNode(childNode); return; }
     if (rootNode) { setNode(rootNode); return; }
     // Ağacda yoxdursa: bu HR-in bu şəxsə verdiyi ilk Owner kartına uyğundur — yeni root yaradırıq.
@@ -177,7 +178,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             setSlice={setSlice}
             // Default = rəhbərin təyin etdiyi hədəf dəyəri (redaktə oluna bilər).
             // Bu, kaskadlanan dəyər DEYİL — sadəcə rahatlıq üçün ilkin təklifdir.
-            defaultValue={cascadeLoad > 0 ? cascadeLoad : 0}
+            defaultValue={bootstrap?.defaultSliceValue != null ? bootstrap.defaultSliceValue : (cascadeLoad > 0 ? cascadeLoad : 0)}
           />
         )}
 
