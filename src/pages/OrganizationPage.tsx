@@ -17,10 +17,11 @@ import { toast } from "sonner";
 import {
   getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
-  assignSlot, removeSlot, removePosition, removeStructure, renameStructure, getAssignedEmployeeIds,
+  assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson,
   type OrgEmployee, type OrgStructure, type OrgPosition,
 } from "@/lib/orgStore";
+
 
 import {
   getStructureTypes, addStructureType, removeStructureType,
@@ -426,12 +427,29 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
     setEditing(false);
   };
 
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(`"${node.name}" strukturunu silmək istəyirsiniz?`)) return;
-    removeStructure(node.id);
-    toast.success("Struktur silindi");
+    const check = canRemoveStructure(node.id);
+    if (check.ok !== true) {
+      toast.error(check.reason, { duration: 6000 });
+      return;
+    }
+
+    setConfirmDelete(true);
   };
+
+  const doDelete = () => {
+    try {
+      removeStructure(node.id);
+      toast.success("Struktur silindi");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Silinmə mümkün olmadı");
+    }
+    setConfirmDelete(false);
+  };
+
 
   return (
     <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in">
@@ -514,9 +532,25 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
           ))}
         </div>
       )}
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Strukturu sil</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">"{node.name}"</span> strukturunu silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+            <button onClick={doDelete} className="flex-1 py-2.5 text-sm rounded-lg bg-destructive text-destructive-foreground font-medium">Sil</button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 // ====================================================
 // Staff Modal — positions + slots for a structure

@@ -1,16 +1,56 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Trophy, TrendingUp, Users, Pencil, X, Check, ChevronDown, Sparkles, ArrowLeft } from "lucide-react";
+import { Search, Plus, Trophy, TrendingUp, Users, X, Check, ChevronDown, Sparkles, ArrowLeft, Crown, Calendar as CalendarIcon } from "lucide-react";
 
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore";
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useAuth } from "@/contexts/AuthContext";
+
+type ChartPeriodMode = "month" | "quarter" | "year";
+interface ChartPeriod { mode: ChartPeriodMode; date: Date }
+
+const MONTHS_AZ = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
+const chartPeriodLabel = (p: ChartPeriod) => {
+  const y = p.date.getFullYear();
+  if (p.mode === "year") return `${y}`;
+  if (p.mode === "quarter") return `${Math.floor(p.date.getMonth() / 3) + 1}-ci rüb ${y}`;
+  return `${MONTHS_AZ[p.date.getMonth()]} ${y}`;
+};
+
+const ChartPeriodFilter = ({ value, onChange }: { value: ChartPeriod; onChange: (v: ChartPeriod) => void }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex items-center gap-2">
+      <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+        {(["month", "quarter", "year"] as ChartPeriodMode[]).map(m => (
+          <button key={m} type="button" onClick={() => onChange({ ...value, mode: m })}
+            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${value.mode === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {m === "month" ? "Ay" : m === "quarter" ? "Rüb" : "İl"}
+          </button>
+        ))}
+      </div>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button type="button" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/40 transition-colors">
+            <CalendarIcon className="w-3.5 h-3.5" /> {chartPeriodLabel(value)}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="end">
+          <Calendar mode="single" selected={value.date} onSelect={(d) => { if (d) { onChange({ ...value, date: d }); setOpen(false); } }} initialFocus className="p-3 pointer-events-auto" />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
 
 const allPeople: TeamMember[] = [
   { name: "Samir Həsənov", role: "Komanda Lideri", kpiScore: 90, avatar: "S" },
@@ -92,6 +132,22 @@ const TeamsPage = () => {
     "KPI Nəticəsi": t.kpiResult,
     "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
   }));
+
+  // Chart period filter — Ay / Rüb / İl (calendar seçici)
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>({ mode: "month", date: new Date() });
+
+  // Seçilən dövrə görə komanda müqayisə datası — deterministik variasiya (real dövr filteri backend gələndə əvəz olunacaq)
+  const comparisonData = useMemo(() => {
+    const y = chartPeriod.date.getFullYear();
+    const seedBase = chartPeriod.mode === "year" ? y * 10 : chartPeriod.mode === "quarter" ? y * 100 + Math.floor(chartPeriod.date.getMonth() / 3) : y * 100 + chartPeriod.date.getMonth();
+    return chartData.map((row, i) => {
+      const h = ((seedBase + i * 37) % 25) - 12; // -12..+12 delta
+      const kpi = Math.max(20, Math.min(100, (row["KPI Nəticəsi"] as number) + h));
+      const done = Math.max(0, Math.min(100, (row["Tamamlanmış"] as number) + Math.round(h / 2)));
+      return { ...row, "KPI Nəticəsi": kpi, "Tamamlanmış": done };
+    });
+  }, [chartData, chartPeriod]);
+
 
   const filteredTeams = scopedTeams.filter(t =>
     t.name.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -202,22 +258,14 @@ const TeamsPage = () => {
           title={isManager ? "Komandam" : "Komandalar"}
           subtitle={isManager ? "Rəhbərlik etdiyiniz komanda və üzvləri" : "Komandaları yaradın, redaktə edin və performansı izləyin"}
           right={
-            <div className="flex gap-3">
-              <select className="px-3 py-2 text-sm border border-border rounded-lg bg-card">
-                <option>May 2026</option>
-                <option>Aprel 2026</option>
-                <option>Mart 2026</option>
-                <option>Fevral 2026</option>
-                <option>Yanvar 2026</option>
-              </select>
-              {!isManager && (
-                <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                  <Plus className="w-4 h-4" /> Yeni komanda yarat
-                </button>
-              )}
-            </div>
+            !isManager ? (
+              <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+                <Plus className="w-4 h-4" /> Yeni komanda yarat
+              </button>
+            ) : undefined
           }
         />
+
 
 
         <div className="relative mb-6">
@@ -257,9 +305,12 @@ const TeamsPage = () => {
         </div>
 
         <div className="bg-card rounded-xl p-5 border border-border mb-6">
-          <h3 className="font-semibold text-foreground mb-4">Komanda Müqayisəsi</h3>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <h3 className="font-semibold text-foreground">Komanda Müqayisəsi</h3>
+            <ChartPeriodFilter value={chartPeriod} onChange={setChartPeriod} />
+          </div>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={chartData}>
+            <BarChart data={comparisonData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 15% 90%)" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
@@ -269,51 +320,59 @@ const TeamsPage = () => {
               <Bar dataKey="Tamamlanmış" fill="hsl(145 65% 42%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+          <p className="text-[11px] text-muted-foreground mt-2">Seçilmiş dövr: <span className="font-medium text-foreground">{chartPeriodLabel(chartPeriod)}</span></p>
         </div>
 
         <div className="space-y-3">
-          {filteredTeams.map((team) => (
-            <div key={team.id} onClick={() => { setSelectedTeam(team); setMemberSearch(""); }} className="bg-card rounded-xl p-5 border border-border flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">{team.leaderAvatar}</div>
-                <div>
-                  <h4 className="font-semibold text-foreground">{team.name}</h4>
-                  <p className="text-sm text-muted-foreground">{team.leader} · {team.branch}</p>
+          {filteredTeams.map((team) => {
+            const leaderMember = team.members.find(m => m.name === team.leader);
+            const leaderInitial = (leaderMember?.avatar || team.leaderAvatar || team.leader.charAt(0)).toUpperCase();
+            return (
+              <div key={team.id} onClick={() => { setSelectedTeam(team); setMemberSearch(""); }} className="bg-card rounded-xl p-5 border border-border flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">{leaderInitial}</div>
+                  <div>
+                    <h4 className="font-semibold text-foreground">{team.name}</h4>
+                    <p className="text-sm text-muted-foreground">{team.leader} · {team.branch}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {team.members.length + 1} üzv</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">KPI Nəticə</span>
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                  team.kpiResult >= 85 ? 'bg-zone-green-bg text-zone-green-text' :
-                  team.kpiResult >= 70 ? 'bg-zone-yellow-bg text-zone-yellow-text' :
-                  'bg-zone-red-bg text-zone-red-text'
-                }`}>{team.kpiResult}%</span>
-                <Pencil className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 
-      {/* Team detail dialog */}
+      {/* Team detail dialog — komanda-özəl məlumatlar, KPI göstərilmir */}
       <Dialog open={!!selectedTeam} onOpenChange={() => setSelectedTeam(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl">{selectedTeam?.name}</DialogTitle>
-            <p className="text-sm text-muted-foreground">Komanda Təfərrüatları və Üzvlər</p>
+            <p className="text-sm text-muted-foreground">Komanda təfərrüatları və üzvlər</p>
           </DialogHeader>
           {selectedTeam && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">Komanda Lideri</p><p className="font-semibold text-foreground mt-1">{selectedTeam.leader}</p></div>
-                <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">KPI Nəticə</p><p className="font-semibold text-success mt-1">{selectedTeam.kpiResult}%</p></div>
-              </div>
-              <div className="border border-border rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">KPI Proqressi</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><p className="text-xs text-muted-foreground">Aktiv KPI</p><p className="text-xl font-bold text-primary">{selectedTeam.activeKpi}</p></div>
-                  <div><p className="text-xs text-muted-foreground">Tamamlanmış</p><p className="text-xl font-bold text-success">{selectedTeam.completedKpi}</p></div>
-                  <div><p className="text-xs text-muted-foreground">Ümumi</p><p className="text-xl font-bold text-foreground">{selectedTeam.totalKpi}</p></div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Komanda Lideri</p>
+                  <p className="font-semibold text-foreground mt-1 inline-flex items-center gap-1.5">
+                    <Crown className="w-4 h-4 text-amber-500" fill="currentColor" />
+                    {selectedTeam.leader}
+                  </p>
+                </div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Filial / Struktur</p>
+                  <p className="font-semibold text-foreground mt-1">{selectedTeam.branch}</p>
+                </div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Üzv sayı</p>
+                  <p className="font-semibold text-foreground mt-1">{selectedTeam.members.length + 1}</p>
+                </div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground">Yaradılma</p>
+                  <p className="font-semibold text-foreground mt-1">{new Date(selectedTeam.id).toLocaleDateString("az-AZ")}</p>
                 </div>
               </div>
               <div className="border border-border rounded-lg p-4">
@@ -323,13 +382,32 @@ const TeamsPage = () => {
                   <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Üzv axtar..." className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
                 </div>
                 <div className="space-y-2">
-                  {(filteredMembers || []).map((m, i) => (
+                  {/* Komanda lideri həmişə birinci və ayrı işarə ilə */}
+                  {(selectedTeam.leader.toLowerCase().includes(memberSearch.toLowerCase())) && (
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/30">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-semibold text-primary-foreground">{(selectedTeam.leaderAvatar || selectedTeam.leader.charAt(0)).toUpperCase()}</div>
+                          <Crown className="absolute -top-1.5 -right-1.5 w-4 h-4 text-amber-500 drop-shadow" fill="currentColor" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground inline-flex items-center gap-1.5">{selectedTeam.leader}
+                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold">Lider</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">Komanda Lideri</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {(filteredMembers || []).filter(m => m.name !== selectedTeam.leader).map((m, i) => (
                     <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">{m.avatar}</div>
-                        <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{m.name}</p>
+                          <p className="text-xs text-muted-foreground">{m.role}</p>
+                        </div>
                       </div>
-                      <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${m.kpiScore >= 85 ? 'bg-zone-green-bg text-zone-green-text' : 'bg-zone-yellow-bg text-zone-yellow-text'}`}>{m.kpiScore}%</span>
                     </div>
                   ))}
                 </div>
@@ -338,6 +416,7 @@ const TeamsPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
 
       {/* Create team dialog */}
       <Dialog open={showCreateTeam} onOpenChange={(open) => { if (!open) resetCreateForm(); }}>
