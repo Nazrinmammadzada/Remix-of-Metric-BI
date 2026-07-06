@@ -24,11 +24,13 @@ export interface CascadeTreeNode {
   updatedAt: number;
   /** Rəhbər bu hədəfi daha aşağı kaskadlamamaq qərarı verib */
   frozen?: boolean;
+  /** Bu şəxsə kaskadlanmış hədəfi növbəti səviyyəyə ötürmək icazəsi var */
+  canReCascade?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v4";
+const KEY = "cascade_tree_nodes_v5";
 // köhnə seed versiyalarını təmizlə
-try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3"].forEach(k => localStorage.removeItem(k)); } catch {}
+try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3","cascade_tree_nodes_v4"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
 const load = (): CascadeTreeNode[] => {
@@ -115,15 +117,23 @@ export interface CascadeSliceInput {
   assigneeName: string;
   positionName?: string;
   limit: number;
+  canReCascade?: boolean;
 }
 
 /** Bir node-u alt şəxslər arasında bölüşdürür.
- *  Qeyd: Alt bölgülərin cəmi rəhbərin cascade load-undan gəldiyi üçün
- *  ana hədəf dəyərindən böyük ola bilər — burada məhdudiyyət qoyulmur. */
+ *  Alt bölgülərin cəmi ana hədəf limitindən böyük ola bilməz. */
 export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok: boolean; error?: string } => {
   const parent = getNode(parentId);
   if (!parent) return { ok: false, error: "Ana hədəf tapılmadı" };
   const filtered = slices.filter(s => s.assigneeId && Number(s.limit) > 0);
+  const total = filtered.reduce((s, sl) => s + Number(sl.limit), 0);
+  const parentLimit = Number(parent.limit) || 0;
+  if (total > parentLimit) {
+    return {
+      ok: false,
+      error: `Bölüşdürülən cəm (${new Intl.NumberFormat("az-AZ").format(total)}) ana hədəfdən (${new Intl.NumberFormat("az-AZ").format(parentLimit)}) böyük ola bilməz.`,
+    };
+  }
   const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
   const now = Date.now();
   const newKids: CascadeTreeNode[] = filtered.map(s => ({
@@ -138,6 +148,7 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
     positionName: s.positionName,
     isStar: isStarPerson(s.assigneeId),
     limit: Number(s.limit),
+    canReCascade: !!s.canReCascade,
     createdAt: now, updatedAt: now,
   }));
   persist([...list, ...newKids]);
@@ -236,18 +247,25 @@ function seedNodes(): CascadeTreeNode[] {
     rows.push(mk("cn-s-b1-2", "cn-s-b1", "cn-s-root", "", nurlan, 70_000, card, goal));
   }
 
-  // 2) Marketinq — tam paylanmış (3 səviyyə, çoxlu qollar)
+  // 2) Marketinq — HR → Elvin → Kamran (Manager 2) → Orxan (3 səviyyə, re-cascade aktiv)
   const elvin = byName("Elvin Rəhimov");
   const kamran = byName("Kamran Quliyev");
   const aynur = byName("Aynur Cəfərova");
   const orxan = byName("Orxan Bayramov");
   const aytac = byName("Aytac Kərimova");
   if (elvin && kamran && aynur && orxan && aytac) {
-    const card = "Marketinq Kampaniya Hədəfi"; const goal = "Lead Generation Həcmi";
+    const card = "İllik Marketinq Hədəfi 2026"; const goal = "Ümumi marketinq gəliri";
     rows.push(mk("cn-m-root", null, "cn-m-root", "", elvin, 500_000, card, goal));
-    rows.push(mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal));
-    rows.push(mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal));
-    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 300_000, card, goal));
+    // Elvin → Kamran: 300 000 AZN, yenidən kaskadlaya bilər
+    const kNode = mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal);
+    kNode.canReCascade = true;
+    rows.push(kNode);
+    // Elvin → Aynur: 200 000 AZN, yenidən kaskadlaya bilər
+    const ayNode = mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal);
+    ayNode.canReCascade = true;
+    rows.push(ayNode);
+    // Kamran → Orxan: 150 000 AZN (yerdə qalan 150 000 hələ bölüşdürülməyib)
+    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 150_000, card, goal));
     rows.push(mk("cn-m-b1", "cn-m-b", "cn-m-root", "", aytac, 200_000, card, goal));
   }
 
