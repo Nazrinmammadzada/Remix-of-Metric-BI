@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
 import { distribute, createRoot, findRootByGoal, getNodes, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
   open: boolean;
@@ -34,7 +33,6 @@ const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
   const [audience, setAudience] = useState<AudienceMode | null>(null);
-  const { remaining, total } = useCascadeLoad();
   const [slices, setSlices] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
 
