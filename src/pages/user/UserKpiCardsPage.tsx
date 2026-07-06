@@ -726,7 +726,7 @@ const UserKpiCardsPage = () => {
                         <input value={sk.name} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], name: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Hədəf adı" className="col-span-5 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
                         <input value={sk.target} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], target: e.target.value }; setNewKpi(p => ({ ...p, subKpis: s })); }} placeholder="Hədəf" className="col-span-3 px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
                         <div className="col-span-3 flex items-center gap-1">
-                          <input type="number" value={sk.weight} onChange={e => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], weight: Number(e.target.value) }; setNewKpi(p => ({ ...p, subKpis: s })); }} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg bg-background" />
+                          <WeightInput value={sk.weight} onChange={n => { const s = [...newKpi.subKpis]; s[i] = { ...s[i], weight: n }; setNewKpi(p => ({ ...p, subKpis: s })); }} className="rounded-lg" />
                           <span className="text-xs text-muted-foreground">%</span>
                         </div>
                         <button onClick={() => setNewKpi(p => ({ ...p, subKpis: p.subKpis.filter((_, idx) => idx !== i) }))} className="col-span-1 w-7 h-7 rounded bg-zone-red-bg text-zone-red-text flex items-center justify-center"><Trash2 className="w-3 h-3" /></button>
