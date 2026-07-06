@@ -76,7 +76,12 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
         </div>
 
         {open && (
-          <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+          <div
+            data-multiselect-content
+            onPointerDownCapture={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden"
+          >
             <div className="p-2 border-b border-border">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -101,7 +106,9 @@ const TeamMultiSelect = ({ value, onChange, shared, onSharedChange }: Props) => 
                   <div
                     key={t.id}
                     data-multiselect-option
+                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       toggle(t.id);
                     }}
