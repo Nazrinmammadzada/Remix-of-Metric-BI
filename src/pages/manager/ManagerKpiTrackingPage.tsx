@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
-  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon,
+  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch,
 } from "lucide-react";
 
 type Stage = "assigned" | "evaluated" | "pending_assign";
@@ -251,13 +251,14 @@ const initialReminders = (kpiId: string): ReminderItem[] => [
   { id: `${kpiId}-r3`, date: "15.04.2025", time: "09:15", author: "Aysel Məmmədova", text: "KPI icra vəziyyətini yeniləməyi xatırladırıq.", read: true },
 ];
 
-const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: string; data: Kpi[] }) => {
+const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: string; subtitle: string; data: Kpi[]; cascadeNodes?: CascadeTreeNode[] }) => {
   const [statusF, setStatusF] = useState<string>("all");
   const [periodF, setPeriodF] = useState<string>("all");
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [drawerKpi, setDrawerKpi] = useState<Kpi | null>(null);
   const [drawerTab, setDrawerTab] = useState<DrawerTab>("info");
+  const [distributeNode, setDistributeNode] = useState<CascadeTreeNode | null>(null);
 
   const periods = useMemo(() => Array.from(new Set(data.map(d => d.period))), [data]);
   const rows = useMemo(() => {
@@ -388,6 +389,17 @@ const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: strin
                         <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openDrawer(k, "history")} />
                         <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openDrawer(k, "comments")} />
                         <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "reminders")} />
+                        {k.cascadeNodeId && (
+                          <MenuItem
+                            icon={GitBranch}
+                            label="Kaskadla"
+                            onClick={() => {
+                              const node = cascadeNodes.find(n => n.id === k.cascadeNodeId);
+                              if (node) setDistributeNode(node);
+                              setOpenMenu(null);
+                            }}
+                          />
+                        )}
                       </PopoverContent>
                     </Popover>
                   </td>
@@ -402,6 +414,12 @@ const OwnKpisView = ({ title, subtitle, data }: { title: string; subtitle: strin
       </div>
 
       <KpiDrawer kpi={drawerKpi} tab={drawerTab} setTab={setDrawerTab} onClose={() => setDrawerKpi(null)} />
+      <CascadeDistributeDialog
+        open={!!distributeNode}
+        onOpenChange={(o) => !o && setDistributeNode(null)}
+        existingNode={distributeNode || undefined}
+        onDistributed={() => setDistributeNode(null)}
+      />
     </>
   );
 };
