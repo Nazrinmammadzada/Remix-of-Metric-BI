@@ -540,6 +540,21 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
           ))}
         </div>
       )}
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Strukturu sil</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Bu strukturu silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv et</button>
+            <button onClick={doDelete} className="flex-1 py-2.5 text-sm rounded-lg bg-destructive text-destructive-foreground font-medium">Sil</button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
