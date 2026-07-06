@@ -1062,37 +1062,61 @@ const EmployeesTab = () => {
 
   useEffect(() => { setPage(1); }, [search, filterStructure, filterPosition, filterStatus, pageSize]);
 
+  const emailsExcluding = (excludeId?: number) =>
+    employees.filter(e => e.id !== excludeId).map(e => e.email.trim().toLowerCase());
+  const finsExcluding = (excludeId?: number) =>
+    employees.filter(e => e.id !== excludeId).map(e => e.fin);
+
+  const createErrors = useMemo(() => ({
+    firstName: validateName(form.firstName, "Ad"),
+    lastName: validateName(form.lastName, "Soyad"),
+    fatherName: validateName(form.fatherName, "Ata adı"),
+    fin: validateFin(form.fin) || (finsExcluding().includes(form.fin) ? "Bu FİN artıq sistemdə mövcuddur." : null),
+    phone: validatePhone(form.phone),
+    email: validateEmail(form.email, emailsExcluding()),
+  }), [form, employees]);
+  const createValid = Object.values(createErrors).every(v => !v);
+
+  const editErrors = useMemo(() => ({
+    firstName: validateName(editForm.firstName, "Ad"),
+    lastName: validateName(editForm.lastName, "Soyad"),
+    fatherName: validateName(editForm.fatherName, "Ata adı"),
+    phone: validatePhone(editForm.phone),
+    email: validateEmail(editForm.email, emailsExcluding(editing?.id)),
+  }), [editForm, employees, editing]);
+  const editValid = Object.values(editErrors).every(v => !v);
+
   const handleCreate = () => {
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.fin.trim() || !form.email.trim()) {
-      toast.error("Tələb olunan xanaları doldurun");
-      return;
-    }
-    if (employees.some(e => e.fin === form.fin.trim())) {
-      toast.error("Bu FİN artıq mövcuddur");
-      return;
-    }
+    if (!createValid) { toast.error("Formu düzgün doldurun"); return; }
     addEmployee({
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       fatherName: form.fatherName.trim() || undefined,
       fin: form.fin.trim(),
-      phone: form.phone.trim(),
+      phone: formatPhone(form.phone),
       email: form.email.trim(),
     });
     toast.success("Əməkdaş yaradıldı");
     setShowCreate(false);
-    setForm({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
+    setForm(emptyEmployeeForm);
   };
 
   const startEdit = (e: OrgEmployee) => {
     setEditing(e);
-    setEditForm({ firstName: e.firstName, lastName: e.lastName, fatherName: e.fatherName || "", fin: e.fin, phone: e.phone, email: e.email });
+    setEditForm({ firstName: e.firstName, lastName: e.lastName, fatherName: e.fatherName || "", fin: e.fin, phone: formatPhone(e.phone) || e.phone, email: e.email });
   };
 
   const saveEdit = () => {
     if (!editing) return;
+    if (!editValid) { toast.error("Formu düzgün doldurun"); return; }
     const { fin: _ignored, ...rest } = editForm;
-    updateEmployee(editing.id, rest);
+    updateEmployee(editing.id, {
+      firstName: rest.firstName.trim(),
+      lastName: rest.lastName.trim(),
+      fatherName: rest.fatherName.trim() || undefined,
+      phone: formatPhone(rest.phone),
+      email: rest.email.trim(),
+    });
     toast.success("Yeniləndi");
     setEditing(null);
   };
