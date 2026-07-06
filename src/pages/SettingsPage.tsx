@@ -72,7 +72,12 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "create", label: "Yeni KPI yaratmaq" },
     { key: "edit", label: "Redaktə etmək" },
     { key: "delete", label: "Silmək" },
+    { key: "copy", label: "Kopyalamaq" },
+    { key: "archive", label: "Arxivləmək" },
+    { key: "view_results", label: "Nəticələri görmək" },
+    { key: "view_calc_details", label: "Hesablama detallarını görmək" },
   ]},
+
   { key: "approvals", label: "Sistem Təsdiqləri", actions: [
     { key: "view", label: "Baxış" },
     { key: "approve", label: "Təsdiq etmək" },
