@@ -1770,7 +1770,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   <button key={key} onClick={() => setDetailTab(key)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
                 ))}
               </div>
+              </div>
 
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pt-4 space-y-4">
               {detailTab === "bsc" && <BscScorecardTab kpi={selectedKpi} />}
               {detailTab === "lifecycle" && <LifecycleView lifecycle={getLifecycle(selectedKpi.id) || null} />}
               {isExtraTab(detailTab) && <KpiExtraTabContent kpi={selectedKpi} tab={detailTab} />}
