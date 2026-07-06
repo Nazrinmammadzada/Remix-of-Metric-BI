@@ -88,10 +88,36 @@ const NotificationSettingsTab = () => {
     [employees, personSearch],
   );
 
+  const handleCreate = () => {
+    const title = newNotif.title.trim();
+    const desc = newNotif.description.trim();
+    if (!title) { toast.error("Bildiriş adı daxil edin"); return; }
+    const created = addNotificationSetting(title, desc);
+    setSelectedId(created.id);
+    setDraft(null);
+    setNewNotif({ title: "", description: "" });
+    setCreateOpen(false);
+    toast.success("Yeni bildiriş yaradıldı");
+  };
+
+  const handleDelete = (id: string, title: string) => {
+    if (!confirm(`"${title}" bildirişini silmək istəyirsiniz?`)) return;
+    deleteNotificationSetting(id);
+    if (selectedId === id) { setSelectedId(null); setDraft(null); }
+    toast.success("Bildiriş silindi");
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-4">
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border space-y-2">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Yeni bildiriş yarat
+          </button>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -102,6 +128,7 @@ const NotificationSettingsTab = () => {
             />
           </div>
         </div>
+
         <div className="max-h-[600px] overflow-y-auto divide-y divide-border">
           {filtered.map(s => {
             const active = s.id === selectedId;
