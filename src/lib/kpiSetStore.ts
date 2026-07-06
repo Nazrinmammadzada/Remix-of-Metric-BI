@@ -328,12 +328,18 @@ export const getIncomingCascadeLoad = (
     }
   } catch {}
 
-  // 2) SharedKpiCard-lardan owner=setter olan (HR-in Owner tipli kartı)
+  // 2) SharedKpiCard-lardan: setter həm owner, həm də assignee ola bilər
+  //    (HR-in verdiyi cascadable kart). Yeni yaradılmış kart öncə gəlsin.
   try {
     const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === assigneeName);
     if (emp) {
       const empKey = `e${emp.id}`;
-      const cards = getSharedKpiCards().filter(c => c.ownerId === empKey && (excludeCardId == null || c.numericId !== excludeCardId));
+      const cards = getSharedKpiCards()
+        .filter(c =>
+          (c.ownerId === empKey || (c.assigneeIds || []).includes(empKey)) &&
+          (excludeCardId == null || c.numericId !== excludeCardId)
+        )
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
       for (const c of cards) {
         const sum = (c.targets || []).reduce((s, t) => {
           if ((t as any).cascading === false) return s;
