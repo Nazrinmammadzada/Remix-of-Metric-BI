@@ -903,6 +903,92 @@ const PositionPicker = ({ value, onChange }: { value: string; onChange: (v: stri
 // Employees tab — with filters, pagination, numbering
 // ====================================================
 
+// ==============================
+// Validation helpers
+// ==============================
+const NAME_LETTERS = "A-Za-zƏəĞğİıÖöŞşÜüÇçÂâ";
+const NAME_CHAR_RE = new RegExp(`[^${NAME_LETTERS} ]`, "g");
+const NAME_VALID_RE = new RegExp(`^[${NAME_LETTERS}]+(?: [${NAME_LETTERS}]+)*$`);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const sanitizeName = (v: string) => v.replace(NAME_CHAR_RE, "").replace(/\s{2,}/g, " ").replace(/^\s+/, "");
+const validateName = (v: string, label: string): string | null => {
+  const t = v.trim();
+  if (!t) return `${label} daxil edin.`;
+  if (t.length < 2) return `${label} minimum 2 simvol olmalıdır.`;
+  if (t.length > 50) return `${label} maksimum 50 simvol olmalıdır.`;
+  if (!NAME_VALID_RE.test(t)) return `${label} yalnız hərflərdən ibarət olmalıdır.`;
+  return null;
+};
+
+const sanitizeFin = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+const validateFin = (v: string): string | null => {
+  if (!v) return "FİN daxil edin.";
+  if (v.length !== 7) return "FİN 7 simvoldan ibarət olmalıdır.";
+  if (!/^[A-Z0-9]{7}$/.test(v)) return "FİN yalnız A-Z və 0-9 daxildir.";
+  return null;
+};
+
+const phoneDigits = (raw: string) => {
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("994")) d = d.slice(3);
+  else if (d.startsWith("0")) d = d.slice(1);
+  return d.slice(0, 9);
+};
+const formatPhone = (raw: string) => {
+  const d = phoneDigits(raw);
+  if (!d) return "";
+  const p1 = d.slice(0, 2);
+  const p2 = d.slice(2, 5);
+  const p3 = d.slice(5, 7);
+  const p4 = d.slice(7, 9);
+  let out = "+994";
+  if (p1) out += " " + p1;
+  if (p2) out += " " + p2;
+  if (p3) out += " " + p3;
+  if (p4) out += " " + p4;
+  return out;
+};
+const validatePhone = (v: string): string | null => {
+  const d = phoneDigits(v);
+  if (!d) return "Telefon nömrəsi daxil edin.";
+  if (d.length !== 9) return "Düzgün telefon nömrəsi daxil edin.";
+  return null;
+};
+const validateEmail = (v: string, existingLower: string[]): string | null => {
+  const t = v.trim().toLowerCase();
+  if (!t) return "Email daxil edin.";
+  if (!EMAIL_RE.test(t)) return "Düzgün email ünvanı daxil edin.";
+  if (existingLower.includes(t)) return "Bu email artıq istifadə olunur.";
+  return null;
+};
+
+type EmployeeFormState = { firstName: string; lastName: string; fatherName: string; fin: string; phone: string; email: string };
+const emptyEmployeeForm: EmployeeFormState = { firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" };
+
+const ValidatedField = ({
+  label, value, onChange, error, mono, placeholder, disabled, required = true,
+}: {
+  label: string; value: string; onChange: (v: string) => void; error?: string | null;
+  mono?: boolean; placeholder?: string; disabled?: boolean; required?: boolean;
+}) => (
+  <div>
+    <label className="text-sm font-medium text-foreground">
+      {label} {required && <span className="text-destructive">*</span>}
+    </label>
+    <input
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      disabled={disabled}
+      placeholder={placeholder}
+      className={`w-full mt-1 px-3 py-2.5 text-sm border rounded-lg bg-background ${mono ? 'font-mono' : ''} ${
+        error ? 'border-destructive focus:outline-none focus:ring-1 focus:ring-destructive' : 'border-border'
+      } ${disabled ? 'bg-muted/40 cursor-not-allowed text-muted-foreground' : ''}`}
+    />
+    {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+  </div>
+);
+
 const EmployeesTab = () => {
   const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
   useEffect(() => {
@@ -948,6 +1034,8 @@ const EmployeesTab = () => {
   const [colFilters, setColFilters] = useState<Record<string, string>>({});
   const setColFilter = (k: string, v: string) => setColFilters(p => ({ ...p, [k]: v }));
 
+  const fullNameOf = (e: OrgEmployee) => [e.firstName, e.lastName, e.fatherName].filter(Boolean).join(" ");
+
   const filtered = useMemo(() => employees.filter(e => {
     if (search && !`${e.firstName} ${e.lastName} ${e.fatherName || ""} ${e.fin} ${e.email}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterStructure && e.structurePath !== filterStructure) return false;
@@ -956,9 +1044,7 @@ const EmployeesTab = () => {
     if (filterStatus === "inactive" && e.active) return false;
     const l = (s: string) => s.toLowerCase();
     const cf = colFilters;
-    if (cf.firstName && !l(e.firstName).includes(l(cf.firstName))) return false;
-    if (cf.lastName && !l(e.lastName).includes(l(cf.lastName))) return false;
-    if (cf.fatherName && !l(e.fatherName || "").includes(l(cf.fatherName))) return false;
+    if (cf.fullName && !l(fullNameOf(e)).includes(l(cf.fullName))) return false;
     if (cf.email && !l(e.email).includes(l(cf.email))) return false;
     if (cf.position && !l(e.positionName || "").includes(l(cf.position))) return false;
     if (cf.salary && !String(e.salary ?? "").toLowerCase().includes(l(cf.salary))) return false;
@@ -976,37 +1062,61 @@ const EmployeesTab = () => {
 
   useEffect(() => { setPage(1); }, [search, filterStructure, filterPosition, filterStatus, pageSize]);
 
+  const emailsExcluding = (excludeId?: number) =>
+    employees.filter(e => e.id !== excludeId).map(e => e.email.trim().toLowerCase());
+  const finsExcluding = (excludeId?: number) =>
+    employees.filter(e => e.id !== excludeId).map(e => e.fin);
+
+  const createErrors = useMemo(() => ({
+    firstName: validateName(form.firstName, "Ad"),
+    lastName: validateName(form.lastName, "Soyad"),
+    fatherName: validateName(form.fatherName, "Ata adı"),
+    fin: validateFin(form.fin) || (finsExcluding().includes(form.fin) ? "Bu FİN artıq sistemdə mövcuddur." : null),
+    phone: validatePhone(form.phone),
+    email: validateEmail(form.email, emailsExcluding()),
+  }), [form, employees]);
+  const createValid = Object.values(createErrors).every(v => !v);
+
+  const editErrors = useMemo(() => ({
+    firstName: validateName(editForm.firstName, "Ad"),
+    lastName: validateName(editForm.lastName, "Soyad"),
+    fatherName: validateName(editForm.fatherName, "Ata adı"),
+    phone: validatePhone(editForm.phone),
+    email: validateEmail(editForm.email, emailsExcluding(editing?.id)),
+  }), [editForm, employees, editing]);
+  const editValid = Object.values(editErrors).every(v => !v);
+
   const handleCreate = () => {
-    if (!form.firstName.trim() || !form.lastName.trim() || !form.fin.trim() || !form.email.trim()) {
-      toast.error("Tələb olunan xanaları doldurun");
-      return;
-    }
-    if (employees.some(e => e.fin === form.fin.trim())) {
-      toast.error("Bu FİN artıq mövcuddur");
-      return;
-    }
+    if (!createValid) { toast.error("Formu düzgün doldurun"); return; }
     addEmployee({
       firstName: form.firstName.trim(),
       lastName: form.lastName.trim(),
       fatherName: form.fatherName.trim() || undefined,
       fin: form.fin.trim(),
-      phone: form.phone.trim(),
+      phone: formatPhone(form.phone),
       email: form.email.trim(),
     });
     toast.success("Əməkdaş yaradıldı");
     setShowCreate(false);
-    setForm({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
+    setForm(emptyEmployeeForm);
   };
 
   const startEdit = (e: OrgEmployee) => {
     setEditing(e);
-    setEditForm({ firstName: e.firstName, lastName: e.lastName, fatherName: e.fatherName || "", fin: e.fin, phone: e.phone, email: e.email });
+    setEditForm({ firstName: e.firstName, lastName: e.lastName, fatherName: e.fatherName || "", fin: e.fin, phone: formatPhone(e.phone) || e.phone, email: e.email });
   };
 
   const saveEdit = () => {
     if (!editing) return;
+    if (!editValid) { toast.error("Formu düzgün doldurun"); return; }
     const { fin: _ignored, ...rest } = editForm;
-    updateEmployee(editing.id, rest);
+    updateEmployee(editing.id, {
+      firstName: rest.firstName.trim(),
+      lastName: rest.lastName.trim(),
+      fatherName: rest.fatherName.trim() || undefined,
+      phone: formatPhone(rest.phone),
+      email: rest.email.trim(),
+    });
     toast.success("Yeniləndi");
     setEditing(null);
   };
@@ -1114,9 +1224,7 @@ const EmployeesTab = () => {
                 </div>
               ),
             },
-            { key: "firstName", label: "Ad", filterType: "text", accessor: (e) => e.firstName, render: (e) => <span className="font-medium">{e.firstName}</span> },
-            { key: "lastName", label: "Soyad", filterType: "text", accessor: (e) => e.lastName },
-            { key: "fatherName", label: "Ata adı", filterType: "text", accessor: (e) => e.fatherName || "", render: (e) => e.fatherName || <span className="text-muted-foreground italic">—</span> },
+            { key: "fullName", label: "Əməkdaşın A.S.A.", filterType: "text", accessor: (e) => fullNameOf(e), render: (e) => <span className="font-medium">{fullNameOf(e) || <span className="text-muted-foreground italic">—</span>}</span> },
             { key: "email", label: "Email", filterType: "text", accessor: (e) => e.email, render: (e) => <span className="text-muted-foreground">{e.email}</span> },
             ...structCols,
             { key: "position", label: "Vəzifə", filterType: "text", accessor: (e) => e.positionName || "", render: (e) => e.positionName || <span className="text-muted-foreground italic">—</span> },
@@ -1151,25 +1259,38 @@ const EmployeesTab = () => {
 
 
       {/* Create employee */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+      <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) setForm(emptyEmployeeForm); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Yeni əməkdaş yarat</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Ad" value={form.firstName} onChange={v => setForm(p => ({ ...p, firstName: v }))} />
-            <Field label="Soyad" value={form.lastName} onChange={v => setForm(p => ({ ...p, lastName: v }))} />
-            <Field label="Ata adı" value={form.fatherName} onChange={v => setForm(p => ({ ...p, fatherName: v }))} />
-            <Field label="FİN" value={form.fin} onChange={v => setForm(p => ({ ...p, fin: v }))} mono />
-            <Field label="Telefon nömrəsi" value={form.phone} onChange={v => setForm(p => ({ ...p, phone: v }))} />
+            <ValidatedField label="Ad" value={form.firstName} error={createErrors.firstName}
+              onChange={v => setForm(p => ({ ...p, firstName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Soyad" value={form.lastName} error={createErrors.lastName}
+              onChange={v => setForm(p => ({ ...p, lastName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Ata adı" value={form.fatherName} error={createErrors.fatherName}
+              onChange={v => setForm(p => ({ ...p, fatherName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="FİN" value={form.fin} mono error={createErrors.fin}
+              onChange={v => setForm(p => ({ ...p, fin: sanitizeFin(v) }))} />
+            <ValidatedField label="Telefon nömrəsi" value={form.phone} error={createErrors.phone}
+              placeholder="+994 50 123 45 67"
+              onChange={v => setForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
-              <Field label="Email" value={form.email} onChange={v => setForm(p => ({ ...p, email: v }))} />
+              <ValidatedField label="Email" value={form.email} error={createErrors.email}
+                onChange={v => setForm(p => ({ ...p, email: v.trim() }))} />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Struktur, vəzifə və əməkhaqqı məlumatları yalnız <span className="text-foreground font-medium">Struktur</span> tabından təyin oluna bilər.
           </p>
           <div className="flex gap-3 pt-2">
-            <button onClick={handleCreate} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Yarat</button>
-            <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
+            <button
+              onClick={handleCreate}
+              disabled={!createValid}
+              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Yarat
+            </button>
+            <button onClick={() => { setShowCreate(false); setForm(emptyEmployeeForm); }} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1179,9 +1300,12 @@ const EmployeesTab = () => {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Əməkdaşı redaktə et</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Ad" value={editForm.firstName} onChange={v => setEditForm(p => ({ ...p, firstName: v }))} />
-            <Field label="Soyad" value={editForm.lastName} onChange={v => setEditForm(p => ({ ...p, lastName: v }))} />
-            <Field label="Ata adı" value={editForm.fatherName} onChange={v => setEditForm(p => ({ ...p, fatherName: v }))} />
+            <ValidatedField label="Ad" value={editForm.firstName} error={editErrors.firstName}
+              onChange={v => setEditForm(p => ({ ...p, firstName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Soyad" value={editForm.lastName} error={editErrors.lastName}
+              onChange={v => setEditForm(p => ({ ...p, lastName: sanitizeName(v).slice(0, 50) }))} />
+            <ValidatedField label="Ata adı" value={editForm.fatherName} error={editErrors.fatherName}
+              onChange={v => setEditForm(p => ({ ...p, fatherName: sanitizeName(v).slice(0, 50) }))} />
             <div>
               <label className="text-sm font-medium text-foreground">FİN <span className="text-[10px] text-muted-foreground font-normal">(dəyişdirilə bilməz)</span></label>
               <input
@@ -1191,17 +1315,27 @@ const EmployeesTab = () => {
                 className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-muted/40 font-mono cursor-not-allowed text-muted-foreground"
               />
             </div>
-            <Field label="Telefon nömrəsi" value={editForm.phone} onChange={v => setEditForm(p => ({ ...p, phone: v }))} />
+            <ValidatedField label="Telefon nömrəsi" value={editForm.phone} error={editErrors.phone}
+              placeholder="+994 50 123 45 67"
+              onChange={v => setEditForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
-              <Field label="Email" value={editForm.email} onChange={v => setEditForm(p => ({ ...p, email: v }))} />
+              <ValidatedField label="Email" value={editForm.email} error={editErrors.email}
+                onChange={v => setEditForm(p => ({ ...p, email: v.trim() }))} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={saveEdit} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">Yadda Saxla</button>
+            <button
+              onClick={saveEdit}
+              disabled={!editValid}
+              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Yadda Saxla
+            </button>
             <button onClick={() => setEditing(null)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
           </div>
         </DialogContent>
       </Dialog>
+
 
       {/* OTP */}
       <Dialog open={!!otpDialog} onOpenChange={() => setOtpDialog(null)}>
