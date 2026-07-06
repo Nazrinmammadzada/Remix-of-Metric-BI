@@ -299,7 +299,12 @@ function MultiSelectDropdown({
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div data-multiselect-content className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg">
+        <div
+          data-multiselect-content
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg"
+        >
           <div className="p-1.5 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -317,7 +322,8 @@ function MultiSelectDropdown({
               const sel = selected.includes(o.value);
               return (
                 <button key={o.value} type="button" data-multiselect-option
-                  onClick={() => toggle(o.value)}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(o.value); }}
                   className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center justify-between hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
                   <span className="truncate">{o.label}</span>
                   {sel && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
