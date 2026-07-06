@@ -20,36 +20,39 @@ type Periodicity = "weekly" | "monthly" | "quarterly" | "halfyear" | "yearly" | 
 
 export interface SubKpi { name: string; weight: number; evaluator: string; score: number | null; }
 export interface Employee {
-  id: string; firstName: string; lastName: string; department: string; position: string;
+  id: string; firstName: string; lastName: string; fatherName?: string; department: string; position: string;
   baseSalary: number; targetBonusPct: number; subKpis: SubKpi[];
 }
 
+export const fullNameOf = (e: Pick<Employee, "firstName" | "lastName" | "fatherName">) =>
+  [e.firstName, e.lastName, e.fatherName].filter(Boolean).join(" ");
+
 export const DEFAULT_BONUS_EMPLOYEES: Employee[] = [
-  { id: "1", firstName: "Aysel", lastName: "Məmmədova", department: "Satış", position: "Satış Meneceri", baseSalary: 2500, targetBonusPct: 25,
+  { id: "1", firstName: "Aysel", lastName: "Məmmədova", fatherName: "Vüqar", department: "Satış", position: "Satış Meneceri", baseSalary: 2500, targetBonusPct: 25,
     subKpis: [
       { name: "Aylıq Satış", weight: 50, evaluator: "Samir Həsənov", score: 92 },
       { name: "Müştəri Saxlama", weight: 30, evaluator: "Leyla Quliyeva", score: 85 },
       { name: "Komanda işi", weight: 20, evaluator: "Özü", score: 90 },
     ]},
-  { id: "2", firstName: "Elvin", lastName: "Hüseynov", department: "Marketinq", position: "Marketinq Mütəxəssisi", baseSalary: 2200, targetBonusPct: 20,
+  { id: "2", firstName: "Elvin", lastName: "Hüseynov", fatherName: "Tofiq", department: "Marketinq", position: "Marketinq Mütəxəssisi", baseSalary: 2200, targetBonusPct: 20,
     subKpis: [
       { name: "Kampaniya effektivliyi", weight: 40, evaluator: "Günel Əlizadə", score: 78 },
       { name: "Sosial media göstəriciləri", weight: 30, evaluator: "İnteqrasiya (CRM)", score: 88 },
       { name: "Yeni müştəri cəlbi", weight: 30, evaluator: "Emin Məmmədov", score: 70 },
     ]},
-  { id: "3", firstName: "Günel", lastName: "Quliyeva", department: "HR", position: "HR Mütəxəssisi", baseSalary: 2000, targetBonusPct: 15,
+  { id: "3", firstName: "Günel", lastName: "Quliyeva", fatherName: "Rauf", department: "HR", position: "HR Mütəxəssisi", baseSalary: 2000, targetBonusPct: 15,
     subKpis: [
       { name: "İşə qəbul tempi", weight: 40, evaluator: "Nigar Hüseynova", score: 80 },
       { name: "Davamiyyət", weight: 30, evaluator: "İnteqrasiya (CHR)", score: 95 },
       { name: "Təlim keyfiyyəti", weight: 30, evaluator: "Özü", score: 88 },
     ]},
-  { id: "4", firstName: "Rəşad", lastName: "İsmayılov", department: "IT", position: "Sistem Administratoru", baseSalary: 2800, targetBonusPct: 22,
+  { id: "4", firstName: "Rəşad", lastName: "İsmayılov", fatherName: "Tahir", department: "IT", position: "Sistem Administratoru", baseSalary: 2800, targetBonusPct: 22,
     subKpis: [
       { name: "Uptime %", weight: 50, evaluator: "İnteqrasiya (SIEM)", score: 99 },
       { name: "Ticket cavabı", weight: 30, evaluator: "Kamran Quliyev", score: 84 },
       { name: "Layihə tamamlanması", weight: 20, evaluator: "Özü", score: 76 },
     ]},
-  { id: "5", firstName: "Səbinə", lastName: "Əliyeva", department: "Maliyyə", position: "Maliyyə Analitik", baseSalary: 2600, targetBonusPct: 18,
+  { id: "5", firstName: "Səbinə", lastName: "Əliyeva", fatherName: "Nəsir", department: "Maliyyə", position: "Maliyyə Analitik", baseSalary: 2600, targetBonusPct: 18,
     subKpis: [
       { name: "Hesabat keyfiyyəti", weight: 40, evaluator: "Farid Həsənov", score: 91 },
       { name: "Büdcə icrası", weight: 40, evaluator: "Tural İsmayılov", score: 86 },
