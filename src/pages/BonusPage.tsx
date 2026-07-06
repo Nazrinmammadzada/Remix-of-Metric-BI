@@ -397,7 +397,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
           {detailEmp && (
             <>
               <DialogHeader>
-                <DialogTitle>{detailEmp.employee.firstName} {detailEmp.employee.lastName} — qiymətləri və hesablanması</DialogTitle>
+                <DialogTitle>{fullNameOf(detailEmp.employee)} — qiymətləri və hesablanması</DialogTitle>
                 <DialogDescription>{detailEmp.employee.department} • {detailEmp.employee.position} • Dövr: {usedLabel}</DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-3 gap-3 bg-muted/30 rounded-lg p-3">
