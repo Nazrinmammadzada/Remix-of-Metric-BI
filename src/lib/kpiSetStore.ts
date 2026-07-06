@@ -68,24 +68,79 @@ export interface KpiSetEntry {
 }
 
 
-const KEY = "kpi_set_entries_v8";
+const KEY = "kpi_set_entries_v9";
 const EVT = "kpi-set-updated";
 
-// Köhnə versiyaları təmizlə — istifadəçi tərəfindən yaradılan hədəfləri silir.
-try { ["kpi_set_entries_v1","kpi_set_entries_v2","kpi_set_entries_v3","kpi_set_entries_v4","kpi_set_entries_v5","kpi_set_entries_v6","kpi_set_entries_v7"].forEach(k => localStorage.removeItem(k)); } catch {}
+const LEGACY_KEYS = ["kpi_set_entries_v8", "kpi_set_entries_v7", "kpi_set_entries_v6", "kpi_set_entries_v5", "kpi_set_entries_v4", "kpi_set_entries_v3", "kpi_set_entries_v2", "kpi_set_entries_v1"];
 
+const DEMO_UPDATED_AT = Date.now() - 1000 * 60 * 60 * 24 * 7;
+const SEED: KpiSetEntry[] = [
+  {
+    id: "demo-kset-elvin-roi",
+    cardId: 91001,
+    cardName: "Marketinq Kampaniyalarının ROI-si",
+    subKpiId: 9100101,
+    subKpiName: "ROI gəliri",
+    type: "Məbləğ",
+    target: "750000",
+    unit: "AZN",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    ownerType: "manager",
+    status: "completed",
+    weight: 40,
+    cascadable: true,
+    cardAssignees: ["Kamran Quliyev", "Orxan Bayramov"],
+    cardStructures: ["Rəqəmsal Marketinq Şöbəsi"],
+    updatedAt: DEMO_UPDATED_AT,
+  },
+  {
+    id: "demo-kset-kamran-roi",
+    cardId: 91001,
+    cardName: "Marketinq Kampaniyalarının ROI-si",
+    subKpiId: 9100102,
+    subKpiName: "Rəqəmsal kampaniya gəliri",
+    type: "Məbləğ",
+    target: "350000",
+    unit: "AZN",
+    assigneeId: 7,
+    assigneeName: "Kamran Quliyev",
+    ownerType: "manager",
+    status: "completed",
+    weight: 35,
+    cascadable: true,
+    cardAssignees: ["Orxan Bayramov"],
+    cardStructures: ["Rəqəmsal Marketinq Şöbəsi"],
+    updatedAt: DEMO_UPDATED_AT + 1,
+  },
+];
 
-// Tam dinamik sistem — heç bir demo seed yaradılmır.
-const SEED: KpiSetEntry[] = [];
+const mergeSeedRows = (rows: KpiSetEntry[]): KpiSetEntry[] => {
+  const ids = new Set(rows.map(r => r.id));
+  const missing = SEED.filter(r => !ids.has(r.id));
+  return missing.length ? [...missing, ...rows] : rows;
+};
 
 
 const load = (): KpiSetEntry[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const rows = mergeSeedRows(JSON.parse(raw));
+      localStorage.setItem(KEY, JSON.stringify(rows));
+      return rows;
+    }
+    for (const legacyKey of LEGACY_KEYS) {
+      const legacy = localStorage.getItem(legacyKey);
+      if (!legacy) continue;
+      const rows = mergeSeedRows(JSON.parse(legacy));
+      localStorage.setItem(KEY, JSON.stringify(rows));
+      return rows;
+    }
   } catch {}
-  localStorage.setItem(KEY, JSON.stringify(SEED));
-  return SEED;
+  const rows = mergeSeedRows([]);
+  localStorage.setItem(KEY, JSON.stringify(rows));
+  return rows;
 };
 
 
@@ -103,6 +158,12 @@ export const addPendingEntry = (input: {
   assigneeName: string;
   assigneeId?: number;
   ownerType?: "manager" | "hr";
+  status?: "pending" | "completed";
+  subKpiName?: string;
+  type?: KpiEntryType;
+  target?: string;
+  weight?: number;
+  cascadable?: boolean;
   weightMin?: number;
   weightMax?: number;
   unit?: string;
@@ -110,26 +171,44 @@ export const addPendingEntry = (input: {
   cardStructures?: string[];
 }): KpiSetEntry => {
   const list = load();
-  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName && e.status === "pending");
+  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName);
   if (dupe) {
     // Yeniləyirik ki, sonrakı yaradılışlarda cardAssignees/cardStructures artmış olsa əks olunsun.
-    if (input.cardAssignees || input.cardStructures) {
-      persist(load().map(e => e.id === dupe.id ? { ...e, cardAssignees: input.cardAssignees ?? e.cardAssignees, cardStructures: input.cardStructures ?? e.cardStructures } : e));
-    }
-    return dupe;
+    const updated = {
+      ...dupe,
+      assigneeId: input.assigneeId ?? dupe.assigneeId,
+      subKpiName: input.subKpiName ?? dupe.subKpiName,
+      type: input.type ?? dupe.type,
+      target: input.target ?? dupe.target,
+      unit: input.unit ?? dupe.unit,
+      ownerType: input.ownerType ?? dupe.ownerType,
+      status: input.status ?? dupe.status,
+      weight: input.weight ?? dupe.weight,
+      cascadable: input.cascadable ?? dupe.cascadable,
+      weightMin: input.weightMin ?? dupe.weightMin,
+      weightMax: input.weightMax ?? dupe.weightMax,
+      cardAssignees: input.cardAssignees ?? dupe.cardAssignees,
+      cardStructures: input.cardStructures ?? dupe.cardStructures,
+      updatedAt: Date.now(),
+    };
+    persist(list.map(e => e.id === dupe.id ? updated : e));
+    return updated;
   }
   const entry: KpiSetEntry = {
     id: `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     cardId: input.cardId,
     cardName: input.cardName,
     subKpiId: Date.now(),
-    subKpiName: "",
-    target: "",
+    subKpiName: input.subKpiName || "",
+    type: input.type,
+    target: input.target || "",
     unit: input.unit || "",
     assigneeId: input.assigneeId,
     assigneeName: input.assigneeName,
     ownerType: input.ownerType || "manager",
-    status: "pending",
+    status: input.status || "pending",
+    weight: input.weight,
+    cascadable: input.cascadable,
     weightMin: input.weightMin,
     weightMax: input.weightMax,
     cardAssignees: input.cardAssignees,
@@ -179,9 +258,16 @@ export const getIncomingCascadeLoad = (
 ): { value: number; unit: string; cardName: string; remaining: number } | null => {
   // 1) cascade tree əsas mənbə
   if (assigneeId != null) {
-    const list = getCascadeNodes().filter(n => n.assigneeId === assigneeId);
+    const currentEntry = excludeCardId != null
+      ? load().find(e => e.cardId === excludeCardId && (e.assigneeId === assigneeId || e.assigneeName === assigneeName))
+      : undefined;
+    let list = getCascadeNodes().filter(n => n.assigneeId === assigneeId);
+    if (currentEntry?.cardName) {
+      const sameCard = list.filter(n => n.cardName === currentEntry.cardName);
+      if (sameCard.length) list = sameCard;
+    }
     if (list.length) {
-      const node = [...list].sort((a, b) => b.createdAt - a.createdAt)[0];
+      const node = [...list].sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))[0];
       const total = Number(node.limit) || 0;
       const distributed = getCascadeChildren(node.id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
       return { value: total, unit: node.unit || "AZN", cardName: node.cardName, remaining: Math.max(0, total - distributed) };

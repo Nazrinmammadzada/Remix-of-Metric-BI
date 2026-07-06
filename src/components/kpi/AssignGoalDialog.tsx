@@ -44,7 +44,7 @@ interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   entry: KpiSetEntry | null;
-  onSaved?: (saved: { entryId: string; value: number; unit: string; cascadable: boolean; type: HedefType }) => void;
+  onSaved?: (saved: { entryId: string; name: string; value: number; unit: string; cascadable: boolean; type: HedefType }) => void;
 }
 
 const AssignGoalDialog = ({ open, onOpenChange, entry, onSaved }: Props) => {
@@ -169,6 +169,7 @@ const AssignGoalDialog = ({ open, onOpenChange, entry, onSaved }: Props) => {
     });
     onSaved?.({
       entryId: entry.id,
+      name: name.trim(),
       value: parseFloat(String(target).replace(/[^\d.\-]/g, "")) || 0,
       unit,
       cascadable: cascadable && CASCADE_TYPES.includes(type),
