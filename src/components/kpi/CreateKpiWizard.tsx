@@ -1319,22 +1319,22 @@ function Step2Targets({
             <div className="grid grid-cols-12 gap-2">
               <div className="col-span-12 md:col-span-5">
                 <label className="text-[11px] text-muted-foreground">Hədəf adı *</label>
-                <input value={t.name} disabled={disabled} onChange={e => updHedef(t.id, { name: e.target.value })}
+                <input value={t.name} onChange={e => updHedef(t.id, { name: e.target.value })}
                   placeholder="Məsələn: Rüblük satış həcmi"
-                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
               </div>
               <div className="col-span-12 md:col-span-3">
                 <label className="text-[11px] text-muted-foreground">Hədəf növü *</label>
-                <select value={t.type} disabled={disabled} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
-                  className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
+                <select value={t.type} onChange={e => updHedef(t.id, { type: e.target.value as HedefType })}
+                  className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background">
                   {HEDEF_TYPES.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
               <div className="col-span-6 md:col-span-2">
                 <label className="text-[11px] text-muted-foreground">Çəki (%) *</label>
-                <input type="number" min={0} max={100} value={t.weight} disabled={disabled}
+                <input type="number" min={0} max={100} value={t.weight}
                   onChange={e => updHedef(t.id, { weight: Number(e.target.value) })}
-                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                  className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
               </div>
               <div className="col-span-12 md:col-span-3">
                 <label className="text-[11px] text-muted-foreground">
