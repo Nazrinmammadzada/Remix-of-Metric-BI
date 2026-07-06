@@ -225,8 +225,9 @@ const AssignGoalDialog = ({ open, onOpenChange, entry, onSaved }: Props) => {
           )}
           <div className="col-span-6 md:col-span-2">
             <label className="text-[11px] text-muted-foreground">Çəki (%)</label>
-            <input type="number" value={weight} onChange={e => setWeight(e.target.value)}
-              className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+            <WeightInput value={weight === "" ? 0 : Number(weight)} onChange={n => setWeight(String(n))}
+              className="mt-0.5" />
+
           </div>
         </div>
 
