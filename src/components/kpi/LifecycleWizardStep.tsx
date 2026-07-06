@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, Plus, Trash2, Target, Star, Wallet, RefreshCw } from "lucide-react";
+import { ChevronDown, Plus, Trash2, Target, Star, Wallet, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getPeriods, formatPeriodRange } from "@/lib/teamsStore";
 import type { CardLifecycle, LifecycleStage, LifecycleReview } from "@/lib/kpiLifecycleStore";
+
 
 type Draft = Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">;
 
@@ -75,29 +78,55 @@ const StageFields = ({ value, onChange, periods }: StageFieldsProps) => {
       </div>
       {value.period !== OTHER && (
         <>
-          <div>
-            <label className="text-[11px] text-muted-foreground">Başlama</label>
-            <input
-              type="date"
-              value={value.start}
-              onChange={(e) => onChange({ ...value, start: e.target.value })}
-              className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded bg-background"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] text-muted-foreground">Bitmə</label>
-            <input
-              type="date"
-              value={value.end}
-              onChange={(e) => onChange({ ...value, end: e.target.value })}
-              className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded bg-background"
-            />
-          </div>
+          <DateField label="Başlama" value={value.start} onChange={(v) => onChange({ ...value, start: v })} />
+          <DateField label="Bitmə" value={value.end} onChange={(v) => onChange({ ...value, end: v })} />
         </>
       )}
     </div>
   );
 };
+
+// Popover + Calendar əsaslı date-picker — modalın scroll mövqeyini pozmur
+const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const parseISO = (s: string): Date | undefined => {
+  if (!s) return undefined;
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+const DateField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const selected = parseISO(value);
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground">{label}</label>
+      <Popover open={open} onOpenChange={setOpen} modal>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded bg-background flex items-center justify-between gap-2 text-left hover:bg-secondary/40"
+          >
+
+            <span className={selected ? "text-foreground" : "text-muted-foreground"}>
+              {selected ? selected.toLocaleDateString("az-AZ") : "Tarix seçin"}
+            </span>
+            <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <Calendar
+            mode="single"
+            selected={selected}
+            onSelect={(d) => { if (d) { onChange(toISO(d)); setOpen(false); } }}
+            initialFocus
+            className="p-3 pointer-events-auto"
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
+
 
 interface StageBlockProps {
   title: string;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/layout/Header";
 import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, User, Clock, ArrowUp, ArrowDown, GripVertical, Check, Hourglass, CheckCircle2, Trash2, Info, ChevronDown, Pencil, ShieldCheck, AlertTriangle, Sparkles, UserCheck, Shuffle, UserCog, UserPlus, Sliders } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
@@ -751,6 +751,30 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   // Per-level struktur axtarış mətnləri
   const [structSearch, setStructSearch] = useState<Record<number, string>>({});
   const [openStructLevel, setOpenStructLevel] = useState<number | null>(null);
+  // Multi-select dropdown wrappers — outside click / Escape ilə bağlanır
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const positionDropdownRef = useRef<HTMLDivElement>(null);
+  const structDropdownRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (showTypeDropdown && typeDropdownRef.current && !typeDropdownRef.current.contains(t)) setShowTypeDropdown(false);
+      if (showUserDropdown && userDropdownRef.current && !userDropdownRef.current.contains(t)) setShowUserDropdown(false);
+      if (showPositionDropdown && positionDropdownRef.current && !positionDropdownRef.current.contains(t)) setShowPositionDropdown(false);
+      if (openStructLevel !== null && structDropdownRef.current && !structDropdownRef.current.contains(t)) setOpenStructLevel(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setShowTypeDropdown(false);
+      setShowUserDropdown(false);
+      setShowPositionDropdown(false);
+      setOpenStructLevel(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [showTypeDropdown, showUserDropdown, showPositionDropdown, openStructLevel]);
   useEffect(() => {
     const refresh = () => setOrgStructures(getStructures());
     window.addEventListener("org-updated", refresh);
@@ -760,6 +784,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       window.removeEventListener("storage", refresh);
     };
   }, []);
+
   // Evaluator picker (per hədəf)
   const [evaluatorEditingSubId, setEvaluatorEditingSubId] = useState<number | null>(null);
   const [evDraft, setEvDraft] = useState<EvaluatorConfig>({ type: null, persons: [] });
@@ -1936,7 +1961,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground">KPI Tipi</label>
-                  <div className="relative mt-1">
+                  <div className="relative mt-1" ref={typeDropdownRef}>
+
                     <div onClick={() => setShowTypeDropdown(!showTypeDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.types.length === 0 && <span className="text-muted-foreground">Seçin</span>}
                       {newKpi.types.map(t => (
@@ -2028,7 +2054,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return (
                   <div>
                     <label className="text-sm font-medium text-foreground">Şəxs(lər) seçin</label>
-                    <div className="relative mt-1">
+                    <div className="relative mt-1" ref={userDropdownRef}>
+
                       <div onClick={() => setShowUserDropdown(!showUserDropdown)} className="w-full min-h-[38px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between gap-2">
                         <div className="flex flex-wrap gap-1 flex-1">
                           {selectedList.length === 0
@@ -2100,7 +2127,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   {orgStructures.length === 0 ? (
                     <p className="text-xs text-muted-foreground">Təşkilat modulunda hələ struktur yaradılmayıb.</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2" ref={structDropdownRef}>
+
                       {visibleStructLevels.map(level => {
                         const options = getStructuresAtLevel(level);
                         if (options.length === 0) return null;
@@ -2180,7 +2208,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               {newKpi.targetMode.position && (
                 <div className="p-3 rounded-lg border border-border bg-secondary/40 space-y-2">
                   <label className="text-xs font-semibold text-foreground">Vəzifə seçimi (multiselect)</label>
-                  <div className="relative">
+                  <div className="relative" ref={positionDropdownRef}>
+
                     <div onClick={() => setShowPositionDropdown(!showPositionDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.assignedPositions.length === 0 && <span className="text-muted-foreground">Vəzifələri seçin</span>}
                       {newKpi.assignedPositions.map(pos => (
