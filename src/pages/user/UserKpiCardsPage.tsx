@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, Hourglass, CheckCircle2, Trash2, Check, ArrowUp, ArrowDown, Clock, GripVertical, Pencil, Sparkles } from "lucide-react";
@@ -11,6 +11,8 @@ import { getTeams, type TeamMember } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import KpiExtraTabContent, { isExtraTab } from "@/components/kpi/KpiExtraTabs";
 import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
+import { getChildren, statusOf, useCascadeTree, distributedOf, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
 
 interface SubKpi {
   id: number; name: string; target: string; weight: number; current?: string; progress?: number;
@@ -120,8 +122,49 @@ const subKpisByType: Record<string, { name: string; defaultWeight: number }[]> =
 
 const allPersons = ["Kamran Quliyev", "Farid Həsənov", "Nigar Hüseynova", "Günel Əlizadə", "Leyla Məmmədova"];
 
+const hashId = (s: string): number => {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h % 1_000_000_000;
+};
+
+const cascadeNodeToCard = (n: CascadeTreeNode): KpiCard => {
+  const actual = getChildren(n.id).length === 0 && statusOf(n.id) === "done" ? n.limit : distributedOf(n.id);
+  const progress = n.limit > 0 ? Math.round(Math.min(100, (actual / n.limit) * 100)) : 0;
+  const zone = getCardZone(progress);
+  return {
+    id: hashId(n.id),
+    name: n.goalName || n.cardName,
+    icon: Target,
+    zone,
+    target: String(n.limit || 0),
+    current: String(actual || 0),
+    unit: n.unit || "",
+    progress,
+    minTarget: 60,
+    responsible: n.assigneeName,
+    period: "—",
+    type: "Kaskad",
+    formula: "Cascade Tree",
+    department: n.cardName,
+    group: "—",
+    subdivision: "—",
+    startDate: new Date(n.createdAt).toLocaleDateString("az-AZ"),
+    endDate: "—",
+    frequency: "—",
+    weight: 0,
+    approvalStatus: "approved",
+    description: n.cardName,
+    subKpis: [{ id: hashId(`${n.id}-target`), name: n.goalName || n.cardName, target: `${n.limit} ${n.unit}`.trim(), weight: 100, current: `${actual} ${n.unit}`.trim(), progress }],
+    team: [{ name: n.assigneeName, role: n.positionName || "Əməkdaş", avatar: n.assigneeName.charAt(0) }],
+    history: [{ date: new Date(n.updatedAt).toLocaleDateString("az-AZ"), value: `${actual} ${n.unit}`.trim(), change: 0 }],
+  };
+};
+
 const UserKpiCardsPage = () => {
   const { user } = useAuth();
+  const cascadeNodes = useCascadeTree();
+  const myOrgId = getCurrentOrgEmployeeId(user);
   const [selectedKpi, setSelectedKpi] = useState<KpiCard | null>(null);
   const [detailTab, setDetailTab] = useState<"general" | "details" | "performance" | "history" | "team" | "evaluation" | "comments" | "status">("general");
   const [showCreate, setShowCreate] = useState(false);
@@ -150,9 +193,14 @@ const UserKpiCardsPage = () => {
 
   const myTeam = user ? getTeams().find(t => t.leader === user.name || t.members.some(m => m.name === user.name)) : undefined;
   const teamMemberNames = myTeam ? [myTeam.leader, ...myTeam.members.map(m => m.name)] : [];
-  const myDept = userKpiCards.find(c => c.responsible === user?.name)?.department;
+  const dynamicCards = useMemo(
+    () => myOrgId ? cascadeNodes.filter(n => n.assigneeId === myOrgId).map(cascadeNodeToCard) : [],
+    [cascadeNodes, myOrgId],
+  );
+  const allKpiCards = useMemo(() => [...dynamicCards, ...userKpiCards], [dynamicCards]);
+  const myDept = allKpiCards.find(c => c.responsible === user?.name)?.department;
 
-  const filteredCards = userKpiCards.filter(c => {
+  const filteredCards = allKpiCards.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase());
     const matchesView =
       filterView === "own"
