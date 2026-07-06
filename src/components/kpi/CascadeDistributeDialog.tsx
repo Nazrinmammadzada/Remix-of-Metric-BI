@@ -6,10 +6,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
-import { distribute, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { distribute, createRoot, findRootByGoal, getNodes, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
 
 interface Props {
@@ -27,30 +26,50 @@ interface Props {
   onDistributed?: () => void;
 }
 
+type AudienceMode = "all" | "leaders";
+
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 
 const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, onDistributed }: Props) => {
   const [node, setNode] = useState<CascadeTreeNode | undefined>(existingNode);
-  const [tab, setTab] = useState<"all" | "leaders">("all");
+  const [audience, setAudience] = useState<AudienceMode | null>(null);
   const { remaining, total } = useCascadeLoad();
+  const [slices, setSlices] = useState<Record<number, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { setNode(existingNode); setSlices({}); setTab("all"); }, [existingNode?.id, open]);
+  useEffect(() => {
+    setNode(existingNode);
+    setSlices({});
+    setAudience(null);
+    setError(null);
+  }, [existingNode?.id, open]);
 
+  // Bootstrap: setter üçün mövcud tree node-u tap və ya yeni root yarat.
+  // Kamran kimi cascade recipient-lər üçün onların CHILD node-u istifadə edilir
+  // ki, yeni bölgü onun altına düşsün (yeni bir root deyil).
   useEffect(() => {
     if (!open || existingNode || !bootstrap) return;
     const emp = bootstrap.assigneeId
       ? getEmployees().find(e => e.id === bootstrap.assigneeId)
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
-    const existing = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
-    setNode(existing || createRoot({
+    // 1) Bu şəxs artıq başqasının cascade-indən pay almışdırsa — o child node-u istifadə et.
+    const asChild = getNodes().find(
+      n => n.assigneeId === emp.id && n.parentId !== null && (Number(n.limit) || 0) > 0,
+    );
+    if (asChild) { setNode(asChild); return; }
+    // 2) Root axtar (HR-in Owner tipli kartından yaradılan).
+    const existingRoot = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
+    if (existingRoot) { setNode(existingRoot); return; }
+    // 3) Nə tapıldı — yeni root yarat.
+    setNode(createRoot({
       cardName: bootstrap.cardName, goalName: bootstrap.goalName, unit: bootstrap.unit,
       assigneeId: emp.id, assigneeName: `${emp.firstName} ${emp.lastName}`,
       positionName: emp.positionName, limit: bootstrap.limit,
     }));
   }, [open, existingNode, bootstrap]);
 
-  // Tabelikdəki bütün şəxslər
+  // Tabelikdəki bütün şəxslər (setter-in structurePath-ı üzrə)
   const subordinates = useMemo(() => {
     if (!node) return [];
     const emp = getEmployees().find(e => e.id === node.assigneeId);
@@ -73,36 +92,21 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   }, [node?.id]);
 
   const leaders = useMemo(() => subordinates.filter(e => e.isStarPerson), [subordinates]);
-  const currentList = tab === "all" ? subordinates : leaders;
-
-  const [slices, setSlices] = useState<Record<number, string>>({});
-
-  // Hədəf dəyəri avtomatik olaraq hər əməkdaşın "təyin olunan dəyər" xanasına düşsün.
-  useEffect(() => {
-    if (!node || subordinates.length === 0) return;
-    setSlices(prev => {
-      const next = { ...prev };
-      let changed = false;
-      const def = String(node.limit ?? "");
-      subordinates.forEach(e => {
-        if (next[e.id] === undefined) { next[e.id] = def; changed = true; }
-      });
-      return changed ? next : prev;
-    });
-  }, [node?.id, node?.limit, subordinates]);
+  const currentList = audience === "all" ? subordinates : audience === "leaders" ? leaders : [];
 
   const setSlice = (id: number, val: string) => {
-    // yalnız rəqəm və nöqtə
     const clean = val.replace(/[^\d.]/g, "");
     setSlices(prev => ({ ...prev, [id]: clean }));
   };
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
-  const [error, setError] = useState<string | null>(null);
+  const cascadeLoad = Number(node?.limit) || 0;
+  const overLimit = totalDist > cascadeLoad;
 
   const handleSave = () => {
     if (!node) return;
+    if (overLimit) { setError(`Paylanan cəm (${fmt(totalDist)}) Cascade Load-u (${fmt(cascadeLoad)}) keçə bilməz.`); return; }
     const rows = Object.entries(slices)
       .map(([id, v]) => {
         const emp = subordinates.find(e => e.id === Number(id));
@@ -130,43 +134,52 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             Kaskadlama — {node?.goalName || bootstrap?.goalName}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
-            {node?.cardName || bootstrap?.cardName} · Ana hədəf dəyəri: <b>{fmt(node?.limit || 0)} {node?.unit || bootstrap?.unit}</b>
+            {node?.cardName || bootstrap?.cardName} · Cascade Load: <b>{fmt(cascadeLoad)} {node?.unit || bootstrap?.unit}</b>
           </p>
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-3">
-          <BigStat label="Ana hədəf" value={fmt(node?.limit || 0)} unit={node?.unit || "AZN"} tone="neutral" />
-          <BigStat label="Cascade Load qalıq" value={fmt(remaining)} unit={`/ ${fmt(total)} AZN`} tone="primary" />
-          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone="success" />
+          <BigStat label="Cascade Load" value={fmt(cascadeLoad)} unit={node?.unit || "AZN"} tone="neutral" />
+          <BigStat label="Qalıq (paylanmamış)" value={fmt(Math.max(0, cascadeLoad - totalDist))} unit={node?.unit || "AZN"} tone="primary" />
+          <BigStat label="Paylanan cəm" value={fmt(totalDist)} unit={`(${selectedCount} şəxs)`} tone={overLimit ? "danger" : "success"} />
         </div>
 
-        <div className="text-[11px] text-muted-foreground">
-          Alt bölgülərin cəmi rəhbərin ümumi cascade load-undan çıxıldığı üçün ana hədəf dəyərindən böyük ola bilər — bu düzgündür.
+        {/* ---------- Cascade Təyinat Növü (məcburi seçim) ---------- */}
+        <div className="rounded-xl border border-border bg-secondary/30 p-4">
+          <div className="text-sm font-medium text-foreground mb-2">Cascade Təyinat Növü</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <AudienceRadio
+              active={audience === "all"}
+              icon={Users}
+              title="Tabeliyimdə olan bütün əməkdaşlar"
+              subtitle={`${subordinates.length} şəxs`}
+              onClick={() => { setAudience("all"); setSlices({}); }}
+            />
+            <AudienceRadio
+              active={audience === "leaders"}
+              icon={ShieldCheck}
+              title="Struktur rəhbərləri"
+              subtitle={`${leaders.length} rəhbər`}
+              onClick={() => { setAudience("leaders"); setSlices({}); }}
+            />
+          </div>
         </div>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="all" className="gap-2">
-              <Users className="w-4 h-4" /> Bütün tabelik ({subordinates.length})
-            </TabsTrigger>
-            <TabsTrigger value="leaders" className="gap-2">
-              <ShieldCheck className="w-4 h-4" /> Struktur rəhbərləri ({leaders.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
-          </TabsContent>
-          <TabsContent value="leaders" className="mt-3">
-            <SubTable list={currentList} unit={node?.unit || ""} slices={slices} setSlice={setSlice} />
-          </TabsContent>
-        </Tabs>
+        {audience !== null && (
+          <SubTable
+            list={currentList}
+            unit={node?.unit || ""}
+            slices={slices}
+            setSlice={setSlice}
+            defaultValue={cascadeLoad > 0 && currentList.length > 0 ? Math.floor(cascadeLoad / currentList.length) : 0}
+          />
+        )}
 
         {error && <div className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> {error}</div>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
-          <Button onClick={handleSave} disabled={selectedCount === 0}>
+          <Button onClick={handleSave} disabled={selectedCount === 0 || audience === null || overLimit}>
             Bölüşdür və təyin et
           </Button>
         </DialogFooter>
@@ -174,6 +187,29 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     </Dialog>
   );
 };
+
+const AudienceRadio = ({
+  active, icon: Icon, title, subtitle, onClick,
+}: {
+  active: boolean; icon: any; title: string; subtitle: string; onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`text-left rounded-lg border p-3 flex items-start gap-3 transition-all ${
+      active ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border bg-background hover:border-primary/40"
+    }`}
+  >
+    <div className={`w-9 h-9 rounded-md flex items-center justify-center ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground/70"}`}>
+      <Icon className="w-4 h-4" />
+    </div>
+    <div className="min-w-0">
+      <div className="text-sm font-medium text-foreground">{title}</div>
+      <div className="text-xs text-muted-foreground">{subtitle}</div>
+    </div>
+  </button>
+);
+
 
 const SubTable = ({
   list, unit, slices, setSlice,
