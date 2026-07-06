@@ -1983,6 +1983,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   </div>
                 );
               })()}
+              </div>
             </div>
           )}
         </DialogContent>
