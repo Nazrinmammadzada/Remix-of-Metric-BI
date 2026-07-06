@@ -175,7 +175,9 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
             unit={node?.unit || ""}
             slices={slices}
             setSlice={setSlice}
-            defaultValue={cascadeLoad > 0 && currentList.length > 0 ? Math.floor(cascadeLoad / currentList.length) : 0}
+            // Default = rəhbərin təyin etdiyi hədəf dəyəri (redaktə oluna bilər).
+            // Bu, kaskadlanan dəyər DEYİL — sadəcə rahatlıq üçün ilkin təklifdir.
+            defaultValue={cascadeLoad > 0 ? cascadeLoad : 0}
           />
         )}
 
