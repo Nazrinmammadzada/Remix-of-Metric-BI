@@ -28,6 +28,7 @@ import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
 import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStore";
+import { findRootByGoal, createRoot } from "@/lib/cascadeTreeStore";
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
@@ -669,6 +670,42 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     } catch (err) {
       // non-fatal — cross-panel sync is best-effort
       console.warn("shared kpi sync failed", err);
+    }
+
+    // === Cascade root: HR cascadable kart yaradanda ağacın kökünü avtomatik yarat ===
+    // Owner tipli kart üçün: KPI sahibi (owner) yuxarı rəhbərdir və hədəf ona düşür.
+    // Target-Setter tipli kart üçün: setter root olur.
+    try {
+      const hasSelfTarget = (d.targets || []).some((t: any) => t.createdBy === "self");
+      const hasCascadable = (d.targets || []).some((t: any) => t.createdBy === "self" && (t.value || t.target));
+      if (hasSelfTarget && hasCascadable) {
+        (d.targets || []).forEach((t: any) => {
+          if (t.createdBy !== "self") return;
+          const rawVal = t.value ?? t.target ?? "";
+          const limit = parseFloat(String(rawVal).replace(/[^\d.\-]/g, "")) || 0;
+          if (limit <= 0) return;
+          // Owner-kartında icraçı: t.assigner (self modda mövcud user olur) yaxud selectedOwner
+          const ownerName = (t.owner || t.assigner || "").trim();
+          if (!ownerName) return;
+          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === ownerName);
+          if (!emp) return;
+          const goalName = t.name || d.name || "Ana hədəf";
+          const existing = findRootByGoal(d.name || "Kart", goalName, emp.id);
+          if (!existing) {
+            createRoot({
+              cardName: d.name || "Kart",
+              goalName,
+              unit: t.unit || "AZN",
+              assigneeId: emp.id,
+              assigneeName: `${emp.firstName} ${emp.lastName}`,
+              positionName: emp.positionName,
+              limit,
+            });
+          }
+        });
+      }
+    } catch (err) {
+      console.warn("cascade root seed failed", err);
     }
 
     // === Notify təyinedicilər when HR edits a previously-rejected card ===

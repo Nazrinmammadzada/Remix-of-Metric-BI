@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
+import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
@@ -102,6 +105,62 @@ type View = "hub" | "own" | "team" | "sub";
 
 const ManagerKpiTrackingPage = () => {
   const [view, setView] = useState<View>("hub");
+  const { user } = useAuth();
+  const tree = useCascadeTree();
+  const sharedCards = useSharedKpiCards();
+
+  // Cari istifadəçiyə cascade və Owner-tipli SharedKpiCard-lardan yaranan dinamik KPI-lar
+  const dynamicMyKpis = useMemo<Kpi[]>(() => {
+    if (!user?.name) return [];
+    const result: Kpi[] = [];
+    // 1) Cascade tree node-ları (yuxarıdan pay alınmış hədəflər)
+    tree.filter(n => n.assigneeName === user.name && n.parentId !== null).forEach(n => {
+      result.push({
+        id: `ct-${n.id}`,
+        name: `${n.cardName} — ${n.goalName || "Ana hədəf"}`,
+        description: `Yuxarı rəhbərdən pay: ${new Intl.NumberFormat("az-AZ").format(n.limit)} ${n.unit}`,
+        period: new Date(n.createdAt).toLocaleDateString("az-AZ"),
+        target: Number(n.limit) || 0,
+        actual: 0,
+        unit: n.unit || "AZN",
+        stage: "assigned",
+        status: "in_progress",
+        deadline: "—",
+        createdAt: new Date(n.createdAt).toLocaleDateString("az-AZ"),
+        updatedAt: new Date(n.updatedAt).toLocaleDateString("az-AZ"),
+        responsible: { name: n.assigneeName, role: n.positionName || "İcraçı" },
+        measure: n.unit || "AZN", type: "Cascade", method: "Cascade paylanma", weight: 20,
+      });
+    });
+    // 2) SharedKpiCard-lar (owner = user)
+    const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === user.name);
+    if (emp) {
+      const empKey = `e${emp.id}`;
+      sharedCards.filter(c => c.ownerId === empKey && (c.status === "aktiv" || c.status === "natamam")).forEach(c => {
+        (c.targets || []).forEach((t: any) => {
+          const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
+          result.push({
+            id: `sk-${c.id}-${t.id}`,
+            name: `${c.name} — ${t.name || "Hədəf"}`,
+            description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
+            period: c.startDate || "—",
+            target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
+            stage: "assigned",
+            status: c.status === "aktiv" ? "in_progress" : "at_risk",
+            deadline: c.endDate || "—",
+            createdAt: c.createdAt?.slice(0, 10) || "—",
+            updatedAt: c.updatedAt?.slice(0, 10) || "—",
+            responsible: { name: user.name, role: emp.positionName || "İcraçı" },
+            measure: t.type || "—", type: c.frequency || "—", method: t.name || "—", weight: t.weight || 20,
+          });
+        });
+      });
+    }
+    return result;
+  }, [tree, sharedCards, user?.name]);
+
+  const myKpis = useMemo(() => [...dynamicMyKpis, ...MY_KPIS], [dynamicMyKpis]);
+
   return (
     <div className="min-h-screen">
       <Header title="KPI İzlənməsi" />
@@ -115,13 +174,13 @@ const ManagerKpiTrackingPage = () => {
           <>
             <PageHero badge="Rəhbər Paneli" icon={Activity} title="KPI İzlənməsi" subtitle="Fərdi, komanda və tabeçilik KPI-larını fərqli baxış bucaqlarından izləyin." />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
-              <HubCard icon={User} title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." count={MY_KPIS.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
+              <HubCard icon={User} title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." count={myKpis.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
               <HubCard icon={Users} title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." count={TEAM_KPIS.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("team")} />
               <HubCard icon={Network} title="Tabeçiliyimdəkilərin KPI-ları" subtitle="İyerarxik görünüş, mərhələ nəzarəti və gecikmə bildirişləri." count={HIERARCHY.length} gradient="from-amber-500/15 via-amber-500/5 to-transparent border-amber-400/40" onClick={() => setView("sub")} />
             </div>
           </>
         )}
-        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={MY_KPIS} />}
+        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
         {view === "sub" && <SubordinatesView />}
       </main>
