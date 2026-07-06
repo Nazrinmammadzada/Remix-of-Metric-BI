@@ -56,6 +56,11 @@ export interface KpiSetEntry {
   weightMin?: number;
   weightMax?: number;
   cascadable?: boolean;
+  /** Wizard hədəfi ilə sabit əlaqə — eyni kartda eyni rəhbərə bir neçə hədəf düşəndə ayrım üçün. */
+  sourceTargetId?: string;
+  /** Cascade tree node-u ilə əlaqə — rəhbər növbəti səviyyəyə eyni node-dan davam etsin. */
+  cascadeNodeId?: string;
+  cascadeParentNodeId?: string | null;
   updatedAt: number;
 }
 
@@ -269,25 +274,53 @@ export const addPendingEntry = (input: {
   assigneeName: string;
   assigneeId?: number;
   ownerType?: "manager" | "hr";
+  subKpiName?: string;
+  target?: string;
+  type?: KpiEntryType;
+  cascadable?: boolean;
+  weight?: number;
+  status?: "pending" | "completed";
+  sourceTargetId?: string;
   weightMin?: number;
   weightMax?: number;
   unit?: string;
 }): KpiSetEntry => {
   const list = load();
-  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName && e.status === "pending");
-  if (dupe) return dupe;
+  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName && (
+    input.sourceTargetId ? e.sourceTargetId === input.sourceTargetId : e.status === "pending" && !e.sourceTargetId
+  ));
+  if (dupe) {
+    const next = {
+      ...dupe,
+      cardName: input.cardName || dupe.cardName,
+      subKpiName: input.subKpiName ?? dupe.subKpiName,
+      target: input.target ?? dupe.target,
+      unit: input.unit ?? dupe.unit,
+      type: input.type ?? dupe.type,
+      cascadable: input.cascadable ?? dupe.cascadable,
+      weight: input.weight ?? dupe.weight,
+      status: input.status ?? dupe.status,
+      updatedAt: Date.now(),
+    };
+    persist(list.map(e => e.id === dupe.id ? next : e));
+    return next;
+  }
   const entry: KpiSetEntry = {
     id: `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     cardId: input.cardId,
     cardName: input.cardName,
     subKpiId: Date.now(),
-    subKpiName: "",
-    target: "",
+    subKpiName: input.subKpiName || "",
+    target: input.target || "",
     unit: input.unit || "",
+    type: input.type,
     assigneeId: input.assigneeId,
     assigneeName: input.assigneeName,
     ownerType: input.ownerType || "manager",
-    status: "pending",
+    status: input.status || "pending",
+    cascadable: input.cascadable,
+    weight: input.weight,
+    sourceTargetId: input.sourceTargetId,
     weightMin: input.weightMin,
     weightMax: input.weightMax,
     updatedAt: Date.now(),
@@ -321,6 +354,68 @@ export const setEntryDetails = (
     if (hasLimits && next.subKpiName && next.target) next.status = "completed";
     return next;
   }));
+};
+
+const hashToNumber = (s: string): number => {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return Math.max(1, h % 1_000_000_000);
+};
+
+const typeFromUnit = (unit: string): KpiEntryType => {
+  if (["AZN", "USD", "EUR", "₼"].includes(unit)) return "Məbləğ";
+  if (unit === "%") return "Faiz";
+  if (unit === "ədəd") return "Say";
+  return "Məbləğ";
+};
+
+/** Cascade tree-də yaranan rəhbər node-u "Məsul olduğum kartlar"a dinamik entry kimi sinxronlaşdır. */
+export const upsertCascadeEntry = (node: {
+  id: string;
+  rootId: string;
+  parentId: string | null;
+  cardName: string;
+  goalName: string;
+  unit: string;
+  assigneeId: number;
+  assigneeName: string;
+  limit: number;
+  canReCascade?: boolean;
+}): KpiSetEntry => {
+  const list = load();
+  const existing = list.find(e => e.cascadeNodeId === node.id || e.id === `ks-cascade-${node.id}`);
+  const entry: KpiSetEntry = {
+    ...(existing || {} as KpiSetEntry),
+    id: existing?.id || `ks-cascade-${node.id}`,
+    cardId: hashToNumber(node.rootId),
+    cardName: node.cardName,
+    subKpiId: hashToNumber(node.id),
+    subKpiName: node.goalName,
+    type: typeFromUnit(node.unit),
+    target: String(node.limit || 0),
+    unit: node.unit,
+    assigneeId: node.assigneeId,
+    assigneeName: node.assigneeName,
+    ownerType: "manager",
+    status: "completed",
+    cascadable: true,
+    cascadeNodeId: node.id,
+    cascadeParentNodeId: node.parentId,
+    updatedAt: Date.now(),
+  };
+  persist(existing ? list.map(e => e.id === existing.id ? entry : e) : [entry, ...list]);
+  return entry;
+};
+
+export const removeCascadeEntriesByNodeIds = (nodeIds: string[]) => {
+  if (!nodeIds.length) return;
+  const drop = new Set(nodeIds);
+  persist(load().filter(e => !e.cascadeNodeId || !drop.has(e.cascadeNodeId)));
+};
+
+export const setEntryCascadeNodeId = (entryId: string | undefined, nodeId: string) => {
+  if (!entryId) return;
+  persist(load().map(e => e.id === entryId ? { ...e, cascadeNodeId: nodeId, updatedAt: Date.now() } : e));
 };
 
 /** Rəhbərin başqa kartlardan alınmış Cascade Load-u — bu kart istisna edilir. */
