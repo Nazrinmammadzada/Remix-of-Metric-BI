@@ -311,7 +311,8 @@ const AssignView = () => {
             unit: distribute.unit,
             assigneeName: distribute.assigneeName,
             assigneeId: distribute.assigneeId,
-            limit: parseNum(distribute.target),
+            limit: (distribute as any).cascadeLimit ?? parseNum(distribute.target),
+            defaultSliceValue: (distribute as any).defaultSliceValue ?? parseNum(distribute.target),
           }}
         />
       )}
@@ -324,18 +325,21 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          // Cascade Load popup-u: dəyər HƏMİŞƏ yuxarıdan gələn cascade load
-          // əsasında hesablanır (istifadəçinin yazdığı KPI dəyəri deyil).
+          // Cascade Load popup-u yuxarı rəhbərin verdiyi node/root limitini göstərir.
+          // Paylanma sətrindəki default isə təyinetmə zamanı yazılmış hədəf dəyəridir.
           const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          const value = incoming?.value ?? saved?.value ?? parseNum(entry.target);
+          const value = incoming?.value ?? parseNum(entry.target);
+          const assignedValue = saved?.value ?? parseNum(entry.target);
           const unit = incoming?.unit ?? saved?.unit ?? entry.unit ?? "";
           const refreshed: KpiSetEntry = {
             ...entry,
-            target: String(value),
+            target: String(assignedValue),
             unit,
             cascadable: true,
+            cascadeLimit: value,
+            defaultSliceValue: assignedValue,
             subKpiName: saved?.entryId ? entry.subKpiName : entry.subKpiName,
-          };
+          } as KpiSetEntry;
           setCascadeConfirm({ entry: refreshed, value, unit });
         }}
       />
