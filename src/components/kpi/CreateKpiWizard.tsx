@@ -1600,10 +1600,11 @@ function UnifiedEvaluatorsEditor({ employeeOptions, evaluators, onChange }: {
             <option value="">— Əməkdaş seçin —</option>
             {employeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <input type="number" min={0} max={100} value={ev.weight}
-            onChange={e => onChange(evaluators.map(x => x.id === ev.id ? { ...x, weight: Number(e.target.value) } : x))}
+          <WeightInput value={ev.weight}
+            onChange={n => onChange(evaluators.map(x => x.id === ev.id ? { ...x, weight: n } : x))}
             placeholder="%"
-            className="col-span-3 px-2 py-1.5 text-xs border border-border rounded bg-background" />
+            className="col-span-3 !py-1.5 !px-2 text-xs" />
+
           <button type="button" onClick={() => onChange(evaluators.filter(x => x.id !== ev.id))}
             className="col-span-1 p-1 text-destructive hover:bg-destructive/10 rounded" title="Sil">
             <Trash2 className="w-3.5 h-3.5" />
