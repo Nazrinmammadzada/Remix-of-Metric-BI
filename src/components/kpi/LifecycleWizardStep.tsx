@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, Plus, Trash2, Target, Star, Wallet, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -94,15 +94,35 @@ const parseISO = (s: string): Date | undefined => {
   if (!y || !m || !d) return undefined;
   return new Date(y, m - 1, d);
 };
+const findScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+  let el: HTMLElement | null = node;
+  while (el) {
+    const style = window.getComputedStyle(el);
+    if (/(auto|scroll)/.test(`${style.overflow}${style.overflowY}${style.overflowX}`)) return el;
+    el = el.parentElement;
+  }
+  return null;
+};
 const DateField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const selected = parseISO(value);
+  const selectDate = (d: Date) => {
+    const scrollParent = findScrollParent(triggerRef.current);
+    const top = scrollParent?.scrollTop ?? 0;
+    onChange(toISO(d));
+    requestAnimationFrame(() => {
+      if (scrollParent) scrollParent.scrollTop = top;
+    });
+    setOpen(false);
+  };
   return (
     <div>
       <label className="text-[11px] text-muted-foreground">{label}</label>
-      <Popover open={open} onOpenChange={setOpen} modal>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
+            ref={triggerRef}
             type="button"
             className="w-full mt-1 px-2 py-1.5 text-sm border border-border rounded bg-background flex items-center justify-between gap-2 text-left hover:bg-secondary/40"
           >
@@ -113,12 +133,11 @@ const DateField = ({ label, value, onChange }: { label: string; value: string; o
             <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start" onOpenAutoFocus={(e) => e.preventDefault()} onCloseAutoFocus={(e) => e.preventDefault()}>
           <Calendar
             mode="single"
             selected={selected}
-            onSelect={(d) => { if (d) { onChange(toISO(d)); setOpen(false); } }}
-            initialFocus
+            onSelect={(d) => { if (d) selectDate(d); }}
             className="p-3 pointer-events-auto"
           />
         </PopoverContent>
