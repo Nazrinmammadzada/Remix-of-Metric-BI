@@ -166,6 +166,16 @@ const ManagerKpiTrackingPage = () => {
 
   const myKpis = useMemo(() => [...dynamicMyKpis, ...MY_KPIS], [dynamicMyKpis]);
 
+  // Rəhbər yalnız öz strukturunu görməlidir, HR/SUPER_ADMIN isə bütün şirkəti.
+  const subScopePath = useMemo<string | null>(() => {
+    if (!user) return null;
+    if (user.role === "HR" || user.role === "SUPER_ADMIN") return null;
+    const emps = getEmployees().filter(e => e.active);
+    const me = emps.find(e => e.email === user.email) || emps.find(e => `${e.firstName} ${e.lastName}` === user.name);
+    return me?.structurePath || null;
+  }, [user?.email, user?.name, user?.role]);
+
+
   return (
     <div className="min-h-screen">
       <Header title="KPI İzlənməsi" />
