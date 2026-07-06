@@ -323,10 +323,11 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          // Cascade load pəncərəsi: kartın hədəf dəyəri limit kimi göstərilir.
+          // Cascade Load popup-u: dəyər HƏMİŞƏ yuxarıdan gələn cascade load
+          // əsasında hesablanır (istifadəçinin yazdığı KPI dəyəri deyil).
           const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          const value = saved?.value ?? (incoming?.value ?? parseNum(entry.target));
-          const unit = saved?.unit ?? (incoming?.unit ?? entry.unit ?? "");
+          const value = incoming?.value ?? saved?.value ?? parseNum(entry.target);
+          const unit = incoming?.unit ?? saved?.unit ?? entry.unit ?? "";
           const refreshed: KpiSetEntry = {
             ...entry,
             target: String(value),
