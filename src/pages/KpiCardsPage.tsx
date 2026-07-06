@@ -3075,7 +3075,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 <span className="flex-1 text-sm">{m.name}</span>
                                 {sel && (
                                   <div className="flex items-center gap-1">
-                                    <input type="number" value={sel.weight} onChange={e => updateWeight(m.name, Number(e.target.value))} className="w-16 px-2 py-1 text-xs border border-border rounded bg-background" />
+                                    <WeightInput value={sel.weight} onChange={n => updateWeight(m.name, n)} className="w-16 !px-2 !py-1 text-xs" />
                                     <span className="text-xs text-muted-foreground">%</span>
                                   </div>
                                 )}
