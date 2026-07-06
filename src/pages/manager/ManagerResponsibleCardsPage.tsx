@@ -15,6 +15,7 @@ import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSe
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
+import { getCurrentOrgEmployeeId } from "@/lib/managerScope";
 import {
   useSubKpis, getKpiCardsFor, calcCompletion, isEvaluated, type SubKpi, type KpiCardInfo,
 } from "@/lib/kpiEvaluationStore";
