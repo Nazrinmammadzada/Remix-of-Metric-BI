@@ -28,6 +28,7 @@ import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
 import { buildSharedCardFromDraft, upsertSharedKpiCard } from "@/lib/kpiCardStore";
+import { findRootByGoal, createRoot } from "@/lib/cascadeTreeStore";
 import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
