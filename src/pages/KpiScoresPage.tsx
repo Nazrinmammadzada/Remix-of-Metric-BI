@@ -279,8 +279,8 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                 getData={() => ({
                   title: `KPI Qiymətləri ${month} ${year}`,
                   fileName: `kpi-qiymetleri-${year}-${month}`,
-                  headers: ["Əməkdaşın A.S.A", "Ata adı", "KPI Kartının Adı", "Dövr", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
-                  rows: rows.map(r => [r.fullName, r.fatherName, r.cardName, r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
+                  headers: ["Əməkdaşın A.S.A.", "KPI Kartının Adı", "Dövr", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
+                  rows: rows.map(r => [[r.fullName, r.fatherName].filter(Boolean).join(" "), r.cardName, r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
                 })}
               />
             </div>
