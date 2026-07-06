@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
-import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
@@ -28,6 +29,7 @@ interface Kpi {
   status: KpiStatus; deadline: string; createdAt: string; updatedAt: string;
   responsible: { name: string; role: string };
   measure: string; type: string; method: string; weight: number;
+  cascadeNodeId?: string;
 }
 interface Person { id: string; name: string; position: string; parent?: string; level: number; assigned: boolean; stage: Stage; }
 
@@ -115,11 +117,11 @@ const ManagerKpiTrackingPage = () => {
     if (!user?.name) return [];
     const result: Kpi[] = [];
     // 1) Cascade tree node-ları (yuxarıdan pay alınmış hədəflər)
-    tree.filter(n => n.assigneeName === user.name && n.parentId !== null).forEach(n => {
+    tree.filter(n => n.assigneeName === user.name).forEach(n => {
       result.push({
         id: `ct-${n.id}`,
         name: `${n.cardName} — ${n.goalName || "Ana hədəf"}`,
-        description: `Yuxarı rəhbərdən pay: ${new Intl.NumberFormat("az-AZ").format(n.limit)} ${n.unit}`,
+        description: `${n.parentId ? "Yuxarı rəhbərdən pay" : "HR tərəfindən təyin edilmiş hədəf"}: ${new Intl.NumberFormat("az-AZ").format(n.limit)} ${n.unit}`,
         period: new Date(n.createdAt).toLocaleDateString("az-AZ"),
         target: Number(n.limit) || 0,
         actual: 0,
@@ -131,6 +133,7 @@ const ManagerKpiTrackingPage = () => {
         updatedAt: new Date(n.updatedAt).toLocaleDateString("az-AZ"),
         responsible: { name: n.assigneeName, role: n.positionName || "İcraçı" },
         measure: n.unit || "AZN", type: "Cascade", method: "Cascade paylanma", weight: 20,
+        cascadeNodeId: n.id,
       });
     });
     // 2) SharedKpiCard-lar — cari istifadəçi assignee (və ya owner) olduğu kartlar.
@@ -144,6 +147,8 @@ const ManagerKpiTrackingPage = () => {
           (c.assigneeIds?.includes(empKey) || (!c.assigneeIds?.length && c.ownerId === empKey)))
         .forEach(c => {
           (c.targets || []).forEach((t: any) => {
+            const existsInCascadeTree = tree.some(n => n.assigneeName === user.name && n.cardName === c.name && n.goalName === (t.name || "Ana hədəf"));
+            if (existsInCascadeTree) return;
             const target = parseFloat(String(t.targetValue ?? t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
             result.push({
               id: `sk-${c.id}-${t.id}`,
@@ -196,7 +201,7 @@ const ManagerKpiTrackingPage = () => {
             </div>
           </>
         )}
-        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} />}
+        {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} cascadeNodes={tree} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
         {view === "sub" && <SubordinatesView scopePath={subScopePath} />}
       </main>
