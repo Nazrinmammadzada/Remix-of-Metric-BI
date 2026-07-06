@@ -114,7 +114,14 @@ const SEED: SubKpi[] = [
 const load = (): SubKpi[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const rows = JSON.parse(raw) as SubKpi[];
+      const ids = new Set(rows.map(r => r.id));
+      const missing = SEED.filter(r => !ids.has(r.id));
+      const merged = missing.length ? [...rows, ...missing] : rows;
+      localStorage.setItem(KEY, JSON.stringify(merged));
+      return merged;
+    }
   } catch {}
   localStorage.setItem(KEY, JSON.stringify(SEED));
   return SEED;
