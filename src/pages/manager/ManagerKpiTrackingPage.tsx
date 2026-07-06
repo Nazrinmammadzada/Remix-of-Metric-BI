@@ -974,7 +974,7 @@ const SubordinatesView = () => {
 
       {/* RIGHT: sticky panel */}
       {panelOpen && selected && (
-        <SubDetailPanel node={selected} tab={tab} setTab={setTab} onClose={() => setPanelOpen(false)} />
+        <SubDetailPanel node={selected} tab={tab} setTab={setTab} cascadeNodes={cascadeNodes} onClose={() => setPanelOpen(false)} />
       )}
       {!panelOpen && selected && (
         <button onClick={() => setPanelOpen(true)}
@@ -1019,8 +1019,8 @@ const subTabLabels: Record<SubTab, string> = {
   reminders: "Xatırlatmalar", notify: "Bildiriş göndər", risk: "Risk səbəbi",
 };
 
-const SubDetailPanel = ({ node, tab, setTab, onClose }: {
-  node: TreeNode; tab: SubTab; setTab: (t: SubTab) => void; onClose: () => void;
+const SubDetailPanel = ({ node, tab, setTab, cascadeNodes, onClose }: {
+  node: TreeNode; tab: SubTab; setTab: (t: SubTab) => void; cascadeNodes: CascadeTreeNode[]; onClose: () => void;
 }) => {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [draft, setDraft] = useState("");
@@ -1041,7 +1041,7 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
   const comments = commentsMap[node.id] || [];
   const history = initialHistory(node.id);
   const reminders = initialReminders(node.id);
-  const empKpis = useMemo(() => node.empId ? buildEmpKpis(node.empId) : [], [node.empId]);
+  const empKpis = useMemo(() => node.empId ? cascadeKpisForEmployee(node.empId, cascadeNodes) : [], [node.empId, cascadeNodes]);
 
   const sendComment = () => {
     const t = draft.trim(); if (!t) return;
