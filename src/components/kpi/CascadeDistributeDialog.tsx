@@ -106,11 +106,11 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
   const cascadeLoad = Number(node?.limit) || 0;
-  const overLimit = totalDist > cascadeLoad;
+  // Alt bölgülərin cəmi Cascade Load-dan böyük ola bilər (icazəlidir).
+  const overLimit = false;
 
   const handleSave = () => {
     if (!node) return;
-    if (overLimit) { setError(`Paylanan cəm (${fmt(totalDist)}) Cascade Load-u (${fmt(cascadeLoad)}) keçə bilməz.`); return; }
     const rows = Object.entries(slices)
       .map(([id, v]) => {
         const emp = subordinates.find(e => e.id === Number(id));
