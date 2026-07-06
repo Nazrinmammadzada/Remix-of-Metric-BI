@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
 import { distribute, createRoot, findRootByGoal, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-import { useCascadeLoad } from "@/lib/managerCascadeLoadStore";
+
 
 interface Props {
   open: boolean;
