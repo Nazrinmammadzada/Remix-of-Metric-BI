@@ -184,6 +184,8 @@ function nodeToKpi(n: CascadeTreeNode): Kpi {
     weight: 0,
   };
 }
+
+const HubCard = ({ icon: Icon, title, subtitle, count, gradient, onClick }: any) => (
   <button onClick={onClick} className={`text-left rounded-2xl border bg-gradient-to-br ${gradient} p-6 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all group`}>
     <div className="flex items-start justify-between mb-4">
       <div className="w-14 h-14 rounded-xl bg-white/70 backdrop-blur border border-white flex items-center justify-center shadow-sm">
