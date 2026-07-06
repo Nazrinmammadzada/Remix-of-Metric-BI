@@ -402,6 +402,9 @@ const fmtNum = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
 // ===== Employee detail dialog — bir KPI kartının daxili =====
 
+const initials = (fullName: string) =>
+  fullName.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]?.toUpperCase() ?? "").join("");
+
 const EmployeeKpiDialog = ({
   emp, year, mIdx, periodLabel, onClose,
 }: {
@@ -412,81 +415,113 @@ const EmployeeKpiDialog = ({
   onClose: () => void;
 }) => {
   const goals = emp ? (CARD_GOALS[emp.cardName] || []) : [];
+  // Hər hədəf üçün qiymətləndiriciləri götürürük və hədəfin balını
+  // Σ(çəki × bal) formulası ilə hesablayırıq (backend-dən real gələn məlumat kimi işlənir).
   const rows = emp ? goals.map((g, gi) => {
-    const score = goalScoreFor(emp.id, emp.cardIdx, gi, year, mIdx);
+    const evaluators = evaluatorsFor(emp.id, emp.cardIdx * 10 + gi);
+    // Daxili hesablamada tam dəqiqlik saxlanılır, yuvarlaqlaşdırma yalnız göstərilən nəticələrdə.
+    const scoreRaw = evaluators.reduce((s, e) => s + (e.weight / 100) * e.score, 0);
+    const score = Math.round(scoreRaw * 100) / 100;
     const lower = isLowerBetter(g.unit, g.name);
     const actual = actualFromScore(g.target, score, lower);
-    return { ...g, score, actual, lower, weighted: (g.weight / 100) * score };
+    return { ...g, score, scoreRaw, actual, lower, evaluators, weightedRaw: (g.weight / 100) * scoreRaw };
   }) : [];
-  const total = rows.reduce((s, r) => s + r.weighted, 0);
+  const totalRaw = rows.reduce((s, r) => s + r.weightedRaw, 0);
+  const total = Math.round(totalRaw * 100) / 100;
 
   return (
     <Dialog open={!!emp} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserIcon className="w-5 h-5 text-primary" />
             {emp?.fullName} — {emp?.cardName}
           </DialogTitle>
-          <p className="text-xs text-muted-foreground">Dövr: {periodLabel} · Kart daxilindəki hədəflər və onların nəticə balları</p>
+          <p className="text-xs text-muted-foreground">Dövr: {periodLabel} · Hər hədəf üzrə qiymətləndiricilər və yekun hesablama</p>
         </DialogHeader>
 
         {emp && (
-          <div>
-            <div className="rounded-xl border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary/40">
-                  <tr className="text-left text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">Hədəf</th>
-                    <th className="px-3 py-2 font-medium text-right">Hədəf</th>
-                    <th className="px-3 py-2 font-medium text-right">Faktiki</th>
-                    <th className="px-3 py-2 font-medium text-right w-20">Çəki</th>
-                    <th className="px-3 py-2 font-medium text-right w-24">Bal</th>
-                    <th className="px-3 py-2 font-medium text-right w-32">Çəki × Bal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr><td colSpan={6} className="px-3 py-8 text-center text-muted-foreground">Bu kart üçün hədəf tapılmadı</td></tr>
-                  ) : rows.map((r, i) => (
-                    <tr key={i} className="border-t border-border">
-                      <td className="px-3 py-2.5">
-                        <div className="font-medium text-foreground">{r.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{r.lower ? "Az yaxşıdır" : "Çox yaxşıdır"}</div>
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{fmtNum(r.target)} {r.unit}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{fmtNum(r.actual)} {r.unit}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{r.weight}%</td>
-                      <td className="px-3 py-2.5 text-right">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs border ${scoreColor(r.score)}`}>
-                          {r.score.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-medium">
-                        {(r.weight / 100).toFixed(2)} × {r.score.toFixed(2)} = <span className="text-primary">{r.weighted.toFixed(3)}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                {rows.length > 0 && (
-                  <tfoot>
-                    <tr className="border-t-2 border-primary/30 bg-primary/5">
-                      <td colSpan={3} className="px-3 py-2.5 text-right font-medium text-muted-foreground">Ümumi kart nəticəsi (çəkilərə görə):</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-medium">{rows.reduce((s, r) => s + r.weight, 0)}%</td>
-                      <td colSpan={2} className="px-3 py-2.5 text-right">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-md text-sm border font-semibold ${scoreColor(total)}`}>
-                          {total.toFixed(2)} / 5
-                        </span>
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-            <div className="mt-3 p-3 rounded-lg bg-secondary/40 border border-border text-[11px] font-mono text-muted-foreground">
-              {rows.map(r => `(${r.weight}%×${r.score.toFixed(2)})`).join(" + ")} = <span className="text-primary font-bold">{total.toFixed(2)}</span> bal
-            </div>
-            <div className="flex justify-end pt-4">
+          <div className="space-y-4">
+            {rows.length === 0 ? (
+              <div className="rounded-xl border border-border p-8 text-center text-muted-foreground text-sm">
+                Bu kart üçün hədəf tapılmadı
+              </div>
+            ) : rows.map((r, i) => (
+              <div key={i} className="rounded-xl border border-border overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-0">
+                  {/* SOL: hədəf məlumatı */}
+                  <div className="p-4 border-b md:border-b-0 md:border-r border-border">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <div className="font-semibold text-foreground">{r.name}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{r.lower ? "Az yaxşıdır" : "Çox yaxşıdır"}</div>
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-md text-xs border font-semibold ${scoreColor(r.score)}`}>
+                        {r.score.toFixed(2)} / 5
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="rounded-md bg-secondary/40 px-2 py-1.5">
+                        <div className="text-muted-foreground">Hədəf</div>
+                        <div className="font-medium tabular-nums">{fmtNum(r.target)} {r.unit}</div>
+                      </div>
+                      <div className="rounded-md bg-secondary/40 px-2 py-1.5">
+                        <div className="text-muted-foreground">Faktiki</div>
+                        <div className="font-medium tabular-nums">{fmtNum(r.actual)} {r.unit}</div>
+                      </div>
+                      <div className="rounded-md bg-secondary/40 px-2 py-1.5">
+                        <div className="text-muted-foreground">Çəki</div>
+                        <div className="font-medium tabular-nums">{r.weight}%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SAĞ: Qiymətləndirənlər paneli */}
+                  <div className="p-4 bg-secondary/20">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">Qiymətləndirənlər</div>
+                    <div className="space-y-2">
+                      {r.evaluators.map((ev, j) => (
+                        <div key={j} className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[11px] font-semibold shrink-0">
+                            {initials(ev.name)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-foreground truncate">{ev.name}</div>
+                            <div className="text-[11px] text-muted-foreground truncate">{ev.role}</div>
+                          </div>
+                          <div className="text-xs tabular-nums text-foreground/80">
+                            <span className="font-medium">{ev.weight}%</span> × <span className="font-medium">{ev.score.toFixed(2)}</span>/5
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 rounded-md bg-background/70 border border-border px-3 py-2 text-[11px] font-mono text-muted-foreground">
+                      {r.evaluators.map(e => `(${e.weight}%×${e.score.toFixed(2)})`).join(" + ")}
+                      {" = "}
+                      <span className="text-primary font-bold">{r.score.toFixed(2)} bal</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Yekun kart nəticəsi */}
+            {rows.length > 0 && (
+              <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-semibold text-foreground">Ümumi KPI kart nəticəsi</div>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-md text-sm border font-semibold ${scoreColor(total)}`}>
+                    {total.toFixed(2)} / 5
+                  </span>
+                </div>
+                <div className="text-[11px] font-mono text-muted-foreground">
+                  {rows.map(r => `(${r.weight}%×${r.score.toFixed(2)})`).join(" + ")} ={" "}
+                  <span className="text-primary font-bold">{total.toFixed(2)}</span> bal
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-1">
               <Button onClick={onClose}>Bağla</Button>
             </div>
           </div>
@@ -497,3 +532,4 @@ const EmployeeKpiDialog = ({
 };
 
 export default KpiScoresPage;
+
