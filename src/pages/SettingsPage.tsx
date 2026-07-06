@@ -169,7 +169,23 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
     { key: "distribute", label: "Hədəfi komandaya paylaşmaq" },
     { key: "set_slice_limits", label: "Pay üçün limit təyin etmək" },
     { key: "edit", label: "Mövcud paylanmanı redaktə etmək" },
+    { key: "cascade_push", label: "Cascade Push" },
+    { key: "cascade_pull", label: "Cascade Pull" },
+    { key: "approve", label: "Cascading-i təsdiqləmək" },
+    { key: "reject", label: "Cascading-i ləğv etmək" },
   ]},
+  { key: "kpi_scores", label: "KPI Nəticələri", actions: [
+    { key: "view", label: "Nəticələri görmək" },
+    { key: "view_calc_details", label: "Hesablama detallarını görmək" },
+    { key: "view_evaluator_scores", label: "Qiymətləndiricilərin verdiyi balları görmək" },
+    { key: "view_weights", label: "Çəki hesablamalarını görmək" },
+    { key: "export", label: "Export" },
+  ]},
+  { key: "notifications", label: "Bildirişlər", actions: [
+    { key: "send", label: "Göndərmək" },
+    { key: "manage", label: "İdarə etmək" },
+  ]},
+
   { key: "cascade_matrix", label: "Cascade Matrisi", actions: [
     { key: "view", label: "Baxış" },
     { key: "create", label: "Yeni matris yaratmaq" },
