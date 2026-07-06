@@ -432,10 +432,11 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     const check = canRemoveStructure(node.id);
-    if (!check.ok) {
+    if (check.ok !== true) {
       toast.error(check.reason, { duration: 6000 });
       return;
     }
+
     setConfirmDelete(true);
   };
 
