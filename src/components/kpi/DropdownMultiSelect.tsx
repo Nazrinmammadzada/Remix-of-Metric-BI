@@ -30,6 +30,10 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
 
   const filtered = options.filter((o) => o.toLowerCase().includes(search.toLowerCase()));
   const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o));
+  const keepOpen = () => {
+    setOpen(true);
+    requestAnimationFrame(() => setOpen(true));
+  };
   const toggleAll = () => {
     if (!onChange) {
       filtered.forEach(o => {
@@ -37,10 +41,16 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
         if (allSelected && isSel) onToggle(o);
         else if (!allSelected && !isSel) onToggle(o);
       });
+      keepOpen();
       return;
     }
     if (allSelected) onChange(selected.filter(v => !filtered.includes(v)));
     else onChange(Array.from(new Set([...selected, ...filtered])));
+    keepOpen();
+  };
+  const toggleOne = (v: string) => {
+    onToggle(v);
+    keepOpen();
   };
 
   return (
@@ -52,7 +62,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </div>
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden" onPointerDown={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <div className="p-2 border-b border-border flex items-center gap-1.5">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -71,7 +81,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
             {filtered.map((o) => {
               const checked = selected.includes(o);
               return (
-                <div key={o} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggle(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
+                <div key={o} onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleOne(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center gap-2 hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
                   <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}>
                     {checked && <Check className="w-3 h-3" />}
                   </span>
