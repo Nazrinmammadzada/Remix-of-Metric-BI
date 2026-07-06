@@ -220,7 +220,7 @@ const UserKpiCardsPage = () => {
 
   // For leader breakdown: a "team KPI" is one where any member (or the leader) is responsible.
   const teamKpisForLeader = myLedTeam
-    ? userKpiCards.filter(c => {
+    ? allKpiCards.filter(c => {
         const memberNames = [myLedTeam.leader, ...myLedTeam.members.map(m => m.name)];
         const matchesMembership = memberNames.includes(c.responsible);
         const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase());
