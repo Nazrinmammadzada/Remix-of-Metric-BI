@@ -310,11 +310,12 @@ export const getIncomingCascadeLoad = (
   assigneeName: string,
   excludeCardId?: number
 ): { value: number; unit: string; cardName: string } | null => {
-  // 1) Cascade ağacında parent node
+  // 1) Cascade ağacında bu şəxsə yuxarıdan gələn node; yoxdursa HR-in yaratdığı root
   try {
-    const treeNode = getCascadeNodes().find(
-      n => n.assigneeName === assigneeName && n.parentId !== null && (Number(n.limit) || 0) > 0,
+    const personNodes = getCascadeNodes().filter(
+      n => n.assigneeName === assigneeName && (Number(n.limit) || 0) > 0,
     );
+    const treeNode = personNodes.find(n => n.parentId !== null) || personNodes.find(n => n.parentId === null);
     if (treeNode) {
       return { value: Number(treeNode.limit) || 0, unit: treeNode.unit || "", cardName: treeNode.cardName };
     }
@@ -325,9 +326,10 @@ export const getIncomingCascadeLoad = (
     const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === assigneeName);
     if (emp) {
       const empKey = `e${emp.id}`;
-      const cards = getSharedKpiCards().filter(c => c.ownerId === empKey);
+      const cards = getSharedKpiCards().filter(c => c.ownerId === empKey && (excludeCardId == null || c.numericId !== excludeCardId));
       for (const c of cards) {
         const sum = (c.targets || []).reduce((s, t) => {
+          if ((t as any).cascading === false) return s;
           const n = parseFloat(String((t as any).targetValue ?? (t as any).target ?? (t as any).value ?? "").replace(/[^\d.\-]/g, "")) || 0;
           return s + n;
         }, 0);
