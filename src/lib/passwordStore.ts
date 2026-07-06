@@ -36,6 +36,7 @@ const defaultPasswordHashes: Record<string, string> = {
   "hr@kpi.az": "7f8833ee8ea278bb806cc4bd0da1261024f404ffe915c9f627114029391d771a",
   "user@kpi.az": "aabfbefdbecf9b412e81d665e1dadee27ed73d6978237f2445909d5975a20dab",
   "manager@kpi.az": "868e2eb4f23ccfbd2eb180801569b7e1291660f137bcaca405854ff6219247a9",
+  "kamran@kpi.az": "24c5a872b5a1b37b2be879bbde212764fc654a2e27ddfa7ca30ccc87dd0720ee",
 };
 
 const sha256Hex = async (input: string): Promise<string> => {
