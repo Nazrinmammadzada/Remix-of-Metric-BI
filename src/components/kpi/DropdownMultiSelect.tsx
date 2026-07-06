@@ -16,17 +16,24 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
     document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
-  }, []);
+  }, [open]);
 
   const filtered = options.filter((o) => o.toLowerCase().includes(search.toLowerCase()));
   const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o));
@@ -52,7 +59,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </div>
       {open && (
-        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+        <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
           <div className="p-2 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -63,7 +70,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
             {filtered.map((o) => {
               const checked = selected.includes(o);
               return (
-                <div key={o} onClick={(e) => { e.stopPropagation(); onToggle(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
+                <div key={o} data-multiselect-option onClick={(e) => { e.stopPropagation(); onToggle(o); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? "bg-primary/5" : ""}`}>
                   <span className="truncate">{o}</span>
                   {checked && <Check className="w-4 h-4 text-primary shrink-0" />}
                 </div>

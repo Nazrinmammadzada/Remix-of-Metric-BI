@@ -255,19 +255,27 @@ function MultiSelectDropdown({
     if (!s) return options;
     return options.filter(o => o.label.toLowerCase().includes(s));
   }, [q, options]);
-  const toggle = (v: string) =>
+  const toggle = (v: string) => {
     onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+    requestAnimationFrame(() => setOpen(true));
+  };
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
     document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
   const allSelected = filtered.length > 0 && filtered.every(o => selected.includes(o.value));
@@ -291,7 +299,7 @@ function MultiSelectDropdown({
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg">
+        <div data-multiselect-content className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg">
           <div className="p-1.5 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -308,7 +316,7 @@ function MultiSelectDropdown({
             ) : filtered.map(o => {
               const sel = selected.includes(o.value);
               return (
-                <button key={o.value} type="button"
+                <button key={o.value} type="button" data-multiselect-option
                   onClick={() => toggle(o.value)}
                   className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center justify-between hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
                   <span className="truncate">{o.label}</span>
@@ -381,6 +389,7 @@ interface Props {
 export default function CreateKpiWizard({ open, onOpenChange, initial, onComplete }: Props) {
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<CreateKpiWizardDraft>(() => ({ ...emptyKpiWizardDraft(), ...(initial || {}) }));
+  const dialogScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -417,8 +426,21 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const positionOptions = useMemo(() => flattenPositions(structureTree).map(p => ({ value: p.id, label: p.label })), [structureTree]);
 
   const update = (patch: Partial<CreateKpiWizardDraft>) => setDraft(p => ({ ...p, ...patch }));
+  const preserveDialogScroll = (run: () => void) => {
+    const host = dialogScrollRef.current;
+    const y = host?.scrollTop ?? 0;
+    run();
+    const restore = () => {
+      if (host) host.scrollTop = y;
+    };
+    requestAnimationFrame(() => {
+      restore();
+      requestAnimationFrame(restore);
+      window.setTimeout(restore, 0);
+    });
+  };
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
-    setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
+    preserveDialogScroll(() => setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } })));
 
   // ===== Frequency-driven date auto-fill =====
   const setFrequency = (f: string) => {
@@ -696,7 +718,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); else onOpenChange(true); }}>
-      <DialogContent className="max-w-4xl w-[92vw] max-h-[88vh] overflow-y-auto">
+        <DialogContent ref={dialogScrollRef} className="max-w-4xl w-[92vw] max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="w-5 h-5 text-primary" />

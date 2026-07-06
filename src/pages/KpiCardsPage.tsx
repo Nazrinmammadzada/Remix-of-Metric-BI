@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/layout/Header";
 import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, User, Clock, ArrowUp, ArrowDown, GripVertical, Check, Hourglass, CheckCircle2, Trash2, Info, ChevronDown, Pencil, ShieldCheck, AlertTriangle, Sparkles, UserCheck, Shuffle, UserCog, UserPlus, Sliders } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
@@ -435,6 +435,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [selectedKpi, setSelectedKpi] = useState<KpiCard | null>(null);
   const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle">("general");
   const [showCreate, setShowCreate] = useState(false);
+  const createDialogScrollRef = useRef<HTMLDivElement>(null);
   const [createStep, setCreateStep] = useState(1);
   const [lifecycleDraft, setLifecycleDraft] = useState<Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">>(() => emptyLifecycleDraft());
   const [useMatrix, setUseMatrix] = useState<boolean | null>(null);
@@ -746,11 +747,40 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [userSearchText, setUserSearchText] = useState("");
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const positionDropdownRef = useRef<HTMLDivElement>(null);
+  const structureDropdownRef = useRef<HTMLDivElement>(null);
   // Org structures (canlı oxunur)
   const [orgStructures, setOrgStructures] = useState<OrgStructure[]>(() => getStructures());
   // Per-level struktur axtarış mətnləri
   const [structSearch, setStructSearch] = useState<Record<number, string>>({});
   const [openStructLevel, setOpenStructLevel] = useState<number | null>(null);
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (showTypeDropdown && typeDropdownRef.current && !typeDropdownRef.current.contains(target)) setShowTypeDropdown(false);
+      if (showUserDropdown && userDropdownRef.current && !userDropdownRef.current.contains(target)) setShowUserDropdown(false);
+      if (showPositionDropdown && positionDropdownRef.current && !positionDropdownRef.current.contains(target)) setShowPositionDropdown(false);
+      if (openStructLevel !== null && structureDropdownRef.current && !structureDropdownRef.current.contains(target)) setOpenStructLevel(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (!showTypeDropdown && !showUserDropdown && !showPositionDropdown && openStructLevel === null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setShowTypeDropdown(false);
+      setShowUserDropdown(false);
+      setShowPositionDropdown(false);
+      setOpenStructLevel(null);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [showTypeDropdown, showUserDropdown, showPositionDropdown, openStructLevel]);
   useEffect(() => {
     const refresh = () => setOrgStructures(getStructures());
     window.addEventListener("org-updated", refresh);
@@ -1799,7 +1829,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return (
                   <div className="bg-card rounded-lg border border-border p-4">
                     <h4 className="font-semibold text-foreground mb-4">Hədəf Set Statusu</h4>
-                    <div className="space-y-2">
+                    <div className="space-y-2" ref={structureDropdownRef}>
                       {merged.map((h, idx) => {
                         // Status per row derives from KPI card status:
                         //  aktiv → Tamamlanıb (yaşıl), natamam → Natamam (bozu), digərləri → Set edilib/Gözləyir seed məntiqi
@@ -1902,7 +1932,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       {/* Köhnə Create KPI Dialog — yalnız edit (copy) axını üçün saxlanılır, addım 10-17 növbəti mərhələdə yeni sehrbaza köçürüləcək */}
 
       <Dialog open={showCreate} onOpenChange={(o) => { setShowCreate(o); if (!o) { setEditingCardId(null); setLifecycleDraft(emptyLifecycleDraft()); } }}>
-        <DialogContent className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
+        <DialogContent ref={createDialogScrollRef} className="max-w-6xl w-[95vw] max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Yeni KPI Yarat — Addım {createStep}/3
@@ -1933,7 +1963,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground">KPI Tipi</label>
-                  <div className="relative mt-1">
+                  <div className="relative mt-1" ref={typeDropdownRef}>
                     <div onClick={() => setShowTypeDropdown(!showTypeDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.types.length === 0 && <span className="text-muted-foreground">Seçin</span>}
                       {newKpi.types.map(t => (
@@ -1943,12 +1973,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       ))}
                     </div>
                     {showTypeDropdown && (
-                      <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
                         <div className="p-2">
                           <input value={typeSearchText} onChange={e => setTypeSearchText(e.target.value)} placeholder="Axtar..." className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background" onClick={e => e.stopPropagation()} />
                         </div>
                         {kpiTypeOptions.filter(t => t.toLowerCase().includes(typeSearchText.toLowerCase())).map(type => (
-                          <div key={type} onClick={e => { e.stopPropagation(); toggleKpiType(type); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newKpi.types.includes(type) ? 'bg-primary/5' : ''}`}>
+                          <div key={type} data-multiselect-option onClick={e => { e.stopPropagation(); toggleKpiType(type); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${newKpi.types.includes(type) ? 'bg-primary/5' : ''}`}>
                             <span>{type}</span>{newKpi.types.includes(type) && <Check className="w-4 h-4 text-primary" />}
                           </div>
                         ))}
@@ -2025,7 +2055,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return (
                   <div>
                     <label className="text-sm font-medium text-foreground">Şəxs(lər) seçin</label>
-                    <div className="relative mt-1">
+                    <div className="relative mt-1" ref={userDropdownRef}>
                       <div onClick={() => setShowUserDropdown(!showUserDropdown)} className="w-full min-h-[38px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between gap-2">
                         <div className="flex flex-wrap gap-1 flex-1">
                           {selectedList.length === 0
@@ -2040,7 +2070,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
                       </div>
                       {showUserDropdown && (
-                        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                        <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
                           <div className="p-2">
                             <div className="relative">
                               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2054,15 +2084,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                             }).map(person => {
                               const checked = selectedList.includes(person);
                               return (
-                                <div key={person} onClick={e => { e.stopPropagation(); toggle(person); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? 'bg-primary/5' : ''}`}>
+                                <div key={person} data-multiselect-option onClick={e => { e.stopPropagation(); toggle(person); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${checked ? 'bg-primary/5' : ''}`}>
                                   <span>{formatUserWithRole(person)}</span>
                                   {checked && <Check className="w-4 h-4 text-primary" />}
                                 </div>
                               );
                             })}
                           </div>
-                          <div className="p-2 border-t border-border flex justify-end">
-                            <button onClick={() => { setShowUserDropdown(false); setUserSearchText(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Tamam</button>
+                          <div className="p-2 border-t border-border flex justify-between items-center">
+                            <span className="text-[11px] text-muted-foreground">{selectedList.length} seçildi</span>
+                            <button type="button" onClick={() => { setShowUserDropdown(false); setUserSearchText(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
                           </div>
                         </div>
                       )}
@@ -2120,7 +2151,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <ChevronDown className="w-4 h-4 text-muted-foreground" />
                             </div>
                             {isOpen && (
-                              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                              <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
                                 <div className="p-2">
                                   <div className="relative">
                                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2139,6 +2170,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   ) : filtered.map(o => (
                                     <div
                                       key={o.id}
+                                      data-multiselect-option
                                       onClick={() => {
                                         setNewKpi(p => {
                                           const path = p.structurePath.slice(0, level);
@@ -2177,7 +2209,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               {newKpi.targetMode.position && (
                 <div className="p-3 rounded-lg border border-border bg-secondary/40 space-y-2">
                   <label className="text-xs font-semibold text-foreground">Vəzifə seçimi (multiselect)</label>
-                  <div className="relative">
+                  <div className="relative" ref={positionDropdownRef}>
                     <div onClick={() => setShowPositionDropdown(!showPositionDropdown)} className="w-full min-h-[38px] px-3 py-1.5 text-sm border border-border rounded-lg bg-background cursor-pointer flex flex-wrap gap-1 items-center">
                       {newKpi.assignedPositions.length === 0 && <span className="text-muted-foreground">Vəzifələri seçin</span>}
                       {newKpi.assignedPositions.map(pos => (
@@ -2189,7 +2221,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <ChevronDown className="w-4 h-4 text-muted-foreground ml-auto" />
                     </div>
                     {showPositionDropdown && (
-                      <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
+                      <div data-multiselect-content className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
                         <div className="p-2">
                           <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -2200,7 +2232,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           {positionOptions.filter(p => p.toLowerCase().includes(positionSearchText.toLowerCase())).map(pos => {
                             const selected = newKpi.assignedPositions.includes(pos);
                             return (
-                              <div key={pos} onClick={() => setNewKpi(p => ({ ...p, assignedPositions: selected ? p.assignedPositions.filter(x => x !== pos) : [...p.assignedPositions, pos] }))} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${selected ? "bg-primary/5" : ""}`}>
+                              <div key={pos} data-multiselect-option onClick={(e) => { e.stopPropagation(); setNewKpi(p => ({ ...p, assignedPositions: selected ? p.assignedPositions.filter(x => x !== pos) : [...p.assignedPositions, pos] })); }} className={`px-3 py-2 text-sm cursor-pointer flex items-center justify-between hover:bg-secondary ${selected ? "bg-primary/5" : ""}`}>
                                 <span>{pos}</span>{selected && <Check className="w-4 h-4 text-primary" />}
                               </div>
                             );
@@ -2208,6 +2240,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           {positionOptions.filter(p => p.toLowerCase().includes(positionSearchText.toLowerCase())).length === 0 && (
                             <div className="px-3 py-2 text-xs text-muted-foreground">Nəticə yoxdur</div>
                           )}
+                        </div>
+                        <div className="p-2 border-t border-border flex justify-between items-center">
+                          <span className="text-[11px] text-muted-foreground">{newKpi.assignedPositions.length} seçildi</span>
+                          <button type="button" onClick={() => { setShowPositionDropdown(false); setPositionSearchText(""); }} className="text-xs px-3 py-1 rounded bg-primary text-primary-foreground">Bağla</button>
                         </div>
                       </div>
                     )}
@@ -2658,10 +2694,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               <LifecycleWizardStep
                 value={lifecycleDraft}
                 onChange={(v) => {
-                  const host = document.querySelector('[role="dialog"]') as HTMLElement | null;
-                  const y = host ? host.scrollTop : 0;
+                  const host = createDialogScrollRef.current;
+                  const y = host?.scrollTop ?? 0;
                   setLifecycleDraft(v);
-                  requestAnimationFrame(() => { if (host) host.scrollTop = y; });
+                  const restore = () => { if (host) host.scrollTop = y; };
+                  requestAnimationFrame(() => {
+                    restore();
+                    requestAnimationFrame(restore);
+                    window.setTimeout(restore, 0);
+                  });
                 }}
               />
               <div className="flex gap-3 pt-2">
