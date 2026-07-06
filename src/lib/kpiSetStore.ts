@@ -60,7 +60,7 @@ export interface KpiSetEntry {
 }
 
 
-const KEY = "kpi_set_entries_v6";
+const KEY = "kpi_set_entries_v7";
 const EVT = "kpi-set-updated";
 
 // Köhnə versiyaları təmizlə — istifadəçi tərəfindən yaradılan hədəfləri silir.
