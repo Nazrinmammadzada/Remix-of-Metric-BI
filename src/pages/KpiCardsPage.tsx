@@ -657,10 +657,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         });
       };
       (d.targets || []).forEach((t: any) => {
+        // Yalnız "Digər əməkdaş təyin edir" modunda təyinedici üçün
+        // "Məsul olduğum kartlar" entry-si yaradılır.
+        // "Özüm təyin edirəm" (createdBy === "self") halında kart Owner-ə
+        // aiddir — onun ÖZ kartıdır, məsul olduğu kart deyil.
         if (t.createdBy === "other") {
           pushPending(stripName(t.assigner));
-        } else if (t.createdBy === "self") {
-          ownerAssigneeNames.forEach(pushPending);
         }
       });
     } catch (err) { console.warn("pending kpi set seed failed", err); }
