@@ -24,7 +24,19 @@ export interface SharedKpiCard {
   endDate: string;
   frequency: string;
   scoringSystem: string;
-  targets: { id: string; name: string; type: string; weight: number; scoreLimit: number }[];
+  targets: {
+    id: string; name: string; type: string; weight: number; scoreLimit: number;
+    /** HR-in wizard-da yazdığı hədəf dəyəri (məs: "750000", "95%") */
+    targetValue?: string;
+    /** Vahid: AZN / USD / % / ədəd / bal ... */
+    unit?: string;
+    /** Bu hədəf cascadable-dırsa true */
+    cascading?: boolean;
+    /** self=Owner özü icra edir; other=Target-Setter təyin edir */
+    createdBy?: "self" | "other";
+    /** Target-Setter modunda: təyin edən şəxsin adı */
+    assigner?: string;
+  }[];
   execution: Record<string, ExecutionStatus>; // assigneeId → status
   history: { ts: string; actor: string; action: string; note?: string }[];
   createdAt: string;
@@ -118,7 +130,14 @@ export const buildSharedCardFromDraft = (
   endDate: d.endDate || "",
   frequency: d.frequency,
   scoringSystem: d.scoringSystem,
-  targets: d.targets.map(t => ({ id: t.id, name: t.name, type: t.type, weight: t.weight, scoreLimit: t.scoreLimit })),
+  targets: d.targets.map((t: any) => ({
+    id: t.id, name: t.name, type: t.type, weight: t.weight, scoreLimit: t.scoreLimit,
+    targetValue: t.targetValue ?? "",
+    unit: t.type === "Məbləğ" ? (t.currency || "AZN") : t.type === "Faiz" ? "%" : (t.unit || ""),
+    cascading: !!t.cascading,
+    createdBy: t.createdBy,
+    assigner: t.assigner,
+  })),
   execution: {},
   history: [{ ts: new Date().toISOString(), actor: meta.ownerId, action: `created:${meta.status}` }],
   createdAt: new Date().toISOString(),

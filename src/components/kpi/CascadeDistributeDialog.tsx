@@ -53,21 +53,25 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       ? getEmployees().find(e => e.id === bootstrap.assigneeId)
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
-    // 1) Bu şəxs artıq başqasının cascade-indən pay almışdırsa — o child node-u istifadə et.
-    const asChild = getNodes().find(
-      n => n.assigneeId === emp.id && n.parentId !== null && (Number(n.limit) || 0) > 0,
+    // Bir workflow üçün YALNIZ BİR cascade ağacı olmalıdır.
+    // Bu şəxs artıq ağacda hər hansı bir node kimi (root və ya child) mövcuddursa,
+    // yeni root yaratmadan mövcud node-u istifadə edirik — bütün yeni bölgülər
+    // eyni ağacın davamı kimi əlavə olunsun.
+    const anyNode = getNodes().find(
+      n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0,
     );
-    if (asChild) { setNode(asChild); return; }
-    // 2) Root axtar (HR-in Owner tipli kartından yaradılan).
+    if (anyNode) { setNode(anyNode); return; }
+    // Yalnız ilk dəfə (heç bir cascade ağacında yoxdursa) yeni root yaradırıq —
+    // bu HR-in bu şəxsə verdiyi ilk Owner kartına uyğundur.
     const existingRoot = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
     if (existingRoot) { setNode(existingRoot); return; }
-    // 3) Nə tapıldı — yeni root yarat.
     setNode(createRoot({
       cardName: bootstrap.cardName, goalName: bootstrap.goalName, unit: bootstrap.unit,
       assigneeId: emp.id, assigneeName: `${emp.firstName} ${emp.lastName}`,
       positionName: emp.positionName, limit: bootstrap.limit,
     }));
   }, [open, existingNode, bootstrap]);
+
 
   // Tabelikdəki bütün şəxslər (setter-in structurePath-ı üzrə)
   const subordinates = useMemo(() => {

@@ -144,13 +144,13 @@ const ManagerKpiTrackingPage = () => {
           (c.assigneeIds?.includes(empKey) || (!c.assigneeIds?.length && c.ownerId === empKey)))
         .forEach(c => {
           (c.targets || []).forEach((t: any) => {
-            const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
+            const target = parseFloat(String(t.targetValue ?? t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
             result.push({
               id: `sk-${c.id}-${t.id}`,
               name: `${withKartSuffix(c.name)} — ${t.name || "Hədəf"}`,
               description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
               period: c.startDate || "—",
-              target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
+              target, actual: 0, unit: t.unit || (t.type === "Məbləğ" ? "AZN" : ""),
               stage: "assigned",
               status: c.status === "aktiv" ? "in_progress" : "at_risk",
               deadline: c.endDate || "—",
