@@ -202,22 +202,14 @@ const TeamsPage = () => {
           title={isManager ? "Komandam" : "Komandalar"}
           subtitle={isManager ? "Rəhbərlik etdiyiniz komanda və üzvləri" : "Komandaları yaradın, redaktə edin və performansı izləyin"}
           right={
-            <div className="flex gap-3">
-              <select className="px-3 py-2 text-sm border border-border rounded-lg bg-card">
-                <option>May 2026</option>
-                <option>Aprel 2026</option>
-                <option>Mart 2026</option>
-                <option>Fevral 2026</option>
-                <option>Yanvar 2026</option>
-              </select>
-              {!isManager && (
-                <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                  <Plus className="w-4 h-4" /> Yeni komanda yarat
-                </button>
-              )}
-            </div>
+            !isManager ? (
+              <button onClick={() => setShowCreateTeam(true)} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
+                <Plus className="w-4 h-4" /> Yeni komanda yarat
+              </button>
+            ) : undefined
           }
         />
+
 
 
         <div className="relative mb-6">
