@@ -4,6 +4,9 @@
 // Limitlər təyin olunduqda status "completed" olur, əks halda "pending".
 
 import { useEffect, useState } from "react";
+import { getNodes as getCascadeNodes } from "@/lib/cascadeTreeStore";
+import { getSharedKpiCards } from "@/lib/kpiCardStore";
+import { getEmployees } from "@/lib/orgStore";
 
 export type LimitTier = "l1" | "l2" | "l3" | "l4" | "l5";
 
