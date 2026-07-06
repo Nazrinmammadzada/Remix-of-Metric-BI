@@ -1009,6 +1009,101 @@ const SettingsPage = () => {
 
       </Dialog>
 
+      {/* Users Management Dialog — opened from 👥 icon on role card */}
+      <Dialog open={!!usersRole} onOpenChange={() => setUsersRole(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              <span>İstifadəçiləri idarə et — </span>
+              <span className="tracking-wider font-bold text-primary">{usersRole?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {usersRole && (() => {
+            const list = allUsers.filter(u =>
+              u.name.toLowerCase().includes(roleUserSearch.toLowerCase()) ||
+              u.role.toLowerCase().includes(roleUserSearch.toLowerCase()),
+            );
+            const allNames = list.map(u => u.name);
+            const allSelected = allNames.length > 0 && allNames.every(n => usersRole.users.includes(n));
+            const toggle = (name: string) => setUsersRole(prev => prev ? ({
+              ...prev,
+              users: prev.users.includes(name) ? prev.users.filter(u => u !== name) : [...prev.users, name],
+            }) : null);
+            const toggleAll = () => setUsersRole(prev => prev ? ({
+              ...prev,
+              users: allSelected
+                ? prev.users.filter(u => !allNames.includes(u))
+                : Array.from(new Set([...prev.users, ...allNames])),
+            }) : null);
+            const save = () => {
+              const newUsers = usersRole.users;
+              setRoles(prev => {
+                const stripped = prev.map(r =>
+                  r.id === usersRole.id ? r : { ...r, users: r.users.filter(u => !newUsers.includes(u)) },
+                );
+                return stripped.map(r => r.id === usersRole.id ? { ...r, users: newUsers } : r);
+              });
+              toast.success(`${newUsers.length} əməkdaş "${usersRole.name}" rolu üçün yenilədi.`);
+              setUsersRole(null);
+            };
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      value={roleUserSearch}
+                      onChange={e => setRoleUserSearch(e.target.value)}
+                      placeholder="Əməkdaş axtar..."
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleAll}
+                    className="text-xs px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary font-medium text-foreground shrink-0"
+                  >
+                    {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
+                  </button>
+                </div>
+                {usersRole.users.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 border border-border rounded-lg bg-secondary/30">
+                    {usersRole.users.map(u => (
+                      <span key={u} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+                        {u}
+                        <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => toggle(u)} />
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-72 overflow-y-auto border border-border rounded-lg p-2">
+                  {list.map((u, i) => {
+                    const on = usersRole.users.includes(u.name);
+                    return (
+                      <div key={i} onClick={() => toggle(u.name)} className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${on ? "bg-primary/5 border border-primary" : "hover:bg-secondary border border-transparent"}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-semibold shrink-0">{u.avatar}</div>
+                          <div className="min-w-0"><p className="text-xs font-medium text-foreground truncate">{u.name}</p><p className="text-[10px] text-muted-foreground truncate">{u.role}</p></div>
+                        </div>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? "bg-primary border-primary" : "border-border"}`}>{on && <Check className="w-3 h-3 text-primary-foreground" />}</div>
+                      </div>
+                    );
+                  })}
+                  {list.length === 0 && <p className="col-span-full text-center text-xs text-muted-foreground py-4">Nəticə tapılmadı</p>}
+                </div>
+                <div className="flex gap-3 pt-1">
+                  <button onClick={save} className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium">💾 Yadda saxla</button>
+                  <button onClick={() => setUsersRole(null)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Bağla</button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="max-w-sm">
