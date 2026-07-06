@@ -269,7 +269,29 @@ const TeamsPage = () => {
         </div>
 
         <div className="bg-card rounded-xl p-5 border border-border mb-6">
-          <h3 className="font-semibold text-foreground mb-4">Komanda Müqayisəsi</h3>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <h3 className="font-semibold text-foreground">Komanda Müqayisəsi</h3>
+            <div className="flex items-center gap-2">
+              <select value={chartMode} onChange={e => setChartMode(e.target.value as "Ay" | "Rüb" | "İl")} className="px-3 py-1.5 text-xs border border-border rounded-lg bg-card">
+                <option value="Ay">Aya görə</option>
+                <option value="Rüb">Rübə görə</option>
+                <option value="İl">İlə görə</option>
+              </select>
+              {chartMode === "Ay" && (
+                <input type="month" value={chartMonth} onChange={e => setChartMonth(e.target.value)} className="px-3 py-1.5 text-xs border border-border rounded-lg bg-card" />
+              )}
+              {chartMode === "Rüb" && (
+                <select value={chartQuarter} onChange={e => setChartQuarter(e.target.value)} className="px-3 py-1.5 text-xs border border-border rounded-lg bg-card">
+                  {["2024","2025","2026","2027"].flatMap(y => ["Q1","Q2","Q3","Q4"].map(q => <option key={`${y}-${q}`} value={`${y}-${q}`}>{y} · {q}</option>))}
+                </select>
+              )}
+              {chartMode === "İl" && (
+                <select value={chartYear} onChange={e => setChartYear(e.target.value)} className="px-3 py-1.5 text-xs border border-border rounded-lg bg-card">
+                  {["2023","2024","2025","2026","2027"].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              )}
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220 15% 90%)" />
@@ -293,21 +315,15 @@ const TeamsPage = () => {
                   <p className="text-sm text-muted-foreground">{team.leader} · {team.branch}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">KPI Nəticə</span>
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                  team.kpiResult >= 85 ? 'bg-zone-green-bg text-zone-green-text' :
-                  team.kpiResult >= 70 ? 'bg-zone-yellow-bg text-zone-yellow-text' :
-                  'bg-zone-red-bg text-zone-red-text'
-                }`}>{team.kpiResult}%</span>
-                <Pencil className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {team.members.length + 1} üzv</span>
               </div>
             </div>
           ))}
         </div>
       </main>
 
-      {/* Team detail dialog */}
+      {/* Team detail dialog — team-only info, no KPI data */}
       <Dialog open={!!selectedTeam} onOpenChange={() => setSelectedTeam(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -318,15 +334,9 @@ const TeamsPage = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">Komanda Lideri</p><p className="font-semibold text-foreground mt-1">{selectedTeam.leader}</p></div>
-                <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">KPI Nəticə</p><p className="font-semibold text-success mt-1">{selectedTeam.kpiResult}%</p></div>
-              </div>
-              <div className="border border-border rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-2">KPI Proqressi</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><p className="text-xs text-muted-foreground">Aktiv KPI</p><p className="text-xl font-bold text-primary">{selectedTeam.activeKpi}</p></div>
-                  <div><p className="text-xs text-muted-foreground">Tamamlanmış</p><p className="text-xl font-bold text-success">{selectedTeam.completedKpi}</p></div>
-                  <div><p className="text-xs text-muted-foreground">Ümumi</p><p className="text-xl font-bold text-foreground">{selectedTeam.totalKpi}</p></div>
-                </div>
+                <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">Filial / Struktur</p><p className="font-semibold text-foreground mt-1">{selectedTeam.branch}</p></div>
+                <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">Üzv sayı</p><p className="font-semibold text-foreground mt-1">{selectedTeam.members.length + 1}</p></div>
+                <div className="border border-border rounded-lg p-3"><p className="text-xs text-muted-foreground">Yaradılma</p><p className="font-semibold text-foreground mt-1">{new Date(selectedTeam.id).toLocaleDateString("az-AZ")}</p></div>
               </div>
               <div className="border border-border rounded-lg p-4">
                 <h4 className="font-semibold text-foreground mb-3">Komanda Üzvləri</h4>
@@ -335,13 +345,30 @@ const TeamsPage = () => {
                   <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Üzv axtar..." className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
                 </div>
                 <div className="space-y-2">
+                  {/* Leader row with crown icon */}
+                  {(!memberSearch || selectedTeam.leader.toLowerCase().includes(memberSearch.toLowerCase())) && (
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-semibold text-primary-foreground">{selectedTeam.leaderAvatar}</div>
+                          <Crown className="w-3.5 h-3.5 text-amber-500 absolute -top-1 -right-1 fill-amber-400 drop-shadow" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                            {selectedTeam.leader}
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 uppercase tracking-wide">Lider</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">Komanda Lideri</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {(filteredMembers || []).map((m, i) => (
                     <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">{m.avatar}</div>
                         <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
                       </div>
-                      <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${m.kpiScore >= 85 ? 'bg-zone-green-bg text-zone-green-text' : 'bg-zone-yellow-bg text-zone-yellow-text'}`}>{m.kpiScore}%</span>
                     </div>
                   ))}
                 </div>
