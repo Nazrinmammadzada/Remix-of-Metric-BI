@@ -903,6 +903,92 @@ const PositionPicker = ({ value, onChange }: { value: string; onChange: (v: stri
 // Employees tab — with filters, pagination, numbering
 // ====================================================
 
+// ==============================
+// Validation helpers
+// ==============================
+const NAME_LETTERS = "A-Za-zƏəĞğİıÖöŞşÜüÇçÂâ";
+const NAME_CHAR_RE = new RegExp(`[^${NAME_LETTERS} ]`, "g");
+const NAME_VALID_RE = new RegExp(`^[${NAME_LETTERS}]+(?: [${NAME_LETTERS}]+)*$`);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const sanitizeName = (v: string) => v.replace(NAME_CHAR_RE, "").replace(/\s{2,}/g, " ").replace(/^\s+/, "");
+const validateName = (v: string, label: string): string | null => {
+  const t = v.trim();
+  if (!t) return `${label} daxil edin.`;
+  if (t.length < 2) return `${label} minimum 2 simvol olmalıdır.`;
+  if (t.length > 50) return `${label} maksimum 50 simvol olmalıdır.`;
+  if (!NAME_VALID_RE.test(t)) return `${label} yalnız hərflərdən ibarət olmalıdır.`;
+  return null;
+};
+
+const sanitizeFin = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+const validateFin = (v: string): string | null => {
+  if (!v) return "FİN daxil edin.";
+  if (v.length !== 7) return "FİN 7 simvoldan ibarət olmalıdır.";
+  if (!/^[A-Z0-9]{7}$/.test(v)) return "FİN yalnız A-Z və 0-9 daxildir.";
+  return null;
+};
+
+const phoneDigits = (raw: string) => {
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("994")) d = d.slice(3);
+  else if (d.startsWith("0")) d = d.slice(1);
+  return d.slice(0, 9);
+};
+const formatPhone = (raw: string) => {
+  const d = phoneDigits(raw);
+  if (!d) return "";
+  const p1 = d.slice(0, 2);
+  const p2 = d.slice(2, 5);
+  const p3 = d.slice(5, 7);
+  const p4 = d.slice(7, 9);
+  let out = "+994";
+  if (p1) out += " " + p1;
+  if (p2) out += " " + p2;
+  if (p3) out += " " + p3;
+  if (p4) out += " " + p4;
+  return out;
+};
+const validatePhone = (v: string): string | null => {
+  const d = phoneDigits(v);
+  if (!d) return "Telefon nömrəsi daxil edin.";
+  if (d.length !== 9) return "Düzgün telefon nömrəsi daxil edin.";
+  return null;
+};
+const validateEmail = (v: string, existingLower: string[]): string | null => {
+  const t = v.trim().toLowerCase();
+  if (!t) return "Email daxil edin.";
+  if (!EMAIL_RE.test(t)) return "Düzgün email ünvanı daxil edin.";
+  if (existingLower.includes(t)) return "Bu email artıq istifadə olunur.";
+  return null;
+};
+
+type EmployeeFormState = { firstName: string; lastName: string; fatherName: string; fin: string; phone: string; email: string };
+const emptyEmployeeForm: EmployeeFormState = { firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" };
+
+const ValidatedField = ({
+  label, value, onChange, error, mono, placeholder, disabled, required = true,
+}: {
+  label: string; value: string; onChange: (v: string) => void; error?: string | null;
+  mono?: boolean; placeholder?: string; disabled?: boolean; required?: boolean;
+}) => (
+  <div>
+    <label className="text-sm font-medium text-foreground">
+      {label} {required && <span className="text-destructive">*</span>}
+    </label>
+    <input
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      disabled={disabled}
+      placeholder={placeholder}
+      className={`w-full mt-1 px-3 py-2.5 text-sm border rounded-lg bg-background ${mono ? 'font-mono' : ''} ${
+        error ? 'border-destructive focus:outline-none focus:ring-1 focus:ring-destructive' : 'border-border'
+      } ${disabled ? 'bg-muted/40 cursor-not-allowed text-muted-foreground' : ''}`}
+    />
+    {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+  </div>
+);
+
 const EmployeesTab = () => {
   const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
   useEffect(() => {
