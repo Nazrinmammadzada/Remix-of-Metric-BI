@@ -2632,9 +2632,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                 </div>
                               ) : (
                                 <div className="relative">
-                                  <input type="number" value={sk.weight} onChange={e => updateSub({ weight: Number(e.target.value) })} className="w-full min-w-0 px-2 py-1.5 pr-6 text-sm border border-border rounded-lg bg-background" />
+                                  <WeightInput value={sk.weight} onChange={n => updateSub({ weight: n })} className="pr-6 rounded-lg" />
                                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                                 </div>
+
                               )}
                             </div>
                             <div className="col-span-1 flex items-center justify-end">
