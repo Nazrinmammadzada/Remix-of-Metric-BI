@@ -72,6 +72,21 @@ const demoProfiles: { email: string; user: AuthUser }[] = [
       ],
     },
   },
+  {
+    email: "kamran@kpi.az",
+    user: {
+      name: "Kamran Quliyev",
+      email: "kamran@kpi.az",
+      role: "MANAGER",
+      avatar: "K",
+      department: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",
+      team: "Rəqəmsal Marketinq Şöbəsi",
+      permissions: [
+        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
+        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
+      ],
+    },
+  },
 ];
 
 interface AuthContextType {

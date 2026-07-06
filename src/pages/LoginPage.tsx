@@ -29,7 +29,7 @@ const LoginPage = () => {
         const lower = email.toLowerCase();
         if (lower === "superadmin@kpi.az") navigate("/super-admin");
         else if (lower === "user@kpi.az") navigate("/user");
-        else if (lower === "manager@kpi.az") navigate("/manager");
+        else if (lower === "manager@kpi.az" || lower === "kamran@kpi.az") navigate("/manager");
         else navigate("/hr");
       } else {
         setError(result.error || "Giriş uğursuz oldu");
