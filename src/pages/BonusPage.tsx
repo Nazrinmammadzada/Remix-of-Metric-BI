@@ -359,7 +359,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Əməkdaş</TableHead>
+                <TableHead>Əməkdaşın A.S.A.</TableHead>
                 <TableHead>Departament</TableHead>
                 <TableHead>Çatışmayan Hədəf</TableHead>
               </TableRow>
@@ -367,7 +367,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
             <TableBody>
               {missingEmployees.map(({ emp, missing }) => (
                 <TableRow key={emp.id}>
-                  <TableCell className="font-medium">{emp.firstName} {emp.lastName}</TableCell>
+                  <TableCell className="font-medium">{fullNameOf(emp)}</TableCell>
                   <TableCell>{emp.department}</TableCell>
                   <TableCell>
                     {missing.map((sk, i) => (
