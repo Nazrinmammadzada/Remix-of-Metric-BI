@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getEmployees } from "@/lib/orgStore";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
@@ -7,7 +9,7 @@ import { getTeams, addTeam } from "@/lib/teamsStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
 import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
-  ChevronLeft, ChevronRight, Sparkles, CalendarDays, Users, User,
+  ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
   ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown,
 } from "lucide-react";
@@ -222,6 +224,22 @@ const toISO = (d: Date) => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 };
+const fromISO = (iso: string): Date | undefined => {
+  if (!iso) return undefined;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+const formatISODate = (iso: string) => fromISO(iso)?.toLocaleDateString("az-AZ") || "Tarix seçin";
+const findScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+  let el: HTMLElement | null = node;
+  while (el) {
+    const style = window.getComputedStyle(el);
+    if (/(auto|scroll)/.test(`${style.overflow}${style.overflowY}${style.overflowX}`)) return el;
+    el = el.parentElement;
+  }
+  return null;
+};
 const addMonths = (iso: string, months: number): string => {
   if (!iso) return "";
   const d = new Date(iso);
@@ -291,7 +309,7 @@ function MultiSelectDropdown({
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg">
+        <div className="absolute z-50 mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-lg" onMouseDown={(e) => e.stopPropagation()}>
           <div className="p-1.5 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -309,26 +327,28 @@ function MultiSelectDropdown({
               const sel = selected.includes(o.value);
               return (
                 <button key={o.value} type="button"
-                  onClick={() => toggle(o.value)}
-                  className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center justify-between hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
-                  <span className="truncate">{o.label}</span>
-                  {sel && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggle(o.value); }}
+                  className={`w-full px-2.5 py-1.5 text-xs text-left flex items-center gap-2 hover:bg-secondary ${sel ? "bg-primary/5" : ""}`}>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${sel ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}>
+                    {sel && <Check className="w-3 h-3" />}
+                  </span>
+                  <span className="truncate flex-1">{o.label}</span>
                 </button>
               );
             })}
           </div>
           <div className="flex items-center justify-between px-2 py-1 border-t border-border">
-            <button type="button" onClick={toggleAll}
+            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleAll(); }}
               className="text-[11px] text-primary hover:underline px-1 font-medium">
               {allSelected ? "Seçimləri sıfırla" : "Hamısını seç"}
             </button>
             <div className="flex gap-2 items-center">
               <span className="text-[11px] text-muted-foreground">{selected.length} seçildi</span>
               {selected.length > 0 && (
-                <button type="button" onClick={() => onChange([])}
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange([]); }}
                   className="text-[11px] text-destructive hover:underline px-1">Təmizlə</button>
               )}
-              <button type="button" onClick={() => setOpen(false)}
+              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
                 className="text-[11px] text-primary hover:underline px-1">Bağla</button>
             </div>
           </div>
@@ -349,6 +369,57 @@ function MultiSelectDropdown({
         </div>
       )}
     </div>
+  );
+}
+
+function DatePickerField({ value, onChange, disabled = false, className = "" }: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const selected = fromISO(value);
+  const preserveScroll = (next: string) => {
+    const scrollParent = findScrollParent(triggerRef.current);
+    const top = scrollParent?.scrollTop ?? 0;
+    onChange(next);
+    requestAnimationFrame(() => {
+      if (scrollParent) scrollParent.scrollTop = top;
+    });
+  };
+  return (
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
+      <PopoverTrigger asChild>
+        <button
+          ref={triggerRef}
+          type="button"
+          disabled={disabled}
+          className={`w-full px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between gap-2 text-left disabled:opacity-70 ${className}`}
+        >
+          <span className={selected ? "text-foreground" : "text-muted-foreground"}>{formatISODate(value)}</span>
+          <CalendarIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0 pointer-events-auto"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(d) => {
+            if (!d) return;
+            preserveScroll(toISO(d));
+            setOpen(false);
+          }}
+          className="p-3 pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
