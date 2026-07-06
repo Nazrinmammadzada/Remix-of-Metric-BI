@@ -76,6 +76,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
   const currentList = tab === "all" ? subordinates : leaders;
 
   const [slices, setSlices] = useState<Record<number, string>>({});
+  const [reCascade, setReCascade] = useState<Record<number, boolean>>({});
 
   // Hədəf dəyəri avtomatik olaraq hər əməkdaşın "təyin olunan dəyər" xanasına düşsün.
   useEffect(() => {
@@ -96,10 +97,14 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     const clean = val.replace(/[^\d.]/g, "");
     setSlices(prev => ({ ...prev, [id]: clean }));
   };
+  const toggleReCascade = (id: number) => setReCascade(prev => ({ ...prev, [id]: !prev[id] }));
 
   const totalDist = Object.values(slices).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   const selectedCount = Object.values(slices).filter(v => parseFloat(v) > 0).length;
   const [error, setError] = useState<string | null>(null);
+  const parentLimit = node?.limit || 0;
+  const overLimit = totalDist > parentLimit;
+  const remainingParent = Math.max(0, parentLimit - totalDist);
 
   const handleSave = () => {
     if (!node) return;
@@ -111,6 +116,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           assigneeName: `${emp.firstName} ${emp.lastName}`,
           positionName: emp.positionName,
           limit: parseFloat(v),
+          canReCascade: !!reCascade[emp.id],
         } : null;
       })
       .filter(Boolean) as any[];
