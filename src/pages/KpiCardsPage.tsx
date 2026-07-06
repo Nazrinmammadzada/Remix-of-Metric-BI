@@ -618,24 +618,46 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       setStatusMap(next);
     } catch {}
 
+    // Helpers: wizard employee values look like "Ad Soyad — Vəzifə".
+    // Kartların "Ad Soyad" hissəsini ayırıb istifadə edirik.
+    const stripName = (v: string) => String(v || "").split(" — ")[0].trim();
+    const parseNumLoose = (v: any) => parseFloat(String(v ?? "").replace(/[^\d.\-]/g, "")) || 0;
+    const ownerAssigneeNames = (() => {
+      const list = new Set<string>();
+      if (d.mode === "individual") {
+        (d.individualEmployees || []).forEach(v => { const n = stripName(v); if (n) list.add(n); });
+      } else {
+        (d.bulkSelections?.persons || []).forEach(v => { const n = stripName(v); if (n) list.add(n); });
+      }
+      return Array.from(list);
+    })();
+
     // === Rəhbər üçün pending KpiSetEntry yarat ===
-    // "Digər əməkdaş təyin edir" seçildikdə həmin rəhbər öz "Məsul olduğum kartlar"
-    // modulundan bu hədəfi (ad/dəyər/limit/çəki/cascadable) təyin edir.
+    // Target-Setter (createdBy==="other"): seçilmiş "Təyin edici"
+    // Owner (createdBy==="self"): kartın öz assignee-si (individualEmployees / bulkSelections.persons)
     try {
+      const employeesAll = getEmployees();
+      const findEmp = (name: string) => employeesAll.find(e => `${e.firstName} ${e.lastName}` === name);
       const seen = new Set<string>();
+      const pushPending = (name: string) => {
+        if (!name || seen.has(name)) return;
+        seen.add(name);
+        const emp = findEmp(name);
+        addPendingEntry({
+          cardId: id,
+          cardName: d.name,
+          assigneeName: name,
+          assigneeId: emp?.id,
+          ownerType: "manager",
+          weightMin: 5,
+          weightMax: 40,
+        });
+      };
       (d.targets || []).forEach((t: any) => {
-        if (t.createdBy === "other" && t.assigner && !seen.has(t.assigner)) {
-          seen.add(t.assigner);
-          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === t.assigner);
-          addPendingEntry({
-            cardId: id,
-            cardName: d.name,
-            assigneeName: t.assigner,
-            assigneeId: emp?.id,
-            ownerType: "manager",
-            weightMin: 5,
-            weightMax: 40,
-          });
+        if (t.createdBy === "other") {
+          pushPending(stripName(t.assigner));
+        } else if (t.createdBy === "self") {
+          ownerAssigneeNames.forEach(pushPending);
         }
       });
     } catch (err) { console.warn("pending kpi set seed failed", err); }
@@ -672,30 +694,26 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       console.warn("shared kpi sync failed", err);
     }
 
-    // === Cascade root: HR cascadable kart yaradanda ağacın kökünü avtomatik yarat ===
-    // Owner tipli kart üçün: KPI sahibi (owner) yuxarı rəhbərdir və hədəf ona düşür.
-    // Target-Setter tipli kart üçün: setter root olur.
+    // === Cascade root: HR cascadable Owner kartı yaradanda ağacın kökünü yarat ===
+    // Yalnız createdBy==="self" && cascading==true olan hədəflər üçün, hər assignee ilə.
     try {
-      const hasSelfTarget = (d.targets || []).some((t: any) => t.createdBy === "self");
-      const hasCascadable = (d.targets || []).some((t: any) => t.createdBy === "self" && (t.value || t.target));
-      if (hasSelfTarget && hasCascadable) {
-        (d.targets || []).forEach((t: any) => {
-          if (t.createdBy !== "self") return;
-          const rawVal = t.value ?? t.target ?? "";
-          const limit = parseFloat(String(rawVal).replace(/[^\d.\-]/g, "")) || 0;
-          if (limit <= 0) return;
-          // Owner-kartında icraçı: t.assigner (self modda mövcud user olur) yaxud selectedOwner
-          const ownerName = (t.owner || t.assigner || "").trim();
-          if (!ownerName) return;
-          const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === ownerName);
+      const employeesAll = getEmployees();
+      const findEmp = (name: string) => employeesAll.find(e => `${e.firstName} ${e.lastName}` === name);
+      (d.targets || []).forEach((t: any) => {
+        if (t.createdBy !== "self" || !t.cascading) return;
+        const limit = parseNumLoose(t.targetValue);
+        if (limit <= 0) return;
+        const unit = t.type === "Məbləğ" ? (t.currency || "AZN") : t.type === "Faiz" ? "%" : (t.unit || "");
+        const goalName = t.name || d.name || "Ana hədəf";
+        ownerAssigneeNames.forEach(ownerName => {
+          const emp = findEmp(ownerName);
           if (!emp) return;
-          const goalName = t.name || d.name || "Ana hədəf";
           const existing = findRootByGoal(d.name || "Kart", goalName, emp.id);
           if (!existing) {
             createRoot({
               cardName: d.name || "Kart",
               goalName,
-              unit: t.unit || "AZN",
+              unit,
               assigneeId: emp.id,
               assigneeName: `${emp.firstName} ${emp.lastName}`,
               positionName: emp.positionName,
@@ -703,7 +721,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             });
           }
         });
-      }
+      });
     } catch (err) {
       console.warn("cascade root seed failed", err);
     }
