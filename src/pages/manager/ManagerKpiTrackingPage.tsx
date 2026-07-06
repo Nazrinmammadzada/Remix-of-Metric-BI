@@ -760,14 +760,29 @@ const buildEmpKpis = (empId: number): EmpKpi[] => {
   }).filter((_, i) => (h >> i) & 1 || i < 3); // at least 3
 };
 
-const SubordinatesView = () => {
+interface SubordinatesViewProps {
+  scopePath?: string | null;
+  actionsMode?: "tracking" | "results";
+  onOpenEmployee?: (empId: number, name: string) => void;
+  title?: string;
+  subtitle?: string;
+}
+
+export const SubordinatesView = ({
+  scopePath,
+  actionsMode = "tracking",
+  onOpenEmployee,
+  title = "Tabeçiliyimdəkilərin KPI-ları",
+  subtitle = "Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları",
+}: SubordinatesViewProps = {}) => {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const h = () => setTick(t => t + 1);
     window.addEventListener("org-updated", h);
     return () => window.removeEventListener("org-updated", h);
   }, []);
-  const tree = useMemo(() => buildOrgTree(), [tick]);
+  const tree = useMemo(() => buildOrgTree(scopePath), [tick, scopePath]);
+
   const childrenOf = (id: string) => tree.filter(n => n.parent === id);
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
