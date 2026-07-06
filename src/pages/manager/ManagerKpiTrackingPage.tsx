@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
+import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
