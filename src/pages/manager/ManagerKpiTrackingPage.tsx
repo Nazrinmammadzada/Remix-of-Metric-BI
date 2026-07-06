@@ -147,7 +147,7 @@ const ManagerKpiTrackingPage = () => {
             const target = parseFloat(String(t.value ?? t.target ?? t.scoreLimit ?? "").replace(/[^\d.\-]/g, "")) || 0;
             result.push({
               id: `sk-${c.id}-${t.id}`,
-              name: `${c.name} — ${t.name || "Hədəf"}`,
+              name: `${withKartSuffix(c.name)} — ${t.name || "Hədəf"}`,
               description: `HR tərəfindən sizə təyin olunmuş KPI (${c.status})`,
               period: c.startDate || "—",
               target, actual: 0, unit: t.type === "Məbləğ" ? "AZN" : "",
