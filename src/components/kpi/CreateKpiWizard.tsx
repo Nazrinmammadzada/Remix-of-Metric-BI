@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
+import { WeightInput } from "@/components/kpi/WeightInput";
+
 import { toast } from "sonner";
 
 // ============ TYPES ============
