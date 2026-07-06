@@ -52,6 +52,11 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
 
   const current = nodes.find(n => n.id === activeRoot);
 
+  useEffect(() => {
+    if (!activeRoot && filtered[0]) setActiveRoot(filtered[0].id);
+    if (activeRoot && filtered.length && !filtered.some(r => r.id === activeRoot)) setActiveRoot(filtered[0].id);
+  }, [activeRoot, filtered]);
+
   // Seçilən əməkdaşın kartına avtomatik scroll və highlight
   useEffect(() => {
     if (!highlightNodeId) return;

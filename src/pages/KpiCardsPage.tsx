@@ -394,6 +394,9 @@ interface KpiCardsPageProps {
   forcedKartView?: "kart1" | "kart2";
 }
 
+const KPI_CARDS_STORAGE_KEY = "hr_kpi_cards_runtime_v1";
+const KPI_CARD_DRAFTS_STORAGE_KEY = "hr_kpi_card_drafts_runtime_v1";
+
 const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const { user } = useAuth();
   const kpiTypeOptions = useCatalogValues("kpi_types", KPI_TYPE_DEFAULTS);
@@ -417,8 +420,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     if (farid) {
       extras.push(clone(farid, maxId + 3, { name: "Yeni Kanal İnkişafı", progress: 55, target: "3", current: "1.5", unit: "kanal" }));
     }
-    return [...base, ...extras];
+    const seeded = [...base, ...extras];
+    try {
+      const raw = localStorage.getItem(KPI_CARDS_STORAGE_KEY);
+      if (!raw) return seeded;
+      const saved = (JSON.parse(raw) as KpiCard[]).map(c => ({ ...c, icon: Target }));
+      const map = new Map<number, KpiCard>();
+      seeded.forEach(c => map.set(c.id, c));
+      saved.forEach(c => map.set(c.id, { ...c, icon: Target }));
+      return Array.from(map.values()).filter(c => !deleted.includes(c.id));
+    } catch {}
+    return seeded;
   });
+
+  useEffect(() => {
+    try { localStorage.setItem(KPI_CARDS_STORAGE_KEY, JSON.stringify(kpiCards.map(c => ({ ...c, icon: undefined })))); } catch {}
+  }, [kpiCards]);
 
   // Sync deletions from Approval Matrix module
   useEffect(() => {
@@ -498,7 +515,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [wizardInitial, setWizardInitial] = useState<Partial<CreateKpiWizardDraft> | undefined>(undefined);
   const [wizardEditingId, setWizardEditingId] = useState<number | null>(null);
   // Saved wizard drafts per cardId (so editing resumes from the last step)
-  const [cardDrafts, setCardDrafts] = useState<Record<number, CreateKpiWizardDraft>>({});
+  const [cardDrafts, setCardDrafts] = useState<Record<number, CreateKpiWizardDraft>>(() => {
+    try { return JSON.parse(localStorage.getItem(KPI_CARD_DRAFTS_STORAGE_KEY) || "{}"); } catch { return {}; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(KPI_CARD_DRAFTS_STORAGE_KEY, JSON.stringify(cardDrafts)); } catch {}
+  }, [cardDrafts]);
   const openWizard = (initial?: Partial<CreateKpiWizardDraft>, editingId: number | null = null) => {
     setWizardInitial(initial);
     setWizardEditingId(editingId);
@@ -653,6 +675,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               assigneeName: t.assigner,
               assigneeId: emp?.id,
               ownerType: "manager",
+              subKpiName: goalName,
+              type: t.type,
+              target: targetNum > 0 ? String(targetNum) : "",
+              unit,
+              weight: Number(t.weight) || undefined,
+              cascadable: !!t.cascading,
               weightMin: 5,
               weightMax: 40,
               cardAssignees: cardAssigneeNames,

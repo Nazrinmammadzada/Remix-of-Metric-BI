@@ -41,11 +41,12 @@ export const USER_KPI_CARD: KpiCardInfo = {
   period: "2026 Q1",
 };
 
-// Manager (e8 — Kamran Rzayev) üçün bir neçə kart və hədəf.
+// Manager (e8 — Elvin Rəhimov) üçün bir neçə kart və hədəf.
 export const MANAGER_KPI_CARDS: KpiCardInfo[] = [
   { id: "card-2026q1-e8-1", assigneeId: "e8", name: "Satış Departamenti — Rüblük Hədəflər", period: "2026 Q1" },
   { id: "card-2026q1-e8-2", assigneeId: "e8", name: "Komanda İnkişafı və Effektivlik", period: "2026 Q1" },
   { id: "card-2026q1-e8-3", assigneeId: "e8", name: "Marketinq Büdcə Hədəfi Kartı", period: "2026 Q1" },
+  { id: "card-2026q1-e12-1", assigneeId: "e12", name: "Rəqəmsal Marketinq — Kampaniya Hədəfləri", period: "2026 Q1" },
 ];
 
 export const getKpiCardsFor = (assigneeId: string): KpiCardInfo[] => {
@@ -103,6 +104,11 @@ const SEED: SubKpi[] = [
   { id: "mskpi-7", assigneeId: "e8", cardId: "card-2026q1-e8-3", name: "Marketinq Kampaniyalarının Ümumi Büdcəsi", description: "Rüb ərzində planlaşdırılmış marketinq büdcəsinin idarə olunması.", target: 374000, unit: "AZN", weight: 49, period: "2026 Q1" },
   { id: "mskpi-8", assigneeId: "e8", cardId: "card-2026q1-e8-3", name: "Yeni Müştəri Gəliri", description: "Kampaniyalardan gələn yeni müştəri gəliri.", target: 120000, unit: "AZN", weight: 25, period: "2026 Q1" },
   { id: "mskpi-9", assigneeId: "e8", cardId: "card-2026q1-e8-3", name: "Brend Tanınırlıq Auditi", description: "Kampaniya sonrası brend tanınırlıq faizi.", target: 75, unit: "%", weight: 15, period: "2026 Q1" },
+
+  // Manager 2 — Kamran Quliyev flow-da boş qalmasın və qiymətləndirmə mərhələsi işləsin
+  { id: "m2skpi-1", assigneeId: "e12", cardId: "card-2026q1-e12-1", name: "Rəqəmsal kampaniya gəliri", description: "Manager-dən kaskadlanan kampaniya gəliri hədəfi.", target: 350000, actual: 180000, unit: "AZN", weight: 50, period: "2026 Q1" },
+  { id: "m2skpi-2", assigneeId: "e12", cardId: "card-2026q1-e12-1", name: "Lead konversiyası", description: "Kampaniya lead-lərinin satışa çevrilmə faizi.", target: 18, unit: "%", weight: 30, period: "2026 Q1" },
+  { id: "m2skpi-3", assigneeId: "e12", cardId: "card-2026q1-e12-1", name: "Kontent çatımı", description: "Rəqəmsal kontentin hədəf auditoriyaya çatımı.", target: 120000, actual: 84000, unit: "baxış", weight: 20, period: "2026 Q1" },
 ];
 
 const load = (): SubKpi[] => {

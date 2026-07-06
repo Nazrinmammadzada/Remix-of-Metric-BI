@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
+import { addPendingEntry } from "@/lib/kpiSetStore";
 import {
   distribute, createRoot, findRootByGoal, findIncomingNodeForAssignee,
   type CascadeTreeNode,
@@ -17,6 +18,7 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   existingNode?: CascadeTreeNode;
   bootstrap?: {
+    cardId?: number;
     cardName: string;
     goalName: string;
     unit: string;
@@ -50,7 +52,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
     // 1) Yuxarı rəhbərdən gələn cascade node
-    const incoming = findIncomingNodeForAssignee(emp.id, bootstrap.cardName);
+    const incoming = findIncomingNodeForAssignee(emp.id, bootstrap.cardName, bootstrap.goalName);
     if (incoming) { setNode(incoming); return; }
     // 2) Yoxdursa — bu KPI kartı üçün root yarat (fallback: rəhbər özü root olur)
     const existing = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
@@ -89,12 +91,13 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
 
   const subordinates = useMemo(() => {
     if (!allowedNames.size && !allowedStructures.size) return allSubordinates;
-    return allSubordinates.filter(e => {
+    const filtered = allSubordinates.filter(e => {
       const fullName = `${e.firstName} ${e.lastName}`;
       if (allowedNames.has(fullName)) return true;
       if (allowedStructures.size && e.structurePath && Array.from(allowedStructures).some(s => e.structurePath?.includes(s))) return true;
       return false;
     });
+    return filtered.length ? filtered : allSubordinates;
   }, [allSubordinates, allowedNames, allowedStructures]);
 
   const leaders = useMemo(() => subordinates.filter(e => e.isStarPerson), [subordinates]);
@@ -143,6 +146,23 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       .filter(Boolean) as any[];
     const res = distribute(node.id, rows);
     if (!res.ok) { setError(res.error || "Xəta"); return; }
+    rows.forEach((row) => {
+      const emp = getEmployees().find(e => e.id === row.assigneeId);
+      if (!emp?.isStarPerson) return;
+      addPendingEntry({
+        cardId: bootstrap?.cardId ?? stableCardId(node.cardName),
+        cardName: node.cardName,
+        assigneeName: row.assigneeName,
+        assigneeId: row.assigneeId,
+        ownerType: "manager",
+        unit: node.unit,
+        subKpiName: node.goalName,
+        target: String(row.limit),
+        cascadable: true,
+        cardAssignees: bootstrap?.cardAssignees?.length ? bootstrap.cardAssignees : subordinates.map(e => `${e.firstName} ${e.lastName}`),
+        cardStructures: bootstrap?.cardStructures,
+      });
+    });
     setError(null);
     onDistributed?.();
     onOpenChange(false);
@@ -200,6 +220,12 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       </DialogContent>
     </Dialog>
   );
+};
+
+const stableCardId = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) hash = ((hash * 31) + name.charCodeAt(i)) | 0;
+  return 900000 + Math.abs(hash % 99999);
 };
 
 const SubTable = ({

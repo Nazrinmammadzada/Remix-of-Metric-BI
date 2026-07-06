@@ -28,22 +28,85 @@ export interface CascadeTreeNode {
   canReCascade?: boolean;
 }
 
-const KEY = "cascade_tree_nodes_v6";
-// köhnə seed versiyalarını təmizlə
-try {
-  ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3","cascade_tree_nodes_v4","cascade_tree_nodes_v5"]
-    .forEach(k => localStorage.removeItem(k));
-} catch {}
+const KEY = "cascade_tree_nodes_v7";
+const LEGACY_KEYS = ["cascade_tree_nodes_v6", "cascade_tree_nodes_v5", "cascade_tree_nodes_v4", "cascade_tree_nodes_v3", "cascade_tree_nodes_v2", "cascade_tree_nodes_v1"];
 const EVT = "cascade-tree-updated";
+
+const DEMO_AT = Date.now() - 1000 * 60 * 60 * 24 * 7;
+const DEMO_SEED: CascadeTreeNode[] = [
+  {
+    id: "demo-cascade-marketing-root",
+    rootId: "demo-cascade-marketing-root",
+    parentId: null,
+    cardName: "Marketinq Kampaniyalarının ROI-si",
+    goalName: "ROI gəliri",
+    unit: "AZN",
+    assigneeId: 4,
+    assigneeName: "Elvin Rəhimov",
+    positionName: "Marketinq Direktoru",
+    isStar: true,
+    limit: 750000,
+    createdAt: DEMO_AT,
+    updatedAt: DEMO_AT,
+    canReCascade: true,
+  },
+  {
+    id: "demo-cascade-marketing-kamran",
+    rootId: "demo-cascade-marketing-root",
+    parentId: "demo-cascade-marketing-root",
+    cardName: "Marketinq Kampaniyalarının ROI-si",
+    goalName: "ROI gəliri",
+    unit: "AZN",
+    assigneeId: 7,
+    assigneeName: "Kamran Quliyev",
+    positionName: "Rəqəmsal Marketinq Şöbə Müdiri",
+    isStar: true,
+    limit: 350000,
+    createdAt: DEMO_AT + 1,
+    updatedAt: DEMO_AT + 1,
+    canReCascade: true,
+  },
+  {
+    id: "demo-cascade-marketing-orxan",
+    rootId: "demo-cascade-marketing-root",
+    parentId: "demo-cascade-marketing-kamran",
+    cardName: "Marketinq Kampaniyalarının ROI-si",
+    goalName: "ROI gəliri",
+    unit: "AZN",
+    assigneeId: 15,
+    assigneeName: "Orxan Bayramov",
+    positionName: "Marketinq Mütəxəssisi",
+    isStar: false,
+    limit: 150000,
+    createdAt: DEMO_AT + 2,
+    updatedAt: DEMO_AT + 2,
+  },
+];
+
+const mergeDemoRows = (rows: CascadeTreeNode[]): CascadeTreeNode[] => {
+  const ids = new Set(rows.map(r => r.id));
+  const missing = DEMO_SEED.filter(r => !ids.has(r.id));
+  return missing.length ? [...missing, ...rows] : rows;
+};
 
 const load = (): CascadeTreeNode[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const rows = mergeDemoRows(JSON.parse(raw));
+      localStorage.setItem(KEY, JSON.stringify(rows));
+      return rows;
+    }
+    for (const legacyKey of LEGACY_KEYS) {
+      const legacy = localStorage.getItem(legacyKey);
+      if (!legacy) continue;
+      const rows = mergeDemoRows(JSON.parse(legacy));
+      localStorage.setItem(KEY, JSON.stringify(rows));
+      return rows;
+    }
   } catch {}
-  // Tam dinamik biznes məntiqi — heç bir demo seed yaradılmır.
-  localStorage.setItem(KEY, JSON.stringify([]));
-  return [];
+  localStorage.setItem(KEY, JSON.stringify(DEMO_SEED));
+  return DEMO_SEED;
 };
 
 const persist = (rows: CascadeTreeNode[]) => {
@@ -57,19 +120,25 @@ const persist = (rows: CascadeTreeNode[]) => {
  *  `excludeCardName` — cari kartı istisna etmək üçün (özünü kaskadlamamaq üçün). */
 export const findIncomingNodeForAssignee = (
   assigneeId: number,
-  excludeCardName?: string,
+  cardName?: string,
+  goalName?: string,
 ): CascadeTreeNode | undefined => {
-  const list = load().filter(n =>
-    n.assigneeId === assigneeId &&
-    (excludeCardName == null || n.cardName !== excludeCardName)
-  );
+  let list = load().filter(n => n.assigneeId === assigneeId);
+  if (cardName) {
+    const byCard = list.filter(n => n.cardName === cardName);
+    if (byCard.length) list = byCard;
+  }
+  if (goalName) {
+    const byGoal = list.filter(n => n.goalName === goalName);
+    if (byGoal.length) list = byGoal;
+  }
   if (list.length === 0) return undefined;
   // Ən yeni olanı seçirik.
-  return list.sort((a, b) => b.createdAt - a.createdAt)[0];
+  return list.sort((a, b) => (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt))[0];
 };
 
-export const incomingLoadFor = (assigneeId: number, excludeCardName?: string): { total: number; remaining: number; node?: CascadeTreeNode } => {
-  const node = findIncomingNodeForAssignee(assigneeId, excludeCardName);
+export const incomingLoadFor = (assigneeId: number, cardName?: string, goalName?: string): { total: number; remaining: number; node?: CascadeTreeNode } => {
+  const node = findIncomingNodeForAssignee(assigneeId, cardName, goalName);
   if (!node) return { total: 0, remaining: 0 };
   const total = Number(node.limit) || 0;
   const distributed = getChildren(node.id).reduce((s, c) => s + (Number(c.limit) || 0), 0);
@@ -162,8 +231,10 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
       error: `Bölüşdürülən cəm (${new Intl.NumberFormat("az-AZ").format(total)}) ana hədəfdən (${new Intl.NumberFormat("az-AZ").format(parentLimit)}) böyük ola bilməz.`,
     };
   }
-  const list = load().filter(n => n.parentId !== parentId); // köhnə bölgüləri sil
   const now = Date.now();
+  const list = load()
+    .filter(n => n.parentId !== parentId) // köhnə bölgüləri sil
+    .map(n => n.id === parentId ? { ...n, updatedAt: now } : n);
   const newKids: CascadeTreeNode[] = filtered.map(s => ({
     id: crypto.randomUUID(),
     rootId: parent.rootId,
