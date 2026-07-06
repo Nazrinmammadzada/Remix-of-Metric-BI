@@ -1,13 +1,15 @@
 import { useMemo, useState, useEffect } from "react";
-import { Bell, Mail, MessageSquare, Smartphone, Search, Save, Users as UsersIcon, X, ChevronDown } from "lucide-react";
+import { Bell, Mail, MessageSquare, Smartphone, Search, Save, Users as UsersIcon, X, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useNotificationSettings, updateNotificationSetting,
+  useNotificationSettings, updateNotificationSetting, addNotificationSetting, deleteNotificationSetting,
   CHANNEL_LABELS, FREQUENCY_LABELS, RECIPIENT_LABELS,
   type NotificationSetting, type NotificationChannel,
 } from "@/lib/notificationSettingsStore";
 import { useRoles } from "@/lib/rolesStore";
 import { getEmployees } from "@/lib/orgStore";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 
 const channelIcon: Record<NotificationChannel, React.ComponentType<{ className?: string }>> = {
   in_app: Bell,
