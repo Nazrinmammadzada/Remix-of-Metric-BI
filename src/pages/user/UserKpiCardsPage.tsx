@@ -296,9 +296,9 @@ const UserKpiCardsPage = () => {
         {/* View toggle & filters */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
-            <button onClick={() => setFilterView("own")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "own" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Öz</button>
-            <button onClick={() => setFilterView("team")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Komanda</button>
-            <button onClick={() => setFilterView("structure")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Struktur</button>
+            <button onClick={() => setFilterView("own")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "own" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Mənim KPI-larım</button>
+            <button onClick={() => setFilterView("team")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Komandamın KPI-ları</button>
+            <button onClick={() => setFilterView("structure")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Strukturumun KPI-ları</button>
           </div>
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -379,6 +379,42 @@ const UserKpiCardsPage = () => {
             <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <p className="text-lg font-semibold text-foreground">Məlumat tapılmadı</p>
             <p className="text-sm text-muted-foreground">Bu görünüşdə heç bir KPI yoxdur</p>
+          </div>
+        ) : filterView !== "own" ? (
+          /* Komanda / Struktur — yalnız ümumi məlumatlar */
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-4 py-3">KPI adı</th>
+                  <th className="text-left px-4 py-3">Hədəf</th>
+                  <th className="text-left px-4 py-3">Cari nəticə</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-right px-4 py-3">Ümumi göstərici</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCards.map(card => {
+                  const z = getCardZone(card.progress);
+                  return (
+                    <tr key={card.id} className="border-t border-border hover:bg-secondary/40">
+                      <td className="px-4 py-3 font-medium text-foreground">{withKartSuffix(card.name)}</td>
+                      <td className="px-4 py-3 text-foreground">{card.target} {card.unit}</td>
+                      <td className="px-4 py-3 text-foreground">{card.current} {card.unit}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${card.approvalStatus === "approved" ? "bg-zone-green-bg text-zone-green-text" : "bg-zone-yellow-bg text-zone-yellow-text"}`}>
+                          {card.approvalStatus === "approved" ? <CheckCircle2 className="w-3 h-3" /> : <Hourglass className="w-3 h-3" />}
+                          {card.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${zoneBg[z]}`}>{card.progress}%</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-4">
