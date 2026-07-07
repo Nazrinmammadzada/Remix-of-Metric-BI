@@ -1340,153 +1340,146 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <Plus className="w-5 h-5" /> Yeni KPI Kartı
                     </button>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th data-col="name" className="py-2 px-2">Ad</th>
-                          <th data-col="kind" className="py-2 px-2">Təyinat növü</th>
-                          <th data-col="created" className="py-2 px-2">Yaranma tarixi</th>
-                          <th data-col="period" className="py-2 px-2">Dövr</th>
-                          <th data-col="progress" className="py-2 px-2">Progress</th>
-                          <th data-col="status" className="py-2 px-2">Status</th>
-                          <th data-col="ops" className="py-2 px-2">Əməliyyat</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredCards.length === 0 ? (
-                          <tr><td colSpan={7} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
-                        ) : filteredCards.map(card => {
-                          const st = getStatusFor(card.id);
-                          const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
+                  <DataTable<KpiCard>
+                    rows={filteredCards}
+                    rowKey={(c) => c.id}
+                    storageKey="kpi-cards-main"
+                    emptyMessage="Filtrə uyğun KPİ tapılmadı"
+                    columns={[
+                      { key: "name", label: "Ad", filterType: "text", accessor: (c) => withKartSuffix(c.name), render: (c) => <span className="font-medium text-foreground">{withKartSuffix(c.name)}</span> },
+                      { key: "kind", label: "Təyinat növü", filterType: "select", selectOptions: ["Fərdi", "Toplu"], accessor: (c) => getAssignKindFor(c.id), render: (c) => <span className="text-muted-foreground text-xs">{getAssignKindFor(c.id)}</span> },
+                      { key: "created", label: "Yaranma tarixi", filterType: "date", accessor: (c) => getCreatedAtFor(c.id), render: (c) => <span className="text-muted-foreground text-xs">{getCreatedAtFor(c.id)}</span> },
+                      { key: "period", label: "Dövr", filterType: "text", accessor: (c) => c.period, render: (c) => <span className="text-muted-foreground text-xs">{c.period}</span> },
+                      { key: "progress", label: "Progress", filterType: "number", accessor: (c) => c.progress, render: (c) => `${c.progress}%` },
+                      {
+                        key: "status", label: "Status", filterType: "select",
+                        selectOptions: Object.values(STATUS_LABELS),
+                        accessor: (c) => STATUS_LABELS[getStatusFor(c.id).status],
+                        render: (c) => {
+                          const st = getStatusFor(c.id);
                           return (
-                            <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td data-col="name" className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
-                              <td data-col="kind" className="py-2 px-2 text-muted-foreground text-xs">{getAssignKindFor(card.id)}</td>
-                              <td data-col="created" className="py-2 px-2 text-muted-foreground text-xs">{getCreatedAtFor(card.id)}</td>
-                              <td data-col="period" className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
-                              <td data-col="progress" className="py-2 px-2">{card.progress}%</td>
-                              <td data-col="status" className="py-2 px-2">
-                                <button
-                                  onClick={() => setStatusDialogCardId(card.id)}
-                                  className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center cursor-pointer hover:opacity-80 ${STATUS_STYLES[st.status]}`}
-                                  title="Ətraflı bax"
-                                >
-                                  {STATUS_LABELS[st.status]}
-                                </button>
-                              </td>
-                              <td data-col="ops" className="py-2 px-2">
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); openDetail(card); }}
-                                    title="Bax"
-                                    className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
-                                  {st.status !== "aktiv" && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
-                                      title="Redaktə et"
-                                      className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      const newId = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
-                                      const copy: KpiCard = { ...card, id: newId, name: `${withKartSuffix(card.name)} (kopya)`, approvalStatus: "pending" };
-                                      setKpiCards(prev => [copy, ...prev]);
-                                      try {
-                                        await upsertStatus({ card_id: newId, status: "natamam", use_matrix: false, submitted_for_approval: false, assignees: [] });
-                                        const mod = await import("@/lib/kpiCardStatusStore");
-                                        const next = await mod.fetchAllStatuses();
-                                        setStatusMap(next);
-                                      } catch {}
-                                      toast.success("Kart kopyalandı (Natamam)");
-                                    }}
-                                    title="Kopyala"
-                                    className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
-                                  >
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </button>
-                                  {st.status === "imtina" && (
-                                    <button
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (!confirm(`"${withKartSuffix(card.name)}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
-                                        // Optimistic local update — ensures seed cards (which have no DB row) flip status immediately
-                                        setStatusMap(prev => ({
-                                          ...prev,
-                                          [card.id]: {
-                                            ...(prev[card.id] || {}),
-                                            card_id: card.id,
-                                            status: "legv_olundu",
-                                            use_matrix: false,
-                                            submitted_for_approval: false,
-                                            rejected_by: null,
-                                            rejected_at: null,
-                                            assignees: [],
-                                            updated_at: new Date().toISOString(),
-                                          } as any,
-                                        }));
-                                        try {
-                                          await upsertStatus({ card_id: card.id, status: "legv_olundu" as any, use_matrix: false, submitted_for_approval: false, assignees: [] });
-                                          const mod = await import("@/lib/kpiCardStatusStore");
-                                          const next = await mod.fetchAllStatuses();
-                                          setStatusMap(prev => ({ ...prev, ...next }));
-                                        } catch {}
-                                        toast.success("Kart ləğv olundu");
-                                        // Notify original assigners about cancellation
-                                        try {
-                                          const nmod = await import("@/lib/notificationsStore");
-                                          const draft = cardDrafts[card.id];
-                                          const assigners = new Set<string>();
-                                          draft?.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
-                                          assigners.forEach(a => nmod.pushNotification?.({
-                                            toEmployeeName: a, kind: "info",
-                                            message: `"${withKartSuffix(card.name)}" KPI kartı HR tərəfindən tamamən ləğv olundu.`
-                                          } as any));
-                                        } catch {}
-                                      }}
-                                      title="Ləğv et"
-                                      className="p-1.5 rounded border border-slate-500/40 hover:bg-slate-500/10 text-slate-700 dark:text-slate-300"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  {st.status === "natamam" && (
-                                    <button
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        if (!confirm(`"${withKartSuffix(card.name)}" kartını silmək istədiyinizə əminsiniz?`)) return;
-                                        setKpiCards(prev => prev.filter(c => c.id !== card.id));
-                                        try {
-                                          const { supabase } = await import("@/integrations/supabase/client");
-                                          await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
-                                          const mod = await import("@/lib/kpiCardStatusStore");
-                                          const next = await mod.fetchAllStatuses();
-                                          setStatusMap(next);
-                                        } catch {}
-                                        toast.success("Kart silindi");
-                                      }}
-                                      title="Sil"
-                                      className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-
-                            </tr>
+                            <button
+                              onClick={() => setStatusDialogCardId(c.id)}
+                              className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center cursor-pointer hover:opacity-80 ${STATUS_STYLES[st.status]}`}
+                              title="Ətraflı bax"
+                            >
+                              {STATUS_LABELS[st.status]}
+                            </button>
                           );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                        }
+                      },
+                      {
+                        key: "ops", label: "Əməliyyat", filterType: "none", align: "center", width: 180,
+                        render: (card) => {
+                          const st = getStatusFor(card.id);
+                          return (
+                            <div className="flex items-center gap-1 justify-center">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openDetail(card); }}
+                                title="Bax"
+                                className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                              {st.status !== "aktiv" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                                  title="Redaktə et"
+                                  className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const newId = Math.max(0, ...kpiCards.map(c => c.id)) + 1;
+                                  const copy: KpiCard = { ...card, id: newId, name: `${withKartSuffix(card.name)} (kopya)`, approvalStatus: "pending" };
+                                  setKpiCards(prev => [copy, ...prev]);
+                                  try {
+                                    await upsertStatus({ card_id: newId, status: "natamam", use_matrix: false, submitted_for_approval: false, assignees: [] });
+                                    const mod = await import("@/lib/kpiCardStatusStore");
+                                    const next = await mod.fetchAllStatuses();
+                                    setStatusMap(next);
+                                  } catch {}
+                                  toast.success("Kart kopyalandı (Natamam)");
+                                }}
+                                title="Kopyala"
+                                className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              {st.status === "imtina" && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm(`"${withKartSuffix(card.name)}" kartı tamamən ləğv olunsun? Bu əməliyyat "Ləğv olundu" statusuna keçirəcək.`)) return;
+                                    setStatusMap(prev => ({
+                                      ...prev,
+                                      [card.id]: {
+                                        ...(prev[card.id] || {}),
+                                        card_id: card.id,
+                                        status: "legv_olundu",
+                                        use_matrix: false,
+                                        submitted_for_approval: false,
+                                        rejected_by: null,
+                                        rejected_at: null,
+                                        assignees: [],
+                                        updated_at: new Date().toISOString(),
+                                      } as any,
+                                    }));
+                                    try {
+                                      await upsertStatus({ card_id: card.id, status: "legv_olundu" as any, use_matrix: false, submitted_for_approval: false, assignees: [] });
+                                      const mod = await import("@/lib/kpiCardStatusStore");
+                                      const next = await mod.fetchAllStatuses();
+                                      setStatusMap(prev => ({ ...prev, ...next }));
+                                    } catch {}
+                                    toast.success("Kart ləğv olundu");
+                                    try {
+                                      const nmod = await import("@/lib/notificationsStore");
+                                      const draft = cardDrafts[card.id];
+                                      const assigners = new Set<string>();
+                                      draft?.targets?.forEach(t => { if (t.assigner) assigners.add(t.assigner); });
+                                      assigners.forEach(a => nmod.pushNotification?.({
+                                        toEmployeeName: a, kind: "info",
+                                        message: `"${withKartSuffix(card.name)}" KPI kartı HR tərəfindən tamamən ləğv olundu.`
+                                      } as any));
+                                    } catch {}
+                                  }}
+                                  title="Ləğv et"
+                                  className="p-1.5 rounded border border-slate-500/40 hover:bg-slate-500/10 text-slate-700 dark:text-slate-300"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {st.status === "natamam" && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm(`"${withKartSuffix(card.name)}" kartını silmək istədiyinizə əminsiniz?`)) return;
+                                    setKpiCards(prev => prev.filter(c => c.id !== card.id));
+                                    try {
+                                      const { supabase } = await import("@/integrations/supabase/client");
+                                      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
+                                      const mod = await import("@/lib/kpiCardStatusStore");
+                                      const next = await mod.fetchAllStatuses();
+                                      setStatusMap(next);
+                                    } catch {}
+                                    toast.success("Kart silindi");
+                                  }}
+                                  title="Sil"
+                                  className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        }
+                      },
+                    ]}
+                  />
+
                   </div>
               );
             })() : kartView === "kart2" ? (() => {
