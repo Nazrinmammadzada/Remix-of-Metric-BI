@@ -28,7 +28,7 @@ import ExportMenu from "@/components/common/ExportMenu";
 import { LayoutGrid, List, Briefcase, Copy, Eye } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
-import { getLimitsFor, getEntriesForCard, addPendingEntry, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
+import { getLimitsFor, getEntriesForCard, addPendingEntry, suggestLimitsFromTarget, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
