@@ -1115,13 +1115,13 @@ const EmployeesTab = () => {
   const saveEdit = () => {
     if (!editing) return;
     if (!editValid) { toast.error("Formu düzgün doldurun"); return; }
-    const { fin: _ignored, ...rest } = editForm;
+    const { fin: _ignored, email: _eignored, ...rest } = editForm;
     updateEmployee(editing.id, {
       firstName: rest.firstName.trim(),
       lastName: rest.lastName.trim(),
       fatherName: rest.fatherName.trim() || undefined,
       phone: formatPhone(rest.phone),
-      email: rest.email.trim(),
+      // email intentionally not updated — not editable
     });
     toast.success("Yeniləndi");
     setEditing(null);
