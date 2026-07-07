@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import ExportMenu from "@/components/common/ExportMenu";
+import { DataTable } from "@/components/common/DataTable";
 import { getEmployees } from "@/lib/orgStore";
 import { MONTHS, type Month } from "@/lib/salaryStore";
 
