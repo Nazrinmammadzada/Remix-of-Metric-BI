@@ -83,11 +83,13 @@ export const getApprovalMatrices = (): ApprovalMatrix[] => {
     // seed demo matrix so module is never empty
     const seed: ApprovalMatrix[] = [
       {
-        id: crypto.randomUUID(),
+        id: "matrix-standard",
         name: "Standart KPI Təsdiqi",
         mode: "position",
         steps: [
+          { id: crypto.randomUUID(), label: "Komanda Lideri", assignees: [{ type: "role", name: "Komanda Lideri" }], minApprovals: 1 },
           { id: crypto.randomUUID(), label: "Departament Rəhbəri", assignees: [{ type: "role", name: "Departament Rəhbəri" }], minApprovals: 1 },
+          { id: crypto.randomUUID(), label: "HR Direktoru", assignees: [{ type: "role", name: "HR Direktoru" }], minApprovals: 1 },
         ],
         updatedAt: new Date().toISOString(),
       },
