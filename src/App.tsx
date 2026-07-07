@@ -154,7 +154,7 @@ const App = () => {
               <Route path="/manager/neticelerim" element={<ManagerResultsPage />} />
               <Route path="/manager/bonuslarim" element={<ManagerBonusPage />} />
               <Route path="/manager/hesabat" element={<ReportsPage />} />
-              <Route path="/manager/whistleblower" element={<WhistleblowerPage />} />
+              <Route path="/manager/whistleblower" element={<UserWhistleblowerPage />} />
               <Route path="/manager/ayarlar" element={<SettingsPage />} />
             </Route>
 
