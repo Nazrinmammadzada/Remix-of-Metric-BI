@@ -125,9 +125,10 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
     if (!kpi.id) return own.map(s => ({ ...s, _entryId: null as string | null, limits: undefined as LimitSet | undefined }));
     const entries = getEntriesForCard(kpi.id);
     const ownById = new Map(own.map(s => [s.id, s]));
-    const list: any[] = own.map(s => {
+    const list: any[] = own.map((s: any) => {
       const e = entries.find(en => en.subKpiId === s.id);
-      return { ...s, _entryId: e?.id ?? null, limits: e?.limits, assignerFromSet: e?.assigneeName, unit: s.unit || e?.unit };
+      // Wizard-dan gələn subKpi.limits/scoreDescriptions üstünlük təşkil edir
+      return { ...s, _entryId: e?.id ?? null, limits: s.limits ?? e?.limits, scoreDescriptions: s.scoreDescriptions ?? e?.scoreDescriptions, assignerFromSet: e?.assigneeName, unit: s.unit || e?.unit };
     });
     // KPI Set-də olan, kartda olmayan hədəf-lar
     entries.forEach(e => {
