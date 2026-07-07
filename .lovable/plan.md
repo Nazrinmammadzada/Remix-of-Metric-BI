@@ -1,69 +1,57 @@
+## KPI Platform Improvements — HR, Manager, User
 
-# Kaskadlama axınının tam düzəldilməsi
-
-Aşağıdakı 5 dəyişikliyi 1 addımda tətbiq edəcəyəm. Hər dəyişiklik konkret fayl və funksiyaya toxunur — mövcud UI/dizayn dəyişmir.
-
-## 1) Cascade Load = HR-in verdiyi kök hədəf (bütün mənbələri əhatə edən)
-
-**Fayl:** `src/lib/kpiSetStore.ts` → `getIncomingCascadeLoad`
-
-Hazırda funksiya cascade tree-də node axtarır, sonra yalnız `ownerId === empKey` olan SharedKpiCard-lara baxır. Elvin `assigneeIds`-də olduğu (HR-in ona verdiyi) cascadable kartlar nəzərə alınmır — nəticədə köhnə seed 500 000 qayıdır.
-
-Dəyişiklik:
-- Step 2-ni `ownerId === empKey || assigneeIds.includes(empKey)` şəklinə genişləndir.
-- `updatedAt` DESC ilə sırala → yenidən yaradılan "ŞELVİN KPİ KART" (70 700) birinci gəlsin.
-- `excludeCardId` cari kartı istisna edir (Elvin öz "MARKETINGIN İLLİK KARTI"-nı təyin edərkən özündən pay çəkməsin).
-
-Nəticə: Popup (şəkil 3) və Kaskadlama pəncərəsinin "Cascade Load" xanası (şəkil 4) həmişə şəkil 1-dəki kök dəyəri (70 700) göstərəcək.
-
-## 2) Kaskadlama sətir default-u = təyinetmə zamanı yazılan hədəf dəyəri
-
-**Fayl:** `src/pages/manager/ManagerResponsibleCardsPage.tsx` (artıq `defaultSliceValue: assignedValue` göndərilir — dəyişiklik yoxdur, sadəcə #1-dən sonra düzgün işləyəcək).
-
-**Fayl:** `src/components/kpi/CascadeDistributeDialog.tsx` — `SubTable` `defaultValue` prop-u `bootstrap?.defaultSliceValue` istifadə edir. Bunu qoruyuruq.
-
-Əlavə: Manager KPI İzlənməsindən "Kaskadla" düyməsi ilə açıldıqda (`existingNode` yolu) sətir default-u root limitinin bərabər hissəyə bölünməsi kimi qalır (bu yol AssignGoalDialog-dan keçmir → hədəf dəyəri yoxdur).
-
-## 3) Kaskadlama zamanı tam paylanmayan root = qırmızı
-
-**Fayl:** `src/pages/CascadeTrackingPage.tsx` → `toneOf` və sol siyahıdakı `toneOf(r)`.
-
-Hazırda root üçün `kids.length === 0` → "neutral" (boz). Root heç kaskadlanmayıbsa (kids yoxdur, amma limit > 0) — qırmızı olmalıdır.
-
-Dəyişiklik: `toneOf`-da xüsusi hal — `parentId === null && limit > 0 && kids.length === 0` → **qırmızı**; `parentId === null && kids.length === 0 && limit === 0` → neytral.
-
-## 4) Yeni kaskadlama tam əvvəlki zəncirin davamı kimi görünsün
-
-**Fayl:** `src/components/kpi/CascadeDistributeDialog.tsx` — bootstrap `useEffect`.
-
-Hazırkı məntiq: setter üçün öncəlik CHILD node (yuxarıdan pay alınmış node); yoxdursa öz ROOT-u. Bu düzgündür.
-
-Amma Elvin öz "MARKETINGIN İLLİK KARTI"-nı təyin edir və HR-in "ŞELVİN KPİ KART"-ı ilə bağlantı yoxdur — cardName/goalName fərqli. Nəticədə eyni ağaca bağlanma məntiqli deyil (bunlar müstəqil hədəflərdir).
-
-Nəticə: Hər kart öz root-u ilə qalacaq. Kaskadlama tarixçəsi Cascade İzlənmə səhifəsində HƏR ROOT üçün ayrıca kart kimi görünəcək (mövcud davranış). Root-un dəyəri = HR-in verdiyi ilkin dəyər ("Cascade Load" #1-dən).
-
-## 5) Kamran üçün eyni məntiq — resurs sıralama düzəldilməsi
-
-**Fayl:** `src/lib/kpiSetStore.ts` (eyni #1 dəyişikliyinin nəticəsi).
-
-Kamran öz "Məsul olduğum kartlar"-ında hədəf təyin etdikdə:
-- Step 1 cascade tree-də Kamran üçün CHILD node tapır (Elvin tərəfindən paylanan) → onun limitini qaytarır.
-- Popup göstərir: "Sizə başqa KPI kartından gələn Cascade Load: X AZN" (Elvinin ona verdiyi rəqəm).
-- "Bəli" → CascadeDistributeDialog Kamran üçün açılır, onun CHILD node-una əsaslanaraq alt bölgü yaradır → eyni ağaca əlavə olunur (Elvin → Kamran → Orxan zənciri qırılmaz).
-
-Bu artıq mövcud kod tərəfindən dəstəklənir; #1 ilə düzgün dəyər qayıdacaq.
+Bu plan yeddi tələbi mövcud biznes məntiqini pozmadan tətbiq edir. Hər dəyişiklik ayrı bir modul/faylda aparılır.
 
 ---
 
-## Toxunulacaq fayllar
+### 1. HR — KPI Kart Siyahısı persistensiyası
+- `src/lib/kpiCardStore.ts` (və/və ya `kpiSetStore.ts`) yoxlanılır: kartların localStorage-ə yazılması və oxunması hər dəfə tam işlədiyinə əmin olunur.
+- Səhifə refresh və ya modul dəyişdikdə HR-ın yaratdığı kartlar `KpiHubPage` / `KpiCardsPage`-də daim görünəcək.
+- Kart yaradıldıqdan dərhal sonra `save()` çağırıldığından və event dispatch olunduğundan əmin olunur.
 
-- `src/lib/kpiSetStore.ts` — `getIncomingCascadeLoad` (Step 2 genişlənməsi + sıralama)
-- `src/pages/CascadeTrackingPage.tsx` — `toneOf` (kaskadlanmayan root qırmızı)
+### 2. HR — KPI Kart yaradılmasında "Özüm" seçimi
+- `src/components/kpi/CreateKpiWizard.tsx` içindəki Vahid Şəxs (assignee) selectorə "Özüm (cari HR)" opsiyası əlavə edilir.
+- Seçildikdə `assigneeIds` cari HR-ın employee ID-si ilə doldurulur.
+- Yaradılmış kart digər əməkdaşlar üçün olan məntiqlə eyni axına düşür: HR həm sahibi, həm assignee, həm də evaluator ola bilər.
 
-## Yoxlanış
+### 3. HR — Hədəf Təyinatlarının İzlənməsi
+- `src/pages/GoalTrackingPage.tsx` cascade zəncirini tam göstərəcək şəkildə genişləndirilir: root + bütün cascade child node-lar `cascadeTreeStore` / `kpiSetStore`-dan oxunur və siyahıya qoşulur.
+- Bütün "Cascade Matrix" mətn/etiketləri modul UI-dan silinir (yalnız bu səhifədə).
 
-Dəyişikliklərdən sonra:
-1. Elvinin AssignGoalDialog → Yadda saxla → popup **HR-in verdiyi 70 700** göstərir.
-2. Distribute pəncərəsi: Cascade Load = 70 700, sətir default-u = 7 000 (təyinetmədə yazılan).
-3. Bölüşdürüldükdən sonra root-un altında budaqlar görünür; tam paylanmayıbsa root qırmızı.
-4. Kamran da eyni axını təkrarlayır; hər addım Cascade İzlənmə səhifəsində əks olunur.
+### 4. USER — Anonim Bildiriş üst panelə köçürülür
+- `src/components/layout/UserSidebar.tsx`-dən `/user/whistleblower` menyu elementi silinir.
+- `src/components/layout/Header.tsx`-də (User layout-una tətbiq olunan üst panel) manager kimi Anonim Bildiriş ikonu / popover göstərilir.
+- Route (`/user/whistleblower`) saxlanılır ki, keçmiş linklər sınmasın.
+
+### 5. Daxili Bildiriş Sistemi — User və Manager eyni məntiqdə
+- `notificationsStore` və user bildiriş UI-ı yoxlanılır; User göndərə bilir, Manager göndərə bilir, HR yalnız monitorinq edir.
+- User-in mövcud daxili bildiriş interfeysi saxlanılır, manager ilə eyni davranış təmin edilir (send + inbox).
+- HR tərəfdə heç bir dəyişiklik edilmir (yalnız oxu/monitorinq).
+
+### 6. USER — KPI İzlənməsi rəhbər strukturuna gətirilir
+- `src/pages/user/UserKpiCardsPage.tsx` `ManagerKpiTrackingPage` görünüşünə uyğunlaşdırılır; üç tab: **Mənim KPI-larım**, **Komandamın KPI-ları**, **Strukturumun KPI-ları**.
+- "Tabeçiliyimdə olan əməkdaşlar" tabı və rəhbərə xas idarəetmə düymələri (cascade, təsdiq, təyin) User tərəfdə gizlədilir.
+- Mənim KPI-larım tabı tam detal (hədəf, nəticə, status, qiymətləndirmə, hesablama) göstərir.
+- Komandamın / Strukturumun KPI-ları yalnız icmal sütunları göstərir: ad, cari nəticə, hədəf, status, ümumi KPI %.
+
+### 7. USER — Komandam modulu
+- `src/pages/user/UserTeamsPage.tsx` manager `TeamsPage` görünüşünə uyğunlaşdırılır (eyni UI/UX).
+- Data `scope.ts`-dəki `getVisibleTeams(user)` ilə məhdudlaşdırılır — yalnız istifadəçinin aid olduğu komanda(lar).
+- Rəhbərə xas düymələr (cascade et, qiymətləndir, təsdiq göndər və s.) gizlədilir; yalnız icmal + üzv siyahısı + KPI göstəriciləri qalır.
+
+---
+
+### Texniki qeydlər
+- Bütün dəyişikliklər frontend qatındadır; store faylları yalnız oxu/paylama məntiqi üçün ehtiyat halda yenilənir.
+- Rol yoxlaması `useAuth().user.role` və `scope.ts` helper-ləri vasitəsilə aparılır; heç bir yerdə hardcoded rol yoxdur.
+- Mövcud cascade/leader-change/deactivation axınları toxunulmaz qalır.
+
+### Dəyişəcək fayllar (təxmini)
+- `src/lib/kpiCardStore.ts` (persistensiya yoxlama)
+- `src/components/kpi/CreateKpiWizard.tsx` ("Özüm" opsiyası)
+- `src/pages/GoalTrackingPage.tsx` (cascade zənciri + "Cascade Matrix" mətnlərinin silinməsi)
+- `src/components/layout/UserSidebar.tsx` (Anonim Bildiriş silinməsi)
+- `src/components/layout/Header.tsx` və ya UserLayout (üst panel anonim bildiriş)
+- `src/pages/user/UserKpiCardsPage.tsx` (3 tab yenidən qurulur)
+- `src/pages/user/UserTeamsPage.tsx` (manager UX + user data scope)
+- (lazım olarsa) `src/lib/notificationsStore.ts` / user notification UI kiçik düzəlişlər
