@@ -1390,21 +1390,18 @@ function Step2Targets({
                 <div className="text-base font-bold text-foreground">Hədəf #{idx + 1}</div>
                 <div className="text-xs text-muted-foreground">{t.name || "— Adsız hədəf —"} · {t.type}</div>
               </div>
-              {/* Hədəfi kim təyin edir */}
+              {/* Hədəfi kim təyin edir — "Özüm" seçimi yalnız yuxarıdakı "Vahid şəxs" panelindədir */}
               <div className="flex gap-1.5 mr-8">
-                {([
-                  { v: "self" as const, t: "Özüm təyin edirəm" },
-                  { v: "other" as const, t: "Digər əməkdaş təyin edir" },
-                ]).map(o => {
-                  const active = t.createdBy === o.v;
+                {(() => {
+                  const active = t.createdBy === "other";
                   return (
-                    <button key={o.v} type="button"
-                      onClick={() => updHedef(t.id, { createdBy: o.v, assigner: o.v === "self" ? "" : t.assigner })}
+                    <button type="button"
+                      onClick={() => updHedef(t.id, { createdBy: active ? "self" : "other", assigner: active ? "" : t.assigner })}
                       className={`px-2 py-1 rounded border text-[11px] font-medium ${active ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
-                      {o.t}
+                      Digər əməkdaş təyin edir
                     </button>
                   );
-                })}
+                })()}
               </div>
             </div>
 

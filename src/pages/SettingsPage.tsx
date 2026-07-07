@@ -226,18 +226,15 @@ const permissionModules: { key: string; label: string; actions: { key: string; l
   ]},
 ];
 
-const allUsers = [
-  { name: "Samir Həsənov", role: "Komanda Lideri", avatar: "S" },
-  { name: "Leyla Məmmədova", role: "Satış Mütəxəssisi", avatar: "L" },
-  { name: "Rəşad Əliyev", role: "R&D Meneceri", avatar: "R" },
-  { name: "Farid Həsənov", role: "Regional Menecer", avatar: "F" },
-  { name: "Emin Məmmədov", role: "Marketinq Meneceri", avatar: "E" },
-  { name: "Nigar Hüseynova", role: "Müştəri Xidmətləri", avatar: "N" },
-  { name: "Kamran Quliyev", role: "Əməliyyat Meneceri", avatar: "K" },
-  { name: "Günel Əlizadə", role: "HR Mütəxəssisi", avatar: "G" },
-  { name: "Aysel Quliyeva", role: "Satış Agenti", avatar: "A" },
-  { name: "Tural İsmayılov", role: "Proses Analitik", avatar: "T" },
-];
+import { getEmployees as _getEmployeesForRoles } from "@/lib/orgStore";
+
+const allUsers = _getEmployeesForRoles()
+  .filter(e => e.active)
+  .map(e => ({
+    name: `${e.firstName} ${e.lastName}`,
+    role: e.positionName || "—",
+    avatar: (e.firstName?.[0] || "?").toUpperCase(),
+  }));
 
 const initialRoles: Role[] = [
   {
@@ -1077,7 +1074,7 @@ const SettingsPage = () => {
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-72 overflow-y-auto border border-border rounded-lg p-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-[420px] overflow-y-auto border border-border rounded-lg p-2">
                   {list.map((u, i) => {
                     const on = usersRole.users.includes(u.name);
                     return (
