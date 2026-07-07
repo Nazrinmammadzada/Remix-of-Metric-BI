@@ -150,7 +150,7 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
           </button>
           {showLang && (
             <div className="absolute right-0 top-full mt-2 w-32 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
-              {(["AZ", "ENG", "RU", "UZ"] as const).map(l => (
+              {(["AZ", "ENG", "RU"] as const).map(l => (
                 <button
                   key={l}
                   onClick={() => { setLang(l); setShowLang(false); }}
