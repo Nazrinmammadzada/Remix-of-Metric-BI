@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { User as UserIcon, Sliders } from "lucide-react";
-import { getEntriesForCard, type LimitSet, TIER_LABELS, suggestLimitsFromTarget } from "@/lib/kpiSetStore";
+import { getEntriesForCard, type LimitSet, TIER_LABELS } from "@/lib/kpiSetStore";
 
 interface SubKpiLike {
   id: number;
