@@ -887,8 +887,22 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
     `${e.firstName} ${e.lastName} ${e.fin}`.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const leaderCtx = useContext(LeaderChangeCtx);
   const handleToggleStar = () => {
     if (!current) return;
+    // Rəhbəri dəyiş rejimi aktivdirsə tac klik yeni rəhbər seçimi kimi işləyir.
+    if (leaderCtx) {
+      if (current.id === leaderCtx.oldLeaderId) {
+        toast.info("Bu köhnə rəhbərdir. Başqa aktiv əməkdaşın tacına klik edin.");
+        return;
+      }
+      if (!current.active) {
+        toast.error("Yalnız Aktiv əməkdaş rəhbər təyin edilə bilər.");
+        return;
+      }
+      leaderCtx.onPick(current.id, slot.id);
+      return;
+    }
     const next = !current.isStarPerson;
     setStarPerson(current.id, next);
     if (next) {
