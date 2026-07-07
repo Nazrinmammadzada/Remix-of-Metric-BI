@@ -128,26 +128,22 @@ const mkSlot = (employeeId: number | null, salary: number | null): OrgSlot => ({
   id: nextSlotId(), employeeId, salary, fraction: 1,
 });
 
-/** Build a şöbə with 1 leader (müdir) + N mütəxəssis (1 assigned, rest vacant). */
+/** Build a şöbə with 1 leader (müdir) + N mütəxəssis. Boş slot qalmır. */
 const mkSobe = (
   id: number,
   name: string,
   mudirEmpId: number,
   mudirSalary: number,
   mutexPositionName: string,
-  mutexAssignedEmpId: number,
+  mutexAssignedEmpIds: number[],
   mutexAssignedSalary: number,
-  mutexVacantCount: number,
 ): OrgStructure => ({
   id, type: "Şöbə", name, children: [],
   positions: [
     { id: nextPosId(), name: "Şöbə Müdiri", slots: [mkSlot(mudirEmpId, mudirSalary)] },
     {
       id: nextPosId(), name: mutexPositionName,
-      slots: [
-        mkSlot(mutexAssignedEmpId, mutexAssignedSalary),
-        ...Array.from({ length: mutexVacantCount }, () => mkSlot(null, null)),
-      ],
+      slots: mutexAssignedEmpIds.map(eid => mkSlot(eid, mutexAssignedSalary)),
     },
   ],
 });
@@ -159,8 +155,8 @@ const seedStructures: OrgStructure[] = [
       { id: nextPosId(), name: "Satış Direktoru", slots: [mkSlot(3, 4800)] },
     ],
     children: [
-      mkSobe(1010, "Bakı Satış Şöbəsi",      5, 3000, "Satış Mütəxəssisi", 13, 1800, 3),
-      mkSobe(1011, "Regional Satış Şöbəsi",  6, 3000, "Satış Mütəxəssisi", 14, 1800, 3),
+      mkSobe(1010, "Bakı Satış Şöbəsi",      5, 3000, "Satış Mütəxəssisi", [13, 21, 22, 23], 1800),
+      mkSobe(1011, "Regional Satış Şöbəsi",  6, 3000, "Satış Mütəxəssisi", [14, 24, 25, 26], 1800),
     ],
   },
   {
@@ -169,8 +165,8 @@ const seedStructures: OrgStructure[] = [
       { id: nextPosId(), name: "Marketinq Direktoru", slots: [mkSlot(4, 4600)] },
     ],
     children: [
-      mkSobe(1012, "Rəqəmsal Marketinq Şöbəsi", 7, 2900, "Marketinq Mütəxəssisi", 15, 1900, 3),
-      mkSobe(1013, "Brend Şöbəsi",              8, 2900, "Brend Mütəxəssisi",      16, 1900, 3),
+      mkSobe(1012, "Rəqəmsal Marketinq Şöbəsi", 7, 2900, "Marketinq Mütəxəssisi", [15, 27, 28, 29], 1900),
+      mkSobe(1013, "Brend Şöbəsi",              8, 2900, "Brend Mütəxəssisi",      [16, 30, 31, 32], 1900),
     ],
   },
   {
@@ -179,8 +175,8 @@ const seedStructures: OrgStructure[] = [
       { id: nextPosId(), name: "HR Direktoru", slots: [mkSlot(1, 4500)] },
     ],
     children: [
-      mkSobe(1014, "İşə Qəbul Şöbəsi",           9,  2800, "İşə Qəbul Mütəxəssisi", 17, 1700, 2),
-      mkSobe(1015, "Təlim və İnkişaf Şöbəsi",    10, 2800, "L&D Mütəxəssisi",       18, 1700, 2),
+      mkSobe(1014, "İşə Qəbul Şöbəsi",           9,  2800, "İşə Qəbul Mütəxəssisi", [17, 33, 34], 1700),
+      mkSobe(1015, "Təlim və İnkişaf Şöbəsi",    10, 2800, "L&D Mütəxəssisi",       [18, 35, 36], 1700),
     ],
   },
   {
@@ -189,8 +185,8 @@ const seedStructures: OrgStructure[] = [
       { id: nextPosId(), name: "Maliyyə Direktoru (CFO)", slots: [mkSlot(2, 5000)] },
     ],
     children: [
-      mkSobe(1016, "Mühasibatlıq Şöbəsi",             11, 2900, "Mühasib",           19, 1900, 2),
-      mkSobe(1017, "Büdcə və Planlaşdırma Şöbəsi",    12, 2900, "Maliyyə Analitiki", 20, 1900, 2),
+      mkSobe(1016, "Mühasibatlıq Şöbəsi",             11, 2900, "Mühasib",           [19, 37, 38], 1900),
+      mkSobe(1017, "Büdcə və Planlaşdırma Şöbəsi",    12, 2900, "Maliyyə Analitiki", [20, 39, 40], 1900),
     ],
   },
 ];
