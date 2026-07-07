@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Activity, ChevronLeft, Search, Crown, X, Maximize2, Users, Target } from "lucide-react";
 import { useCascadeTree, getChildren, distributedOf, remainingOf, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import { withKartSuffix } from "@/lib/utils";
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 
