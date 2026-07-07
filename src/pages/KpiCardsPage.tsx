@@ -322,6 +322,13 @@ const initialKpiCards: KpiCard[] = [
   },
 ];
 
+// Seed KPI kartlarının bütün hədəflərinə real limitlər ver (köhnə nümunələr dolu görünsün)
+initialKpiCards.forEach(c => {
+  c.subKpis?.forEach(sk => {
+    if (!sk.limits && sk.target) sk.limits = suggestLimitsFromTarget(sk.target);
+  });
+});
+
 // Integration → exchangeable data fields (per system)
 const integrationFieldsBySystem: Record<string, string[]> = {
   "CRM Sistemi": ["Satış həcmi", "Yeni müştəri sayı", "Konversiya faizi", "Aktiv lead sayı"],
