@@ -32,6 +32,12 @@ import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
 
+// One-time reset so employee table columns appear in code-defined order
+if (!localStorage.getItem("__org_emp_order_fixed")) {
+  localStorage.removeItem("org-employees:order");
+  localStorage.setItem("__org_emp_order_fixed", "1");
+}
+
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
