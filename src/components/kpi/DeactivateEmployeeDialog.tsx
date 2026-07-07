@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import type { DeactivationReason } from "@/lib/employeeDeactivation";
@@ -8,12 +7,17 @@ interface Props {
   onOpenChange: (o: boolean) => void;
   employeeName: string;
   reasons: DeactivationReason[];
+  onConfirm: () => void;
 }
 
-export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, reasons }: Props) => {
-  const navigate = useNavigate();
-  const isMulti = reasons.length > 1;
-  const primary = reasons[0];
+const REASON_BULLETS: Record<DeactivationReason["code"], string> = {
+  kpi_active: "Bu əməkdaşın aktiv KPI kartları mövcuddur.",
+  approval_chain: "Bu əməkdaş təsdiqləmə zəncirində iştirak edir.",
+  structure_leader: "Bu əməkdaş struktur rəhbəri kimi təyin olunub.",
+};
+
+export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, reasons, onConfirm }: Props) => {
+  const isSingleKpi = reasons.length === 1 && reasons[0].code === "kpi_active";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -21,42 +25,45 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            {isMulti ? "Əməkdaş passiv edilə bilməz" : primary?.title}
+            {isSingleKpi ? "Aktiv KPI kartları mövcuddur" : "Əməkdaş passiv edilərkən diqqət tələb olunur"}
           </DialogTitle>
         </DialogHeader>
-        {isMulti ? (
-          <div className="space-y-3 text-sm">
-            <p className="text-foreground">
-              <span className="font-medium">{employeeName}</span> passiv edilə bilməz.
-            </p>
-            <p className="text-muted-foreground">Səbəblər:</p>
-            <ul className="list-disc pl-5 space-y-1.5 text-foreground">
-              {reasons.map((r) => (
-                <li key={r.code}>{r.message.split(".")[0]}.</li>
-              ))}
-            </ul>
+
+        {isSingleKpi ? (
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>Bu əməkdaşın aktiv KPI kartları mövcuddur.</p>
+            <p className="text-foreground">Passiv etməyə davam etmək istəyirsiniz?</p>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{primary?.message}</p>
+          <div className="space-y-3 text-sm">
+            <p className="text-foreground">
+              <span className="font-medium">{employeeName}</span> passiv ediləcək.
+            </p>
+            <p className="text-muted-foreground">Aşağıdakı aktiv əlaqələr aşkar edilmişdir:</p>
+            <ul className="list-disc pl-5 space-y-1.5 text-foreground">
+              {reasons.map((r) => (
+                <li key={r.code}>{REASON_BULLETS[r.code]}</li>
+              ))}
+            </ul>
+            <p className="text-muted-foreground">
+              Bu əməkdaşı passiv etməyiniz həmin proseslərə təsir göstərə bilər. Davam etmək istədiyinizə əminsiniz?
+            </p>
+          </div>
         )}
+
         <div className="flex gap-2 pt-2">
           <button
             onClick={() => onOpenChange(false)}
             className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
           >
-            Cancel
+            Ləğv et
           </button>
-          {primary?.targetRoute && (
-            <button
-              onClick={() => {
-                onOpenChange(false);
-                navigate(primary.targetRoute!);
-              }}
-              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-            >
-              {primary.primaryLabel}
-            </button>
-          )}
+          <button
+            onClick={() => { onConfirm(); onOpenChange(false); }}
+            className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+          >
+            Yenə də passiv et
+          </button>
         </div>
       </DialogContent>
     </Dialog>
