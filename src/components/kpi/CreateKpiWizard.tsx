@@ -692,9 +692,16 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   // ==== Approval method auto-default (touched flag qoruyur user seçimini) ====
   const [approvalMethodTouched, setApprovalMethodTouched] = useState(false);
   const suggestApprovalMethod = (d: CreateKpiWizardDraft): CreateKpiWizardDraft["approvalMethod"] => {
+    // Fərdi mode: default matrix
+    if (d.mode === "individual") return "matrix";
     const bs = d.bulkSelections;
+    // Toplu: komanda seçilibsə → komanda rəhbəri
     if (bs.teams.length > 0) return "team_leader";
-    return "structure_leader"; // default: matrissiz — birbaşa struktur rəhbərinə
+    // Toplu: struktur seçilibsə → struktur rəhbəri
+    if (bs.structures.length > 0) return "structure_leader";
+    // Toplu: yalnız vəzifə və ya şəxs seçilibsə → matrix
+    if (bs.positions.length > 0 || bs.persons.length > 0) return "matrix";
+    return "structure_leader";
   };
   useEffect(() => {
     if (approvalMethodTouched) return;
@@ -1155,28 +1162,60 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   }
                 </SummarySection>
 
-                {/* Təsdiqləmə üsulu — yalnız matris seçildikdə */}
-                {draft.useMatrix && (
-                  <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-primary" />
-                      <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə matrisi</h3>
-                    </div>
-                    <select value={draft.approvalMatrixId}
-                      onChange={e => update({ approvalMatrixId: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                      <option value="">— Təsdiqləmə matrisi seçin —</option>
-                      {approvalMatrices.map(m => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
-                      ))}
-                    </select>
-                    {selectedMatrix && (
-                      <div className="text-[11px] text-muted-foreground">
-                        Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
-                      </div>
-                    )}
+                {/* Təsdiqləmə üsulu — həmişə göstərilir, dəyişilə bilər */}
+                <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-foreground">Təsdiqləmə üsulu</h3>
                   </div>
-                )}
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      ["structure_leader", "Struktur rəhbəri"],
+                      ["team_leader", "Komanda rəhbəri"],
+                      ["matrix", "Matriks"],
+                    ] as const).map(([val, label]) => {
+                      const active = draft.approvalMethod === val;
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setApprovalMethod(val)}
+                          className={`px-2 py-1.5 text-xs rounded-md border text-center transition-colors ${
+                            active
+                              ? "border-primary bg-primary text-primary-foreground font-semibold"
+                              : "border-border bg-background text-foreground hover:bg-secondary"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {draft.approvalMethod === "matrix" && (
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] text-muted-foreground">Sistemdə mövcud matrislərdən birini seçin</label>
+                      <select value={draft.approvalMatrixId}
+                        onChange={e => update({ approvalMatrixId: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
+                        <option value="">— Təsdiqləmə matrisi seçin —</option>
+                        {approvalMatrices.map(m => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.steps.length} addım)</option>
+                        ))}
+                      </select>
+                      {selectedMatrix && (
+                        <div className="text-[11px] text-muted-foreground">
+                          Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {draft.approvalMethod === "team_leader" && (
+                    <p className="text-[11px] text-muted-foreground">Seçilmiş komandaların rəhbərləri təsdiqləyəcək.</p>
+                  )}
+                  {draft.approvalMethod === "structure_leader" && (
+                    <p className="text-[11px] text-muted-foreground">Seçilmiş strukturların rəhbərləri təsdiqləyəcək.</p>
+                  )}
+                </div>
 
 
 

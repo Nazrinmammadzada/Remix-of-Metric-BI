@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { User as UserIcon, Sliders } from "lucide-react";
-import { getEntriesForCard, type LimitSet, TIER_LABELS, suggestLimitsFromTarget } from "@/lib/kpiSetStore";
+import { getEntriesForCard, type LimitSet, TIER_LABELS } from "@/lib/kpiSetStore";
 
 interface SubKpiLike {
   id: number;
@@ -164,7 +164,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
                 sk.assigner ||
                 sk.assignerFromSet ||
                 (sk.evaluator?.persons?.length ? sk.evaluator.persons.map((p: any) => p.name).join(", ") : null);
-              const limits: LimitSet | undefined = sk.limits || (sk.target ? suggestLimitsFromTarget(sk.target) : undefined);
+              const limits: LimitSet | undefined = sk.limits;
               return (
                 <div key={sk.id} className="px-3 py-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
@@ -192,7 +192,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
 
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
                     <Sliders className="w-3 h-3 text-primary" />
-                    Qiymət Limitləri {sk.limits ? "(KPI Set-dən)" : "(avtomatik təklif)"}
+                    Qiymət Limitləri
                   </div>
                   {limits ? (() => {
                     const subTarget = parseNum(sk.target || "0");

@@ -1,57 +1,61 @@
-## KPI Platform Improvements — HR, Manager, User
+# Plan — KPI kartı təsdiqləmə üsulu + detallar + əməkdaşların strukturlara paylanması
 
-Bu plan yeddi tələbi mövcud biznes məntiqini pozmadan tətbiq edir. Hər dəyişiklik ayrı bir modul/faylda aparılır.
+## 1. Təsdiqləmə üsulu (CreateKpiWizard – 3‑cü hissə)
 
----
+Hər təyinat sətirinin (həm **fərdi**, həm **toplu**) yanında yeni bir seçici:
+`approvalMode` = `structure` (Struktur rəhbəri) | `team` (Komanda rəhbəri) | `matrix` (Matriks).
 
-### 1. HR — KPI Kart Siyahısı persistensiyası
-- `src/lib/kpiCardStore.ts` (və/və ya `kpiSetStore.ts`) yoxlanılır: kartların localStorage-ə yazılması və oxunması hər dəfə tam işlədiyinə əmin olunur.
-- Səhifə refresh və ya modul dəyişdikdə HR-ın yaratdığı kartlar `KpiHubPage` / `KpiCardsPage`-də daim görünəcək.
-- Kart yaradıldıqdan dərhal sonra `save()` çağırıldığından və event dispatch olunduğundan əmin olunur.
+**Default məntiq (target növünə görə, sonradan dəyişilə bilər):**
 
-### 2. HR — KPI Kart yaradılmasında "Özüm" seçimi
-- `src/components/kpi/CreateKpiWizard.tsx` içindəki Vahid Şəxs (assignee) selectorə "Özüm (cari HR)" opsiyası əlavə edilir.
-- Seçildikdə `assigneeIds` cari HR-ın employee ID-si ilə doldurulur.
-- Yaradılmış kart digər əməkdaşlar üçün olan məntiqlə eyni axına düşür: HR həm sahibi, həm assignee, həm də evaluator ola bilər.
+| Təyinat növü          | Default        |
+| --------------------- | -------------- |
+| Toplu — Komanda       | team           |
+| Toplu — Struktur      | structure      |
+| Toplu — Vəzifə / Şəxs | matrix         |
+| Fərdi — Əməkdaş       | matrix         |
 
-### 3. HR — Hədəf Təyinatlarının İzlənməsi
-- `src/pages/GoalTrackingPage.tsx` cascade zəncirini tam göstərəcək şəkildə genişləndirilir: root + bütün cascade child node-lar `cascadeTreeStore` / `kpiSetStore`-dan oxunur və siyahıya qoşulur.
-- Bütün "Cascade Matrix" mətn/etiketləri modul UI-dan silinir (yalnız bu səhifədə).
+- `matrix` seçildikdə `getApprovalMatrices()`‑dan gələn matrislərdən `SearchableSelect` ilə birini seçmək məcburidir.
+- `structure` / `team` seçildikdə matris seçicisi gizlənir; rəhbər həmin struktur/komandadan avtomatik alınır (`orgStore` + `teamsStore`).
+- Sahə card‑a per‑target səviyyəsində yazılır: `target.approvalMode`, `target.approvalMatrixId?`.
 
-### 4. USER — Anonim Bildiriş üst panelə köçürülür
-- `src/components/layout/UserSidebar.tsx`-dən `/user/whistleblower` menyu elementi silinir.
-- `src/components/layout/Header.tsx`-də (User layout-una tətbiq olunan üst panel) manager kimi Anonim Bildiriş ikonu / popover göstərilir.
-- Route (`/user/whistleblower`) saxlanılır ki, keçmiş linklər sınmasın.
+**KpiExtraTabs → "Təsdiqləmə matrisi" tabı:**
+- Sadəcə bu kartın targets‑indəki üsulları göstərir. `matrix` üçün seçilmiş matrisin adım‑adım şəxs/vəzifə cədvəli çəkilir (başqa data yox). `structure` / `team` üçün rəhbərin adı və mənbə (məs. "Marketinq Departamenti rəhbəri") göstərilir.
+- Kartda heç bir target `matrix` deyilsə bu tab conditional olaraq gizli qalır (əvvəlki davranış saxlanılır).
 
-### 5. Daxili Bildiriş Sistemi — User və Manager eyni məntiqdə
-- `notificationsStore` və user bildiriş UI-ı yoxlanılır; User göndərə bilir, Manager göndərə bilir, HR yalnız monitorinq edir.
-- User-in mövcud daxili bildiriş interfeysi saxlanılır, manager ilə eyni davranış təmin edilir (send + inbox).
-- HR tərəfdə heç bir dəyişiklik edilmir (yalnız oxu/monitorinq).
+## 2. KPI kartı detalları
 
-### 6. USER — KPI İzlənməsi rəhbər strukturuna gətirilir
-- `src/pages/user/UserKpiCardsPage.tsx` `ManagerKpiTrackingPage` görünüşünə uyğunlaşdırılır; üç tab: **Mənim KPI-larım**, **Komandamın KPI-ları**, **Strukturumun KPI-ları**.
-- "Tabeçiliyimdə olan əməkdaşlar" tabı və rəhbərə xas idarəetmə düymələri (cascade, təsdiq, təyin) User tərəfdə gizlədilir.
-- Mənim KPI-larım tabı tam detal (hədəf, nəticə, status, qiymətləndirmə, hesablama) göstərir.
-- Komandamın / Strukturumun KPI-ları yalnız icmal sütunları göstərir: ad, cari nəticə, hədəf, status, ümumi KPI %.
+**Üzvlər tabı**
+- Kartın targets/assignees‑indən yığılan real siyahını göstər (fərdi seçilən əməkdaş, toplu təyinatın yaydığı bütün nəfərlər). Nümunə fallback silinsin.
 
-### 7. USER — Komandam modulu
-- `src/pages/user/UserTeamsPage.tsx` manager `TeamsPage` görünüşünə uyğunlaşdırılır (eyni UI/UX).
-- Data `scope.ts`-dəki `getVisibleTeams(user)` ilə məhdudlaşdırılır — yalnız istifadəçinin aid olduğu komanda(lar).
-- Rəhbərə xas düymələr (cascade et, qiymətləndir, təsdiq göndər və s.) gizlədilir; yalnız icmal + üzv siyahısı + KPI göstəriciləri qalır.
+**Lifecycle**
+- CreateKpiWizard save vaxtı `kpiLifecycleStore.upsertForCard(cardId, lifecycle)` çağırılsın.
+- Detal görünüşü (`LifecycleView`) həmişə bu store‑dan oxusun → həm kart detallarında, həm `KpiLifecyclePage`‑də görünsün.
 
----
+**BalanceScorecard limitləri**
+- `BscScorecardTab`: yeni kartlar üçün yalnız real `target.scoreLimit` / `kpiSetStore` daxilolmalarını göstər; sintetik nümunə fallback‑i sil.
+- Köhnə seed kartlarına (id 1, 3 və mövcud demo) tam dolu default limit dəsti əlavə edilsin ki, boş görünməsinlər.
 
-### Texniki qeydlər
-- Bütün dəyişikliklər frontend qatındadır; store faylları yalnız oxu/paylama məntiqi üçün ehtiyat halda yenilənir.
-- Rol yoxlaması `useAuth().user.role` və `scope.ts` helper-ləri vasitəsilə aparılır; heç bir yerdə hardcoded rol yoxdur.
-- Mövcud cascade/leader-change/deactivation axınları toxunulmaz qalır.
+**Status məntiqi**
+- HR özü limitləri set edibsə (target.scoreLimit dolu və ya `kpiSetStore` entry `completed`) → status `aktiv`.
+- Ən azı bir pending KpiSet varsa → `natamam`.
+- Matrissiz kartda default `aktiv` (natamam yalnız pending set varsa).
+- `kpiCardStatusStore` içindəki hesablama funksiyası bu qaydaya uyğunlaşsın.
 
-### Dəyişəcək fayllar (təxmini)
-- `src/lib/kpiCardStore.ts` (persistensiya yoxlama)
-- `src/components/kpi/CreateKpiWizard.tsx` ("Özüm" opsiyası)
-- `src/pages/GoalTrackingPage.tsx` (cascade zənciri + "Cascade Matrix" mətnlərinin silinməsi)
-- `src/components/layout/UserSidebar.tsx` (Anonim Bildiriş silinməsi)
-- `src/components/layout/Header.tsx` və ya UserLayout (üst panel anonim bildiriş)
-- `src/pages/user/UserKpiCardsPage.tsx` (3 tab yenidən qurulur)
-- `src/pages/user/UserTeamsPage.tsx` (manager UX + user data scope)
-- (lazım olarsa) `src/lib/notificationsStore.ts` / user notification UI kiçik düzəlişlər
+## 3. Əməkdaşların strukturlara paylanması (orgStore seed)
+
+- Bütün seed əməkdaşları yoxla; `positionId`/`teamId`/`departmentId`‑si olmayanlara müvafiq struktur və vəzifə təyin et.
+- Rəqəmsal Marketinq şöbəsinə 3 yeni əməkdaş əlavə et (adlar + vəzifələr: SMM Mütəxəssisi, SEO Mütəxəssisi, Performance Marketinq Mütəxəssisi).
+- `devReset.ts` versiya flag‑ini yenilə (`__reset_v4`) ki, brauzerdəki köhnə orgStore snapshot təzələnsin.
+
+## Dəyişəcək fayllar
+
+- `src/components/kpi/CreateKpiWizard.tsx` — hər target üçün `approvalMode` + matris seçici, defaultlar, save‑də lifecycle upsert.
+- `src/lib/kpiCardStore.ts` — `Target` tipinə `approvalMode`, `approvalMatrixId` sahələri.
+- `src/components/kpi/KpiExtraTabs.tsx` — Üzvlər real siyahıdan, Təsdiqləmə tabı real datadan.
+- `src/components/kpi/BscScorecardTab.tsx` — sintetik fallback‑ı sil, seed kartlarına dolu limitlər.
+- `src/lib/kpiCardStatusStore.ts` — HR set etdikdə `aktiv` məntiqi.
+- `src/lib/kpiLifecycleStore.ts` — `upsertForCard` + card‑a görə oxuma.
+- `src/lib/orgStore.ts` — vəzifəsiz əməkdaşlara struktur/vəzifə, 3 yeni Rəqəmsal Marketinq əməkdaşı.
+- `src/lib/devReset.ts` — flag versiyası artırılsın.
+
+## Aydınlaşdırma sualı yoxdur — mövcud kod və seed data üzərindən qərarlar götürüləcək.
