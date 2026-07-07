@@ -826,13 +826,6 @@ const buildEmpKpis = (empId: number): EmpKpi[] => {
   }).filter((_, i) => (h >> i) & 1 || i < 3); // at least 3
 };
 
-interface SubordinatesViewProps {
-  scopePath?: string | null;
-  actionsMode?: "tracking" | "results";
-  onOpenEmployee?: (empId: number, name: string) => void;
-  title?: string;
-  subtitle?: string;
-}
 
 interface SubordinatesViewProps {
   scopePath?: string | null;
