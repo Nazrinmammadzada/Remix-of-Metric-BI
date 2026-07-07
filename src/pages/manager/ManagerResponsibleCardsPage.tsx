@@ -30,11 +30,16 @@ const fmt = (n: number) =>
   new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
 const parseNum = (v: string) => parseFloat(String(v).replace(/[^\d.\-]/g, "")) || 0;
 
+// "Ad Soyad — Vəzifə" formatını sadə "Ad Soyad"-a çevirir.
+const stripPos = (v?: string) => String(v || "").split(" — ")[0].trim();
+
 const isEntryAssignedToSetter = (entry: KpiSetEntry, userName?: string, sharedCards: ReturnType<typeof useSharedKpiCards> = []) => {
-  if (entry.ownerType !== "manager" || entry.assigneeName !== userName) return false;
+  if (entry.ownerType !== "manager") return false;
+  if (stripPos(entry.assigneeName) !== stripPos(userName)) return false;
   const shared = sharedCards.find(c => c.numericId === entry.cardId || c.name === entry.cardName);
   if (!shared) return true;
-  return shared.targets.some(t => t.createdBy === "other" && t.assigner === userName);
+  // Təyinedici (assigner) "Ad Soyad — Vəzifə" formatında saxlanılır — soyadı stripleyib müqayisə edirik.
+  return shared.targets.some(t => t.createdBy === "other" && stripPos(t.assigner) === stripPos(userName));
 };
 
 type View = "hub" | "assign" | "evaluate";
