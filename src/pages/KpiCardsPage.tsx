@@ -1991,55 +1991,49 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               })()}
 
               {detailTab === "status" && (() => {
+                const matrixId = selectedKpi.matrixId || null;
+                const matrix = matrixId ? getApprovalMatrices().find(m => m.id === matrixId) : null;
+                if (!matrix) {
+                  return (
+                    <div className="bg-card rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                      Bu KPI kartı üçün təsdiqləmə matrisi seçilməyib.
+                    </div>
+                  );
+                }
                 const isApproved = selectedKpi.approvalStatus === "approved";
-                const approvalChain = isApproved
-                  ? [
-                    { role: "Şöbə Müdiri", person: "Kamran Quliyev", status: "approved" as const, date: "11.04.2026", comment: "Hədəf uyğundur." },
-                    { role: "Departament Direktoru", person: "Farid Həsənov", status: "approved" as const, date: "12.04.2026", comment: "Təsdiqləndi." },
-                    { role: "Kurator", person: "Nigar Hüseynova", status: "approved" as const, date: "13.04.2026" },
-                    { role: "HR", person: "Günel Əlizadə", status: "approved" as const, date: "14.04.2026", comment: "Son təsdiq verildi." },
-                  ]
-                  : [
-                    { role: "Şöbə Müdiri", person: "Kamran Quliyev", status: "approved" as const, date: "11.04.2026", comment: "Hədəf uyğundur." },
-                    { role: "Departament Direktoru", person: "Farid Həsənov", status: "pending" as const },
-                    { role: "Kurator", person: "Nigar Hüseynova", status: "waiting" as const },
-                    { role: "HR", person: "Günel Əlizadə", status: "waiting" as const },
-                  ];
-                const completedSteps = approvalChain.filter(s => s.status === "approved").length;
-                const totalSteps = approvalChain.length;
-                const currentStepIndex = approvalChain.findIndex(s => s.status === "pending");
+                const status = getStatusFor(selectedKpi.id).status;
+                const totalSteps = matrix.steps.length;
+                // Sadə render: aktivdirsə bütün addımlar approved; təsdiq gözləyirsə ilk addım pending
+                const chain = matrix.steps.map((s, i) => {
+                  const people = s.assignees.map(a => formatAssignee(a)).join(", ") || s.label;
+                  let stStatus: "approved" | "pending" | "waiting" = "waiting";
+                  if (isApproved || status === "aktiv" || status === "tamamlanib" || status === "qiymetlendirme") stStatus = "approved";
+                  else if (status === "tesdiq_gozlenilir" && i === 0) stStatus = "pending";
+                  return { role: s.label, person: people, status: stStatus };
+                });
+                const completedSteps = chain.filter(s => s.status === "approved").length;
+                const currentStepIndex = chain.findIndex(s => s.status === "pending");
                 const overallStatus = isApproved ? "Təsdiq edilib" : "Təsdiq gözləyir";
                 const statusColor = overallStatus === "Təsdiq edilib" ? "bg-zone-green-bg text-zone-green-text" : "bg-zone-yellow-bg text-zone-yellow-text";
 
                 return (
                   <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Matris</p><p className="text-sm font-semibold text-foreground mt-1">{matrix.name}</p></div>
                       <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Ümumi Status</p><span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor}`}>{overallStatus}</span></div>
                       <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Progress</p><p className="text-lg font-bold text-foreground mt-1">{completedSteps}/{totalSteps}</p></div>
-                      <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Cari Mərhələ</p><p className="text-sm font-semibold text-foreground mt-1">{currentStepIndex >= 0 ? `${currentStepIndex + 1}-ci mərhələ` : "Tamamlandı"}</p></div>
-                    </div>
-                    <div className="bg-card rounded-lg border border-border p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-3">Hazırda Təsdiqləyən</h4>
-                      {currentStepIndex >= 0 ? (
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-zone-yellow-bg">
-                          <Clock className="w-5 h-5 text-zone-yellow-text" />
-                          <div><p className="text-sm font-semibold text-foreground">{approvalChain[currentStepIndex].person}</p><p className="text-xs text-muted-foreground">{approvalChain[currentStepIndex].role}</p></div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-zone-green-bg"><CheckCircle className="w-5 h-5 text-zone-green-text" /><p className="text-sm font-semibold text-foreground">Tamamlandı</p></div>
-                      )}
                     </div>
                     <div className="bg-card rounded-lg border border-border p-4">
                       <h4 className="font-semibold text-foreground text-sm mb-4">Təsdiqləmə Zənciri</h4>
                       <div className="space-y-3">
-                        {approvalChain.map((step, i) => (
+                        {chain.map((step, i) => (
                           <div key={i} className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                               step.status === "approved" ? "bg-zone-green-bg text-zone-green-text" : step.status === "pending" ? "bg-zone-yellow-bg text-zone-yellow-text" : "bg-muted text-muted-foreground"
                             }`}>{step.status === "approved" ? <CheckCircle className="w-4 h-4" /> : i + 1}</div>
                             <div className="flex-1"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-foreground">{step.role}</p><p className="text-xs text-muted-foreground">{step.person}</p></div>
                               <div className="text-right">
-                                {step.status === "approved" && <span className="text-xs text-zone-green-text">✓ {step.date}</span>}
+                                {step.status === "approved" && <span className="text-xs text-zone-green-text">✓ Təsdiqləndi</span>}
                                 {step.status === "pending" && <span className="text-xs text-zone-yellow-text">⏳ Gözləyir</span>}
                                 {step.status === "waiting" && <span className="text-xs text-muted-foreground">Növbədə</span>}
                               </div>
