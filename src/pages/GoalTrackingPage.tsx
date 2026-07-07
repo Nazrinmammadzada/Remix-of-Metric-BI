@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useCascadeAssignments, emptyLimits, type CascadeSlice, type CascadeAssignment } from "@/lib/cascadingStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { withKartSuffix } from "@/lib/utils";
 
 type ExecStatus = "completed" | "in_progress" | "pending" | "overdue";
 
@@ -140,7 +141,7 @@ const GoalTrackingPage = () => {
                 <div key={a.id} className="bg-card rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center justify-between gap-3 p-4 bg-secondary/40 border-b border-border">
                     <div className="min-w-0">
-                      <div className="text-xs text-muted-foreground">{a.cardName}</div>
+                      <div className="text-xs text-muted-foreground">{withKartSuffix(a.cardName)}</div>
                       <div className="font-semibold text-foreground truncate">{a.subKpiName}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
                         Ümumi hədəf: <span className="font-medium text-foreground">{a.parentTarget} {a.unit}</span>

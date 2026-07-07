@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { CardLifecycle } from "@/lib/kpiLifecycleStore";
 import LifecycleView from "./LifecycleView";
+import { withKartSuffix } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -13,7 +14,7 @@ const LifecycleDetailDialog = ({ open, onOpenChange, lifecycle }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>KPI Lifecycle — {lifecycle?.cardName ?? "—"}</DialogTitle>
+          <DialogTitle>KPI Lifecycle — {lifecycle ? withKartSuffix(lifecycle.cardName) : "—"}</DialogTitle>
         </DialogHeader>
         <LifecycleView lifecycle={lifecycle} />
       </DialogContent>

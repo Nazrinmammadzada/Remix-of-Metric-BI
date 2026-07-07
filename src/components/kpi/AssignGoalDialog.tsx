@@ -10,6 +10,7 @@ import {
 } from "@/lib/kpiSetStore";
 import { getScoreScales, getDefaultScale, type ScoreScale } from "@/lib/evaluationConfigStore";
 import { WeightInput } from "@/components/kpi/WeightInput";
+import { withKartSuffix } from "@/lib/utils";
 
 // Yalnız Məbləğ üçün vahid seçilə bilər. Digərləri auto-unit.
 const AMOUNT_UNITS = ["AZN", "USD", "EUR"];
@@ -188,7 +189,7 @@ const AssignGoalDialog = ({ open, onOpenChange, entry, onSaved }: Props) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <TargetIcon className="w-5 h-5 text-primary" />
-            Hədəf təyin et — {entry?.cardName}
+            Hədəf təyin et — {entry ? withKartSuffix(entry.cardName) : ""}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">
             Əməkdaş: <span className="font-medium text-foreground">{entry?.assigneeName}</span>

@@ -11,6 +11,7 @@ import ExportMenu from "@/components/common/ExportMenu";
 import { DataTable } from "@/components/common/DataTable";
 import { getEmployees } from "@/lib/orgStore";
 import { MONTHS, type Month } from "@/lib/salaryStore";
+import { withKartSuffix } from "@/lib/utils";
 
 const YEARS = [2024, 2025, 2026];
 
@@ -287,14 +288,14 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                   title: `KPI Qiymətləri ${month} ${year}`,
                   fileName: `kpi-qiymetleri-${year}-${month}`,
                   headers: ["Əməkdaşın A.S.A.", "KPI Kartının Adı", "Dövr", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
-                  rows: rows.map(r => [[r.fullName, r.fatherName].filter(Boolean).join(" "), r.cardName, r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
+                  rows: rows.map(r => [[r.fullName, r.fatherName].filter(Boolean).join(" "), withKartSuffix(r.cardName), r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
                 })}
               />
             </div>
           }
           columns={[
             { key: "name", label: "Əməkdaşın A.S.A.", filterType: "text", accessor: (r) => [r.fullName, r.fatherName].filter(Boolean).join(" "), render: (r) => <span className="font-medium text-foreground">{[r.fullName, r.fatherName].filter(Boolean).join(" ")}</span> },
-            { key: "card", label: "KPI Kartının Adı", filterType: "text", accessor: (r) => r.cardName },
+            { key: "card", label: "KPI Kartının Adı", filterType: "text", accessor: (r) => withKartSuffix(r.cardName), render: (r) => <span>{withKartSuffix(r.cardName)}</span> },
             { key: "period", label: "Dövr", filterType: "text", accessor: (r) => r.periodLabel, render: (r) => <span className="text-muted-foreground">{r.periodLabel}</span> },
             { key: "start", label: "Başlama Tarixi", filterType: "text", accessor: (r) => r.startDate, render: (r) => <span className="text-muted-foreground">{r.startDate}</span> },
             { key: "end", label: "Bitmə Tarixi", filterType: "text", accessor: (r) => r.endDate, render: (r) => <span className="text-muted-foreground">{r.endDate}</span> },
@@ -413,7 +414,7 @@ const EmployeeKpiDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserIcon className="w-5 h-5 text-primary" />
-            {emp?.fullName} — {emp?.cardName}
+            {emp?.fullName} — {emp ? withKartSuffix(emp.cardName) : ""}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">Dövr: {periodLabel} · Hər hədəf üzrə qiymətləndiricilər və yekun hesablama</p>
         </DialogHeader>

@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { withKartSuffix } from "@/lib/utils";
 import {
   useLifecycleTemplates, addLifecycleTemplate, deleteLifecycleTemplate,
   type LifecycleTemplate,
@@ -104,8 +105,8 @@ const KpiLifecyclePage = () => {
                 columns={[
                   {
                     key: "name", label: "KPI Kartı", filterType: "text",
-                    accessor: (l) => l.cardName,
-                    render: (l) => <span className="font-medium text-foreground">{l.cardName}</span>,
+                    accessor: (l) => withKartSuffix(l.cardName),
+                    render: (l) => <span className="font-medium text-foreground">{withKartSuffix(l.cardName)}</span>,
                   },
                   {
                     key: "reviews", label: "Review", filterType: "number",
@@ -135,7 +136,7 @@ const KpiLifecyclePage = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setSaveDialog(l); setTplName(`${l.cardName} şablonu`); setTplDesc(""); }}
+                          onClick={() => { setSaveDialog(l); setTplName(`${withKartSuffix(l.cardName)} şablonu`); setTplDesc(""); }}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-emerald-500/10 text-emerald-600"
                           title="Şablon kimi yadda saxla"
                         >
@@ -264,7 +265,7 @@ const KpiLifecyclePage = () => {
         <Dialog open={!!loadDialog} onOpenChange={(o) => !o && setLoadDialog(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Şablondan yüklə — {loadDialog?.cardName}</DialogTitle>
+              <DialogTitle>Şablondan yüklə — {loadDialog ? withKartSuffix(loadDialog.cardName) : ""}</DialogTitle>
             </DialogHeader>
             {templates.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">Hələ heç bir şablon yoxdur.</div>

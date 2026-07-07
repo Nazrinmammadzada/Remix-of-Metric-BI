@@ -230,7 +230,7 @@ const AssignView = () => {
                   <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <ClipboardList className="w-4 h-4" />
                   </div>
-                  <span className="font-semibold text-foreground truncate">{g.cardName}</span>
+                  <span className="font-semibold text-foreground truncate">{withKartSuffix(g.cardName)}</span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                     {g.entries.length} hədəf
                   </span>
