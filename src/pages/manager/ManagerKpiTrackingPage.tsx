@@ -14,6 +14,8 @@ import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import KpiScoresPage from "@/pages/KpiScoresPage";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
