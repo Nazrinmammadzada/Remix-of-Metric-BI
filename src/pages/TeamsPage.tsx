@@ -1,55 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Trophy, TrendingUp, Users, X, Check, ChevronDown, Sparkles, ArrowLeft, Crown, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Plus, Trophy, TrendingUp, Users, X, Check, ChevronDown, Sparkles, ArrowLeft, Crown } from "lucide-react";
 
 import { PageHero } from "@/components/ui/page-hero";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore";
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useAuth } from "@/contexts/AuthContext";
-
-type ChartPeriodMode = "month" | "quarter" | "year";
-interface ChartPeriod { mode: ChartPeriodMode; date: Date }
-
-const MONTHS_AZ = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
-const chartPeriodLabel = (p: ChartPeriod) => {
-  const y = p.date.getFullYear();
-  if (p.mode === "year") return `${y}`;
-  if (p.mode === "quarter") return `${Math.floor(p.date.getMonth() / 3) + 1}-ci rüb ${y}`;
-  return `${MONTHS_AZ[p.date.getMonth()]} ${y}`;
-};
-
-const ChartPeriodFilter = ({ value, onChange }: { value: ChartPeriod; onChange: (v: ChartPeriod) => void }) => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="flex items-center gap-2">
-      <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
-        {(["month", "quarter", "year"] as ChartPeriodMode[]).map(m => (
-          <button key={m} type="button" onClick={() => onChange({ ...value, mode: m })}
-            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${value.mode === m ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-            {m === "month" ? "Ay" : m === "quarter" ? "Rüb" : "İl"}
-          </button>
-        ))}
-      </div>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button type="button" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-background hover:bg-secondary/40 transition-colors">
-            <CalendarIcon className="w-3.5 h-3.5" /> {chartPeriodLabel(value)}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
-          <Calendar mode="single" selected={value.date} onSelect={(d) => { if (d) { onChange({ ...value, date: d }); setOpen(false); } }} initialFocus className="p-3 pointer-events-auto" />
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-};
+import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
 
 const allPeople: TeamMember[] = [
@@ -133,13 +95,17 @@ const TeamsPage = () => {
     "Tamamlanmış": Math.round((t.completedKpi / Math.max(1, t.totalKpi)) * 100),
   }));
 
-  // Chart period filter — Ay / Rüb / İl (calendar seçici)
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>({ mode: "month", date: new Date() });
+  // Chart period filter — İl / Rüb / Ay
+  const [chartPeriod, setChartPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
 
-  // Seçilən dövrə görə komanda müqayisə datası — deterministik variasiya (real dövr filteri backend gələndə əvəz olunacaq)
+  // Seçilən dövrə görə komanda müqayisə datası — deterministik variasiya
   const comparisonData = useMemo(() => {
-    const y = chartPeriod.date.getFullYear();
-    const seedBase = chartPeriod.mode === "year" ? y * 10 : chartPeriod.mode === "quarter" ? y * 100 + Math.floor(chartPeriod.date.getMonth() / 3) : y * 100 + chartPeriod.date.getMonth();
+    const y = chartPeriod.year;
+    const seedBase = chartPeriod.mode === "year"
+      ? y * 10
+      : chartPeriod.mode === "quarter"
+        ? y * 100 + (chartPeriod.quarter ?? 1)
+        : y * 100 + (chartPeriod.month ?? 0);
     return chartData.map((row, i) => {
       const h = ((seedBase + i * 37) % 25) - 12; // -12..+12 delta
       const kpi = Math.max(20, Math.min(100, (row["KPI Nəticəsi"] as number) + h));
@@ -147,6 +113,7 @@ const TeamsPage = () => {
       return { ...row, "KPI Nəticəsi": kpi, "Tamamlanmış": done };
     });
   }, [chartData, chartPeriod]);
+
 
 
   const filteredTeams = scopedTeams.filter(t =>
@@ -308,7 +275,7 @@ const TeamsPage = () => {
         <div className="bg-card rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <h3 className="font-semibold text-foreground">Komanda Müqayisəsi</h3>
-            <ChartPeriodFilter value={chartPeriod} onChange={setChartPeriod} />
+            <PeriodPicker value={chartPeriod} onChange={setChartPeriod} />
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={comparisonData}>
@@ -321,7 +288,7 @@ const TeamsPage = () => {
               <Bar dataKey="Tamamlanmış" fill="hsl(145 65% 42%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <p className="text-[11px] text-muted-foreground mt-2">Seçilmiş dövr: <span className="font-medium text-foreground">{chartPeriodLabel(chartPeriod)}</span></p>
+          <p className="text-[11px] text-muted-foreground mt-2">Seçilmiş dövr: <span className="font-medium text-foreground">{periodLabel(chartPeriod)}</span></p>
         </div>
 
         <div className="space-y-3">

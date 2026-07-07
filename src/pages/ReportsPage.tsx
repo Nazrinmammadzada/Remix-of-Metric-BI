@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { getTeams, type Team } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import ExcelImportButton from "@/components/common/ExcelImportButton";
+import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
 // --- Sample KPI dataset (organized by team) ---
 const teamKpis: Record<string, { name: string; structure: string; subStructure: string; progress: number; target: string; current: string; icon: any }[]> = {
@@ -526,31 +527,23 @@ const ReportsPage = () => {
   );
 };
 
-type Period = "ay" | "rub" | "il";
-const PERIOD_FACTORS: Record<Period, number> = { ay: 0.85, rub: 1, il: 1.1 };
+const PERIOD_FACTORS = { year: 1.1, quarter: 1, month: 0.85 } as const;
 
 const ChartFrame = ({
   title, subtitle, children,
 }: { title: string; subtitle?: string; children: (factor: number) => React.ReactNode }) => {
-  const [period, setPeriod] = useState<Period>("rub");
+  const [period, setPeriod] = useState<PeriodValue>(() => currentPeriod("quarter"));
+  const factor = PERIOD_FACTORS[period.mode];
   return (
     <div className="bg-card rounded-2xl p-6 border border-border shadow-md">
       <div className="flex items-center justify-between mb-4 gap-3">
         <div className="min-w-0">
           <h3 className="font-bold text-foreground text-lg truncate">{title}</h3>
-          {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle ? `${subtitle} • ` : ""}{periodLabel(period)}</p>
         </div>
-        <select
-          value={period}
-          onChange={(e) => setPeriod(e.target.value as Period)}
-          className="text-xs px-2.5 py-1.5 border border-border rounded-lg bg-background text-foreground"
-        >
-          <option value="ay">Ay</option>
-          <option value="rub">Rüb</option>
-          <option value="il">İl</option>
-        </select>
+        <PeriodPicker value={period} onChange={setPeriod} />
       </div>
-      {children(PERIOD_FACTORS[period])}
+      {children(factor)}
     </div>
   );
 };

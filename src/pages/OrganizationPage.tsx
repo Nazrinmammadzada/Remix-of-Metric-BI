@@ -31,6 +31,8 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
+import { collectDeactivationReasons } from "@/lib/employeeDeactivation";
+import DeactivateEmployeeDialog from "@/components/kpi/DeactivateEmployeeDialog";
 
 // One-time reset so employee table columns appear in code-defined order
 if (!localStorage.getItem("__org_emp_order_fixed")) {
@@ -1024,6 +1026,20 @@ const EmployeesTab = () => {
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
 
   const [otpDialog, setOtpDialog] = useState<{ user: OrgEmployee; code: string } | null>(null);
+  const [deactivateDialog, setDeactivateDialog] = useState<{ name: string; reasons: import("@/lib/employeeDeactivation").DeactivationReason[] } | null>(null);
+
+  const handleStatusToggle = (e: OrgEmployee) => {
+    // Passiv → Aktiv keçidi sərbəstdir
+    if (!e.active) { toggleEmployeeActive(e.id); toast.success("Əməkdaş uğurla aktiv edildi."); return; }
+    const reasons = collectDeactivationReasons(e.id);
+    if (reasons.length > 0) {
+      const nm = [e.firstName, e.lastName, e.fatherName].filter(Boolean).join(" ");
+      setDeactivateDialog({ name: nm, reasons });
+      return;
+    }
+    toggleEmployeeActive(e.id);
+    toast.success("Əməkdaş uğurla passiv edildi.");
+  };
 
   const structureOptions = useMemo(() => {
     const set = new Set<string>();
@@ -1240,7 +1256,7 @@ const EmployeesTab = () => {
               accessor: (e) => e.active ? "Aktiv" : "Deaktiv",
               render: (e) => (
                 <button
-                  onClick={() => { toggleEmployeeActive(e.id); }}
+                  onClick={() => handleStatusToggle(e)}
                   className={`relative w-10 h-5 rounded-full transition-colors ${e.active ? 'bg-primary' : 'bg-muted'}`}
                 >
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-transform ${e.active ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -1259,6 +1275,15 @@ const EmployeesTab = () => {
           );
         })()}
       </FancyCard>
+
+      <DeactivateEmployeeDialog
+        open={!!deactivateDialog}
+        onOpenChange={(o) => { if (!o) setDeactivateDialog(null); }}
+        employeeName={deactivateDialog?.name || ""}
+        reasons={deactivateDialog?.reasons || []}
+      />
+
+
 
 
 
