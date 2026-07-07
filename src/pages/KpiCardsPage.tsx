@@ -31,7 +31,7 @@ import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
 import { getLimitsFor, getEntriesForCard, addPendingEntry, suggestLimitsFromTarget, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
-import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
+import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, getLifecycleWithFallback, type CardLifecycle } from "@/lib/kpiLifecycleStore";
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import EmployeesTreeView from "@/components/kpi/EmployeesTreeView";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
