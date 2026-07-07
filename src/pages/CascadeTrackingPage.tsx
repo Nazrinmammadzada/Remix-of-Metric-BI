@@ -143,7 +143,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
                       className={`w-full text-left rounded-xl border-2 p-3 transition-all ${t.border} ${t.bg} ${isActive ? `ring-2 ${t.ring}` : "hover:ring-1 hover:ring-primary/20"}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{r.cardName}</div>
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{withKartSuffix(r.cardName)}</div>
                           <div className="text-sm font-semibold text-foreground mt-0.5 truncate">{r.goalName}</div>
                         </div>
                         <span className={`shrink-0 w-2.5 h-2.5 rounded-full ${t.dot}`} />
@@ -184,7 +184,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
                     <Target className="w-4 h-4 text-primary shrink-0" />
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-foreground truncate">Hədəf Topologiyası — {current.goalName}</div>
-                      <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{withKartSuffix(current.cardName)}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ const CascadeTrackingPage = ({ onBack }: { onBack: () => void }) => {
             <div className="flex items-center justify-between px-6 py-3 border-b border-border bg-card">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-foreground truncate">Tam Topologiya — {current.goalName}</div>
-                <div className="text-[11px] text-muted-foreground truncate">{current.cardName}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{withKartSuffix(current.cardName)}</div>
               </div>
               <div className="flex items-center gap-3">
                 <Legend />
