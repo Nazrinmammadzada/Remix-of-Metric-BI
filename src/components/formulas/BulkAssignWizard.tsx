@@ -507,6 +507,36 @@ const BulkAssignWizard = ({ onBack, onDone }: { onBack: () => void; onDone?: () 
                 </div>
               </div>
             </div>
+
+            {/* Assigned employees list */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-foreground">Təyin olunacaq əməkdaşlar ({totalCount})</div>
+              </div>
+              <div className="border border-border rounded-lg bg-background max-h-80 overflow-y-auto divide-y">
+                {totalCount === 0 && (
+                  <div className="p-6 text-xs text-muted-foreground text-center">Heç bir əməkdaş yoxdur</div>
+                )}
+                {employeeIds.map(id => {
+                  const e = employees.find(x => x.id === id);
+                  if (!e) return null;
+                  return (
+                    <div key={id} className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-secondary/40">
+                      <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 flex items-center justify-center text-[11px] font-semibold shrink-0">
+                        {(e.firstName?.[0] ?? "") + (e.lastName?.[0] ?? "")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{e.firstName} {e.lastName}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">
+                          {e.positionName || "—"}{e.structurePath ? ` • ${e.structurePath}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setStep(1)} className="px-5 py-2.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40">Geri</button>
               <button onClick={() => setStep(3)} disabled={totalCount === 0} className="px-6 py-2.5 text-sm rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">Yarat</button>
