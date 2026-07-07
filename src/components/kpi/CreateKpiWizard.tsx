@@ -489,18 +489,21 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const cascadeMatrices = useCascadeMatrices();
 
   // ===== Reference data =====
-  const activeEmployees = useMemo(
+  const employeesRaw = useMemo(
     () => getEmployees().filter(e => e.active).map(e => ({
       id: String(e.id),
+      fullName: `${e.firstName} ${e.lastName}`,
       value: `${e.firstName} ${e.lastName}${e.positionName ? " — " + e.positionName : ""}`,
       label: `${e.firstName} ${e.lastName}${e.positionName ? " — " + e.positionName : ""}`,
+      positionName: e.positionName || "",
+      structurePath: e.structurePath || "",
     })),
     [open],
   );
+  const activeEmployees = employeesRaw;
   const employeeOptions = useMemo(() => {
     const base = activeEmployees.map(e => ({ value: e.value, label: e.label }));
     // "Özüm" — HR/istifadəçi öz kartını özünə də təyin edə bilsin.
-    // Value formatı: "Ad Soyad — Vəzifə" (stripName ilə uyğunlaşır).
     if (wizardUser?.name) {
       const selfValue = `${wizardUser.name}${wizardUser.department ? " — " + wizardUser.department : " — Özüm"}`;
       const already = base.some(o => o.value.startsWith(wizardUser.name!));
@@ -510,13 +513,48 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     return base;
   }, [activeEmployees, wizardUser?.name, wizardUser?.department]);
 
+  const teamsRaw = useMemo(() => getTeams(), [open]);
   const teamOptions = useMemo(
-    () => getTeams().map(t => ({ value: t.name, label: `${t.name} (${t.leader})` })),
-    [open],
+    () => teamsRaw.map(t => ({ value: t.name, label: `${t.name} (${t.leader})` })),
+    [teamsRaw],
   );
   const structureTree = useMemo(() => getStructures(), [open]);
-  const structureOptions = useMemo(() => flattenStructures(structureTree).map(s => ({ value: s.id, label: s.label })), [structureTree]);
-  const positionOptions = useMemo(() => flattenPositions(structureTree).map(p => ({ value: p.id, label: p.label })), [structureTree]);
+  const structureOptions = useMemo(() => flattenStructures(structureTree).map(s => ({ value: s.label, label: s.label })), [structureTree]);
+  const positionOptions = useMemo(() => {
+    const set = new Set<string>();
+    employeesRaw.forEach(e => { if (e.positionName) set.add(e.positionName); });
+    return Array.from(set).sort().map(p => ({ value: p, label: p }));
+  }, [employeesRaw]);
+
+  // ===== Individual-mode filters (Vəzifə / Komanda / Struktur) =====
+  const [indFilterPositions, setIndFilterPositions] = useState<string[]>([]);
+  const [indFilterTeams, setIndFilterTeams] = useState<string[]>([]);
+  const [indFilterStructures, setIndFilterStructures] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) {
+      setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]);
+    }
+  }, [open]);
+
+  const filteredIndividualEmployeeOptions = useMemo(() => {
+    const noFilter = !indFilterPositions.length && !indFilterTeams.length && !indFilterStructures.length;
+    if (noFilter) return employeeOptions;
+    const teamMemberNames = new Set<string>();
+    if (indFilterTeams.length) {
+      teamsRaw.filter(t => indFilterTeams.includes(t.name)).forEach(t => {
+        teamMemberNames.add(t.leader);
+        t.members.forEach(m => teamMemberNames.add(m.name));
+      });
+    }
+    return employeeOptions.filter(o => {
+      const raw = employeesRaw.find(r => r.value === o.value);
+      if (!raw) return o.label.startsWith("Özüm"); // keep self option
+      if (indFilterPositions.length && !indFilterPositions.includes(raw.positionName)) return false;
+      if (indFilterStructures.length && !indFilterStructures.some(s => raw.structurePath === s || raw.structurePath.startsWith(s + " › "))) return false;
+      if (indFilterTeams.length && !teamMemberNames.has(raw.fullName)) return false;
+      return true;
+    });
+  }, [employeeOptions, employeesRaw, teamsRaw, indFilterPositions, indFilterTeams, indFilterStructures]);
 
   const update = (patch: Partial<CreateKpiWizardDraft>) => setDraft(p => ({ ...p, ...patch }));
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
