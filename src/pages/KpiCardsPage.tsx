@@ -1764,34 +1764,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input value={listSearch} onChange={e => setListSearch(e.target.value)} placeholder="KPI və ya məsul şəxs ilə axtar..." className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
                     </div>
+                    <TableFrame columns={tbl3Cols} state={tbl3State} onChange={setTbl3State}>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th className="py-2 px-2">Ad</th>
-                          <th className="py-2 px-2">Tip</th>
-                          <th className="py-2 px-2">Məsul</th>
-                          <th className="py-2 px-2">Hədəf</th>
-                          <th className="py-2 px-2">Cari</th>
-                          <th className="py-2 px-2">Progress</th>
-                          <th className="py-2 px-2">Status</th>
+                          <th data-col="name" className="py-2 px-2">Ad</th>
+                          <th data-col="type" className="py-2 px-2">Tip</th>
+                          <th data-col="resp" className="py-2 px-2">Məsul</th>
+                          <th data-col="target" className="py-2 px-2">Hədəf</th>
+                          <th data-col="current" className="py-2 px-2">Cari</th>
+                          <th data-col="progress" className="py-2 px-2">Progress</th>
+                          <th data-col="status" className="py-2 px-2">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {listFiltered.length === 0 ? (
                           <tr><td colSpan={7} className="py-6 text-center text-xs text-muted-foreground">Nəticə yoxdur</td></tr>
-                        ) : listFiltered.map(card => (
+                        ) : listFiltered.slice(0, tbl3State.rowsPerPage).map(card => (
                           <tr key={card.id} onClick={() => openDetail(card)} className="border-b border-border last:border-0 hover:bg-secondary/40 cursor-pointer">
-                            <td className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
-                            <td className="py-2 px-2 text-muted-foreground">{card.type}</td>
-                            <td className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
-                            <td className="py-2 px-2">{card.target} {card.unit}</td>
-                            <td className="py-2 px-2">{card.current} {card.unit}</td>
-                            <td className="py-2 px-2">{card.progress}%</td>
-                            <td className="py-2 px-2 text-xs">{card.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir"}</td>
+                            <td data-col="name" className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
+                            <td data-col="type" className="py-2 px-2 text-muted-foreground">{card.type}</td>
+                            <td data-col="resp" className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
+                            <td data-col="target" className="py-2 px-2">{card.target} {card.unit}</td>
+                            <td data-col="current" className="py-2 px-2">{card.current} {card.unit}</td>
+                            <td data-col="progress" className="py-2 px-2">{card.progress}%</td>
+                            <td data-col="status" className="py-2 px-2 text-xs">{card.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir"}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    </TableFrame>
                   </div>
                 );
               }
