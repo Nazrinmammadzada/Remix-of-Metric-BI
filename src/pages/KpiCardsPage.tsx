@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const hashStrLocal = (s: string): number => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return h;
+};
 import Header from "@/components/layout/Header";
 import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, User, Clock, ArrowUp, ArrowDown, GripVertical, Check, Hourglass, CheckCircle2, Trash2, Info, ChevronDown, Pencil, ShieldCheck, AlertTriangle, Sparkles, UserCheck, Shuffle, UserCog, UserPlus, Sliders } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
