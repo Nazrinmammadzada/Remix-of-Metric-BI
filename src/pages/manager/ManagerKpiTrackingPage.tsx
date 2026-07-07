@@ -21,7 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
-  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch,
+  TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch, RefreshCw,
 } from "lucide-react";
 
 type Stage = "assigned" | "evaluated" | "pending_assign";
