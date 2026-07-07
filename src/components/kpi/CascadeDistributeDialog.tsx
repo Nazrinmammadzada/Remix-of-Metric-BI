@@ -22,6 +22,8 @@ interface Props {
     assigneeId?: number;
     limit: number;
     defaultSliceValue?: number;
+    sourceCardName?: string;
+    sourceGoalName?: string;
   };
   onDistributed?: () => void;
 }
@@ -53,21 +55,25 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
     // Bir workflow üçün YALNIZ BİR cascade ağacı olmalıdır.
-    // Öncəlik: bu şəxsin CHILD node-u (yəni yuxarı rəhbərdən pay aldığı node) —
-    // belədə onun paylanması eyni ağacın davamı olur (HR→Elvin→Kamran→Orxan zənciri qırılmır).
-    // Yalnız child yoxdursa öz root-una düşürük.
-    const nodes = getNodes().filter(n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0);
-    const exact = nodes.filter(n => n.cardName === bootstrap.cardName && n.goalName === bootstrap.goalName);
-    const pool = exact.length > 0 ? exact : nodes;
+    // Öncəlik: source ağacdakı CHILD node (Kamran kimi yuxarıdan pay alanlar),
+    // sonra HR-in verdiyi ROOT (Elvin kimi ilkin hədəf alanlar). Cari kartın adı
+    // fərqli olsa da, bölgü həmin source root-un davamı kimi yazılır.
+    const sourceCardName = bootstrap.sourceCardName || bootstrap.cardName;
+    const sourceGoalName = bootstrap.sourceGoalName || bootstrap.goalName;
+    const newestFirst = (a: CascadeTreeNode, b: CascadeTreeNode) => (Number(b.updatedAt || b.createdAt) || 0) - (Number(a.updatedAt || a.createdAt) || 0);
+    const nodes = getNodes().filter(n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0).sort(newestFirst);
+    const sourceNodes = nodes.filter(n => n.cardName === sourceCardName && (!sourceGoalName || n.goalName === sourceGoalName));
+    const pool = sourceNodes.length > 0 ? sourceNodes : nodes;
     const childNode = pool.find(n => n.parentId !== null);
     const rootNode = pool.find(n => n.parentId === null);
     if (childNode) { setNode(childNode); return; }
     if (rootNode) { setNode(rootNode); return; }
+    if ((Number(bootstrap.limit) || 0) <= 0) return;
     // Ağacda yoxdursa: bu HR-in bu şəxsə verdiyi ilk Owner kartına uyğundur — yeni root yaradırıq.
-    const existingRoot = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
+    const existingRoot = findRootByGoal(sourceCardName, sourceGoalName, emp.id);
     if (existingRoot) { setNode(existingRoot); return; }
     setNode(createRoot({
-      cardName: bootstrap.cardName, goalName: bootstrap.goalName, unit: bootstrap.unit,
+      cardName: sourceCardName, goalName: sourceGoalName, unit: bootstrap.unit,
       assigneeId: emp.id, assigneeName: `${emp.firstName} ${emp.lastName}`,
       positionName: emp.positionName, limit: bootstrap.limit,
     }));

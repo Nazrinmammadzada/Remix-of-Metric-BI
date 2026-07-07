@@ -32,15 +32,15 @@ Hazırda root üçün `kids.length === 0` → "neutral" (boz). Root heç kaskadl
 
 Dəyişiklik: `toneOf`-da xüsusi hal — `parentId === null && limit > 0 && kids.length === 0` → **qırmızı**; `parentId === null && kids.length === 0 && limit === 0` → neytral.
 
-## 4) Yeni kaskadlama tam əvvəlki zəncirin davamı kimi görünsün
+## 4) Yeni kaskadlama MÜTLƏQ əvvəlki zəncirin davamı kimi görünsün
 
 **Fayl:** `src/components/kpi/CascadeDistributeDialog.tsx` — bootstrap `useEffect`.
 
-Hazırkı məntiq: setter üçün öncəlik CHILD node (yuxarıdan pay alınmış node); yoxdursa öz ROOT-u. Bu düzgündür.
+Kart adı/hədəf adı fərqli olsa belə, Elvin kaskadlama seçəndə yeni root yaradılmır. Sistem əvvəlcə Elvinə HR tərəfindən verilmiş real ROOT-u tapır və bölgünü həmin root-un altına yazır. Beləliklə Elvinin payladığı məbləğ HR root-unun qalıq dəyərindən azalır.
 
-Amma Elvin öz "MARKETINGIN İLLİK KARTI"-nı təyin edir və HR-in "ŞELVİN KPİ KART"-ı ilə bağlantı yoxdur — cardName/goalName fərqli. Nəticədə eyni ağaca bağlanma məntiqli deyil (bunlar müstəqil hədəflərdir).
+Kamran üçün də eyni qayda işləyir: Kamran Elvindən CHILD node alıbsa, Kamranın sonrakı bölgüsü həmin CHILD node-un altına yazılır və HR → Elvin → Kamran → alt əməkdaş zənciri qırılmır.
 
-Nəticə: Hər kart öz root-u ilə qalacaq. Kaskadlama tarixçəsi Cascade İzlənmə səhifəsində HƏR ROOT üçün ayrıca kart kimi görünəcək (mövcud davranış). Root-un dəyəri = HR-in verdiyi ilkin dəyər ("Cascade Load" #1-dən).
+Köhnə 500 000-lik demo Marketinq root-u silinir və artıq Cascade Load mənbəyi kimi istifadə edilmir.
 
 ## 5) Kamran üçün eyni məntiq — resurs sıralama düzəldilməsi
 

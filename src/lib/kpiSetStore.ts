@@ -300,31 +300,25 @@ export const setEntryDetails = (
 /**
  * Rəhbərə yuxarı rəhbərdən (və ya HR-in yaratdığı Owner kartından) gələn Cascade Load.
  * Mənbə ardıcıllığı:
- *   1) `cascadeTreeStore`-da assigneeName == setter, parentId != null olan node varsa,
- *      həmin parent onu bölüşdürmüşdür → node.limit qaytarılır.
- *   2) Yoxdursa: mövcud `SharedKpiCard`-lar arasında ownerId setter-ə uyğun və
- *      cascadable olanın targets cəmi (istifadəçinin özünə HR verdiyi ana KPI).
- *   3) Fallback: köhnə davranış (başqa cascadable KpiSetEntry-nin target-i).
+ *   1) `cascadeTreeStore`-da setter üçün yuxarıdan gələn CHILD node varsa onu qaytar.
+ *      CHILD yoxdursa HR-in setter üçün yaratdığı ROOT qaytarılır.
+ *   2) Tree-də yoxdursa, HR-in yaratdığı `SharedKpiCard` source hədəfi qaytarılır.
+ *      Köhnə demo/fallback dəyərlər istifadə edilmir.
  */
 export const getIncomingCascadeLoad = (
   assigneeName: string,
   excludeCardId?: number,
   match?: { cardName?: string; goalName?: string }
-): { value: number; unit: string; cardName: string } | null => {
+): { value: number; unit: string; cardName: string; goalName?: string } | null => {
   // 1) Cascade ağacında bu şəxsə yuxarıdan gələn node; yoxdursa HR-in yaratdığı root
   try {
     const newestFirst = (a: any, b: any) => (Number(b.updatedAt || b.createdAt) || 0) - (Number(a.updatedAt || a.createdAt) || 0);
     const personNodes = getCascadeNodes()
       .filter(n => n.assigneeName === assigneeName && (Number(n.limit) || 0) > 0)
       .sort(newestFirst);
-    const exactNodes = personNodes.filter(n =>
-      (!match?.cardName || n.cardName === match.cardName) &&
-      (!match?.goalName || n.goalName === match.goalName)
-    );
-    const pool = exactNodes.length > 0 ? exactNodes : personNodes;
-    const treeNode = pool.find(n => n.parentId !== null) || pool.find(n => n.parentId === null);
+    const treeNode = personNodes.find(n => n.parentId !== null) || personNodes.find(n => n.parentId === null);
     if (treeNode) {
-      return { value: Number(treeNode.limit) || 0, unit: treeNode.unit || "", cardName: treeNode.cardName };
+      return { value: Number(treeNode.limit) || 0, unit: treeNode.unit || "", cardName: treeNode.cardName, goalName: treeNode.goalName };
     }
   } catch {}
 
@@ -341,27 +335,23 @@ export const getIncomingCascadeLoad = (
         )
         .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
       for (const c of cards) {
+        let unit = "";
+        let goalName = "";
         const sum = (c.targets || []).reduce((s, t) => {
           if ((t as any).cascading === false) return s;
           const n = parseFloat(String((t as any).targetValue ?? (t as any).target ?? (t as any).value ?? "").replace(/[^\d.\-]/g, "")) || 0;
+          if (n > 0) {
+            if (!unit) unit = (t as any).unit || "";
+            if (!goalName) goalName = (t as any).name || "Ana hədəf";
+          }
           return s + n;
         }, 0);
-        if (sum > 0) return { value: sum, unit: (c.targets?.[0] as any)?.unit || "", cardName: c.name };
+        if (sum > 0) return { value: sum, unit, cardName: c.name, goalName };
       }
     }
   } catch {}
 
-  // 3) Fallback: köhnə davranış — başqa cascadable KpiSetEntry
-  const list = load().filter(e =>
-    e.assigneeName === assigneeName &&
-    e.cascadable &&
-    e.status === "completed" &&
-    (excludeCardId == null || e.cardId !== excludeCardId)
-  );
-  if (!list.length) return null;
-  const first = list[0];
-  const num = parseFloat(String(first.target).replace(/[^\d.\-]/g, "")) || 0;
-  return { value: num, unit: first.unit, cardName: first.cardName };
+  return null;
 };
 
 
