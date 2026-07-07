@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { useKpiLifecycles } from "@/lib/kpiLifecycleStore";
+import KpiScoresPage from "@/pages/KpiScoresPage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -104,13 +107,19 @@ const statusMeta: Record<KpiStatus, { label: string; cls: string }> = {
   delayed:     { label: "Gecikir",   cls: "bg-zone-red-bg text-zone-red-text hover:bg-zone-red-bg" },
 };
 
-type View = "hub" | "own" | "team" | "sub";
+type View = "hub" | "own" | "team" | "sub" | "reviews";
 
 const ManagerKpiTrackingPage = () => {
   const [view, setView] = useState<View>("hub");
   const { user } = useAuth();
   const tree = useCascadeTree();
   const sharedCards = useSharedKpiCards();
+  const lifecycles = useKpiLifecycles();
+  const [empKpisDialog, setEmpKpisDialog] = useState<{ empId: number; name: string } | null>(null);
+  const empKpisEmployee = useMemo(() => {
+    if (!empKpisDialog) return null;
+    return getEmployees().find(e => e.id === empKpisDialog.empId) || null;
+  }, [empKpisDialog]);
 
   // Cari istifadəçiyə cascade və Owner-tipli SharedKpiCard-lardan yaranan dinamik KPI-lar
   const dynamicMyKpis = useMemo<Kpi[]>(() => {
@@ -194,17 +203,40 @@ const ManagerKpiTrackingPage = () => {
         {view === "hub" && (
           <>
             <PageHero badge="Rəhbər Paneli" icon={Activity} title="KPI İzlənməsi" subtitle="Fərdi, komanda və tabeçilik KPI-larını fərqli baxış bucaqlarından izləyin." />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mt-2">
               <HubCard icon={User} title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." count={myKpis.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
               <HubCard icon={Users} title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." count={TEAM_KPIS.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("team")} />
               <HubCard icon={Network} title="Tabeçiliyimdəkilərin KPI-ları" subtitle="İyerarxik görünüş, mərhələ nəzarəti və gecikmə bildirişləri." count={HIERARCHY.length} gradient="from-amber-500/15 via-amber-500/5 to-transparent border-amber-400/40" onClick={() => setView("sub")} />
+              <HubCard icon={Clock} title="Reviewlar" subtitle="Hazırda Review mərhələsində olan bütün KPI kartları." count={lifecycles.filter(l => (l.reviews?.length ?? 0) > 0).length} gradient="from-sky-500/15 via-sky-500/5 to-transparent border-sky-400/40" onClick={() => setView("reviews")} />
             </div>
           </>
         )}
         {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} cascadeNodes={tree} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
-        {view === "sub" && <SubordinatesView scopePath={subScopePath} />}
+        {view === "sub" && (
+          <SubordinatesView
+            scopePath={subScopePath}
+            onOpenEmployeeKpis={(empId, name) => setEmpKpisDialog({ empId, name })}
+          />
+        )}
+        {view === "reviews" && (
+          <ReviewsView onOpenEmployeeKpis={(empId, name) => setEmpKpisDialog({ empId, name })} />
+        )}
       </main>
+
+      {/* Əməkdaşın KPI kartları — 👁 Bax axını (Nəticələr moduluyla eyni görünüş) */}
+      <Dialog open={!!empKpisDialog} onOpenChange={(o) => !o && setEmpKpisDialog(null)}>
+        <DialogContent className="w-[92vw] max-w-[1500px] h-[88vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
+            <DialogTitle className="text-xl">KPI kartları — {empKpisDialog?.name ?? "—"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {empKpisEmployee && (
+              <KpiScoresPage employeesOverride={[empKpisEmployee] as any} hideChrome />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -794,10 +826,12 @@ const buildEmpKpis = (empId: number): EmpKpi[] => {
   }).filter((_, i) => (h >> i) & 1 || i < 3); // at least 3
 };
 
+
 interface SubordinatesViewProps {
   scopePath?: string | null;
   actionsMode?: "tracking" | "results";
   onOpenEmployee?: (empId: number, name: string) => void;
+  onOpenEmployeeKpis?: (empId: number, name: string) => void;
   title?: string;
   subtitle?: string;
 }
@@ -806,6 +840,7 @@ export const SubordinatesView = ({
   scopePath,
   actionsMode = "tracking",
   onOpenEmployee,
+  onOpenEmployeeKpis,
   title = "Tabeçiliyimdəkilərin KPI-ları",
   subtitle = "Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları",
 }: SubordinatesViewProps = {}) => {
@@ -1038,7 +1073,11 @@ export const SubordinatesView = ({
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent align="end" className="w-56 p-1">
-                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
+                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => {
+                                  setOpenMenu(null);
+                                  if (onOpenEmployeeKpis && node.empId != null) onOpenEmployeeKpis(node.empId, node.name);
+                                  else openTab(node.id, "info");
+                                }} />
                                 <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
                                 <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
                                 <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
@@ -1378,5 +1417,150 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
   );
 };
 
+// ============================================================
+// REVIEWS VIEW — Lifecycle = Review olan bütün KPI kartları
+// ============================================================
+const ReviewsView = ({ onOpenEmployeeKpis }: { onOpenEmployeeKpis?: (empId: number, name: string) => void }) => {
+  const lifecycles = useKpiLifecycles();
+  const sharedCards = useSharedKpiCards();
+  const [q, setQ] = useState("");
+
+  const rows = useMemo(() => {
+    const emps = getEmployees();
+    const empByKey = new Map<string, ReturnType<typeof getEmployees>[number]>();
+    emps.forEach(e => empByKey.set(`e${e.id}`, e));
+
+    type Row = {
+      key: string; cardId: number; cardName: string; empId: number | null; empName: string;
+      dept: string; division: string; position: string;
+      reviewStart: string; updatedAt: string; progress: number;
+    };
+    const out: Row[] = [];
+
+    lifecycles.forEach(lc => {
+      if (!lc.reviews || lc.reviews.length === 0) return;
+      const reviewStart = lc.reviews[0]?.start || "";
+      const card = sharedCards.find(c => c.numericId === lc.cardId || c.id === String(lc.cardId));
+      const assignees = card?.assigneeIds ?? [];
+      if (assignees.length === 0) {
+        out.push({
+          key: `${lc.cardId}-none`, cardId: lc.cardId, cardName: lc.cardName,
+          empId: null, empName: "—", dept: "—", division: "—", position: "—",
+          reviewStart, updatedAt: lc.updatedAt?.slice(0, 10) || "—", progress: 0,
+        });
+        return;
+      }
+      assignees.forEach(aid => {
+        const e = empByKey.get(aid);
+        if (!e) return;
+        const path = (e.structurePath || "").split(" › ");
+        out.push({
+          key: `${lc.cardId}-${aid}`,
+          cardId: lc.cardId, cardName: lc.cardName,
+          empId: e.id, empName: `${e.firstName} ${e.lastName}`,
+          dept: path[0] || "—", division: path[1] || "—", position: e.positionName || "—",
+          reviewStart, updatedAt: lc.updatedAt?.slice(0, 10) || "—",
+          progress: 60 + ((hashStr(`${lc.cardId}-${aid}`)) % 40),
+        });
+      });
+    });
+
+    const s = q.trim().toLowerCase();
+    if (!s) return out;
+    return out.filter(r =>
+      r.cardName.toLowerCase().includes(s) ||
+      r.empName.toLowerCase().includes(s) ||
+      r.dept.toLowerCase().includes(s) ||
+      r.division.toLowerCase().includes(s) ||
+      r.position.toLowerCase().includes(s)
+    );
+  }, [lifecycles, sharedCards, q]);
+
+  return (
+    <div>
+      <PageHero
+        badge="Rəhbər Paneli"
+        icon={Clock}
+        title="Reviewlar"
+        subtitle="Hazırda Review mərhələsində olan bütün KPI kartları"
+      />
+
+      <div className="rounded-xl border border-border bg-card p-3 mb-3 flex items-center gap-3 flex-wrap">
+        <div className="flex-1" />
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Axtarış..."
+            className="w-64 pl-8 pr-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[1100px]">
+            <thead className="bg-secondary/40 text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">KPI kartı</th>
+                <th className="text-left px-4 py-3 font-medium">Əməkdaş (A.S.A.)</th>
+                <th className="text-left px-4 py-3 font-medium">Departament</th>
+                <th className="text-left px-4 py-3 font-medium">Şöbə</th>
+                <th className="text-left px-4 py-3 font-medium">Vəzifə</th>
+                <th className="text-center px-4 py-3 font-medium">Status</th>
+                <th className="text-center px-4 py-3 font-medium">Review başlanma</th>
+                <th className="text-center px-4 py-3 font-medium">Son yenilənmə</th>
+                <th className="text-left px-4 py-3 font-medium w-40">Progress</th>
+                <th className="text-right px-4 py-3 font-medium w-20">Əməliyyat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.key} className="border-t border-border hover:bg-secondary/20">
+                  <td className="px-4 py-2.5 font-medium text-foreground">{withKartSuffix(r.cardName)}</td>
+                  <td className="px-4 py-2.5 text-foreground">{r.empName}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.dept}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.division}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.position}</td>
+                  <td className="px-4 py-2.5 text-center">
+                    <Badge className="bg-sky-500/10 text-sky-700 hover:bg-sky-500/10">Review</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-center tabular-nums">{r.reviewStart || "—"}</td>
+                  <td className="px-4 py-2.5 text-center tabular-nums">{r.updatedAt}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                        <div className={`h-full ${r.progress >= 90 ? "bg-emerald-500" : r.progress >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
+                          style={{ width: `${Math.min(r.progress, 100)}%` }} />
+                      </div>
+                      <span className="text-xs tabular-nums font-medium w-9 text-right">{r.progress}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      disabled={r.empId == null}
+                      onClick={() => { if (r.empId != null) onOpenEmployeeKpis?.(r.empId, r.empName); }}
+                      className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      aria-label="KPI-yə bax"
+                      title="KPI-yə bax"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Hazırda Review mərhələsində olan KPI kartı yoxdur.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default ManagerKpiTrackingPage;
+
 
