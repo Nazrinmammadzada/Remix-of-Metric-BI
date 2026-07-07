@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useCascadeAssignments, emptyLimits, type CascadeSlice, type CascadeAssignment } from "@/lib/cascadingStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { withKartSuffix } from "@/lib/utils";
 
 type ExecStatus = "completed" | "in_progress" | "pending" | "overdue";
 
