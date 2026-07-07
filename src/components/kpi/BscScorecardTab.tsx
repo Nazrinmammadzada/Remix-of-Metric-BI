@@ -164,7 +164,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
                 sk.assigner ||
                 sk.assignerFromSet ||
                 (sk.evaluator?.persons?.length ? sk.evaluator.persons.map((p: any) => p.name).join(", ") : null);
-              const limits: LimitSet | undefined = sk.limits || (sk.target ? suggestLimitsFromTarget(sk.target) : undefined);
+              const limits: LimitSet | undefined = sk.limits;
               return (
                 <div key={sk.id} className="px-3 py-3">
                   <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
