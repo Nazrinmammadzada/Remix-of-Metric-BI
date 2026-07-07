@@ -203,17 +203,40 @@ const ManagerKpiTrackingPage = () => {
         {view === "hub" && (
           <>
             <PageHero badge="Rəhbər Paneli" icon={Activity} title="KPI İzlənməsi" subtitle="Fərdi, komanda və tabeçilik KPI-larını fərqli baxış bucaqlarından izləyin." />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mt-2">
               <HubCard icon={User} title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." count={myKpis.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
               <HubCard icon={Users} title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." count={TEAM_KPIS.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("team")} />
               <HubCard icon={Network} title="Tabeçiliyimdəkilərin KPI-ları" subtitle="İyerarxik görünüş, mərhələ nəzarəti və gecikmə bildirişləri." count={HIERARCHY.length} gradient="from-amber-500/15 via-amber-500/5 to-transparent border-amber-400/40" onClick={() => setView("sub")} />
+              <HubCard icon={Clock} title="Reviewlar" subtitle="Hazırda Review mərhələsində olan bütün KPI kartları." count={lifecycles.filter(l => (l.reviews?.length ?? 0) > 0).length} gradient="from-sky-500/15 via-sky-500/5 to-transparent border-sky-400/40" onClick={() => setView("reviews")} />
             </div>
           </>
         )}
         {view === "own" && <OwnKpisView title="Mənim KPI-larım" subtitle="Sizə aid fərdi hədəflər və onların icra vəziyyəti." data={myKpis} cascadeNodes={tree} />}
         {view === "team" && <OwnKpisView title="Komanda KPI-ları" subtitle="Toplu (kollektiv) hədəflər — komanda olaraq eyni nəticə." data={TEAM_KPIS} />}
-        {view === "sub" && <SubordinatesView scopePath={subScopePath} />}
+        {view === "sub" && (
+          <SubordinatesView
+            scopePath={subScopePath}
+            onOpenEmployeeKpis={(empId, name) => setEmpKpisDialog({ empId, name })}
+          />
+        )}
+        {view === "reviews" && (
+          <ReviewsView onOpenEmployeeKpis={(empId, name) => setEmpKpisDialog({ empId, name })} />
+        )}
       </main>
+
+      {/* Əməkdaşın KPI kartları — 👁 Bax axını (Nəticələr moduluyla eyni görünüş) */}
+      <Dialog open={!!empKpisDialog} onOpenChange={(o) => !o && setEmpKpisDialog(null)}>
+        <DialogContent className="w-[92vw] max-w-[1500px] h-[88vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
+            <DialogTitle className="text-xl">KPI kartları — {empKpisDialog?.name ?? "—"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {empKpisEmployee && (
+              <KpiScoresPage employeesOverride={[empKpisEmployee] as any} hideChrome />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
