@@ -1090,9 +1090,19 @@ const SeasonToggle = () => {
   );
 };
 
+type EvalSection = "teyinat" | "status" | "kataloq" | "parametr";
+
+const SECTIONS: { k: EvalSection; l: string; desc: string; icon: any; accent: string }[] = [
+  { k: "teyinat",  l: "Qiymətləndirənlər", desc: "Qiymətləndirənləri təyin edin və idarə edin", icon: UserCheck,     accent: "from-primary/15 to-primary/5 text-primary" },
+  { k: "status",   l: "Status izləmə",     desc: "Fərdi, komanda və struktur üzrə status",       icon: ListChecks,    accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600" },
+  { k: "kataloq",  l: "Meyarlar kataloqu", desc: "Qiymətləndirmə meyarlarını idarə edin",        icon: ClipboardList, accent: "from-amber-500/15 to-amber-500/5 text-amber-600" },
+  { k: "parametr", l: "Parametrlər",       desc: "Bal aralıqları və digər parametrlər",          icon: Settings2,     accent: "from-sky-500/15 to-sky-500/5 text-sky-600" },
+];
+
 const EvaluationPage = () => {
-  const [tab, setTab] = useState<"teyinat" | "status" | "kataloq" | "parametr">("teyinat");
+  const [section, setSection] = useState<EvalSection | null>(null);
   const [, force] = useState(0);
+  const active = SECTIONS.find(s => s.k === section);
   return (
     <div className="min-h-screen">
       <Header title="Qiymətləndirmə" />
@@ -1100,16 +1110,16 @@ const EvaluationPage = () => {
       <PageHero
         badge="HR · Qiymətləndirmə"
         title="Qiymətləndirmə"
-        subtitle="Qiymətləndirici və hədəf əməkdaşları HR təyin edir, meyarlar kataloqdan seçilir."
+        subtitle="Qiymətləndirənləri təyin edin, meyarlar kataloqunu idarə edin və statusu izləyin."
         icon={ClipboardList}
         right={
           <div className="flex items-center gap-2">
             <ExportMenu
               getData={() => ({
-                title: `Qiymətləndirmə təyinatları (${CURRENT_CYCLE_ID})`,
+                title: `Qiymətləndirənlər (${CURRENT_CYCLE_ID})`,
                 headers: ["Ad", "Departament", "Vəzifə"],
                 rows: mockEmployees.map(e => [e.fullName, e.department, e.position]),
-                fileName: `qiymetlendirme-teyinat-${CURRENT_CYCLE_ID}`,
+                fileName: `qiymetlendirenler-${CURRENT_CYCLE_ID}`,
               })}
             />
             <ManualAssignmentDialog onCreated={() => force(t => t + 1)} />
@@ -1117,24 +1127,54 @@ const EvaluationPage = () => {
         }
       />
 
-      <div className="flex gap-1 border-b border-border mb-6">
-        {[
-          { k: "teyinat", l: "Təyinatlar" },
-          { k: "status", l: "Status izləmə" },
-          { k: "kataloq", l: "Meyarlar kataloqu" },
-          { k: "parametr", l: "Parametrlər" },
-        ].map(t => (
-          <button key={t.k} onClick={() => setTab(t.k as typeof tab)}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${tab === t.k ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-            {t.l}
-          </button>
-        ))}
-      </div>
-
-      {tab === "teyinat" && <AssignmentsTab />}
-      {tab === "status" && <StatusTab />}
-      {tab === "kataloq" && <CriteriaTab />}
-      {tab === "parametr" && <SettingsTab />}
+      {section === null ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {SECTIONS.map(s => {
+            const Icon = s.icon;
+            return (
+              <button key={s.k} onClick={() => setSection(s.k)}
+                className={`group text-left rounded-2xl border border-border bg-gradient-to-br ${s.accent} p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all`}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-11 h-11 rounded-xl bg-background/70 backdrop-blur flex items-center justify-center">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <p className="text-base font-semibold text-foreground">{s.l}</p>
+                <p className="text-xs text-muted-foreground mt-1">{s.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <button onClick={() => setSection(null)}
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeftCircle className="w-4 h-4" /> Bütün bölmələr
+            </button>
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+              {SECTIONS.map(s => {
+                const activeK = section === s.k;
+                return (
+                  <button key={s.k} onClick={() => setSection(s.k)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeK ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    {s.l}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mb-2">
+            {active?.icon && <active.icon className="w-5 h-5 text-primary" />}
+            <h2 className="text-lg font-semibold text-foreground">{active?.l}</h2>
+          </div>
+          {section === "teyinat" && <AssignmentsTab />}
+          {section === "status" && <StatusTab />}
+          {section === "kataloq" && <CriteriaTab />}
+          {section === "parametr" && <SettingsTab />}
+        </div>
+      )}
       </div>
     </div>
   );
