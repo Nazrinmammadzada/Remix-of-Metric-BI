@@ -21,7 +21,7 @@ import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
 import { LayoutGrid, List, Briefcase, Copy, Eye } from "lucide-react";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
-import { getLimitsFor, getEntriesForCard, addPendingEntry } from "@/lib/kpiSetStore";
+import { getLimitsFor, getEntriesForCard, addPendingEntry, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
@@ -79,6 +79,10 @@ interface SubKpi {
   /** "other" rejimində min/max çəki — verildikdə təyin edən bu aralıqda dəyər yazmalıdır */
   weightMin?: number;
   weightMax?: number;
+  /** Wizard-dan gələn qiymət limitləri (Balanced Scorecard-da göstərilir) */
+  limits?: LimitSet;
+  /** Qiymət-təsvir sətirləri (İcra / Fərdi İnkişaf / Zaman) */
+  scoreDescriptions?: ScoreDescRow[];
 }
 
 interface KpiCard {
@@ -110,6 +114,8 @@ interface KpiCard {
   subKpis?: SubKpi[];
   isPersonal?: boolean;
   frozen?: boolean;
+  /** Təsdiqləmə matrisinin id-si (varsa) — "Təsdiqləmə Zənciri" tabının göstərilməsini idarə edir */
+  matrixId?: string | null;
 }
 
 const initialKpiCards: KpiCard[] = [
@@ -597,6 +603,64 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const id = editingId ?? Math.max(Date.now(), Math.max(0, ...kpiCards.map(c => c.id)) + 1);
     const prevStatus = editingId != null ? statusMap[editingId]?.status : undefined;
     const wasRejected = prevStatus === "imtina";
+    // === Helpers ===
+    const stripNameLoc = (v: string) => String(v || "").split(" — ")[0].trim();
+    // Wizard ranges → 5 tier LimitSet (bal 1..5)
+    const rangesToLimitSet = (ranges?: { min: string; max: string; score: string }[]): LimitSet | undefined => {
+      if (!ranges || ranges.length === 0) return undefined;
+      const zero = { min: 0, max: 0 };
+      const map: LimitSet = { l1: { ...zero }, l2: { ...zero }, l3: { ...zero }, l4: { ...zero }, l5: { ...zero } };
+      let touched = false;
+      ranges.forEach(r => {
+        const s = Number(r.score);
+        if (!Number.isFinite(s) || s < 1 || s > 5) return;
+        const key = (`l${s}` as keyof LimitSet);
+        map[key] = { min: Number(r.min) || 0, max: Number(r.max) || 0 };
+        touched = true;
+      });
+      return touched ? map : undefined;
+    };
+    // Build subKpis from wizard targets
+    const wizardSubKpis: SubKpi[] = (d.targets || []).map((t: any, i: number) => ({
+      id: i + 1,
+      name: t.name || `Hədəf ${i + 1}`,
+      target: String(t.targetValue ?? ""),
+      unit: t.type === "Məbləğ" ? (t.currency || "AZN") : t.type === "Faiz" ? "%" : "",
+      weight: Number(t.weight) || 0,
+      current: "",
+      progress: 0,
+      assignerMode: t.createdBy === "other" ? "other" : "self",
+      assigner: t.assigner ? stripNameLoc(t.assigner) : undefined,
+      evaluator: t.evaluators && t.evaluators.length
+        ? { type: "person", persons: t.evaluators.map((e: any) => ({ name: stripNameLoc(e.name), weight: Number(e.weight) || 0 })) }
+        : undefined,
+      limits: rangesToLimitSet(t.ranges),
+      scoreDescriptions: (t.scoreDescriptions || []).map((s: any) => ({
+        score: Number(s.score) || 0,
+        description: s.description || "",
+        timeStart: s.timeStart,
+        timeEnd: s.timeEnd,
+      })),
+    } as SubKpi));
+    // Team = unique participants (assigner + evaluators)
+    const teamMap = new Map<string, { name: string; role: string; avatar: string }>();
+    (d.targets || []).forEach((t: any) => {
+      const push = (raw: string, role: string) => {
+        const n = stripNameLoc(raw);
+        if (!n || teamMap.has(n)) return;
+        teamMap.set(n, { name: n, role, avatar: n[0]?.toUpperCase() || "?" });
+      };
+      if (t.assigner) push(t.assigner, "Təyin edici");
+      (t.evaluators || []).forEach((e: any) => push(e.name, "Qiymətləndirici"));
+    });
+    // Owner (kart sahibi) — birinci üzv kimi
+    const ownerName = d.createdBy === "self" ? "Özüm" : (d.createdByEmployee || "");
+    const ownerNameClean = stripNameLoc(ownerName);
+    if (ownerNameClean && !teamMap.has(ownerNameClean)) {
+      teamMap.set(ownerNameClean, { name: ownerNameClean, role: "Kart sahibi", avatar: ownerNameClean[0]?.toUpperCase() || "?" });
+    }
+    const wizardTeam = Array.from(teamMap.values());
+
     const builtCard: KpiCard = {
       id, name: d.name, icon: Target, zone: "yellow",
       target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
@@ -606,9 +670,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       department: "—", group: "—", subdivision: "—",
       startDate: d.startDate || "", endDate: d.endDate || "",
       frequency: d.frequency,
-      team: [], history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
+      team: wizardTeam, history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
       weight: 10, approvalStatus: action === "create_active" ? "approved" : "pending",
-      subKpis: [],
+      subKpis: wizardSubKpis,
+      matrixId: d.useMatrix ? (d.approvalMatrixId || null) : null,
     };
     setKpiCards(prev => {
       if (editingId != null) {
@@ -618,6 +683,20 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     });
     setCardDrafts(prev => ({ ...prev, [id]: d }));
     setWizardEditingId(null);
+
+    // Wizard-dan gələn lifecycle məlumatını kart daxilində göstərmək üçün saxla
+    try {
+      const lc = d.lifecycle;
+      const hasLifecycle = !!(lc && (lc.assignmentStart || lc.assignmentEnd || lc.evaluationStart || lc.evaluationEnd || lc.bonusStart || lc.bonusEnd || (lc.reviews && lc.reviews.length)));
+      if (hasLifecycle) {
+        setCardLifecycle(id, d.name, {
+          assignment: (lc!.assignmentStart || lc!.assignmentEnd) ? { period: d.frequency || "Aylıq", start: lc!.assignmentStart || "", end: lc!.assignmentEnd || "" } : undefined,
+          evaluation: (lc!.evaluationStart || lc!.evaluationEnd) ? { period: d.frequency || "Aylıq", start: lc!.evaluationStart || "", end: lc!.evaluationEnd || "" } : undefined,
+          bonus: (lc!.bonusStart || lc!.bonusEnd) ? { period: d.frequency || "Aylıq", start: lc!.bonusStart || "", end: lc!.bonusEnd || "" } : undefined,
+          reviews: (lc!.reviews || []).map((r: any, i: number) => ({ id: r.id || `r-${i}`, period: "Review", start: r.start || "", end: r.end || "" })),
+        });
+      }
+    } catch (err) { console.warn("lifecycle save failed", err); }
 
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
@@ -1785,9 +1864,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               })()}
 
               <div className="flex gap-2 border-b border-border overflow-x-auto">
-                {([["general", "Ümumi"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["history", "Tarixçə"], ["team", "KPI Üzvləri"], ["comments", "Şərhlər"], ["status", "Təsdiqləmə Zənciri"], ["setStatus", "Set Statusu"]] as const).map(([key, label]) => (
-                  <button key={key} onClick={() => setDetailTab(key)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
-                ))}
+                {(() => {
+                  const hasMatrix = !!selectedKpi.matrixId;
+                  const allTabs = [["general", "Ümumi"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["history", "Tarixçə"], ["team", "KPI Üzvləri"], ["comments", "Şərhlər"], ["status", "Təsdiqləmə Zənciri"], ["setStatus", "Set Statusu"]] as const;
+                  const tabs = allTabs.filter(([k]) => k !== "status" || hasMatrix);
+                  return tabs.map(([key, label]) => (
+                    <button key={key} onClick={() => setDetailTab(key as any)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
+                  ));
+                })()}
               </div>
               </div>
 
