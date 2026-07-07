@@ -27,8 +27,9 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showLang, setShowLang] = useState(false);
-  const [lang, setLang] = useState<"AZ" | "ENG" | "RU" | "UZ">(() => {
-    return (localStorage.getItem("kpi_lang") as any) || "AZ";
+  const [lang, setLang] = useState<"AZ" | "ENG" | "RU">(() => {
+    const saved = localStorage.getItem("kpi_lang") as any;
+    return saved && saved !== "UZ" ? saved : "AZ";
   });
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
