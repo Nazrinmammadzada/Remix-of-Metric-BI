@@ -265,7 +265,7 @@ const KpiLifecyclePage = () => {
         <Dialog open={!!loadDialog} onOpenChange={(o) => !o && setLoadDialog(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Şablondan yüklə — {loadDialog?.cardName}</DialogTitle>
+              <DialogTitle>Şablondan yüklə — {loadDialog ? withKartSuffix(loadDialog.cardName) : ""}</DialogTitle>
             </DialogHeader>
             {templates.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">Hələ heç bir şablon yoxdur.</div>
