@@ -691,19 +691,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     setCardDrafts(prev => ({ ...prev, [id]: d }));
     setWizardEditingId(null);
 
-    // Wizard-dan gələn lifecycle məlumatını kart daxilində göstərmək üçün saxla
-    try {
-      const lc = d.lifecycle;
-      const hasLifecycle = !!(lc && (lc.assignmentStart || lc.assignmentEnd || lc.evaluationStart || lc.evaluationEnd || lc.bonusStart || lc.bonusEnd || (lc.reviews && lc.reviews.length)));
-      if (hasLifecycle) {
-        setCardLifecycle(id, d.name, {
-          assignment: (lc!.assignmentStart || lc!.assignmentEnd) ? { period: d.frequency || "Aylıq", start: lc!.assignmentStart || "", end: lc!.assignmentEnd || "" } : undefined,
-          evaluation: (lc!.evaluationStart || lc!.evaluationEnd) ? { period: d.frequency || "Aylıq", start: lc!.evaluationStart || "", end: lc!.evaluationEnd || "" } : undefined,
-          bonus: (lc!.bonusStart || lc!.bonusEnd) ? { period: d.frequency || "Aylıq", start: lc!.bonusStart || "", end: lc!.bonusEnd || "" } : undefined,
-          reviews: (lc!.reviews || []).map((r: any, i: number) => ({ id: r.id || `r-${i}`, period: "Review", start: r.start || "", end: r.end || "" })),
-        });
-      }
-    } catch (err) { console.warn("lifecycle save failed", err); }
+
+
 
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
