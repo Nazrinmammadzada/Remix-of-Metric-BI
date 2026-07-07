@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Columns, ChevronDown, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -412,8 +412,8 @@ export function DataTable<T>({
               const k = rowKey(row);
               const isOpen = expandedKey === k;
               return (
-                <>
-                  <tr key={k} className="border-t border-border hover:bg-secondary/30">
+                <Fragment key={k}>
+                  <tr className="border-t border-border hover:bg-secondary/30">
                     {renderExpandedRow && (
                       <td className="px-2 py-2 align-top" style={{ width: 36, minWidth: 36 }}>
                         <button
