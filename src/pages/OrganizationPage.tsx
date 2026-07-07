@@ -33,7 +33,16 @@ import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
 import { collectDeactivationReasons } from "@/lib/employeeDeactivation";
 import DeactivateEmployeeDialog from "@/components/kpi/DeactivateEmployeeDialog";
-import ChangeLeaderDialog from "@/components/kpi/ChangeLeaderDialog";
+// Rəhbəri dəyiş axını daha modal açmır — birbaşa Ştat cədvəlində tac ikonu klik ilə həll olunur.
+
+// ── Rəhbəri dəyiş konteksti: Ştat cədvəlində tac klikini müvəqqəti olaraq
+// leader-swap əməliyyatına yönləndirir. Yalnız `changeLeaderFor` aktiv olduqda tətbiq olunur.
+interface LeaderChangeCtxValue {
+  oldLeaderId: number;
+  leaderInfo: LeaderStructInfo;
+  onPick: (newEmpId: number, sourceSlotId: number) => void;
+}
+const LeaderChangeCtx = createContext<LeaderChangeCtxValue | null>(null);
 
 // One-time reset so employee table columns appear in code-defined order
 if (!localStorage.getItem("__org_emp_order_fixed")) {
