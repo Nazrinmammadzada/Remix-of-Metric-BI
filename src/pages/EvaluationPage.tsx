@@ -738,155 +738,315 @@ const SettingsTab = () => {
 };
 
 
-const StatusTab = () => {
-  const [deptFilter, setDeptFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const evalStatusLabels = useCatalogValues("evaluation_statuses", ["Tamamlanıb", "Gözləyir"]);
-  const [search, setSearch] = useState("");
-  const [cf, setCf] = useState<Record<string, string>>({});
-  const setCol = (k: string, v: string) => setCf(p => ({ ...p, [k]: v }));
+// =============== Status İzləmə — 3 sub-tab (Fərdi / Komanda / Struktur) ===============
+import { Eye } from "lucide-react";
+import { getSharedKpiCards, type SharedKpiCard } from "@/lib/kpiCardStore";
+import { mockStructures, mockTeams } from "@/data/mockExtras";
 
-  const assignments = useMemo(() => buildPeerAssignments(CURRENT_CYCLE_ID), []);
-  const rows = useMemo(() => {
-    return mockEmployees
-      .filter(e => assignments[e.id]?.length > 0)
-      .map(e => {
-        const submitted = hasReviewerSubmitted(e.id, CURRENT_CYCLE_ID);
-        return { ...e, submitted, peers: assignments[e.id] };
+type StatusScope = "individual" | "team" | "structure";
+
+interface StatusGroup {
+  key: string;
+  name: string;
+  subtitle?: string;
+  cards: SharedKpiCard[];
+  goalCount: number;
+  members?: { id: string; name: string; position?: string }[];
+}
+
+const hash = (s: string) => {
+  let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
+
+const employeeName = (id: string): string => {
+  const e = mockEmployees.find(x => x.id === id);
+  return e?.fullName || id;
+};
+const employeePosition = (id: string): string => {
+  const e = mockEmployees.find(x => x.id === id);
+  return e?.position || "";
+};
+
+const buildGroups = (scope: StatusScope): StatusGroup[] => {
+  const cards = getSharedKpiCards().filter(c => c.status !== "imtina");
+  if (scope === "individual") {
+    // Fərdi: teamIds && structureIds boş olan kartlar
+    const map = new Map<string, StatusGroup>();
+    cards.filter(c => (!c.teamIds || c.teamIds.length === 0) && (!c.structureIds || c.structureIds.length === 0))
+      .forEach(c => {
+        c.assigneeIds.forEach(aid => {
+          const g = map.get(aid) || { key: aid, name: employeeName(aid), subtitle: employeePosition(aid), cards: [], goalCount: 0 };
+          g.cards.push(c);
+          g.goalCount += c.targets.length;
+          map.set(aid, g);
+        });
       });
-  }, [assignments]);
-
-  const departments = Array.from(new Set(mockEmployees.map(e => e.department)));
-
-  const filtered = rows.filter(r => {
-    if (deptFilter !== "all" && r.department !== deptFilter) return false;
-    if (statusFilter === "done" && !r.submitted) return false;
-    if (statusFilter === "pending" && r.submitted) return false;
-    if (search && !r.fullName.toLowerCase().includes(search.toLowerCase())) return false;
-    const l = (s: string) => s.toLowerCase();
-    if (cf.name && !l(r.fullName).includes(l(cf.name))) return false;
-    if (cf.dept && !l(r.department).includes(l(cf.dept))) return false;
-    if (cf.status) {
-      const st = r.submitted ? "tamamlanıb" : "gözləyir";
-      if (!st.includes(l(cf.status))) return false;
-    }
-    return true;
+    return Array.from(map.values());
+  }
+  if (scope === "team") {
+    const map = new Map<string, StatusGroup>();
+    cards.filter(c => c.teamIds && c.teamIds.length > 0).forEach(c => {
+      c.teamIds.forEach(tid => {
+        const team = mockTeams.find(t => t.id === tid);
+        const g = map.get(tid) || {
+          key: tid,
+          name: team?.name || tid,
+          subtitle: team ? `${team.memberIds.length} üzv` : undefined,
+          cards: [], goalCount: 0,
+          members: team?.memberIds.map(mid => ({ id: mid, name: employeeName(mid), position: employeePosition(mid) })),
+        };
+        g.cards.push(c);
+        g.goalCount += c.targets.length;
+        map.set(tid, g);
+      });
+    });
+    return Array.from(map.values());
+  }
+  // structure
+  const map = new Map<string, StatusGroup>();
+  cards.filter(c => c.structureIds && c.structureIds.length > 0).forEach(c => {
+    c.structureIds.forEach(sid => {
+      const st = mockStructures.find(s => s.id === sid);
+      const members = mockTeams.filter(t => t.structureId === sid).flatMap(t => t.memberIds);
+      const uniqueMembers = Array.from(new Set(members));
+      const g = map.get(sid) || {
+        key: sid,
+        name: st?.name || sid,
+        subtitle: `${uniqueMembers.length} əməkdaş`,
+        cards: [], goalCount: 0,
+        members: uniqueMembers.map(mid => ({ id: mid, name: employeeName(mid), position: employeePosition(mid) })),
+      };
+      g.cards.push(c);
+      g.goalCount += c.targets.length;
+      map.set(sid, g);
+    });
   });
+  return Array.from(map.values());
+};
 
-  const buildExportData = () => ({
-    title: `Qiymətləndirmə statusu (${CURRENT_CYCLE_ID})`,
-    headers: ["Ad", "Departament", "Vəzifə", "Status", "Həmkar 1", "Həmkar 2", "Aldığı qiymətlər"],
-    rows: filtered.map(r => {
-      const reviews = getReviewsForReviewee(r.id, CURRENT_CYCLE_ID);
-      return [
-        r.fullName, r.department, r.position,
-        r.submitted ? "Tamamlanıb" : "Gözləyir",
-        r.peers[0]?.fullName || "",
-        r.peers[1]?.fullName || "",
-        reviews.length,
-      ];
-    }),
-    fileName: `qiymetlendirme-${CURRENT_CYCLE_ID}`,
-  });
+const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | null; scope: StatusScope; onClose: () => void }) => {
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [showMembers, setShowMembers] = useState(false);
+  useEffect(() => {
+    if (group && group.cards.length > 0) setSelectedCardId(group.cards[0].id);
+    else setSelectedCardId(null);
+    setShowMembers(false);
+  }, [group?.key]);
+  if (!group) return null;
+  const card = group.cards.find(c => c.id === selectedCardId) || group.cards[0];
+  return (
+    <Dialog open={!!group} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-primary" />
+            {group.name}
+          </DialogTitle>
+          <DialogDescription>
+            {group.cards.length} KPI kartı · {group.goalCount} hədəf
+            {group.subtitle && ` · ${group.subtitle}`}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">KPI kartları</p>
+              {scope !== "individual" && group.members && group.members.length > 0 && (
+                <button onClick={() => setShowMembers(v => !v)}
+                  className="text-[11px] text-primary hover:underline">
+                  {showMembers ? "Kartlara qayıt" : scope === "team" ? "Komanda üzvlərinə bax" : "Strukturdakı əməkdaşlar"}
+                </button>
+              )}
+            </div>
+            {!showMembers ? (
+              <div className="border border-border rounded-xl divide-y divide-border max-h-96 overflow-y-auto">
+                {group.cards.map(c => {
+                  const active = c.id === card.id;
+                  return (
+                    <button key={c.id} onClick={() => setSelectedCardId(c.id)}
+                      className={`w-full text-left px-3 py-2.5 transition-colors ${active ? "bg-primary/10" : "hover:bg-muted/40"}`}>
+                      <p className={`text-sm font-medium truncate ${active ? "text-primary" : "text-foreground"}`}>{c.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{c.targets.length} hədəf · {c.frequency}</p>
+                    </button>
+                  );
+                })}
+                {group.cards.length === 0 && <div className="p-6 text-center text-xs text-muted-foreground">Kart yoxdur</div>}
+              </div>
+            ) : (
+              <div className="border border-border rounded-xl divide-y divide-border max-h-96 overflow-y-auto">
+                {group.members?.map(m => (
+                  <div key={m.id} className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">{getInitials(m.name)}</div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{m.position}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="col-span-12 md:col-span-8">
+            {card ? (
+              <div className="border border-border rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/30">
+                  <p className="text-sm font-semibold text-foreground">{card.name}</p>
+                  <p className="text-[11px] text-muted-foreground">Dövr: {card.startDate} — {card.endDate}</p>
+                </div>
+                <div className="divide-y divide-border max-h-96 overflow-y-auto">
+                  {card.targets.map((t, ti) => {
+                    const evaluators = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
+                    return (
+                      <div key={t.id} className="p-3 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">{t.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{t.type} · çəki {t.weight}%</p>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          {evaluators.map((eid, ei) => {
+                            const h = hash(card.id + t.id + eid);
+                            const done = (h + ti + ei) % 3 !== 0;
+                            const score = done ? 1 + (h % t.scoreLimit) : null;
+                            const day = 5 + (h % 22);
+                            const date = done ? `2026-01-${String(day).padStart(2, "0")}` : null;
+                            return (
+                              <div key={eid} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2">
+                                <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                  {getInitials(employeeName(eid))}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-medium text-foreground truncate">{employeeName(eid)}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{employeePosition(eid)}</p>
+                                </div>
+                                {done ? (
+                                  <>
+                                    <Badge className="gap-1 bg-primary/15 text-primary hover:bg-primary/20 h-6">
+                                      <Star className="w-3 h-3" /> {score}/{t.scoreLimit}
+                                    </Badge>
+                                    <span className="text-[10px] text-muted-foreground shrink-0">{date}</span>
+                                    <Badge variant="secondary" className="gap-1 h-6"><CheckCircle2 className="w-3 h-3 text-primary" /> Qiymətləndirib</Badge>
+                                  </>
+                                ) : (
+                                  <Badge variant="secondary" className="gap-1 h-6"><XCircle className="w-3 h-3" /> Gözləyir</Badge>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">Kart seçilməyib</div>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Bağla</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const StatusTab = () => {
+  const [subTab, setSubTab] = useState<StatusScope>("individual");
+  const [search, setSearch] = useState("");
+  const [openGroup, setOpenGroup] = useState<StatusGroup | null>(null);
+  const [, force] = useState(0);
+  useEffect(() => {
+    const r = () => force(t => t + 1);
+    window.addEventListener("shared-kpi-cards-updated", r);
+    return () => window.removeEventListener("shared-kpi-cards-updated", r);
+  }, []);
+  const groups = useMemo(() => buildGroups(subTab), [subTab]);
+  const filtered = groups.filter(g => !search.trim() || g.name.toLowerCase().includes(search.toLowerCase()));
+
+  const label = subTab === "individual" ? "Əməkdaş" : subTab === "team" ? "Komanda" : "Struktur";
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2 border border-border rounded-xl bg-card p-1 w-fit">
+        {[
+          { k: "individual" as const, l: "Fərdi", icon: UserCheck },
+          { k: "team" as const, l: "Komanda", icon: Users },
+          { k: "structure" as const, l: "Struktur", icon: ListChecks },
+        ].map(t => {
+          const Icon = t.icon;
+          const active = subTab === t.k;
+          return (
+            <button key={t.k} onClick={() => setSubTab(t.k)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}>
+              <Icon className="w-4 h-4" /> {t.l}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Ad axtar..." className="pl-9 w-56" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={`${label} axtar...`} className="pl-9 w-64" />
         </div>
-        <Select value={deptFilter} onValueChange={setDeptFilter}>
-          <SelectTrigger className="w-44"><Filter className="w-3.5 h-3.5 mr-1" /><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Bütün departamentlər</SelectItem>
-            {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Bütün statuslar</SelectItem>
-            <SelectItem value="done">{evalStatusLabels[0] ?? "Tamamlanıb"}</SelectItem>
-            <SelectItem value="pending">{evalStatusLabels[1] ?? "Gözləyir"}</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="ml-auto">
-          <ExportMenu getData={buildExportData} />
-        </div>
+        <Badge variant="secondary" className="ml-auto">{filtered.length} nəticə</Badge>
       </div>
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th data-col="name" className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Qiymətləndirilən əməkdaş" value={cf.name || ""} onChange={v => setCol("name", v)} /></th>
-              <th data-col="dept" className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Departament" value={cf.dept || ""} onChange={v => setCol("dept", v)} /></th>
-              <th data-col="peer360" className="px-4 py-3 text-left">360 üzrə təyin olunmuş həmkarlar</th>
-              <th data-col="peerTarget" className="px-4 py-3 text-left">Hədəf üzrə təyin olunmuş həmkarlar</th>
-              <th data-col="status" className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Status" value={cf.status || ""} onChange={v => setCol("status", v)} /></th>
+              <th className="px-4 py-3 text-left">{label} adı</th>
+              <th className="px-4 py-3 text-left">KPI kartlarının sayı</th>
+              <th className="px-4 py-3 text-left">Hədəflərin sayı</th>
+              <th className="px-4 py-3 text-right">Bax</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r, idx) => {
-              // Mock target evaluators based on index — some completed, some pending
-              const targetEvaluators = [
-                { name: "Samir Həsənov", done: idx % 2 === 0 },
-                { name: "Leyla Məmmədova", done: idx % 3 !== 0 },
-              ];
-              const peerStatuses = r.peers.map((p, i) => ({ name: p.fullName, done: (idx + i) % 2 === 0 }));
-              const allDone = peerStatuses.every(p => p.done) && targetEvaluators.every(t => t.done);
-              return (
-              <tr key={r.id} className="border-t border-border hover:bg-muted/20">
-                <td data-col="name" className="px-4 py-3">
+            {filtered.map(g => (
+              <tr key={g.key} className="border-t border-border hover:bg-muted/20">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">{getInitials(r.fullName)}</div>
+                    <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">
+                      {getInitials(g.name)}
+                    </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{r.fullName}</p>
-                      <p className="text-xs text-muted-foreground">{r.position}</p>
+                      <p className="text-sm font-medium text-foreground">{g.name}</p>
+                      {g.subtitle && <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>}
                     </div>
                   </div>
                 </td>
-                <td data-col="dept" className="px-4 py-3 text-xs text-muted-foreground">{r.department}</td>
-                <td data-col="peer360" className="px-4 py-3 text-xs">
-                  <div className="space-y-1">
-                    {peerStatuses.map((p, i) => (
-                      <div key={i} className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${p.done ? "bg-success" : "bg-destructive"}`} />
-                        <span className="text-foreground">{p.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                <td className="px-4 py-3">
+                  <Badge variant="secondary">{g.cards.length}</Badge>
                 </td>
-                <td data-col="peerTarget" className="px-4 py-3 text-xs">
-                  <div className="space-y-1">
-                    {targetEvaluators.map((t, i) => (
-                      <div key={i} className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${t.done ? "bg-success" : "bg-destructive"}`} />
-                        <span className="text-foreground">{t.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                <td className="px-4 py-3">
+                  <Badge variant="secondary">{g.goalCount}</Badge>
                 </td>
-                <td data-col="status" className="px-4 py-3">
-                  {allDone ? (
-                    <Badge className="gap-1 bg-primary/15 text-primary hover:bg-primary/20"><CheckCircle2 className="w-3 h-3" /> Tamamlanıb</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="gap-1"><XCircle className="w-3 h-3" /> Gözləyir</Badge>
-                  )}
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => setOpenGroup(g)}>
+                    <Eye className="w-4 h-4" /> Bax
+                  </Button>
                 </td>
               </tr>
-              );
-            })}
+            ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
+              <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      <GroupDetailDialog group={openGroup} scope={subTab} onClose={() => setOpenGroup(null)} />
     </div>
   );
 };
+
 
 const SeasonToggle = () => {
   const [open, setOpen] = useState(getSeasonOpen());
