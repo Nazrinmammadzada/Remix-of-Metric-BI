@@ -1325,8 +1325,9 @@ const EmployeesTab = () => {
               placeholder="+994 50 123 45 67"
               onChange={v => setEditForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
-              <ValidatedField label="Email" value={editForm.email} error={editErrors.email}
-                onChange={v => setEditForm(p => ({ ...p, email: v.trim() }))} />
+              <ValidatedField label="Email" value={editing?.email || ""} error={null}
+                disabled
+                onChange={() => {}} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
