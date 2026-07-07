@@ -489,18 +489,21 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const cascadeMatrices = useCascadeMatrices();
 
   // ===== Reference data =====
-  const activeEmployees = useMemo(
+  const employeesRaw = useMemo(
     () => getEmployees().filter(e => e.active).map(e => ({
       id: String(e.id),
+      fullName: `${e.firstName} ${e.lastName}`,
       value: `${e.firstName} ${e.lastName}${e.positionName ? " — " + e.positionName : ""}`,
       label: `${e.firstName} ${e.lastName}${e.positionName ? " — " + e.positionName : ""}`,
+      positionName: e.positionName || "",
+      structurePath: e.structurePath || "",
     })),
     [open],
   );
+  const activeEmployees = employeesRaw;
   const employeeOptions = useMemo(() => {
     const base = activeEmployees.map(e => ({ value: e.value, label: e.label }));
     // "Özüm" — HR/istifadəçi öz kartını özünə də təyin edə bilsin.
-    // Value formatı: "Ad Soyad — Vəzifə" (stripName ilə uyğunlaşır).
     if (wizardUser?.name) {
       const selfValue = `${wizardUser.name}${wizardUser.department ? " — " + wizardUser.department : " — Özüm"}`;
       const already = base.some(o => o.value.startsWith(wizardUser.name!));
@@ -510,13 +513,48 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     return base;
   }, [activeEmployees, wizardUser?.name, wizardUser?.department]);
 
+  const teamsRaw = useMemo(() => getTeams(), [open]);
   const teamOptions = useMemo(
-    () => getTeams().map(t => ({ value: t.name, label: `${t.name} (${t.leader})` })),
-    [open],
+    () => teamsRaw.map(t => ({ value: t.name, label: `${t.name} (${t.leader})` })),
+    [teamsRaw],
   );
   const structureTree = useMemo(() => getStructures(), [open]);
-  const structureOptions = useMemo(() => flattenStructures(structureTree).map(s => ({ value: s.id, label: s.label })), [structureTree]);
-  const positionOptions = useMemo(() => flattenPositions(structureTree).map(p => ({ value: p.id, label: p.label })), [structureTree]);
+  const structureOptions = useMemo(() => flattenStructures(structureTree).map(s => ({ value: s.label, label: s.label })), [structureTree]);
+  const positionOptions = useMemo(() => {
+    const set = new Set<string>();
+    employeesRaw.forEach(e => { if (e.positionName) set.add(e.positionName); });
+    return Array.from(set).sort().map(p => ({ value: p, label: p }));
+  }, [employeesRaw]);
+
+  // ===== Individual-mode filters (Vəzifə / Komanda / Struktur) =====
+  const [indFilterPositions, setIndFilterPositions] = useState<string[]>([]);
+  const [indFilterTeams, setIndFilterTeams] = useState<string[]>([]);
+  const [indFilterStructures, setIndFilterStructures] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) {
+      setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]);
+    }
+  }, [open]);
+
+  const filteredIndividualEmployeeOptions = useMemo(() => {
+    const noFilter = !indFilterPositions.length && !indFilterTeams.length && !indFilterStructures.length;
+    if (noFilter) return employeeOptions;
+    const teamMemberNames = new Set<string>();
+    if (indFilterTeams.length) {
+      teamsRaw.filter(t => indFilterTeams.includes(t.name)).forEach(t => {
+        teamMemberNames.add(t.leader);
+        t.members.forEach(m => teamMemberNames.add(m.name));
+      });
+    }
+    return employeeOptions.filter(o => {
+      const raw = employeesRaw.find(r => r.value === o.value);
+      if (!raw) return o.label.startsWith("Özüm"); // keep self option
+      if (indFilterPositions.length && !indFilterPositions.includes(raw.positionName)) return false;
+      if (indFilterStructures.length && !indFilterStructures.some(s => raw.structurePath === s || raw.structurePath.startsWith(s + " › "))) return false;
+      if (indFilterTeams.length && !teamMemberNames.has(raw.fullName)) return false;
+      return true;
+    });
+  }, [employeeOptions, employeesRaw, teamsRaw, indFilterPositions, indFilterTeams, indFilterStructures]);
 
   const update = (patch: Partial<CreateKpiWizardDraft>) => setDraft(p => ({ ...p, ...patch }));
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
@@ -848,17 +886,63 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </Field>
 
-                {/* INDIVIDUAL: only employee multi-select */}
+                {/* INDIVIDUAL: filters (Vəzifə / Komanda / Struktur) + employee multi-select */}
                 {draft.mode === "individual" && (
-                  <Field label="Əməkdaş seçimi" required span="col-span-12">
-                    <MultiSelectDropdown
-                      options={employeeOptions}
-                      selected={draft.individualEmployees}
-                      onChange={(v) => update({ individualEmployees: v })}
-                      placeholder="Əməkdaş axtarın və seçin..."
-                    />
-                  </Field>
+                  <>
+                    <Field label="Filtrlər (Vəzifə / Komanda / Struktur)" span="col-span-12">
+                      <div className="grid grid-cols-12 gap-2">
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
+                          <MultiSelectDropdown
+                            options={positionOptions}
+                            selected={indFilterPositions}
+                            onChange={setIndFilterPositions}
+                            placeholder="Vəzifə seçin"
+                          />
+                        </div>
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="text-[11px] text-muted-foreground">Komanda</label>
+                          <MultiSelectDropdown
+                            options={teamOptions}
+                            selected={indFilterTeams}
+                            onChange={setIndFilterTeams}
+                            placeholder="Komanda seçin"
+                          />
+                        </div>
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="text-[11px] text-muted-foreground">Struktur</label>
+                          <MultiSelectDropdown
+                            options={structureOptions}
+                            selected={indFilterStructures}
+                            onChange={setIndFilterStructures}
+                            placeholder="Struktur seçin"
+                          />
+                        </div>
+                      </div>
+                      {(indFilterPositions.length + indFilterTeams.length + indFilterStructures.length) > 0 && (
+                        <div className="flex items-center justify-between mt-1.5">
+                          <p className="text-[11px] text-muted-foreground">
+                            {filteredIndividualEmployeeOptions.length} əməkdaş tapıldı
+                          </p>
+                          <button type="button"
+                            onClick={() => { setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]); }}
+                            className="text-[11px] text-primary hover:underline">
+                            Filtrləri təmizlə
+                          </button>
+                        </div>
+                      )}
+                    </Field>
+                    <Field label="Əməkdaş seçimi" required span="col-span-12">
+                      <MultiSelectDropdown
+                        options={filteredIndividualEmployeeOptions}
+                        selected={draft.individualEmployees}
+                        onChange={(v) => update({ individualEmployees: v })}
+                        placeholder="Əməkdaş axtarın və seçin..."
+                      />
+                    </Field>
+                  </>
                 )}
+
 
                 {/* BULK: only ONE category at a time */}
                 {draft.mode === "bulk" && (() => {
