@@ -105,8 +105,8 @@ const KpiLifecyclePage = () => {
                 columns={[
                   {
                     key: "name", label: "KPI Kartı", filterType: "text",
-                    accessor: (l) => l.cardName,
-                    render: (l) => <span className="font-medium text-foreground">{l.cardName}</span>,
+                    accessor: (l) => withKartSuffix(l.cardName),
+                    render: (l) => <span className="font-medium text-foreground">{withKartSuffix(l.cardName)}</span>,
                   },
                   {
                     key: "reviews", label: "Review", filterType: "number",
