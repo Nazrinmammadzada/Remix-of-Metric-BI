@@ -144,7 +144,7 @@ const GoalTrackingPage = () => {
                       <div className="font-semibold text-foreground truncate">{a.subKpiName}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
                         Ümumi hədəf: <span className="font-medium text-foreground">{a.parentTarget} {a.unit}</span>
-                        {a.matrixName && <> • Matris: <span className="font-medium text-foreground">{a.matrixName}</span></>}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
