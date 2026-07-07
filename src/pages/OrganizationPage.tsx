@@ -503,10 +503,12 @@ interface StructureCardProps {
   onToggle: (id: number) => void;
   onAddSub: (parentId: number) => void;
   onOpenStaff: (n: OrgStructure) => void;
+  highlightId?: number | null;
 }
 
-const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff }: StructureCardProps) => {
+const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff, highlightId }: StructureCardProps) => {
   const isOpen = expanded.has(node.id);
+  const isHighlighted = highlightId != null && highlightId === node.id;
   const positionsCount = countAllPositions(node);
   const slotsCount = countAllSlots(node);
   const colors = getTypeColors(node.type);
