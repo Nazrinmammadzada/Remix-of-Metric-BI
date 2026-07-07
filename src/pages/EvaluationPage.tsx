@@ -741,9 +741,7 @@ const SettingsTab = () => {
 
 
 // =============== Status İzləmə — 3 sub-tab (Fərdi / Komanda / Struktur) ===============
-import { Eye } from "lucide-react";
-import { getSharedKpiCards, type SharedKpiCard } from "@/lib/kpiCardStore";
-import { mockStructures, mockTeams } from "@/data/mockExtras";
+// (imports moved to top)
 
 type StatusScope = "individual" | "team" | "structure";
 
