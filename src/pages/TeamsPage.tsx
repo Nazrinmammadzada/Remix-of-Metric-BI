@@ -288,7 +288,7 @@ const TeamsPage = () => {
               <Bar dataKey="Tamamlanmış" fill="hsl(145 65% 42%)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <p className="text-[11px] text-muted-foreground mt-2">Seçilmiş dövr: <span className="font-medium text-foreground">{chartPeriodLabel(chartPeriod)}</span></p>
+          <p className="text-[11px] text-muted-foreground mt-2">Seçilmiş dövr: <span className="font-medium text-foreground">{periodLabel(chartPeriod)}</span></p>
         </div>
 
         <div className="space-y-3">
