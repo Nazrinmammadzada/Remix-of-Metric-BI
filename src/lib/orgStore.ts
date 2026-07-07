@@ -718,3 +718,40 @@ export const getSubordinatesOfStarHolder = (employeeId: number, unitId: number):
   return out;
 };
 
+
+// ---------- Rəhbər (leader) helpers ----------
+
+const LEADER_KEYWORDS = ["direktor", "rəhbər", "müdir", "lider"];
+export const isLeaderPositionName = (name: string): boolean => {
+  const p = String(name || "").toLowerCase();
+  return LEADER_KEYWORDS.some(k => p.includes(k));
+};
+
+export interface LeaderStructInfo {
+  node: OrgStructure;
+  /** Ata strukturlarının id-ləri — kartı avtomatik expand etmək üçün */
+  ancestorIds: number[];
+  positionId: number;
+  positionName: string;
+  slotId: number;
+}
+
+/** Bu əməkdaşın rəhbər olduğu bütün strukturları tapır (dərinlik-öncə). */
+export const findLeaderStructuresOf = (employeeId: number): LeaderStructInfo[] => {
+  const results: LeaderStructInfo[] = [];
+  const walk = (nodes: OrgStructure[], ancestors: number[]) => {
+    for (const node of nodes) {
+      for (const pos of node.positions) {
+        if (!isLeaderPositionName(pos.name)) continue;
+        for (const slot of pos.slots) {
+          if (slot.employeeId === employeeId) {
+            results.push({ node, ancestorIds: ancestors, positionId: pos.id, positionName: pos.name, slotId: slot.id });
+          }
+        }
+      }
+      walk(node.children, [...ancestors, node.id]);
+    }
+  };
+  walk(getStructures(), []);
+  return results;
+};
