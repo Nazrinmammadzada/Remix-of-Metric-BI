@@ -881,9 +881,6 @@ const StatusTab = () => {
           </tbody>
         </table>
       </div>
-      {filtered.length > tblState.rowsPerPage && (
-        <p className="text-xs text-muted-foreground text-center">{tblState.rowsPerPage} / {filtered.length} sətir göstərilir</p>
-      )}
     </div>
   );
 };
