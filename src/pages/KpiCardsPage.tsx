@@ -1586,19 +1586,20 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     </div>
                   </div>
 
+                  <TableFrame columns={tbl2Cols} state={tbl2State} onChange={setTbl2State}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th className="py-2 px-2">Əməkdaşın A.S.A.</th>
-                          <th className="py-2 px-2">Vəzifə</th>
-                          <th className="py-2 px-2 text-center">KPI kartlarının sayı</th>
-                          <th className="py-2 px-2">Ortalama Progress</th>
-                          <th className="py-2 px-2 text-right">Əməliyyat</th>
+                          <th data-col="person" className="py-2 px-2">Əməkdaşın A.S.A.</th>
+                          <th data-col="position" className="py-2 px-2">Vəzifə</th>
+                          <th data-col="count" className="py-2 px-2 text-center">KPI kartlarının sayı</th>
+                          <th data-col="avg" className="py-2 px-2">Ortalama Progress</th>
+                          <th data-col="ops" className="py-2 px-2 text-right">Əməliyyat</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {entries.map(([person, cards]) => {
+                        {entries.slice(0, tbl2State.rowsPerPage).map(([person, cards]) => {
                           const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
                           const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
                           const parts = person.split(" ");
@@ -1608,23 +1609,23 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const positionName = empMatch?.positionName || cards[0]?.subdivision || "Əməkdaş";
                           return (
                             <tr key={person} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td className="py-2.5 px-2">
+                              <td data-col="person" className="py-2.5 px-2">
                                 <div className="flex items-center gap-2.5">
                                   <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-semibold">{initial}</div>
                                   <span className="font-medium text-foreground">{displayName}</span>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-2 text-xs">{positionName}</td>
-                              <td className="py-2.5 px-2 text-center">
+                              <td data-col="position" className="py-2.5 px-2 text-xs">{positionName}</td>
+                              <td data-col="count" className="py-2.5 px-2 text-center">
                                 <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">{cards.length}</span>
                               </td>
-                              <td className="py-2.5 px-2">
+                              <td data-col="avg" className="py-2.5 px-2">
                                 <div className="flex items-center gap-2">
                                   <div className="w-32 bg-secondary rounded-full h-1.5"><div className="bg-emerald-500 rounded-full h-1.5" style={{ width: `${avg}%` }} /></div>
                                   <span className="text-xs text-muted-foreground">{avg}%</span>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-2 text-right">
+                              <td data-col="ops" className="py-2.5 px-2 text-right">
                                 <button
                                   onClick={() => setEmployeeDrilldown(person)}
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
@@ -1639,6 +1640,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </tbody>
                     </table>
                   </div>
+                  </TableFrame>
                 </div>
               );
             })() : (() => {
