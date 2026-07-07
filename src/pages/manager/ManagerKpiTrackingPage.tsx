@@ -830,6 +830,11 @@ export const SubordinatesView = ({
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string } | null>(null);
+  const empKpiListEmployee = useMemo(() => {
+    if (!empKpiListFor) return null;
+    return getEmployees().find(e => e.id === empKpiListFor.empId) || null;
+  }, [empKpiListFor]);
 
   const selected = selectedId ? tree.find(n => n.id === selectedId) ?? null : null;
 
