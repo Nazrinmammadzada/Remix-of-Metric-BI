@@ -30,6 +30,7 @@ import { hasReviewerSubmitted, getReviewsForReviewee } from "@/lib/peerReviewSto
 import { getManualAssignments, addManualAssignment, removeManualAssignment, getUsedRevieweeIds, type ManualAssignment } from "@/lib/manualAssignmentsStore";
 import { addSurvey } from "@/lib/evaluationSurveyStore";
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
+import TableFrame, { defaultTableState, type TableToolbarState } from "@/components/common/TableFrame";
 
 // =============== Survey Dialog (HR sends evaluation request to employees) ===============
 const SurveyDialog = () => {
@@ -742,6 +743,14 @@ const StatusTab = () => {
   const [search, setSearch] = useState("");
   const [cf, setCf] = useState<Record<string, string>>({});
   const setCol = (k: string, v: string) => setCf(p => ({ ...p, [k]: v }));
+  const [tblState, setTblState] = useState<TableToolbarState>(defaultTableState);
+  const tblCols = [
+    { key: "name", label: "Qiymətləndirilən əməkdaş" },
+    { key: "dept", label: "Departament" },
+    { key: "peer360", label: "360 üzrə həmkarlar" },
+    { key: "peerTarget", label: "Hədəf üzrə həmkarlar" },
+    { key: "status", label: "Status" },
+  ];
 
   const assignments = useMemo(() => buildPeerAssignments(CURRENT_CYCLE_ID), []);
   const rows = useMemo(() => {
@@ -813,19 +822,20 @@ const StatusTab = () => {
         </div>
       </div>
 
+      <TableFrame columns={tblCols} state={tblState} onChange={setTblState}>
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Qiymətləndirilən əməkdaş" value={cf.name || ""} onChange={v => setCol("name", v)} /></th>
-              <th className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Departament" value={cf.dept || ""} onChange={v => setCol("dept", v)} /></th>
-              <th className="px-4 py-3 text-left">360 üzrə təyin olunmuş həmkarlar</th>
-              <th className="px-4 py-3 text-left">Hədəf üzrə təyin olunmuş həmkarlar</th>
-              <th className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Status" value={cf.status || ""} onChange={v => setCol("status", v)} /></th>
+              <th data-col="name" className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Qiymətləndirilən əməkdaş" value={cf.name || ""} onChange={v => setCol("name", v)} /></th>
+              <th data-col="dept" className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Departament" value={cf.dept || ""} onChange={v => setCol("dept", v)} /></th>
+              <th data-col="peer360" className="px-4 py-3 text-left">360 üzrə təyin olunmuş həmkarlar</th>
+              <th data-col="peerTarget" className="px-4 py-3 text-left">Hədəf üzrə təyin olunmuş həmkarlar</th>
+              <th data-col="status" className="px-4 py-3 text-left align-top"><ColumnSearchHeader label="Status" value={cf.status || ""} onChange={v => setCol("status", v)} /></th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r, idx) => {
+            {filtered.slice(0, tblState.rowsPerPage).map((r, idx) => {
               // Mock target evaluators based on index — some completed, some pending
               const targetEvaluators = [
                 { name: "Samir Həsənov", done: idx % 2 === 0 },
@@ -835,7 +845,7 @@ const StatusTab = () => {
               const allDone = peerStatuses.every(p => p.done) && targetEvaluators.every(t => t.done);
               return (
               <tr key={r.id} className="border-t border-border hover:bg-muted/20">
-                <td className="px-4 py-3">
+                <td data-col="name" className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">{getInitials(r.fullName)}</div>
                     <div className="min-w-0">
@@ -844,8 +854,8 @@ const StatusTab = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{r.department}</td>
-                <td className="px-4 py-3 text-xs">
+                <td data-col="dept" className="px-4 py-3 text-xs text-muted-foreground">{r.department}</td>
+                <td data-col="peer360" className="px-4 py-3 text-xs">
                   <div className="space-y-1">
                     {peerStatuses.map((p, i) => (
                       <div key={i} className="flex items-center gap-1.5">
@@ -855,7 +865,7 @@ const StatusTab = () => {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-xs">
+                <td data-col="peerTarget" className="px-4 py-3 text-xs">
                   <div className="space-y-1">
                     {targetEvaluators.map((t, i) => (
                       <div key={i} className="flex items-center gap-1.5">
@@ -865,7 +875,7 @@ const StatusTab = () => {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td data-col="status" className="px-4 py-3">
                   {allDone ? (
                     <Badge className="gap-1 bg-primary/15 text-primary hover:bg-primary/20"><CheckCircle2 className="w-3 h-3" /> Tamamlanıb</Badge>
                   ) : (
@@ -876,11 +886,15 @@ const StatusTab = () => {
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
+              <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
             )}
           </tbody>
         </table>
       </div>
+      </TableFrame>
+      {filtered.length > tblState.rowsPerPage && (
+        <p className="text-xs text-muted-foreground text-center">{tblState.rowsPerPage} / {filtered.length} sətir göstərilir</p>
+      )}
     </div>
   );
 };
