@@ -380,6 +380,42 @@ const UserKpiCardsPage = () => {
             <p className="text-lg font-semibold text-foreground">Məlumat tapılmadı</p>
             <p className="text-sm text-muted-foreground">Bu görünüşdə heç bir KPI yoxdur</p>
           </div>
+        ) : filterView !== "own" ? (
+          /* Komanda / Struktur — yalnız ümumi məlumatlar */
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-4 py-3">KPI adı</th>
+                  <th className="text-left px-4 py-3">Hədəf</th>
+                  <th className="text-left px-4 py-3">Cari nəticə</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                  <th className="text-right px-4 py-3">Ümumi göstərici</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCards.map(card => {
+                  const z = getCardZone(card.progress);
+                  return (
+                    <tr key={card.id} className="border-t border-border hover:bg-secondary/40">
+                      <td className="px-4 py-3 font-medium text-foreground">{withKartSuffix(card.name)}</td>
+                      <td className="px-4 py-3 text-foreground">{card.target} {card.unit}</td>
+                      <td className="px-4 py-3 text-foreground">{card.current} {card.unit}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${card.approvalStatus === "approved" ? "bg-zone-green-bg text-zone-green-text" : "bg-zone-yellow-bg text-zone-yellow-text"}`}>
+                          {card.approvalStatus === "approved" ? <CheckCircle2 className="w-3 h-3" /> : <Hourglass className="w-3 h-3" />}
+                          {card.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${zoneBg[z]}`}>{card.progress}%</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="grid grid-cols-3 gap-4">
             {filteredCards.map((card) => (
