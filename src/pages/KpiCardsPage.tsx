@@ -33,6 +33,7 @@ import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView from "@/components/kpi/LifecycleView";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, type CardLifecycle } from "@/lib/kpiLifecycleStore";
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
+import EmployeesTreeView from "@/components/kpi/EmployeesTreeView";
 import { upsertStatus } from "@/lib/kpiCardStatusStore";
 import { buildSharedCardFromDraft, upsertSharedKpiCard, useSharedKpiCards, type SharedKpiCard } from "@/lib/kpiCardStore";
 import { withKartSuffix } from "@/lib/utils";
