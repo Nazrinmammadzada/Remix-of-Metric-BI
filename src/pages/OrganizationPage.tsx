@@ -553,8 +553,8 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff,
 
 
   return (
-    <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in">
-      <div className="rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden">
+    <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in" data-struct-id={node.id}>
+      <div className={`rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden ${isHighlighted ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"}`}>
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={() => onToggle(node.id)}
