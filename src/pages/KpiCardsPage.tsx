@@ -1482,82 +1482,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
                   </div>
               );
-            })() : kartView === "kart2" ? (() => {
-              const groups = new Map<string, KpiCard[]>();
-              filteredCards.forEach(c => {
-                const k = c.responsible || "Təyin olunmayıb";
-                if (!groups.has(k)) groups.set(k, []);
-                groups.get(k)!.push(c);
-              });
-              const entries = Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-              if (entries.length === 0) {
-                return <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center text-sm text-muted-foreground">Filtrə uyğun KPİ tapılmadı</div>;
-              }
-              return (
-                <div className="bg-card border border-border rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-4 gap-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">Əməkdaşlar üzrə</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">{entries.length} əməkdaş · KPI kartlarının sayına baxın</p>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th data-col="person" className="py-2 px-2">Əməkdaşın A.S.A.</th>
-                          <th data-col="position" className="py-2 px-2">Vəzifə</th>
-                          <th data-col="count" className="py-2 px-2 text-center">KPI kartlarının sayı</th>
-                          <th data-col="avg" className="py-2 px-2">Ortalama Progress</th>
-                          <th data-col="ops" className="py-2 px-2 text-right">Əməliyyat</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {entries.map(([person, cards]) => {
-                          const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
-                          const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
-                          const parts = person.split(" ");
-                          const empMatch = getEmployees().find(e => `${e.firstName} ${e.lastName}` === person || `${e.lastName} ${e.firstName}` === person || (parts.length >= 2 && e.firstName === parts[0] && e.lastName === parts[1]));
-                          const fatherName = empMatch?.fatherName || "";
-                          const displayName = [person, fatherName].filter(Boolean).join(" ");
-                          const positionName = empMatch?.positionName || cards[0]?.subdivision || "Əməkdaş";
-                          return (
-                            <tr key={person} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td data-col="person" className="py-2.5 px-2">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-semibold">{initial}</div>
-                                  <span className="font-medium text-foreground">{displayName}</span>
-                                </div>
-                              </td>
-                              <td data-col="position" className="py-2.5 px-2 text-xs">{positionName}</td>
-                              <td data-col="count" className="py-2.5 px-2 text-center">
-                                <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">{cards.length}</span>
-                              </td>
-                              <td data-col="avg" className="py-2.5 px-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-32 bg-secondary rounded-full h-1.5"><div className="bg-emerald-500 rounded-full h-1.5" style={{ width: `${avg}%` }} /></div>
-                                  <span className="text-xs text-muted-foreground">{avg}%</span>
-                                </div>
-                              </td>
-                              <td data-col="ops" className="py-2.5 px-2 text-right">
-                                <button
-                                  onClick={() => setEmployeeDrilldown(person)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                                >
-                                  Kartlara detallı bax
-                                  <ArrowUp className="w-3.5 h-3.5 rotate-90" />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  </div>
-              );
-            })() : (() => {
+            })() : kartView === "kart2" ? (
+              <EmployeesTreeView
+                cards={filteredCards.map(c => ({ responsible: c.responsible, progress: c.progress }))}
+                onOpenEmployee={(name) => setEmployeeDrilldown(name)}
+              />
+            ) : (() => {
               const approvedCards = filteredCards.filter(c => c.approvalStatus === "approved" && !c.frozen);
               const pendingCards = filteredCards.filter(c => c.approvalStatus === "pending" && !c.frozen);
               const frozenCards = filteredCards.filter(c => c.frozen);
