@@ -1276,6 +1276,15 @@ const EmployeesTab = () => {
         })()}
       </FancyCard>
 
+      <DeactivateEmployeeDialog
+        open={!!deactivateDialog}
+        onOpenChange={(o) => { if (!o) setDeactivateDialog(null); }}
+        employeeName={deactivateDialog?.name || ""}
+        reasons={deactivateDialog?.reasons || []}
+      />
+
+
+
 
 
 
