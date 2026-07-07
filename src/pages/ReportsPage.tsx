@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { getTeams, type Team } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import ExcelImportButton from "@/components/common/ExcelImportButton";
+import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
 // --- Sample KPI dataset (organized by team) ---
 const teamKpis: Record<string, { name: string; structure: string; subStructure: string; progress: number; target: string; current: string; icon: any }[]> = {
