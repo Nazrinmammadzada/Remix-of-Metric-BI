@@ -1074,7 +1074,7 @@ const SettingsPage = () => {
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-72 overflow-y-auto border border-border rounded-lg p-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 max-h-[420px] overflow-y-auto border border-border rounded-lg p-2">
                   {list.map((u, i) => {
                     const on = usersRole.users.includes(u.name);
                     return (
