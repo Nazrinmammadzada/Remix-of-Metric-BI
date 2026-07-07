@@ -920,15 +920,31 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
     setOpenCardIds(prev => prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]);
   };
 
-  const renderIndividualGoals = () => (
-    <div className="space-y-2">
+  const getGoalEvaluatorIds = (card: SharedKpiCard, targetIndex: number): string[] => {
+    const base = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
+    if (scope === "team") {
+      const team = mockTeams.find(t => t.id === group.key);
+      return Array.from(new Set([team?.leaderId || card.ownerId, ...base, ...groupExtraEvaluators(targetIndex === 0 ? 2 : 1)]));
+    }
+    if (scope === "structure") {
+      const structure = mockStructures.find(s => s.id === group.key);
+      const teamLeaders = mockTeams.filter(t => t.structureId === group.key).map(t => t.leaderId);
+      return Array.from(new Set([structure?.managerId || card.ownerId, ...teamLeaders, ...base, ...groupExtraEvaluators(targetIndex === 0 ? 1 : 0)]));
+    }
+    return targetIndex === 0 && card === group.cards[0]
+      ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
+      : base;
+  };
+
+  const renderGoalCards = (title: string, emptyText: string, badgeLabel?: string) => (
+    <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Target className="w-4 h-4 text-primary" />
-        <p className="text-sm font-semibold text-foreground">Hədəflər</p>
-        <Badge variant="secondary" className="h-6">{group.cards.length} kart</Badge>
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <Badge variant="secondary" className="h-6">{badgeLabel || `${group.cards.length} kart`}</Badge>
       </div>
       {group.cards.length === 0 ? (
-        <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">Bu əməkdaş üçün KPI kartı yoxdur</div>
+        <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">{emptyText}</div>
       ) : group.cards.map(card => {
         const isOpen = openCardIds.includes(card.id);
         return (
@@ -945,10 +961,7 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
             {isOpen && (
               <div className="divide-y divide-border">
                 {card.targets.map((t, ti) => {
-                  const base = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
-                  const evalIds = ti === 0 && card === group.cards[0]
-                    ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
-                    : base;
+                  const evalIds = getGoalEvaluatorIds(card, ti);
                   const raters = buildRaters(card.id + t.id, evalIds, t.scoreLimit);
                   const finalS = finalScore(raters);
                   const h = hash(card.id + t.id);
@@ -980,6 +993,8 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
       })}
     </div>
   );
+
+  const renderIndividualGoals = () => renderGoalCards("Hədəflər", "Bu əməkdaş üçün KPI kartı yoxdur");
 
   const renderIndividualCompetencies = () => (
     <div className="border border-border rounded-xl overflow-hidden bg-card">
@@ -1022,42 +1037,14 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
   const renderTeamDetail = () => {
     const team = mockTeams.find(t => t.id === group.key);
     const members = group.members || [];
-    const teamCompetencies = ["Komanda əməkdaşlığı", "İcra intizamı", "Müştəri yönümlülük"];
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Komanda rəhbəri</p><p className="text-sm font-semibold text-foreground">{employeeName(team?.leaderId || "")}</p></div>
           <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Üzv sayı</p><p className="text-sm font-semibold text-foreground">{members.length}</p></div>
-          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Qiymətləndirmə tipi</p><p className="text-sm font-semibold text-foreground">Səriştə əsaslı</p></div>
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Qiymətləndirmə tipi</p><p className="text-sm font-semibold text-foreground">Hədəf əsaslı</p></div>
         </div>
-        <div className="border border-border rounded-xl overflow-hidden bg-card">
-          <div className="px-4 py-3 border-b border-border bg-muted/30">
-            <p className="text-sm font-semibold text-foreground">Komanda üzrə səriştə nümunələri</p>
-            <p className="text-[11px] text-muted-foreground">Komanda baxışında KPI hədəfləri deyil, üzvlərin səriştə qiymətləndirmələri izlənir</p>
-          </div>
-          <div className="divide-y divide-border">
-            {members.slice(0, 5).map((member, mi) => {
-              const competency = teamCompetencies[mi % teamCompetencies.length];
-              const evalIds = Array.from(new Set([team?.leaderId || "e1", ...groupExtraEvaluators(mi === 0 ? 2 : 1)])).filter(id => id !== member.id);
-              const raters = buildRaters(`${group.key}-${member.id}-${competency}`, evalIds, 5);
-              const finalS = finalScore(raters);
-              return (
-                <div key={member.id} className="p-3 space-y-2">
-                  <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{member.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{member.position} · {competency}</p>
-                    </div>
-                    <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
-                      <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
-                    </Badge>
-                  </div>
-                  <RaterList raters={raters} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {renderGoalCards("Komanda hədəfləri üzrə qiymətləndirmələr", "Bu komanda üçün hədəf KPI kartı yoxdur", `${group.goalCount} hədəf`)}
       </div>
     );
   };
@@ -1065,7 +1052,6 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
   const renderStructureDetail = () => {
     const teams = mockTeams.filter(t => t.structureId === group.key);
     const members = group.members || [];
-    const structureCompetencies = ["Liderlik", "Əməkdaşlıq", "Proses intizamı", "İnkişaf potensialı"];
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1073,37 +1059,7 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
           <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Komanda sayı</p><p className="text-sm font-semibold text-foreground">{teams.length}</p></div>
           <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Əməkdaş sayı</p><p className="text-sm font-semibold text-foreground">{members.length}</p></div>
         </div>
-        <div className="border border-border rounded-xl overflow-hidden bg-card">
-          <div className="px-4 py-3 border-b border-border bg-muted/30">
-            <p className="text-sm font-semibold text-foreground">Struktur üzrə səriştə icmalı</p>
-            <p className="text-[11px] text-muted-foreground">Struktur baxışında komandalar üzrə fərqli səriştə nümunələri və tamamlanma statusu göstərilir</p>
-          </div>
-          <div className="divide-y divide-border">
-            {teams.map((team, ti) => {
-              const competency = structureCompetencies[ti % structureCompetencies.length];
-              const evalIds = Array.from(new Set([team.leaderId, mockStructures.find(s => s.id === group.key)?.managerId || "e1", ...groupExtraEvaluators(ti === 0 ? 1 : 0)]));
-              const raters = buildRaters(`${group.key}-${team.id}-${competency}`, evalIds, 5);
-              const finalS = finalScore(raters);
-              return (
-                <div key={team.id} className="p-3 space-y-2">
-                  <div className="flex items-start justify-between gap-2 flex-wrap">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{team.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{team.memberIds.length} əməkdaş · nümunə səriştə: {competency}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="h-6">Tamamlanma: {70 + ((hash(team.id) % 3) * 10)}%</Badge>
-                      <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
-                        <Star className="w-3 h-3" /> Orta: {finalS !== null ? `${finalS}/5` : "—"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <RaterList raters={raters} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {renderGoalCards("Struktur hədəfləri üzrə qiymətləndirmələr", "Bu struktur üçün hədəf KPI kartı yoxdur", `${group.goalCount} hədəf`)}
       </div>
     );
   };
@@ -1118,10 +1074,10 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
           </DialogTitle>
           <DialogDescription>
             {scope === "individual"
-              ? `${group.cards.length} KPI kartı · ${group.goalCount} hədəf`
+              ? `${group.cards.length} KPI kartı · ${group.goalCount} hədəf · səriştələr`
               : scope === "team"
-                ? `Komanda üzrə səriştə əsaslı status · ${group.members?.length || 0} üzv`
-                : `Struktur üzrə səriştə icmalı · ${group.members?.length || 0} əməkdaş`}
+                ? `Komanda üzrə hədəf əsaslı status · ${group.members?.length || 0} üzv`
+                : `Struktur üzrə hədəf əsaslı status · ${group.members?.length || 0} əməkdaş`}
             {group.subtitle && ` · ${group.subtitle}`}
           </DialogDescription>
         </DialogHeader>
@@ -1266,7 +1222,7 @@ const StatusTab = () => {
                   ) : subTab === "team" ? (
                     <>
                       <td className="px-4 py-3"><Badge variant="secondary">{g.members?.length || 0}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant="secondary">Səriştə əsaslı</Badge></td>
+                      <td className="px-4 py-3"><Badge variant="secondary">Hədəf əsaslı</Badge></td>
                     </>
                   ) : (
                     <>
