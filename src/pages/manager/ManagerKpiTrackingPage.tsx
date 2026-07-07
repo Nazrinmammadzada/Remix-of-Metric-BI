@@ -14,6 +14,8 @@ import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import KpiScoresPage from "@/pages/KpiScoresPage";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
@@ -828,6 +830,11 @@ export const SubordinatesView = ({
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string } | null>(null);
+  const empKpiListEmployee = useMemo(() => {
+    if (!empKpiListFor) return null;
+    return getEmployees().find(e => e.id === empKpiListFor.empId) || null;
+  }, [empKpiListFor]);
 
   const selected = selectedId ? tree.find(n => n.id === selectedId) ?? null : null;
 
@@ -1038,7 +1045,7 @@ export const SubordinatesView = ({
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent align="end" className="w-56 p-1">
-                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
+                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => { if (node.empId != null) { setEmpKpiListFor({ empId: node.empId, name: node.name }); setOpenMenu(null); } }} />
                                 <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
                                 <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
                                 <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
@@ -1073,6 +1080,20 @@ export const SubordinatesView = ({
           <ChevronLeft className="w-4 h-4" /> Detal paneli
         </button>
       )}
+
+      {/* Əməkdaşın KPI kartları siyahısı — Nəticələr modulunun eyni komponenti (KpiScoresPage) */}
+      <Dialog open={!!empKpiListFor} onOpenChange={(o) => !o && setEmpKpiListFor(null)}>
+        <DialogContent className="w-[90vw] max-w-[1500px] h-[88vh] min-h-[88vh] max-h-[88vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
+            <DialogTitle className="text-xl">KPI Kartları — {empKpiListFor?.name ?? "—"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {empKpiListEmployee && (
+              <KpiScoresPage employeesOverride={[empKpiListEmployee] as any} hideChrome />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
