@@ -1423,6 +1423,16 @@ const EmployeesTab = () => {
         onOpenChange={(o) => { if (!o) setDeactivateDialog(null); }}
         employeeName={deactivateDialog?.name || ""}
         reasons={deactivateDialog?.reasons || []}
+        onConfirm={() => {
+          if (!deactivateDialog) return;
+          const reasons = deactivateDialog.reasons;
+          const target = employees.find(x => [x.firstName, x.lastName, x.fatherName].filter(Boolean).join(" ") === deactivateDialog.name);
+          if (target) toggleEmployeeActive(target.id);
+          const isSingleKpi = reasons.length === 1 && reasons[0].code === "kpi_active";
+          toast.success(isSingleKpi
+            ? "Əməkdaş uğurla passiv edildi."
+            : "Əməkdaş uğurla passiv edildi. Aktiv KPI və struktur əlaqələrini yeniləməyiniz tövsiyə olunur.");
+        }}
       />
 
 
