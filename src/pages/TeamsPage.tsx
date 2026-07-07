@@ -275,7 +275,7 @@ const TeamsPage = () => {
         <div className="bg-card rounded-xl p-5 border border-border mb-6">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <h3 className="font-semibold text-foreground">Komanda Müqayisəsi</h3>
-            <ChartPeriodFilter value={chartPeriod} onChange={setChartPeriod} />
+            <PeriodPicker value={chartPeriod} onChange={setChartPeriod} />
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={comparisonData}>
