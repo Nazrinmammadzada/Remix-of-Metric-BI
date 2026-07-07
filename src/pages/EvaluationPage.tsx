@@ -1074,10 +1074,10 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
           </DialogTitle>
           <DialogDescription>
             {scope === "individual"
-              ? `${group.cards.length} KPI kartı · ${group.goalCount} hədəf`
+              ? `${group.cards.length} KPI kartı · ${group.goalCount} hədəf · səriştələr`
               : scope === "team"
-                ? `Komanda üzrə səriştə əsaslı status · ${group.members?.length || 0} üzv`
-                : `Struktur üzrə səriştə icmalı · ${group.members?.length || 0} əməkdaş`}
+                ? `Komanda üzrə hədəf əsaslı status · ${group.members?.length || 0} üzv`
+                : `Struktur üzrə hədəf əsaslı status · ${group.members?.length || 0} əməkdaş`}
             {group.subtitle && ` · ${group.subtitle}`}
           </DialogDescription>
         </DialogHeader>
@@ -1222,7 +1222,7 @@ const StatusTab = () => {
                   ) : subTab === "team" ? (
                     <>
                       <td className="px-4 py-3"><Badge variant="secondary">{g.members?.length || 0}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant="secondary">Səriştə əsaslı</Badge></td>
+                      <td className="px-4 py-3"><Badge variant="secondary">Hədəf əsaslı</Badge></td>
                     </>
                   ) : (
                     <>
