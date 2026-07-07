@@ -742,14 +742,6 @@ const StatusTab = () => {
   const [search, setSearch] = useState("");
   const [cf, setCf] = useState<Record<string, string>>({});
   const setCol = (k: string, v: string) => setCf(p => ({ ...p, [k]: v }));
-  const [tblState, setTblState] = useState<TableToolbarState>(defaultTableState);
-  const tblCols = [
-    { key: "name", label: "Qiymətləndirilən əməkdaş" },
-    { key: "dept", label: "Departament" },
-    { key: "peer360", label: "360 üzrə həmkarlar" },
-    { key: "peerTarget", label: "Hədəf üzrə həmkarlar" },
-    { key: "status", label: "Status" },
-  ];
 
   const assignments = useMemo(() => buildPeerAssignments(CURRENT_CYCLE_ID), []);
   const rows = useMemo(() => {
