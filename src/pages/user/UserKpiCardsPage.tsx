@@ -481,7 +481,10 @@ const UserKpiCardsPage = () => {
           {selectedKpi && (
             <div className="space-y-4">
               <div className="flex gap-2 border-b border-border overflow-x-auto">
-                {([["general", "Ümumi"], ["details", "Detallar"], ["performance", "Performans Analitikası"], ["history", "Tarixçə"], ["team", "Komanda"], ["evaluation", "Qiymətləndirmə"], ["comments", "Şərhlər"], ["status", "Status"]] as const).map(([key, label]) => (
+                {(filterView === "structure"
+                  ? ([["general", "Ümumi"], ["details", "Detallar"]] as const)
+                  : ([["general", "Ümumi"], ["details", "Detallar"], ["performance", "Performans Analitikası"], ["history", "Tarixçə"], ["team", "Komanda"], ["evaluation", "Qiymətləndirmə"], ["comments", "Şərhlər"], ["status", "Status"]] as const)
+                ).map(([key, label]) => (
                   <button key={key} onClick={() => setDetailTab(key)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
                 ))}
               </div>
