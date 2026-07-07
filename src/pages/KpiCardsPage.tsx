@@ -651,17 +651,40 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         timeEnd: s.timeEnd,
       })),
     } as SubKpi));
-    // Team = unique participants (assigner + evaluators)
+    // Team = unique participants (assigner + evaluators + assignees)
     const teamMap = new Map<string, { name: string; role: string; avatar: string }>();
+    const pushTeam = (raw: string, role: string) => {
+      const n = stripNameLoc(raw);
+      if (!n || teamMap.has(n)) return;
+      teamMap.set(n, { name: n, role, avatar: n[0]?.toUpperCase() || "?" });
+    };
     (d.targets || []).forEach((t: any) => {
-      const push = (raw: string, role: string) => {
-        const n = stripNameLoc(raw);
-        if (!n || teamMap.has(n)) return;
-        teamMap.set(n, { name: n, role, avatar: n[0]?.toUpperCase() || "?" });
-      };
-      if (t.assigner) push(t.assigner, "Təyin edici");
-      (t.evaluators || []).forEach((e: any) => push(e.name, "Qiymətləndirici"));
+      if (t.assigner) pushTeam(t.assigner, "Təyin edici");
+      (t.evaluators || []).forEach((e: any) => pushTeam(e.name, "Qiymətləndirici"));
     });
+    // Assignees — kartın icra ediləcəyi əməkdaşlar (fərdi & toplu)
+    try {
+      if (d.mode === "individual") {
+        (d.individualEmployees || []).forEach(n => pushTeam(n, "Əməkdaş"));
+      } else {
+        (d.bulkSelections?.persons || []).forEach(n => pushTeam(n, "Əməkdaş"));
+        const allTeams = getTeams();
+        (d.bulkSelections?.teams || []).forEach(name => {
+          const tm = allTeams.find(x => x.name === name);
+          if (tm) { pushTeam(tm.leader, "Komanda Lideri"); tm.members.forEach(m => pushTeam(m.name, "Üzv")); }
+        });
+        // Vəzifə/struktur: onların əməkdaşları da (varsa) əlavə et
+        try {
+          const empsAll = getEmployees();
+          (d.bulkSelections?.positions || []).forEach(pos => {
+            empsAll.filter(e => e.positionName === pos).forEach(e => pushTeam(`${e.firstName} ${e.lastName}`, pos));
+          });
+          (d.bulkSelections?.structures || []).forEach(struct => {
+            empsAll.filter(e => (e as any).structurePath?.startsWith(String(struct)) || (e as any).structurePath === String(struct)).forEach(e => pushTeam(`${e.firstName} ${e.lastName}`, "Struktur üzvü"));
+          });
+        } catch {}
+      }
+    } catch {}
     // Owner (kart sahibi) — birinci üzv kimi
     const ownerName = d.createdBy === "self" ? "Özüm" : (d.createdByEmployee || "");
     const ownerNameClean = stripNameLoc(ownerName);
@@ -693,13 +716,31 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     setCardDrafts(prev => ({ ...prev, [id]: d }));
     setWizardEditingId(null);
 
+    // === Lifecycle-ı store-a yaz — həm kart detalında, həm KPI Lifecycle modulunda görünsün ===
+    try {
+      const lc = d.lifecycle;
+      const toStage = (start?: string, end?: string) =>
+        (start || end) ? { period: d.frequency || "Aylıq", start: start || "", end: end || "" } : undefined;
+      setCardLifecycle(id, d.name || "Adsız KPI", {
+        assignment: toStage(lc?.assignmentStart, lc?.assignmentEnd),
+        evaluation: toStage(lc?.evaluationStart, lc?.evaluationEnd),
+        bonus: toStage(lc?.bonusStart, lc?.bonusEnd),
+        reviews: (lc?.reviews || []).map((r, i) => ({
+          id: r.id || `r-${i}`,
+          period: d.frequency || "Aylıq",
+          start: r.start || "",
+          end: r.end || "",
+        })),
+      });
+    } catch (err) { console.warn("lifecycle save failed", err); }
 
-
-
+    // === Status — HR özü set edibsə (matrissiz & pending delegation yoxdursa) aktiv ===
+    const hasPendingSet = (d.targets || []).some((t: any) => t.createdBy === "other");
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
-      : action === "submit" ? "natamam"
-      : "qaralama";
+      : action === "submit"
+        ? (d.useMatrix ? "tesdiq_gozlenilir" : (hasPendingSet ? "natamam" : "aktiv"))
+        : "qaralama";
     try {
       await upsertStatus({
         card_id: id,
