@@ -278,7 +278,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
                   <input
                     type="number"
                     readOnly={mode === "view"}
-                    value={r.min}
+                    value={r.min === 0 && r.max === 0 ? "" : r.min}
                     onChange={e => update(tier, "min", Number(e.target.value))}
                     className="col-span-3 px-2 py-1 text-sm border border-border rounded-md bg-background disabled:opacity-60"
                   />
@@ -286,10 +286,11 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
                   <input
                     type="number"
                     readOnly={mode === "view"}
-                    value={r.max}
+                    value={r.min === 0 && r.max === 0 ? "" : r.max}
                     onChange={e => update(tier, "max", Number(e.target.value))}
                     className="col-span-3 px-2 py-1 text-sm border border-border rounded-md bg-background disabled:opacity-60"
                   />
+
                 </div>
               );
             })}
