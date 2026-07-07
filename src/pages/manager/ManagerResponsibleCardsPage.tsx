@@ -179,22 +179,6 @@ const AssignView = () => {
     };
   }, [groups]);
 
-  const buildCascadeBootstrap = (entry: KpiSetEntry) => {
-    const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-    const assignedValue = parseNum(entry.target);
-    return {
-      cardName: entry.cardName,
-      goalName: entry.subKpiName || entry.cardName,
-      unit: incoming?.unit ?? entry.unit,
-      assigneeName: entry.assigneeName,
-      assigneeId: entry.assigneeId,
-      limit: incoming?.value ?? 0,
-      defaultSliceValue: assignedValue,
-      sourceCardName: incoming?.cardName,
-      sourceGoalName: incoming?.goalName,
-    };
-  };
-
   return (
     <>
       <PageHero
@@ -329,7 +313,15 @@ const AssignView = () => {
         <CascadeDistributeDialog
           open={!!distribute}
           onOpenChange={(o) => !o && setDistribute(null)}
-          bootstrap={buildCascadeBootstrap(distribute)}
+          bootstrap={{
+            cardName: distribute.cardName,
+            goalName: distribute.subKpiName || distribute.cardName,
+            unit: distribute.unit,
+            assigneeName: distribute.assigneeName,
+            assigneeId: distribute.assigneeId,
+            limit: (distribute as any).cascadeLimit ?? parseNum(distribute.target),
+            defaultSliceValue: (distribute as any).defaultSliceValue ?? parseNum(distribute.target),
+          }}
         />
       )}
 
@@ -341,12 +333,13 @@ const AssignView = () => {
           const entry = assignEntry;
           setAssignEntry(null);
           if (!entry) return;
-          if (!saved?.cascadable) return;
-          // Cascade Load popup-u yuxarı rəhbərin verdiyi CHILD/ROOT limitini göstərir.
+          // Cascade Load popup-u yuxarı rəhbərin verdiyi node/root limitini göstərir.
           // Paylanma sətrindəki default isə təyinetmə zamanı yazılmış hədəf dəyəridir.
-          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId);
-          if (!incoming || incoming.value <= 0) return;
-          const value = incoming.value;
+          const incoming = getIncomingCascadeLoad(entry.assigneeName, entry.cardId, {
+            cardName: entry.cardName,
+            goalName: saved?.name || entry.subKpiName || entry.cardName,
+          });
+          const value = incoming?.value ?? parseNum(entry.target);
           const assignedValue = saved?.value ?? parseNum(entry.target);
           const unit = incoming?.unit ?? saved?.unit ?? entry.unit ?? "";
           const refreshed: KpiSetEntry = {
@@ -356,8 +349,6 @@ const AssignView = () => {
             cascadable: true,
             cascadeLimit: value,
             defaultSliceValue: assignedValue,
-            cascadeSourceCardName: incoming.cardName,
-            cascadeSourceGoalName: incoming.goalName,
             subKpiName: saved?.name || entry.subKpiName,
           } as KpiSetEntry;
           setCascadeConfirm({ entry: refreshed, value, unit });
