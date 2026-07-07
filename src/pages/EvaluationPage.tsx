@@ -30,7 +30,6 @@ import { hasReviewerSubmitted, getReviewsForReviewee } from "@/lib/peerReviewSto
 import { getManualAssignments, addManualAssignment, removeManualAssignment, getUsedRevieweeIds, type ManualAssignment } from "@/lib/manualAssignmentsStore";
 import { addSurvey } from "@/lib/evaluationSurveyStore";
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
-import TableFrame, { defaultTableState, type TableToolbarState } from "@/components/common/TableFrame";
 
 // =============== Survey Dialog (HR sends evaluation request to employees) ===============
 const SurveyDialog = () => {
@@ -743,14 +742,6 @@ const StatusTab = () => {
   const [search, setSearch] = useState("");
   const [cf, setCf] = useState<Record<string, string>>({});
   const setCol = (k: string, v: string) => setCf(p => ({ ...p, [k]: v }));
-  const [tblState, setTblState] = useState<TableToolbarState>(defaultTableState);
-  const tblCols = [
-    { key: "name", label: "Qiymətləndirilən əməkdaş" },
-    { key: "dept", label: "Departament" },
-    { key: "peer360", label: "360 üzrə həmkarlar" },
-    { key: "peerTarget", label: "Hədəf üzrə həmkarlar" },
-    { key: "status", label: "Status" },
-  ];
 
   const assignments = useMemo(() => buildPeerAssignments(CURRENT_CYCLE_ID), []);
   const rows = useMemo(() => {
@@ -822,7 +813,6 @@ const StatusTab = () => {
         </div>
       </div>
 
-      <TableFrame columns={tblCols} state={tblState} onChange={setTblState}>
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
@@ -835,7 +825,7 @@ const StatusTab = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, tblState.rowsPerPage).map((r, idx) => {
+            {filtered.map((r, idx) => {
               // Mock target evaluators based on index — some completed, some pending
               const targetEvaluators = [
                 { name: "Samir Həsənov", done: idx % 2 === 0 },
@@ -891,10 +881,6 @@ const StatusTab = () => {
           </tbody>
         </table>
       </div>
-      </TableFrame>
-      {filtered.length > tblState.rowsPerPage && (
-        <p className="text-xs text-muted-foreground text-center">{tblState.rowsPerPage} / {filtered.length} sətir göstərilir</p>
-      )}
     </div>
   );
 };
