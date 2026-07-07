@@ -84,6 +84,33 @@ export const getAllLifecycles = (): CardLifecycle[] => load();
 export const getLifecycle = (cardId: number): CardLifecycle | undefined =>
   load().find(l => l.cardId === cardId);
 
+/**
+ * Kartın öz startDate/endDate/frequency-sinə əsasən lifecycle qaytarır.
+ * Real yazılmış lifecycle varsa onu, yoxdursa avtomatik doldurulmuş nümunə qaytarır.
+ * Qaralama statuslu kartlarda istifadə edilməməlidir.
+ */
+export const getLifecycleWithFallback = (
+  cardId: number,
+  cardName: string,
+  meta?: { startDate?: string; endDate?: string; frequency?: string },
+): CardLifecycle => {
+  const existing = getLifecycle(cardId);
+  if (existing) return existing;
+  const start = meta?.startDate || "";
+  const end = meta?.endDate || "";
+  const period = meta?.frequency || "Aylıq";
+  return {
+    cardId,
+    cardName,
+    assignment: { period, start, end: start || end },
+    evaluation: { period, start: end, end },
+    bonus: { period, start: end, end },
+    reviews: [],
+    updatedAt: new Date().toISOString(),
+  };
+};
+
+
 export const setCardLifecycle = (
   cardId: number,
   cardName: string,
