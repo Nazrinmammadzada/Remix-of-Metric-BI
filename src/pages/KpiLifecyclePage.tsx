@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { withKartSuffix } from "@/lib/utils";
 import {
   useLifecycleTemplates, addLifecycleTemplate, deleteLifecycleTemplate,
   type LifecycleTemplate,
