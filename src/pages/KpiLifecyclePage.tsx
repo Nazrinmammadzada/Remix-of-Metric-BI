@@ -136,7 +136,7 @@ const KpiLifecyclePage = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setSaveDialog(l); setTplName(`${l.cardName} şablonu`); setTplDesc(""); }}
+                          onClick={() => { setSaveDialog(l); setTplName(`${withKartSuffix(l.cardName)} şablonu`); setTplDesc(""); }}
                           className="inline-flex items-center justify-center w-8 h-8 rounded-md hover:bg-emerald-500/10 text-emerald-600"
                           title="Şablon kimi yadda saxla"
                         >
