@@ -494,7 +494,18 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     })),
     [open],
   );
-  const employeeOptions = activeEmployees.map(e => ({ value: e.value, label: e.label }));
+  const employeeOptions = useMemo(() => {
+    const base = activeEmployees.map(e => ({ value: e.value, label: e.label }));
+    // "Özüm" — HR/istifadəçi öz kartını özünə də təyin edə bilsin.
+    // Value formatı: "Ad Soyad — Vəzifə" (stripName ilə uyğunlaşır).
+    if (wizardUser?.name) {
+      const selfValue = `${wizardUser.name}${wizardUser.department ? " — " + wizardUser.department : " — Özüm"}`;
+      const already = base.some(o => o.value.startsWith(wizardUser.name!));
+      const selfOpt = { value: already ? base.find(o => o.value.startsWith(wizardUser.name!))!.value : selfValue, label: `Özüm (${wizardUser.name})` };
+      return [selfOpt, ...base.filter(o => o.value !== selfOpt.value)];
+    }
+    return base;
+  }, [activeEmployees, wizardUser?.name, wizardUser?.department]);
 
   const teamOptions = useMemo(
     () => getTeams().map(t => ({ value: t.name, label: `${t.name} (${t.leader})` })),
