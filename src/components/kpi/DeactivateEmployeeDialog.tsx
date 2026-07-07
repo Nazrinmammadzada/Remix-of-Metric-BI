@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import type { DeactivationReason } from "@/lib/employeeDeactivation";
@@ -17,7 +18,10 @@ const REASON_BULLETS: Record<DeactivationReason["code"], string> = {
 };
 
 export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, reasons, onConfirm }: Props) => {
+  const navigate = useNavigate();
   const isSingleKpi = reasons.length === 1 && reasons[0].code === "kpi_active";
+  const isSingleLeader = reasons.length === 1 && reasons[0].code === "structure_leader";
+  const leader = isSingleLeader ? reasons[0] : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -25,7 +29,11 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
-            {isSingleKpi ? "Aktiv KPI kartları mövcuddur" : "Əməkdaş passiv edilərkən diqqət tələb olunur"}
+            {isSingleKpi
+              ? "Aktiv KPI kartları mövcuddur"
+              : isSingleLeader
+                ? leader!.title
+                : "Əməkdaş passiv edilərkən diqqət tələb olunur"}
           </DialogTitle>
         </DialogHeader>
 
@@ -34,6 +42,8 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
             <p>Bu əməkdaşın aktiv KPI kartları mövcuddur.</p>
             <p className="text-foreground">Passiv etməyə davam etmək istəyirsiniz?</p>
           </div>
+        ) : isSingleLeader ? (
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{leader!.message}</p>
         ) : (
           <div className="space-y-3 text-sm">
             <p className="text-foreground">
@@ -58,12 +68,24 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
           >
             Ləğv et
           </button>
-          <button
-            onClick={() => { onConfirm(); onOpenChange(false); }}
-            className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-          >
-            Yenə də passiv et
-          </button>
+          {isSingleLeader ? (
+            <button
+              onClick={() => {
+                onOpenChange(false);
+                if (leader!.targetRoute) navigate(leader!.targetRoute);
+              }}
+              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+            >
+              {leader!.primaryLabel}
+            </button>
+          ) : (
+            <button
+              onClick={() => { onConfirm(); onOpenChange(false); }}
+              className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+            >
+              Yenə də passiv et
+            </button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
