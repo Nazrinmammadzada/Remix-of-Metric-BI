@@ -369,7 +369,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
               }}
               className="gap-1.5"
             >
-              <Wand2 className="w-4 h-4" /> Avtomatik təklif
+              <Wand2 className="w-4 h-4" /> Avtomatik
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
