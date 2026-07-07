@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Columns, ChevronDown } from "lucide-react";
+import { Search, Columns, ChevronDown, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,6 +38,8 @@ interface DataTableProps<T> {
   /** include row number column at the start */
   showRowNumbers?: boolean;
   rowNumberLabel?: string;
+  /** if provided, each row is expandable via a chevron and this returns the details cell content */
+  renderExpandedRow?: (row: T) => React.ReactNode | null;
 }
 
 interface NumberFilter { op: "eq" | "lt" | "gt" | "between"; a: string; b: string; }
@@ -96,7 +98,9 @@ export function DataTable<T>({
   toolbarRight,
   showRowNumbers = true,
   rowNumberLabel = "№",
+  renderExpandedRow,
 }: DataTableProps<T>) {
+  const [expandedKey, setExpandedKey] = useState<string | number | null>(null);
   // ----- persisted settings -----
   const loadPersist = <V,>(k: string, fallback: V): V => {
     if (!storageKey) return fallback;
