@@ -291,19 +291,20 @@ const ManualAssignmentDialog = ({ onCreated }: { onCreated: () => void }) => {
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
         <Button className="gap-2 shadow-sm">
-          <Sparkles className="w-4 h-4" /> Təyinat yarat
+          <Sparkles className="w-4 h-4" /> Qiymətləndirən təyin et
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCheck className="w-5 h-5 text-primary" />
-            Yeni Qiymətləndirmə Təyinatı
+            Yeni Qiymətləndirən Təyinatı
           </DialogTitle>
           <DialogDescription>
-            Addım-addım qiymətləndirici(lər)i, hədəf əməkdaşları və meyarları təyin edin.
+            Addım-addım qiymətləndirən(lər)i, hədəf əməkdaşları və meyarları təyin edin.
           </DialogDescription>
         </DialogHeader>
+
 
         {/* Steps indicator */}
         <div className="flex items-center gap-2 px-1">
