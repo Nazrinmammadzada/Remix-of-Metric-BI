@@ -7,12 +7,13 @@ Aşağıdakı 5 dəyişikliyi 1 addımda tətbiq edəcəyəm. Hər dəyişiklik 
 
 **Fayl:** `src/lib/kpiSetStore.ts` → `getIncomingCascadeLoad`
 
-Hazırda funksiya cascade tree-də node axtarır, sonra yalnız `ownerId === empKey` olan SharedKpiCard-lara baxır. Elvin `assigneeIds`-də olduğu (HR-in ona verdiyi) cascadable kartlar nəzərə alınmır — nəticədə köhnə seed 500 000 qayıdır.
+Hazırda funksiya cascade tree-də node axtarır, sonra HR-in Elvinə verdiyi real source kartı düzgün mənbə kimi götürməlidir. Köhnə demo 500 000 heç bir halda Cascade Load kimi qayıtmamalıdır.
 
 Dəyişiklik:
 - Step 2-ni `ownerId === empKey || assigneeIds.includes(empKey)` şəklinə genişləndir.
 - `updatedAt` DESC ilə sırala → yenidən yaradılan "ŞELVİN KPİ KART" (70 700) birinci gəlsin.
 - `excludeCardId` cari kartı istisna edir (Elvin öz "MARKETINGIN İLLİK KARTI"-nı təyin edərkən özündən pay çəkməsin).
+- Köhnə fallback `KpiSetEntry` target-i və demo 500 000 tam çıxarılır.
 
 Nəticə: Popup (şəkil 3) və Kaskadlama pəncərəsinin "Cascade Load" xanası (şəkil 4) həmişə şəkil 1-dəki kök dəyəri (70 700) göstərəcək.
 

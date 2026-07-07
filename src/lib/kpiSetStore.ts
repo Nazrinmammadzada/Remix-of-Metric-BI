@@ -307,8 +307,7 @@ export const setEntryDetails = (
  */
 export const getIncomingCascadeLoad = (
   assigneeName: string,
-  excludeCardId?: number,
-  match?: { cardName?: string; goalName?: string }
+  excludeCardId?: number
 ): { value: number; unit: string; cardName: string; goalName?: string } | null => {
   // 1) Cascade ağacında bu şəxsə yuxarıdan gələn node; yoxdursa HR-in yaratdığı root
   try {
