@@ -692,9 +692,16 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   // ==== Approval method auto-default (touched flag qoruyur user seçimini) ====
   const [approvalMethodTouched, setApprovalMethodTouched] = useState(false);
   const suggestApprovalMethod = (d: CreateKpiWizardDraft): CreateKpiWizardDraft["approvalMethod"] => {
+    // Fərdi mode: default matrix
+    if (d.mode === "individual") return "matrix";
     const bs = d.bulkSelections;
+    // Toplu: komanda seçilibsə → komanda rəhbəri
     if (bs.teams.length > 0) return "team_leader";
-    return "structure_leader"; // default: matrissiz — birbaşa struktur rəhbərinə
+    // Toplu: struktur seçilibsə → struktur rəhbəri
+    if (bs.structures.length > 0) return "structure_leader";
+    // Toplu: yalnız vəzifə və ya şəxs seçilibsə → matrix
+    if (bs.positions.length > 0 || bs.persons.length > 0) return "matrix";
+    return "structure_leader";
   };
   useEffect(() => {
     if (approvalMethodTouched) return;
