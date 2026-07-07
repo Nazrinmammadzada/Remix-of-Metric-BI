@@ -1256,6 +1256,16 @@ export const SubordinatesView = ({
       {/* KPI Detail — mövcud KpiDrawer komponenti reuse edilir */}
       <KpiDrawer kpi={viewKpi} tab={viewKpiTab} setTab={setViewKpiTab} onClose={() => setViewKpi(null)} />
 
+      {/* Kartın hədəfləri drawer */}
+      <CardTargetsDrawer
+        data={cardDrawer}
+        onClose={() => setCardDrawer(null)}
+        onOpenTarget={(t) => cardDrawer && setTargetDetail({ cardId: cardDrawer.card.id, cardName: cardDrawer.card.name, target: t })}
+      />
+
+      {/* Hədəf tarixçəsi drawer (nested) */}
+      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} />
+
     </div>
   );
 };
