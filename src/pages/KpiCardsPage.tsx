@@ -1532,12 +1532,122 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
                   </div>
               );
-            })() : kartView === "kart2" ? (
-              <EmployeesTreeView
-                cards={filteredCards.map(c => ({ responsible: c.responsible, progress: c.progress }))}
-                onOpenEmployee={(name) => setEmployeeDrilldown(name)}
-              />
-            ) : (() => {
+            })() : kartView === "kart2" ? (() => {
+              // Aggregate KPI stats per employee (by responsible full-name match)
+              const norm = (s: string) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+              const emps = getEmployees().filter((e: any) => e.active);
+              const perEmp = new Map<number, { count: number; sumProgress: number }>();
+              emps.forEach((e: any) => perEmp.set(e.id, { count: 0, sumProgress: 0 }));
+              const empByName = new Map<string, any>();
+              emps.forEach((e: any) => {
+                empByName.set(norm(`${e.firstName} ${e.lastName}`), e);
+                empByName.set(norm(`${e.lastName} ${e.firstName}`), e);
+              });
+              filteredCards.forEach(c => {
+                const e = empByName.get(norm(c.responsible || ""));
+                if (!e) return;
+                const cur = perEmp.get(e.id)!;
+                cur.count += 1;
+                cur.sumProgress += Number(c.progress) || 0;
+              });
+              const rows = emps.map((e: any) => {
+                const st = perEmp.get(e.id)!;
+                return {
+                  id: e.id,
+                  name: [e.firstName, e.lastName].filter(Boolean).join(" "),
+                  position: e.positionName || "Əməkdaş",
+                  count: st.count,
+                  avg: st.count > 0 ? Math.round(st.sumProgress / st.count) : 0,
+                };
+              });
+
+              return (
+                <div className="space-y-4">
+                  {/* Görünüş toggle */}
+                  <div className="flex items-center justify-end">
+                    <div className="inline-flex items-center rounded-lg border border-border bg-card p-1 shadow-sm">
+                      <button
+                        onClick={() => setKart2SubView("structure")}
+                        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+                      >
+                        Struktur üzrə
+                      </button>
+                      <button
+                        onClick={() => setKart2SubView("employees")}
+                        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "employees" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+                      >
+                        Əməkdaşlar üzrə
+                      </button>
+                    </div>
+                  </div>
+
+                  {kart2SubView === "structure" ? (
+                    <EmployeesTreeView
+                      cards={filteredCards.map(c => ({ responsible: c.responsible, progress: c.progress }))}
+                      onOpenEmployee={(name) => setEmployeeDrilldown(name)}
+                    />
+                  ) : (
+                    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[720px]">
+                          <thead className="bg-secondary/40 text-muted-foreground">
+                            <tr className="text-left">
+                              <th className="px-4 py-3 font-medium">Əməkdaşın A.S.A.</th>
+                              <th className="px-4 py-3 font-medium">Vəzifə</th>
+                              <th className="px-4 py-3 font-medium text-center w-40">KPI kartlarının sayı</th>
+                              <th className="px-4 py-3 font-medium w-56">Ortalama Progress</th>
+                              <th className="px-4 py-3 font-medium text-right w-56">Əməliyyat</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.length === 0 ? (
+                              <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Əməkdaş tapılmadı.</td></tr>
+                            ) : rows.map(r => (
+                              <tr key={r.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
+                                <td className="px-4 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                                      {r.name.split(" ").map(x => x[0]).join("").slice(0, 2).toUpperCase()}
+                                    </div>
+                                    <span className="font-medium text-foreground truncate">{r.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 text-xs text-muted-foreground truncate">{r.position}</td>
+                                <td className="px-4 py-2.5 text-center">
+                                  <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                                    {r.count}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                                      <div
+                                        className={`h-full transition-all duration-500 ${r.avg >= 90 ? "bg-emerald-500" : r.avg >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
+                                        style={{ width: `${Math.min(r.avg, 100)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs tabular-nums font-medium w-9 text-right">{r.avg}%</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 text-right">
+                                  <button
+                                    onClick={() => setEmployeeDrilldown(r.name)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Kartlara detallı bax
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (() => {
               const approvedCards = filteredCards.filter(c => c.approvalStatus === "approved" && !c.frozen);
               const pendingCards = filteredCards.filter(c => c.approvalStatus === "pending" && !c.frozen);
               const frozenCards = filteredCards.filter(c => c.frozen);
