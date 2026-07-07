@@ -52,6 +52,11 @@ import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import { bootstrapDemoReviews } from "@/lib/peerReviewStore";
 import { MOCK_HR_USER_ID, MOCK_USER_ID } from "@/data/mockData";
+import { runDevResetOnce } from "@/lib/devReset";
+
+// Bir dəfəlik brauzer təmizliyi — bütün istifadəçi tərəfindən yaradılan
+// localStorage məlumatlarını silir; default seed-lər yenidən yüklənəcək.
+runDevResetOnce();
 
 const queryClient = new QueryClient();
 
