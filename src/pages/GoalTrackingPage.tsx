@@ -5,7 +5,8 @@ import { Target, Bell, Search, CheckCircle2, Clock, AlertTriangle } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useCascadeAssignments, type CascadeSlice } from "@/lib/cascadingStore";
+import { useCascadeAssignments, emptyLimits, type CascadeSlice, type CascadeAssignment } from "@/lib/cascadingStore";
+import { useCascadeTree } from "@/lib/cascadeTreeStore";
 
 type ExecStatus = "completed" | "in_progress" | "pending" | "overdue";
 
