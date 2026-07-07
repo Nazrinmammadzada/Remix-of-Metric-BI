@@ -110,7 +110,8 @@ export const collectDeactivationReasons = (empId: number): DeactivationReason[] 
       message:
         "Bu əməkdaş struktur rəhbəri kimi təyin olunub. Passiv etməzdən əvvəl tabeliyindəki bütün əməkdaşlar başqa rəhbərə təyin edilməlidir.",
       primaryLabel: "Rəhbəri dəyiş",
-      targetRoute: "/hr/organization",
+      // Struktur tabına keçir və dəqiq həmin əməkdaşın rəhbəri olduğu strukturu açır.
+      targetRoute: `/teskilati-struktur?tab=struktur&changeLeaderFor=${empId}`,
     });
   }
 
