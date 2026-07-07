@@ -406,8 +406,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const positionOptions = getPositions();
   const [kpiCards, setKpiCards] = useState<KpiCard[]>(() => {
     const deleted = getDeletedKpiIds();
+    // Persistensiya — yaradılmış kartlar refresh və modul dəyişikliyində itməsin.
+    try {
+      const raw = localStorage.getItem("kpi_cards_v1");
+      if (raw) {
+        const saved = JSON.parse(raw) as KpiCard[];
+        return saved.filter(c => !deleted.includes(c.id)).map(c => ({ ...c, icon: c.icon || Target }));
+      }
+    } catch {}
     const base = initialKpiCards.filter(c => !deleted.includes(c.id));
-    // Demo: give a few employees multiple KPI cards for "Əməkdaşlar üzrə" view
     const maxId = Math.max(0, ...base.map(c => c.id));
     const clone = (src: KpiCard, id: number, patch: Partial<KpiCard>): KpiCard => ({ ...src, id, ...patch });
     const samir = base.find(c => c.responsible === "Samir Həsənov");
@@ -422,6 +429,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     }
     return [...base, ...extras];
   });
+  // Persist card list to localStorage
+  useEffect(() => {
+    try {
+      // icon field-i function-dur — serialize etmirik
+      const sanitized = kpiCards.map(({ icon, ...rest }) => rest);
+      localStorage.setItem("kpi_cards_v1", JSON.stringify(sanitized));
+    } catch {}
+  }, [kpiCards]);
 
   // Sync deletions from Approval Matrix module
   useEffect(() => {
