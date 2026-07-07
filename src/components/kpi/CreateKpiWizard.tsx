@@ -1120,11 +1120,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <SummaryRow label="Dövr" value={draft.frequency} />
                   <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
                   <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
-                  <SummaryRow label="Təsdiqləmə üsulu" value={
-                    draft.approvalMethod === "team_leader" ? "Komanda rəhbəri"
-                    : draft.approvalMethod === "structure_leader" ? "Təşkilati struktur rəhbəri"
-                    : "Matriks"
-                  } />
+                  {draft.useMatrix && (
+                    <SummaryRow label="Təsdiqləmə üsulu" value={
+                      draft.approvalMethod === "team_leader" ? "Komanda rəhbəri"
+                      : draft.approvalMethod === "structure_leader" ? "Təşkilati struktur rəhbəri"
+                      : "Matriks"
+                    } />
+                  )}
 
                   {draft.mode === "individual" && <SummaryRow label="Əməkdaşlar" value={draft.individualEmployees.join(", ") || "—"} />}
                   {draft.mode === "bulk" && (
