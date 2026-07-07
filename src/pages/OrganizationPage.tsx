@@ -412,6 +412,7 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
               onToggle={toggleExpand}
               onAddSub={(parentId) => { setShowCreate({ parentId }); setNewStruct({ type: "", name: "", count: 1 }); }}
               onOpenStaff={setStaffModalFor}
+              highlightId={highlightId}
             />
           ))}
         </div>
