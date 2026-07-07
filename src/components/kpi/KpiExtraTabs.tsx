@@ -49,12 +49,10 @@ const saveStore = (s: Store) => {
 };
 
 const loadFor = (cardId?: number): CommentItem[] => {
-  if (!cardId) return [];
   const store = loadStore();
-  const key = String(cardId);
+  const key = String(cardId ?? "default");
   if (store[key]) return store[key];
-  // Seed varsa göstər, yoxdursa BOŞ (yeni yaradılan kartlar üçün).
-  return SEED_COMMENTS[cardId] || [];
+  return DEFAULT_COMMENTS;
 };
 
 function Comments({ cardId }: { cardId?: number }) {
