@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { PageHero, FancyCard } from "@/components/ui/page-hero";
 import {
@@ -18,8 +18,8 @@ import {
   getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
   assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
-  setStarPerson,
-  type OrgEmployee, type OrgStructure, type OrgPosition,
+  setStarPerson, findLeaderStructuresOf,
+  type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
 
 
@@ -33,6 +33,7 @@ import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
 import { collectDeactivationReasons } from "@/lib/employeeDeactivation";
 import DeactivateEmployeeDialog from "@/components/kpi/DeactivateEmployeeDialog";
+import ChangeLeaderDialog from "@/components/kpi/ChangeLeaderDialog";
 
 // One-time reset so employee table columns appear in code-defined order
 if (!localStorage.getItem("__org_emp_order_fixed")) {
@@ -43,7 +44,28 @@ if (!localStorage.getItem("__org_emp_order_fixed")) {
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
-  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq" | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab: "struktur" | "emekdaslar" | "kataloq" | null =
+    searchParams.get("tab") === "struktur" ? "struktur"
+    : searchParams.get("tab") === "emekdaslar" ? "emekdaslar"
+    : searchParams.get("tab") === "kataloq" ? "kataloq"
+    : null;
+  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq" | null>(initialTab);
+  const changeLeaderFor = searchParams.get("changeLeaderFor") ? Number(searchParams.get("changeLeaderFor")) : null;
+
+  // Deep-link ilə (məs. /teskilati-struktur?tab=struktur&changeLeaderFor=4) səhifə açıldıqda
+  // uyğun tabı avtomatik seçirik.
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "struktur" || t === "emekdaslar" || t === "kataloq") setTab(t);
+  }, [searchParams]);
+
+  const clearChangeLeaderParam = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("changeLeaderFor");
+    setSearchParams(next, { replace: true });
+  };
+
   const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
   const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
   const [orgLogo, setOrgLogo] = useState<string | null>(() => localStorage.getItem(ORG_LOGO_KEY));
@@ -132,7 +154,7 @@ const OrganizationPage = () => {
               </button>
               <TabToolbar total={stats.total} active={stats.active} />
             </div>
-            {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+            {tab === "struktur" ? <StructureTab changeLeaderFor={changeLeaderFor} onClearChangeLeader={clearChangeLeaderParam} /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
           </div>
         )}
       </main>
@@ -253,9 +275,16 @@ const countAllSlots = (node: OrgStructure): number =>
 // Structure tab — card-based tree
 // ====================================================
 
-const StructureTab = () => {
+interface StructureTabProps {
+  changeLeaderFor?: number | null;
+  onClearChangeLeader?: () => void;
+}
+
+const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProps) => {
   const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const [leaderChange, setLeaderChange] = useState<LeaderStructInfo | null>(null);
 
   useEffect(() => {
     const refresh = () => setStructuresState(getStructures());
@@ -277,6 +306,57 @@ const StructureTab = () => {
       return next;
     });
   };
+
+  // "Rəhbəri dəyiş" axını: passiv edilmək istənilən əməkdaşın rəhbəri olduğu
+  // strukturu tap, ata strukturları expand et, node-u highlight et və dialoqu aç.
+  const openLeaderChangeFor = (info: LeaderStructInfo) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      info.ancestorIds.forEach(id => next.add(id));
+      next.add(info.node.id);
+      return next;
+    });
+    setHighlightId(info.node.id);
+    setLeaderChange(info);
+    // Node görünsün deyə cüzi gecikmə ilə scroll edirik.
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-struct-id="${info.node.id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
+
+  useEffect(() => {
+    if (!changeLeaderFor) return;
+    const list = findLeaderStructuresOf(changeLeaderFor);
+    if (list.length === 0) { onClearChangeLeader?.(); return; }
+    openLeaderChangeFor(list[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeLeaderFor]);
+
+  const handleLeaderSaved = () => {
+    if (!changeLeaderFor) { setLeaderChange(null); return; }
+    // Bu əməkdaş üçün qalan rəhbər ştatlarını yoxla.
+    const remaining = findLeaderStructuresOf(changeLeaderFor);
+    if (remaining.length > 0) {
+      // Növbəti struktur üçün eyni dialoqu davam etdir.
+      setLeaderChange(null);
+      setTimeout(() => openLeaderChangeFor(remaining[0]), 50);
+      return;
+    }
+    // Bütün rəhbər əlaqələri həll edildi → digər maneə yoxdursa əməkdaşı avtomatik Passiv et.
+    const emp = getEmployees().find(e => e.id === changeLeaderFor);
+    const otherBlockers = collectDeactivationReasons(changeLeaderFor).filter(r => r.code !== "structure_leader");
+    if (emp?.active && otherBlockers.length === 0) {
+      toggleEmployeeActive(changeLeaderFor);
+      toast.success("Struktur rəhbəri uğurla dəyişdirildi. Əməkdaş avtomatik olaraq Passiv statusuna keçirildi.");
+    } else {
+      toast.success("Struktur rəhbəri uğurla dəyişdirildi.");
+    }
+    setLeaderChange(null);
+    setHighlightId(null);
+    onClearChangeLeader?.();
+  };
+
 
   const handleCreate = () => {
     if (!newStruct.type.trim()) { toast.error("Struktur tipini daxil edin"); return; }
@@ -332,6 +412,7 @@ const StructureTab = () => {
               onToggle={toggleExpand}
               onAddSub={(parentId) => { setShowCreate({ parentId }); setNewStruct({ type: "", name: "", count: 1 }); }}
               onOpenStaff={setStaffModalFor}
+              highlightId={highlightId}
             />
           ))}
         </div>
@@ -378,6 +459,16 @@ const StructureTab = () => {
       <StaffModal node={liveStaffModal} onClose={() => setStaffModalFor(null)} />
 
       <ChrImportDialog open={showChrImport} onClose={() => setShowChrImport(false)} />
+
+      {/* Rəhbəri dəyiş dialoqu — dərinlik dəf'ə: əməkdaş bir neçə strukturun rəhbəridirsə,
+          hər biri üçün ardıcıl açılır və sonda əməkdaş avtomatik Passiv edilir. */}
+      <ChangeLeaderDialog
+        open={!!leaderChange}
+        onOpenChange={(o) => { if (!o) { setLeaderChange(null); setHighlightId(null); onClearChangeLeader?.(); } }}
+        info={leaderChange}
+        currentLeaderId={changeLeaderFor ?? 0}
+        onSaved={handleLeaderSaved}
+      />
     </div>
   );
 };
@@ -412,10 +503,12 @@ interface StructureCardProps {
   onToggle: (id: number) => void;
   onAddSub: (parentId: number) => void;
   onOpenStaff: (n: OrgStructure) => void;
+  highlightId?: number | null;
 }
 
-const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff }: StructureCardProps) => {
+const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff, highlightId }: StructureCardProps) => {
   const isOpen = expanded.has(node.id);
+  const isHighlighted = highlightId != null && highlightId === node.id;
   const positionsCount = countAllPositions(node);
   const slotsCount = countAllSlots(node);
   const colors = getTypeColors(node.type);
@@ -460,8 +553,8 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
 
 
   return (
-    <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in">
-      <div className="rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden">
+    <div style={{ marginLeft: depth ? 24 : 0 }} className="animate-fade-in" data-struct-id={node.id}>
+      <div className={`rounded-2xl border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden ${isHighlighted ? "border-primary ring-2 ring-primary/40 bg-primary/5" : "border-border"}`}>
         <div className="flex items-center gap-3 p-4">
           <button
             onClick={() => onToggle(node.id)}
@@ -536,6 +629,7 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff 
               onToggle={onToggle}
               onAddSub={onAddSub}
               onOpenStaff={onOpenStaff}
+              highlightId={highlightId}
             />
           ))}
         </div>
