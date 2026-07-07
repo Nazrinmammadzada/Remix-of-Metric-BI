@@ -1117,7 +1117,11 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
             {group.name}
           </DialogTitle>
           <DialogDescription>
-            {group.cards.length} KPI kartı · {group.goalCount} hədəf
+            {scope === "individual"
+              ? `${group.cards.length} KPI kartı · ${group.goalCount} hədəf`
+              : scope === "team"
+                ? `Komanda üzrə səriştə əsaslı status · ${group.members?.length || 0} üzv`
+                : `Struktur üzrə səriştə icmalı · ${group.members?.length || 0} əməkdaş`}
             {group.subtitle && ` · ${group.subtitle}`}
           </DialogDescription>
         </DialogHeader>
@@ -1214,43 +1218,70 @@ const StatusTab = () => {
             <tr>
               <th className="px-4 py-3 text-left">{label} adı</th>
               {subTab === "individual" && <th className="px-4 py-3 text-left">Vəzifə</th>}
-              <th className="px-4 py-3 text-left">KPI kartlarının sayı</th>
-              <th className="px-4 py-3 text-left">Hədəflərin sayı</th>
+              {subTab === "individual" ? (
+                <>
+                  <th className="px-4 py-3 text-left">KPI kartlarının sayı</th>
+                  <th className="px-4 py-3 text-left">Hədəflərin sayı</th>
+                </>
+              ) : subTab === "team" ? (
+                <>
+                  <th className="px-4 py-3 text-left">Üzv sayı</th>
+                  <th className="px-4 py-3 text-left">Qiymətləndirmə tipi</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-4 py-3 text-left">Komanda sayı</th>
+                  <th className="px-4 py-3 text-left">Əməkdaş sayı</th>
+                </>
+              )}
               <th className="px-4 py-3 text-right">Bax</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map(g => (
-              <tr key={g.key} className="border-t border-border hover:bg-muted/20">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">
-                      {getInitials(g.name)}
+            {filtered.map(g => {
+              const teamCount = subTab === "structure" ? mockTeams.filter(t => t.structureId === g.key).length : 0;
+              return (
+                <tr key={g.key} className="border-t border-border hover:bg-muted/20">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">
+                        {getInitials(g.name)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">{g.name}</p>
+                        {subTab !== "individual" && g.subtitle && (
+                          <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{g.name}</p>
-                      {subTab !== "individual" && g.subtitle && (
-                        <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                {subTab === "individual" && (
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{g.subtitle || "—"}</td>
-                )}
-                <td className="px-4 py-3">
-                  <Badge variant="secondary">{g.cards.length}</Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant="secondary">{g.goalCount}</Badge>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => setOpenGroup(g)}>
-                    <Eye className="w-4 h-4" /> Bax
-                  </Button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  {subTab === "individual" && (
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{g.subtitle || "—"}</td>
+                  )}
+                  {subTab === "individual" ? (
+                    <>
+                      <td className="px-4 py-3"><Badge variant="secondary">{g.cards.length}</Badge></td>
+                      <td className="px-4 py-3"><Badge variant="secondary">{g.goalCount}</Badge></td>
+                    </>
+                  ) : subTab === "team" ? (
+                    <>
+                      <td className="px-4 py-3"><Badge variant="secondary">{g.members?.length || 0}</Badge></td>
+                      <td className="px-4 py-3"><Badge variant="secondary">Səriştə əsaslı</Badge></td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3"><Badge variant="secondary">{teamCount}</Badge></td>
+                      <td className="px-4 py-3"><Badge variant="secondary">{g.members?.length || 0}</Badge></td>
+                    </>
+                  )}
+                  <td className="px-4 py-3 text-right">
+                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => setOpenGroup(g)}>
+                      <Eye className="w-4 h-4" /> Bax
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
             {filtered.length === 0 && (
               <tr><td colSpan={subTab === "individual" ? 5 : 4} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
             )}
