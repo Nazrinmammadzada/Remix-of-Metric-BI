@@ -1045,7 +1045,7 @@ export const SubordinatesView = ({
                                 </button>
                               </PopoverTrigger>
                               <PopoverContent align="end" className="w-56 p-1">
-                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openTab(node.id, "info")} />
+                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => { if (node.empId != null) { setEmpKpiListFor({ empId: node.empId, name: node.name }); setOpenMenu(null); } }} />
                                 <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
                                 <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
                                 <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
