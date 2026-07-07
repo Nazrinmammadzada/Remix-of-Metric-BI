@@ -11,6 +11,7 @@ import ExportMenu from "@/components/common/ExportMenu";
 import { DataTable } from "@/components/common/DataTable";
 import { getEmployees } from "@/lib/orgStore";
 import { MONTHS, type Month } from "@/lib/salaryStore";
+import { withKartSuffix } from "@/lib/utils";
 
 const YEARS = [2024, 2025, 2026];
 
