@@ -1153,21 +1153,14 @@ export const SubordinatesView = ({
                               <Eye className="w-4 h-4" />
                             </button>
                           ) : (
-                            <Popover open={openMenu === node.id} onOpenChange={o => setOpenMenu(o ? node.id : null)}>
-                              <PopoverTrigger asChild>
-                                <button className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" aria-label="Əməliyyatlar">
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent align="end" className="w-56 p-1">
-                                <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => { if (node.empId != null) { setEmpKpiListFor({ empId: node.empId, name: node.name }); setOpenMenu(null); } }} />
-                                <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openTab(node.id, "history")} />
-                                <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openTab(node.id, "comments")} />
-                                <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openTab(node.id, "reminders")} />
-                                <MenuItem icon={Send} label="Bildiriş göndər" onClick={() => openTab(node.id, "notify")} />
-                                <MenuItem icon={ShieldAlert} label="Risk səbəbini göstər" onClick={() => openTab(node.id, "risk")} />
-                              </PopoverContent>
-                            </Popover>
+                            <button
+                              onClick={() => { if (node.empId != null) setEmpKpiListFor({ empId: node.empId, name: node.name, position: node.position, division: node.division }); }}
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label="KPI-yə bax"
+                              title="KPI-yə bax"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
                           )
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </td>
