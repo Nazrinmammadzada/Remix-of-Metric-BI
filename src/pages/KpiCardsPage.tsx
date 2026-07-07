@@ -523,6 +523,36 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
 
+  // === Cədvəl toolbar state-ləri (Kartlar üzrə, Əməkdaşlar üzrə, List görünüşü) ===
+  const [tbl1State, setTbl1State] = useState<TableToolbarState>(defaultTableState);
+  const tbl1Cols = [
+    { key: "name", label: "Ad" },
+    { key: "kind", label: "Təyinat növü" },
+    { key: "created", label: "Yaranma tarixi" },
+    { key: "period", label: "Dövr" },
+    { key: "progress", label: "Progress" },
+    { key: "status", label: "Status" },
+    { key: "ops", label: "Əməliyyat" },
+  ];
+  const [tbl2State, setTbl2State] = useState<TableToolbarState>(defaultTableState);
+  const tbl2Cols = [
+    { key: "person", label: "Əməkdaşın A.S.A." },
+    { key: "position", label: "Vəzifə" },
+    { key: "count", label: "KPI kartlarının sayı" },
+    { key: "avg", label: "Ortalama Progress" },
+    { key: "ops", label: "Əməliyyat" },
+  ];
+  const [tbl3State, setTbl3State] = useState<TableToolbarState>(defaultTableState);
+  const tbl3Cols = [
+    { key: "name", label: "Ad" },
+    { key: "type", label: "Tip" },
+    { key: "resp", label: "Məsul" },
+    { key: "target", label: "Hədəf" },
+    { key: "current", label: "Cari" },
+    { key: "progress", label: "Progress" },
+    { key: "status", label: "Status" },
+  ];
+
   // === Yeni KPI Sehrbazı (4 addımlı) ===
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardInitial, setWizardInitial] = useState<Partial<CreateKpiWizardDraft> | undefined>(undefined);
