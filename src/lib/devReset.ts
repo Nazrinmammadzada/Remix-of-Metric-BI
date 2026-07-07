@@ -3,7 +3,7 @@
 // Bundan sonrakı yüklənişlərdə hər store öz default (seed) verilənlərini
 // bərpa edir.
 
-const RESET_FLAG = "kpi_dev_reset_v4_2026_07_08";
+const RESET_FLAG = "kpi_dev_reset_v5_2026_07_08";
 
 const PRESERVE = new Set<string>([
   "kpi_auth_v2",
