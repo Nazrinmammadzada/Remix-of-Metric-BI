@@ -259,7 +259,7 @@ const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: stri
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [drawerKpi, setDrawerKpi] = useState<Kpi | null>(null);
-  const [drawerTab, setDrawerTab] = useState<DrawerTab>("info");
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>("general");
   const [distributeNode, setDistributeNode] = useState<CascadeTreeNode | null>(null);
 
   const periods = useMemo(() => Array.from(new Set(data.map(d => d.period))), [data]);
@@ -387,10 +387,10 @@ const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: stri
                         </button>
                       </PopoverTrigger>
                       <PopoverContent align="end" className="w-52 p-1">
-                        <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openDrawer(k, "info")} />
+                        <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openDrawer(k, "general")} />
                         <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openDrawer(k, "history")} />
                         <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openDrawer(k, "comments")} />
-                        <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "reminders")} />
+                        <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "history")} />
                         {k.cascadeNodeId && (
                           <MenuItem
                             icon={GitBranch}
@@ -832,7 +832,7 @@ export const SubordinatesView = ({
   const [panelOpen, setPanelOpen] = useState(false);
   const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string } | null>(null);
   const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
-  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("info");
+  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("general");
 
   // Deterministic period/date helpers for the employee's KPI card list
   const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -1150,7 +1150,7 @@ export const SubordinatesView = ({
                       <td className="px-4 py-3 text-muted-foreground">{k.updatedAt}</td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => { setViewKpi(k); setViewKpiTab("info"); }}
+                          onClick={() => { setViewKpi(k); setViewKpiTab("general"); }}
                           className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           aria-label="Bax"
                           title="Bax"
