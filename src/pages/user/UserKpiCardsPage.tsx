@@ -296,9 +296,9 @@ const UserKpiCardsPage = () => {
         {/* View toggle & filters */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
-            <button onClick={() => setFilterView("own")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "own" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Mənim KPI-larım</button>
-            <button onClick={() => setFilterView("team")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Komandamın KPI-ları</button>
-            <button onClick={() => setFilterView("structure")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Strukturumun KPI-ları</button>
+            <button onClick={() => setFilterView("own")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "own" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Fərdi KPI-lar</button>
+            <button onClick={() => setFilterView("team")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "team" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Komanda KPI-ları</button>
+            <button onClick={() => setFilterView("structure")} className={`px-4 py-1.5 text-sm rounded-md ${filterView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Struktur KPI-ları</button>
           </div>
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -481,7 +481,10 @@ const UserKpiCardsPage = () => {
           {selectedKpi && (
             <div className="space-y-4">
               <div className="flex gap-2 border-b border-border overflow-x-auto">
-                {([["general", "Ümumi"], ["details", "Detallar"], ["performance", "Performans Analitikası"], ["history", "Tarixçə"], ["team", "Komanda"], ["evaluation", "Qiymətləndirmə"], ["comments", "Şərhlər"], ["status", "Status"]] as const).map(([key, label]) => (
+                {(filterView === "structure"
+                  ? ([["general", "Ümumi"], ["details", "Detallar"]] as const)
+                  : ([["general", "Ümumi"], ["details", "Detallar"], ["performance", "Performans Analitikası"], ["history", "Tarixçə"], ["team", "Komanda"], ["evaluation", "Qiymətləndirmə"], ["comments", "Şərhlər"], ["status", "Status"]] as const)
+                ).map(([key, label]) => (
                   <button key={key} onClick={() => setDetailTab(key)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
                 ))}
               </div>

@@ -1120,11 +1120,13 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <SummaryRow label="Dövr" value={draft.frequency} />
                   <SummaryRow label="Müddət" value={`${draft.startDate} → ${draft.endDate}`} />
                   <SummaryRow label="Bal sistemi" value={draft.scoringSystem} />
-                  <SummaryRow label="Təsdiqləmə üsulu" value={
-                    draft.approvalMethod === "team_leader" ? "Komanda rəhbəri"
-                    : draft.approvalMethod === "structure_leader" ? "Təşkilati struktur rəhbəri"
-                    : "Matriks"
-                  } />
+                  {draft.useMatrix && (
+                    <SummaryRow label="Təsdiqləmə üsulu" value={
+                      draft.approvalMethod === "team_leader" ? "Komanda rəhbəri"
+                      : draft.approvalMethod === "structure_leader" ? "Təşkilati struktur rəhbəri"
+                      : "Matriks"
+                    } />
+                  )}
 
                   {draft.mode === "individual" && <SummaryRow label="Əməkdaşlar" value={draft.individualEmployees.join(", ") || "—"} />}
                   {draft.mode === "bulk" && (
@@ -1162,7 +1164,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   }
                 </SummarySection>
 
-                {/* Təsdiqləmə üsulu — həmişə göstərilir, dəyişilə bilər */}
+                {/* Təsdiqləmə üsulu — yalnız təsdiqləmə matrisi seçilibsə görünür */}
+                {draft.useMatrix && (
                 <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 space-y-2.5">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-primary" />
@@ -1216,6 +1219,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     <p className="text-[11px] text-muted-foreground">Seçilmiş strukturların rəhbərləri təsdiqləyəcək.</p>
                   )}
                 </div>
+                )}
 
 
 
