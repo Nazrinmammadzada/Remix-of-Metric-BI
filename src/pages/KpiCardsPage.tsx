@@ -1032,7 +1032,59 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     return draft.mode === "individual" ? "Fərdi" : "Toplu";
   };
 
-  const filteredCards = kpiCards.filter(c => {
+  // === Rəhbər / cross-panel shared kartları HR görsün ===
+  // Kartlar SharedKpiCard store-dan gəlir (Rəhbərin kartları burada da var).
+  const sharedCards = useSharedKpiCards();
+  const mergedKpiCards = useMemo(() => {
+    const byNumId = new Map<number, KpiCard>();
+    kpiCards.forEach(c => byNumId.set(c.id, c));
+    const existingNumIds = new Set<number>(kpiCards.map(c => c.id));
+    const employeeById = new Map(getEmployees().map(e => [`e${e.id}`, e]));
+    const toKpiCard = (s: SharedKpiCard): KpiCard => {
+      const owner = employeeById.get(s.ownerId);
+      const responsible = owner ? `${owner.firstName} ${owner.lastName}` : s.ownerId;
+      const notes = (s.history || [])
+        .filter(h => h.note && h.note.trim())
+        .map(h => `• ${h.actor}: ${h.note}`)
+        .join("\n");
+      const numericId = s.numericId ?? Math.abs(hashStrLocal(s.id));
+      return {
+        id: numericId,
+        name: s.name,
+        icon: Target,
+        zone: s.status === "aktiv" ? "green" : s.status === "imtina" ? "red" : "yellow",
+        target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
+        responsible,
+        period: `${(s.startDate || "").slice(0, 4)} - ${s.frequency || ""}`,
+        type: "Absolut Hədəf", formula: "—", generalTarget: "",
+        department: "—", group: "—", subdivision: "—",
+        startDate: s.startDate || "", endDate: s.endDate || "",
+        frequency: s.frequency || "Aylıq",
+        team: [], history: [],
+        description: notes || `Bal sistemi: ${s.scoringSystem || "1-5"}`,
+        weight: 10,
+        approvalStatus: s.status === "aktiv" ? "approved" : "pending",
+        subKpis: (s.targets || []).map((t, i) => ({
+          id: i + 1,
+          name: t.name,
+          target: String(t.targetValue ?? "—"),
+          unit: t.unit || "",
+          weight: t.weight || 0,
+          current: "",
+          progress: 0,
+          assignerMode: t.createdBy === "other" ? "other" : "self",
+          assigner: t.assigner,
+        } as SubKpi)),
+        matrixId: s.matrixId,
+      };
+    };
+    const extras = sharedCards
+      .filter(s => !(s.numericId && existingNumIds.has(s.numericId)))
+      .map(toKpiCard);
+    return [...kpiCards, ...extras];
+  }, [kpiCards, sharedCards]);
+
+  const filteredCards = mergedKpiCards.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchText.toLowerCase());
     let matchesTeam = true;
     if (filterTeamId !== null) {
