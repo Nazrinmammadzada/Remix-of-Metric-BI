@@ -414,7 +414,7 @@ const EmployeeKpiDialog = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserIcon className="w-5 h-5 text-primary" />
-            {emp?.fullName} — {emp?.cardName}
+            {emp?.fullName} — {emp ? withKartSuffix(emp.cardName) : ""}
           </DialogTitle>
           <p className="text-xs text-muted-foreground">Dövr: {periodLabel} · Hər hədəf üzrə qiymətləndiricilər və yekun hesablama</p>
         </DialogHeader>
