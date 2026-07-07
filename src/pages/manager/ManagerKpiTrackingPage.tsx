@@ -493,7 +493,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
   };
 
   return (
-    <aside className="fixed top-0 right-0 h-screen w-full sm:w-[440px] bg-card border-l border-border shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-300">
+    <aside className="fixed top-0 right-0 h-screen w-full sm:w-[640px] bg-card border-l border-border shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-300">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="text-base font-semibold text-foreground">KPI-yə bax</h3>
