@@ -13,6 +13,7 @@ import KpiExtraTabContent, { isExtraTab } from "@/components/kpi/KpiExtraTabs";
 import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
 import { WeightInput } from "@/components/kpi/WeightInput";
 import { withKartSuffix } from "@/lib/utils";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 interface SubKpi {
   id: number; name: string; target: string; weight: number; current?: string; progress?: number;
@@ -383,6 +384,7 @@ const UserKpiCardsPage = () => {
         ) : filterView !== "own" ? (
           /* Komanda / Struktur — yalnız ümumi məlumatlar */
           <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <SmartTableFrame>
             <table className="w-full text-sm">
               <thead className="bg-secondary/50 text-xs uppercase text-muted-foreground">
                 <tr>
@@ -415,6 +417,7 @@ const UserKpiCardsPage = () => {
                 })}
               </tbody>
             </table>
+            </SmartTableFrame>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-4">

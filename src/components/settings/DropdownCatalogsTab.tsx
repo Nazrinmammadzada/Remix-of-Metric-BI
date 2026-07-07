@@ -21,6 +21,7 @@ import {
   type SubKpiRow,
 } from "@/lib/dropdownCatalogStore";
 import {
+import SmartTableFrame from "@/components/common/SmartTableFrame";
   addPeriod, deletePeriod, computeDurationLabel, formatPeriodRange, getPeriods, type KpiPeriod,
 } from "@/lib/teamsStore";
 
@@ -81,6 +82,7 @@ const MultiTagInput = ({ values, onChange, placeholder, options }: {
 
 // ---------- Strukturlaşdırılmış cədvəllər ----------
 const TargetTypesTable = ({ rows, onEdit, onDelete }: { rows: TargetTypeRow[]; onEdit: (r: TargetTypeRow) => void; onDelete: (r: TargetTypeRow) => void }) => (
+  <SmartTableFrame>
   <table className="w-full text-sm">
     <thead>
       <tr className="text-muted-foreground text-left border-b border-border">
@@ -110,9 +112,11 @@ const TargetTypesTable = ({ rows, onEdit, onDelete }: { rows: TargetTypeRow[]; o
       ))}
     </tbody>
   </table>
+  </SmartTableFrame>
 );
 
 const KpiKindsTable = ({ rows, onEdit, onDelete }: { rows: KpiKindRow[]; onEdit: (r: KpiKindRow) => void; onDelete: (r: KpiKindRow) => void }) => (
+  <SmartTableFrame>
   <table className="w-full text-sm">
     <thead>
       <tr className="text-muted-foreground text-left border-b border-border">
@@ -142,9 +146,11 @@ const KpiKindsTable = ({ rows, onEdit, onDelete }: { rows: KpiKindRow[]; onEdit:
       ))}
     </tbody>
   </table>
+  </SmartTableFrame>
 );
 
 const SubKpisTable = ({ rows, onEdit, onDelete }: { rows: SubKpiRow[]; onEdit: (r: SubKpiRow) => void; onDelete: (r: SubKpiRow) => void }) => (
+  <SmartTableFrame>
   <table className="w-full text-sm">
     <thead>
       <tr className="text-muted-foreground text-left border-b border-border">
@@ -180,10 +186,12 @@ const SubKpisTable = ({ rows, onEdit, onDelete }: { rows: SubKpiRow[]; onEdit: (
       ))}
     </tbody>
   </table>
+  </SmartTableFrame>
 );
 
 const PeriodsTable = ({ rows, onDelete }: { rows: KpiPeriod[]; onDelete: (p: KpiPeriod) => void }) => (
   <>
+    <SmartTableFrame>
     <table className="w-full text-sm">
       <thead>
         <tr className="text-muted-foreground text-left border-b border-border">
@@ -214,6 +222,7 @@ const PeriodsTable = ({ rows, onDelete }: { rows: KpiPeriod[]; onDelete: (p: Kpi
         ))}
       </tbody>
     </table>
+    </SmartTableFrame>
     <p className="text-xs text-muted-foreground mt-3">
       Bu dövrlər KPI yaratma formasında "Digər" dropdownda görünəcək.
     </p>
@@ -598,6 +607,7 @@ const DropdownCatalogsTab = () => {
             )}
 
             {!active.schema && (
+              <SmartTableFrame>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-muted-foreground text-left border-b border-border">
@@ -623,6 +633,7 @@ const DropdownCatalogsTab = () => {
                   ))}
                 </tbody>
               </table>
+              </SmartTableFrame>
             )}
           </>
         )}

@@ -20,6 +20,7 @@ import {
   type SalaryRecord, type SalaryPeriod, type Month,
 } from "@/lib/salaryStore";
 import { getUploads, addUpload, type SalaryUpload } from "@/lib/salaryUploadsStore";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const YEARS = [2023, 2024, 2025, 2026];
 
@@ -476,6 +477,7 @@ const SalaryPage = () => {
           </div>
 
           <div className="overflow-x-auto">
+            <SmartTableFrame>
             <table className="w-full" style={{ fontSize: `${fontSize}px`, tableLayout: "fixed" }}>
               <thead className="bg-secondary/40">
                 <tr className="text-left text-muted-foreground">
@@ -558,6 +560,7 @@ const SalaryPage = () => {
                 ))}
               </tbody>
             </table>
+            </SmartTableFrame>
           </div>
 
           {/* Pagination */}
@@ -775,6 +778,7 @@ const EmployeeDetailDialog = ({ row, onClose }: { row: AggRow | null; onClose: (
             </div>
 
             <div className="rounded-xl border border-border overflow-hidden">
+              <SmartTableFrame>
               <table className="w-full text-sm">
                 <thead className="bg-primary text-primary-foreground">
                   <tr>
@@ -795,6 +799,7 @@ const EmployeeDetailDialog = ({ row, onClose }: { row: AggRow | null; onClose: (
                   ))}
                 </tbody>
               </table>
+              </SmartTableFrame>
             </div>
           </div>
         )}
@@ -1081,6 +1086,7 @@ const UploadsTab = ({ uploads, onView }: { uploads: SalaryUpload[]; onView: (u: 
         <span className="text-xs text-muted-foreground">Ümumi: {filtered.length}</span>
       </div>
       <div className="overflow-x-auto">
+        <SmartTableFrame>
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <thead className="bg-secondary/40">
             <tr className="text-left text-muted-foreground">
@@ -1138,6 +1144,7 @@ const UploadsTab = ({ uploads, onView }: { uploads: SalaryUpload[]; onView: (u: 
             ))}
           </tbody>
         </table>
+        </SmartTableFrame>
       </div>
     </div>
   );
@@ -1186,6 +1193,7 @@ const UploadDetailDialog = ({ upload, onClose }: { upload: SalaryUpload | null; 
 
             <div className="text-sm font-medium mb-2">Sətir detalları</div>
             <div className="rounded-xl border border-border overflow-hidden">
+              <SmartTableFrame>
               <table className="w-full text-sm">
                 <thead className="bg-secondary/40">
                   <tr className="text-left text-muted-foreground">
@@ -1224,6 +1232,7 @@ const UploadDetailDialog = ({ upload, onClose }: { upload: SalaryUpload | null; 
                   ))}
                 </tbody>
               </table>
+              </SmartTableFrame>
             </div>
           </>
         )}

@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { mockEmployees } from "@/data/mockData";
 import { getApprovalMatrices, formatAssignee, type ApprovalMatrix } from "@/lib/matrixStore";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 type EvalKind = "halfYear" | "annual";
 
@@ -277,6 +278,7 @@ const KpiPlanningDialog = ({ trigger }: KpiPlanningDialogProps = {}) => {
               Qiymətləndirmə dövrləri
             </h3>
             <div className="rounded-xl border border-border overflow-hidden">
+              <SmartTableFrame>
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs text-muted-foreground">
                   <tr>
@@ -336,6 +338,7 @@ const KpiPlanningDialog = ({ trigger }: KpiPlanningDialogProps = {}) => {
                   )}
                 </tbody>
               </table>
+              </SmartTableFrame>
             </div>
             <Button variant="outline" size="sm" onClick={addRow} className="gap-1">
               <Plus className="w-3.5 h-3.5" /> Dövr əlavə et

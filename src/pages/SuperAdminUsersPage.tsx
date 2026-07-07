@@ -12,6 +12,7 @@ import {
 } from "@/lib/hrAdminStore";
 import { setPasswordForEmail } from "@/lib/passwordStore";
 import { MODULE_PERMS, ALL_MODULE_KEYS } from "@/lib/modulePermissions";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const SuperAdminUsersPage = () => {
   const admins = useHrAdmins();
@@ -70,6 +71,7 @@ const SuperAdminUsersPage = () => {
         </div>
 
         <div className="overflow-x-auto">
+          <SmartTableFrame>
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-muted-foreground">
               <tr>
@@ -151,6 +153,7 @@ const SuperAdminUsersPage = () => {
               ))}
             </tbody>
           </table>
+          </SmartTableFrame>
         </div>
       </div>
 

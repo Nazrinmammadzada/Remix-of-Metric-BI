@@ -15,6 +15,7 @@ import {
 import { getTeams } from "@/lib/teamsStore";
 import { getEmployees } from "@/lib/orgStore";
 import { getStructures, findStructureById, type OrgStructure } from "@/lib/orgStore";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const SCOPE_LABELS: Record<CascadeScopeType, string> = {
   team: "Komanda",
@@ -67,6 +68,7 @@ const CascadeMatrixPage = ({ onBack }: { onBack?: () => void } = {}) => {
         />
 
         <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <SmartTableFrame>
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-left text-muted-foreground">
               <tr>
@@ -106,6 +108,7 @@ const CascadeMatrixPage = ({ onBack }: { onBack?: () => void } = {}) => {
               ))}
             </tbody>
           </table>
+          </SmartTableFrame>
         </div>
       </main>
 

@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { AIChatSection } from "@/components/ai/AIChatSection";
 import PeriodPicker, { buildDemoSeries, currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const departments = [
   { name: "Satış", value: 92, count: 8 },
@@ -103,6 +104,7 @@ const HomePage = () => {
         </div>
 
         <FancyCard title="Son KPI Nəticələri">
+          <SmartTableFrame>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground text-left border-b border-border">
@@ -132,6 +134,7 @@ const HomePage = () => {
               ))}
             </tbody>
           </table>
+          </SmartTableFrame>
         </FancyCard>
       </main>
     </div>
