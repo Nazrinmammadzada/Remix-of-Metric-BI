@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { PageHero, FancyCard } from "@/components/ui/page-hero";
@@ -33,7 +33,16 @@ import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
 import { collectDeactivationReasons } from "@/lib/employeeDeactivation";
 import DeactivateEmployeeDialog from "@/components/kpi/DeactivateEmployeeDialog";
-import ChangeLeaderDialog from "@/components/kpi/ChangeLeaderDialog";
+// Rəhbəri dəyiş axını daha modal açmır — birbaşa Ştat cədvəlində tac ikonu klik ilə həll olunur.
+
+// ── Rəhbəri dəyiş konteksti: Ştat cədvəlində tac klikini müvəqqəti olaraq
+// leader-swap əməliyyatına yönləndirir. Yalnız `changeLeaderFor` aktiv olduqda tətbiq olunur.
+interface LeaderChangeCtxValue {
+  oldLeaderId: number;
+  leaderInfo: LeaderStructInfo;
+  onPick: (newEmpId: number, sourceSlotId: number) => void;
+}
+const LeaderChangeCtx = createContext<LeaderChangeCtxValue | null>(null);
 
 // One-time reset so employee table columns appear in code-defined order
 if (!localStorage.getItem("__org_emp_order_fixed")) {
@@ -308,7 +317,8 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
   };
 
   // "Rəhbəri dəyiş" axını: passiv edilmək istənilən əməkdaşın rəhbəri olduğu
-  // strukturu tap, ata strukturları expand et, node-u highlight et və dialoqu aç.
+  // strukturu tap, ata strukturları expand et, node-u highlight et və
+  // birbaşa Ştat cədvəlini aç ki, istifadəçi başqa əməkdaşın tacına klik etsin.
   const openLeaderChangeFor = (info: LeaderStructInfo) => {
     setExpanded(prev => {
       const next = new Set(prev);
@@ -318,7 +328,7 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
     });
     setHighlightId(info.node.id);
     setLeaderChange(info);
-    // Node görünsün deyə cüzi gecikmə ilə scroll edirik.
+    setStaffModalFor(info.node); // Ştat cədvəlini avtomatik aç
     setTimeout(() => {
       const el = document.querySelector<HTMLElement>(`[data-struct-id="${info.node.id}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -333,17 +343,29 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [changeLeaderFor]);
 
-  const handleLeaderSaved = () => {
-    if (!changeLeaderFor) { setLeaderChange(null); return; }
-    // Bu əməkdaş üçün qalan rəhbər ştatlarını yoxla.
+  // Ştat cədvəlində yeni rəhbər tac klikilə seçildikdə çağırılır.
+  const handleLeaderPick = (newEmpId: number, sourceSlotId: number) => {
+    if (!leaderChange || !changeLeaderFor) return;
+    if (newEmpId === changeLeaderFor) return;
+    // 1) Yeni rəhbəri rəhbər ştatına qoy.
+    assignSlot(leaderChange.slotId, { employeeId: newEmpId });
+    // 2) Yeni rəhbərin əvvəlki (mənbə) ştatını təmizlə — eyni şəxs iki ştatda qalmasın.
+    if (sourceSlotId !== leaderChange.slotId) {
+      assignSlot(sourceSlotId, { employeeId: null });
+    }
+    // 3) Ulduz / rəhbər rolu bayrağını sinxronla.
+    setStarPerson(changeLeaderFor, false);
+    setStarPerson(newEmpId, true);
+
+    // 4) Bu əməkdaş üçün digər struktur rəhbərliyi qalıbsa, növbəti mərhələyə keç.
     const remaining = findLeaderStructuresOf(changeLeaderFor);
     if (remaining.length > 0) {
-      // Növbəti struktur üçün eyni dialoqu davam etdir.
+      setStaffModalFor(null);
       setLeaderChange(null);
       setTimeout(() => openLeaderChangeFor(remaining[0]), 50);
       return;
     }
-    // Bütün rəhbər əlaqələri həll edildi → digər maneə yoxdursa əməkdaşı avtomatik Passiv et.
+    // 5) Bütün rəhbər əlaqələri həll edildi → əməkdaşı avtomatik Passiv et.
     const emp = getEmployees().find(e => e.id === changeLeaderFor);
     const otherBlockers = collectDeactivationReasons(changeLeaderFor).filter(r => r.code !== "structure_leader");
     if (emp?.active && otherBlockers.length === 0) {
@@ -352,10 +374,13 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
     } else {
       toast.success("Struktur rəhbəri uğurla dəyişdirildi.");
     }
+    setStaffModalFor(null);
     setLeaderChange(null);
     setHighlightId(null);
     onClearChangeLeader?.();
   };
+
+
 
 
   const handleCreate = () => {
@@ -455,20 +480,29 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
         </DialogContent>
       </Dialog>
 
-      {/* Staff (positions + slots) modal */}
-      <StaffModal node={liveStaffModal} onClose={() => setStaffModalFor(null)} />
+      {/* Staff (positions + slots) modal — Rəhbəri dəyiş rejimində
+          tac ikonu klik ilə leader-swap tetiklənir (LeaderChangeCtx vasitəsilə). */}
+      <LeaderChangeCtx.Provider
+        value={
+          changeLeaderFor && leaderChange
+            ? { oldLeaderId: changeLeaderFor, leaderInfo: leaderChange, onPick: handleLeaderPick }
+            : null
+        }
+      >
+        <StaffModal
+          node={liveStaffModal}
+          onClose={() => {
+            setStaffModalFor(null);
+            if (leaderChange) {
+              setLeaderChange(null);
+              setHighlightId(null);
+              onClearChangeLeader?.();
+            }
+          }}
+        />
+      </LeaderChangeCtx.Provider>
 
       <ChrImportDialog open={showChrImport} onClose={() => setShowChrImport(false)} />
-
-      {/* Rəhbəri dəyiş dialoqu — dərinlik dəf'ə: əməkdaş bir neçə strukturun rəhbəridirsə,
-          hər biri üçün ardıcıl açılır və sonda əməkdaş avtomatik Passiv edilir. */}
-      <ChangeLeaderDialog
-        open={!!leaderChange}
-        onOpenChange={(o) => { if (!o) { setLeaderChange(null); setHighlightId(null); onClearChangeLeader?.(); } }}
-        info={leaderChange}
-        currentLeaderId={changeLeaderFor ?? 0}
-        onSaved={handleLeaderSaved}
-      />
     </div>
   );
 };
@@ -853,8 +887,22 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
     `${e.firstName} ${e.lastName} ${e.fin}`.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const leaderCtx = useContext(LeaderChangeCtx);
   const handleToggleStar = () => {
     if (!current) return;
+    // Rəhbəri dəyiş rejimi aktivdirsə tac klik yeni rəhbər seçimi kimi işləyir.
+    if (leaderCtx) {
+      if (current.id === leaderCtx.oldLeaderId) {
+        toast.info("Bu köhnə rəhbərdir. Başqa aktiv əməkdaşın tacına klik edin.");
+        return;
+      }
+      if (!current.active) {
+        toast.error("Yalnız Aktiv əməkdaş rəhbər təyin edilə bilər.");
+        return;
+      }
+      leaderCtx.onPick(current.id, slot.id);
+      return;
+    }
     const next = !current.isStarPerson;
     setStarPerson(current.id, next);
     if (next) {
