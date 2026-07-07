@@ -1647,8 +1647,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   )}
                 </div>
               );
-            })()
-            ) : (() => {
+            })() : (() => {
               const approvedCards = filteredCards.filter(c => c.approvalStatus === "approved" && !c.frozen);
               const pendingCards = filteredCards.filter(c => c.approvalStatus === "pending" && !c.frozen);
               const frozenCards = filteredCards.filter(c => c.frozen);
