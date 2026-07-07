@@ -44,7 +44,28 @@ if (!localStorage.getItem("__org_emp_order_fixed")) {
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
-  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq" | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab: "struktur" | "emekdaslar" | "kataloq" | null =
+    searchParams.get("tab") === "struktur" ? "struktur"
+    : searchParams.get("tab") === "emekdaslar" ? "emekdaslar"
+    : searchParams.get("tab") === "kataloq" ? "kataloq"
+    : null;
+  const [tab, setTab] = useState<"struktur" | "emekdaslar" | "kataloq" | null>(initialTab);
+  const changeLeaderFor = searchParams.get("changeLeaderFor") ? Number(searchParams.get("changeLeaderFor")) : null;
+
+  // Deep-link ilə (məs. /teskilati-struktur?tab=struktur&changeLeaderFor=4) səhifə açıldıqda
+  // uyğun tabı avtomatik seçirik.
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "struktur" || t === "emekdaslar" || t === "kataloq") setTab(t);
+  }, [searchParams]);
+
+  const clearChangeLeaderParam = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("changeLeaderFor");
+    setSearchParams(next, { replace: true });
+  };
+
   const [employees, setEmployeesState] = useState<OrgEmployee[]>(() => getEmployees());
   const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
   const [orgLogo, setOrgLogo] = useState<string | null>(() => localStorage.getItem(ORG_LOGO_KEY));
