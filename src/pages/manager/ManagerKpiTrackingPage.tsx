@@ -16,7 +16,6 @@ import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-import SmartTableFrame from "@/components/common/SmartTableFrame";
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
   TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch,
@@ -345,7 +344,6 @@ const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: stri
 
       {/* Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <SmartTableFrame>
         <table className="w-full text-sm">
           <thead className="bg-secondary/40 text-muted-foreground">
             <tr>
@@ -413,8 +411,7 @@ const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: stri
             )}
           </tbody>
         </table>
-        </SmartTableFrame>
-      </div>
+        </div>
 
       <KpiDrawer kpi={drawerKpi} tab={drawerTab} setTab={setDrawerTab} onClose={() => setDrawerKpi(null)} />
       <CascadeDistributeDialog
@@ -960,7 +957,6 @@ export const SubordinatesView = ({
         {/* Tree grid */}
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <SmartTableFrame>
             <table className="w-full text-sm min-w-[900px]">
               <thead className="bg-secondary/40 text-muted-foreground">
                 <tr>
@@ -1059,8 +1055,7 @@ export const SubordinatesView = ({
                 })}
               </tbody>
             </table>
-            </SmartTableFrame>
-          </div>
+            </div>
           <div className="flex items-center justify-between px-4 py-3 border-t border-border text-xs text-muted-foreground">
             <span>Cəmi: {fmt(totals.employees)} əməkdaş, {fmt(totals.completed + totals.atRisk + totals.delayed)} KPI</span>
             <span>Səhifə 1 / 1</span>
@@ -1207,7 +1202,6 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
                 </div>
                 {isEmp && empKpis.length > 0 ? (
                   <div className="overflow-x-auto">
-                    <SmartTableFrame>
                     <table className="w-full text-xs">
                       <thead className="bg-secondary/20 text-muted-foreground">
                         <tr>
@@ -1246,8 +1240,7 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
                         })}
                       </tbody>
                     </table>
-                    </SmartTableFrame>
-                  </div>
+                    </div>
                 ) : (
                   <div className="p-4 text-xs text-muted-foreground text-center">Bu səviyyə üçün KPI siyahısı yalnız əməkdaş səviyyəsində göstərilir.</div>
                 )}

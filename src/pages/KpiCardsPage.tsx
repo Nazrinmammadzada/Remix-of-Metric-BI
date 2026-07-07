@@ -25,7 +25,6 @@ import BscScorecardTab from "@/components/kpi/BscScorecardTab";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
-import TableFrame, { defaultTableState, type TableToolbarState } from "@/components/common/TableFrame";
 import { LayoutGrid, List, Briefcase, Copy, Eye } from "lucide-react";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
 import { getLimitsFor, getEntriesForCard, addPendingEntry, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
@@ -1415,7 +1414,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <Plus className="w-5 h-5" /> Yeni KPI Kartı
                     </button>
                   </div>
-                  <TableFrame columns={tbl1Cols} state={tbl1State} onChange={setTbl1State}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1563,8 +1561,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </tbody>
                     </table>
                   </div>
-                  </TableFrame>
-                </div>
+                  </div>
               );
             })() : kartView === "kart2" ? (() => {
               const groups = new Map<string, KpiCard[]>();
@@ -1586,7 +1583,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     </div>
                   </div>
 
-                  <TableFrame columns={tbl2Cols} state={tbl2State} onChange={setTbl2State}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1640,8 +1636,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </tbody>
                     </table>
                   </div>
-                  </TableFrame>
-                </div>
+                  </div>
               );
             })() : (() => {
               const approvedCards = filteredCards.filter(c => c.approvalStatus === "approved" && !c.frozen);
@@ -1764,7 +1759,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input value={listSearch} onChange={e => setListSearch(e.target.value)} placeholder="KPI və ya məsul şəxs ilə axtar..." className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
                     </div>
-                    <TableFrame columns={tbl3Cols} state={tbl3State} onChange={setTbl3State}>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
@@ -1793,8 +1787,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         ))}
                       </tbody>
                     </table>
-                    </TableFrame>
-                  </div>
+                    </div>
                 );
               }
 

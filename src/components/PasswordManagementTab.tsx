@@ -3,7 +3,6 @@ import { Pencil, KeyRound, Search, Copy, Check, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getUsers, updateUser, generateOtp, type ManagedUser } from "@/lib/passwordStore";
 import { toast } from "sonner";
-import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const PasswordManagementTab = () => {
   const [users, setUsers] = useState<ManagedUser[]>(() => getUsers());
@@ -70,7 +69,6 @@ const PasswordManagementTab = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <SmartTableFrame>
           <table className="w-full text-sm">
             <thead>
               <tr className="text-muted-foreground text-left bg-muted/30 text-xs uppercase tracking-wide">
@@ -119,8 +117,7 @@ const PasswordManagementTab = () => {
               )}
             </tbody>
           </table>
-          </SmartTableFrame>
-        </div>
+          </div>
       </div>
 
       {/* Edit user dialog */}

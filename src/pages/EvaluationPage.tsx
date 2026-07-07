@@ -30,7 +30,6 @@ import { hasReviewerSubmitted, getReviewsForReviewee } from "@/lib/peerReviewSto
 import { getManualAssignments, addManualAssignment, removeManualAssignment, getUsedRevieweeIds, type ManualAssignment } from "@/lib/manualAssignmentsStore";
 import { addSurvey } from "@/lib/evaluationSurveyStore";
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
-import TableFrame, { defaultTableState, type TableToolbarState } from "@/components/common/TableFrame";
 
 // =============== Survey Dialog (HR sends evaluation request to employees) ===============
 const SurveyDialog = () => {
@@ -822,7 +821,6 @@ const StatusTab = () => {
         </div>
       </div>
 
-      <TableFrame columns={tblCols} state={tblState} onChange={setTblState}>
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
@@ -891,7 +889,6 @@ const StatusTab = () => {
           </tbody>
         </table>
       </div>
-      </TableFrame>
       {filtered.length > tblState.rowsPerPage && (
         <p className="text-xs text-muted-foreground text-center">{tblState.rowsPerPage} / {filtered.length} sətir göstərilir</p>
       )}

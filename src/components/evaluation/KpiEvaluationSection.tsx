@@ -14,7 +14,6 @@ import {
   USER_KPI_CARD,
 } from "@/lib/kpiEvaluationStore";
 import { RatingCircles } from "@/components/evaluation/RatingCircles";
-import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 interface Props {
   assigneeId: string;
@@ -97,7 +96,6 @@ export const KpiEvaluationSection = ({ assigneeId }: Props) => {
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         <div className="overflow-x-auto">
-          <SmartTableFrame>
           <table className="w-full text-sm">
             <thead className="bg-secondary/40 text-muted-foreground">
               <tr>
@@ -172,8 +170,7 @@ export const KpiEvaluationSection = ({ assigneeId }: Props) => {
               )}
             </tbody>
           </table>
-          </SmartTableFrame>
-        </div>
+          </div>
       </div>
 
       {editing && <KpiEvalDialog item={editing} onClose={() => setEditing(null)} />}

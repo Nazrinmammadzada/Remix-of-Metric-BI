@@ -5,7 +5,6 @@ import { Plus, ChevronDown, ChevronRight, ChevronLeft, Sparkles, Info, FileText 
 import { getAssignments, type FormulaAssignment } from "@/lib/formulaAssignmentsStore";
 import { getEmployees } from "@/lib/orgStore";
 import BulkAssignWizard from "@/components/formulas/BulkAssignWizard";
-import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const fmtDate = (iso: string) => {
   try {
@@ -60,7 +59,6 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
 
         <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <SmartTableFrame>
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-secondary/50 text-left text-xs text-muted-foreground uppercase tracking-wide">
@@ -168,8 +166,7 @@ const FormulaAssignmentsPage = ({ onBack }: { onBack?: () => void }) => {
                 })}
               </tbody>
             </table>
-            </SmartTableFrame>
-          </div>
+            </div>
         </div>
       </main>
     </div>
