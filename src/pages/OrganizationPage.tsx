@@ -275,9 +275,16 @@ const countAllSlots = (node: OrgStructure): number =>
 // Structure tab — card-based tree
 // ====================================================
 
-const StructureTab = () => {
+interface StructureTabProps {
+  changeLeaderFor?: number | null;
+  onClearChangeLeader?: () => void;
+}
+
+const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProps) => {
   const [structures, setStructuresState] = useState<OrgStructure[]>(() => getStructures());
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const [leaderChange, setLeaderChange] = useState<LeaderStructInfo | null>(null);
 
   useEffect(() => {
     const refresh = () => setStructuresState(getStructures());
@@ -299,6 +306,57 @@ const StructureTab = () => {
       return next;
     });
   };
+
+  // "Rəhbəri dəyiş" axını: passiv edilmək istənilən əməkdaşın rəhbəri olduğu
+  // strukturu tap, ata strukturları expand et, node-u highlight et və dialoqu aç.
+  const openLeaderChangeFor = (info: LeaderStructInfo) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      info.ancestorIds.forEach(id => next.add(id));
+      next.add(info.node.id);
+      return next;
+    });
+    setHighlightId(info.node.id);
+    setLeaderChange(info);
+    // Node görünsün deyə cüzi gecikmə ilə scroll edirik.
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-struct-id="${info.node.id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
+
+  useEffect(() => {
+    if (!changeLeaderFor) return;
+    const list = findLeaderStructuresOf(changeLeaderFor);
+    if (list.length === 0) { onClearChangeLeader?.(); return; }
+    openLeaderChangeFor(list[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeLeaderFor]);
+
+  const handleLeaderSaved = () => {
+    if (!changeLeaderFor) { setLeaderChange(null); return; }
+    // Bu əməkdaş üçün qalan rəhbər ştatlarını yoxla.
+    const remaining = findLeaderStructuresOf(changeLeaderFor);
+    if (remaining.length > 0) {
+      // Növbəti struktur üçün eyni dialoqu davam etdir.
+      setLeaderChange(null);
+      setTimeout(() => openLeaderChangeFor(remaining[0]), 50);
+      return;
+    }
+    // Bütün rəhbər əlaqələri həll edildi → digər maneə yoxdursa əməkdaşı avtomatik Passiv et.
+    const emp = getEmployees().find(e => e.id === changeLeaderFor);
+    const otherBlockers = collectDeactivationReasons(changeLeaderFor).filter(r => r.code !== "structure_leader");
+    if (emp?.active && otherBlockers.length === 0) {
+      toggleEmployeeActive(changeLeaderFor);
+      toast.success("Struktur rəhbəri uğurla dəyişdirildi. Əməkdaş avtomatik olaraq Passiv statusuna keçirildi.");
+    } else {
+      toast.success("Struktur rəhbəri uğurla dəyişdirildi.");
+    }
+    setLeaderChange(null);
+    setHighlightId(null);
+    onClearChangeLeader?.();
+  };
+
 
   const handleCreate = () => {
     if (!newStruct.type.trim()) { toast.error("Struktur tipini daxil edin"); return; }
