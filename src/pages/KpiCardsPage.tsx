@@ -1401,7 +1401,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <tbody>
                         {filteredCards.length === 0 ? (
                           <tr><td colSpan={7} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
-                        ) : filteredCards.slice(0, tbl1State.rowsPerPage).map(card => {
+                        ) : filteredCards.map(card => {
                           const st = getStatusFor(card.id);
                           const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
                           return (
@@ -1566,7 +1566,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {entries.slice(0, tbl2State.rowsPerPage).map(([person, cards]) => {
+                        {entries.map(([person, cards]) => {
                           const avg = Math.round(cards.reduce((s, c) => s + (c.progress || 0), 0) / cards.length);
                           const initial = person.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
                           const parts = person.split(" ");
@@ -1745,7 +1745,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <tbody>
                         {listFiltered.length === 0 ? (
                           <tr><td colSpan={7} className="py-6 text-center text-xs text-muted-foreground">Nəticə yoxdur</td></tr>
-                        ) : listFiltered.slice(0, tbl3State.rowsPerPage).map(card => (
+                        ) : listFiltered.map(card => (
                           <tr key={card.id} onClick={() => openDetail(card)} className="border-b border-border last:border-0 hover:bg-secondary/40 cursor-pointer">
                             <td data-col="name" className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
                             <td data-col="type" className="py-2 px-2 text-muted-foreground">{card.type}</td>
