@@ -886,17 +886,63 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </Field>
 
-                {/* INDIVIDUAL: only employee multi-select */}
+                {/* INDIVIDUAL: filters (Vəzifə / Komanda / Struktur) + employee multi-select */}
                 {draft.mode === "individual" && (
-                  <Field label="Əməkdaş seçimi" required span="col-span-12">
-                    <MultiSelectDropdown
-                      options={employeeOptions}
-                      selected={draft.individualEmployees}
-                      onChange={(v) => update({ individualEmployees: v })}
-                      placeholder="Əməkdaş axtarın və seçin..."
-                    />
-                  </Field>
+                  <>
+                    <Field label="Filtrlər (Vəzifə / Komanda / Struktur)" span="col-span-12">
+                      <div className="grid grid-cols-12 gap-2">
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
+                          <MultiSelectDropdown
+                            options={positionOptions}
+                            selected={indFilterPositions}
+                            onChange={setIndFilterPositions}
+                            placeholder="Vəzifə seçin"
+                          />
+                        </div>
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="text-[11px] text-muted-foreground">Komanda</label>
+                          <MultiSelectDropdown
+                            options={teamOptions}
+                            selected={indFilterTeams}
+                            onChange={setIndFilterTeams}
+                            placeholder="Komanda seçin"
+                          />
+                        </div>
+                        <div className="col-span-12 md:col-span-4">
+                          <label className="text-[11px] text-muted-foreground">Struktur</label>
+                          <MultiSelectDropdown
+                            options={structureOptions}
+                            selected={indFilterStructures}
+                            onChange={setIndFilterStructures}
+                            placeholder="Struktur seçin"
+                          />
+                        </div>
+                      </div>
+                      {(indFilterPositions.length + indFilterTeams.length + indFilterStructures.length) > 0 && (
+                        <div className="flex items-center justify-between mt-1.5">
+                          <p className="text-[11px] text-muted-foreground">
+                            {filteredIndividualEmployeeOptions.length} əməkdaş tapıldı
+                          </p>
+                          <button type="button"
+                            onClick={() => { setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]); }}
+                            className="text-[11px] text-primary hover:underline">
+                            Filtrləri təmizlə
+                          </button>
+                        </div>
+                      )}
+                    </Field>
+                    <Field label="Əməkdaş seçimi" required span="col-span-12">
+                      <MultiSelectDropdown
+                        options={filteredIndividualEmployeeOptions}
+                        selected={draft.individualEmployees}
+                        onChange={(v) => update({ individualEmployees: v })}
+                        placeholder="Əməkdaş axtarın və seçin..."
+                      />
+                    </Field>
+                  </>
                 )}
+
 
                 {/* BULK: only ONE category at a time */}
                 {draft.mode === "bulk" && (() => {
