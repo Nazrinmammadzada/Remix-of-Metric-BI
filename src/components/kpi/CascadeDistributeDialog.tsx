@@ -22,6 +22,10 @@ interface Props {
     assigneeId?: number;
     limit: number;
     defaultSliceValue?: number;
+    /** Cascade Load popup-un tapdığı MƏHZ node ID-si.
+     *  Verildikdə dialoq heç bir başqa node axtarmır və yeni root yaratmır —
+     *  paylanma məhz bu node-un altında baş verir. */
+    nodeId?: string;
   };
   onDistributed?: () => void;
 }
@@ -43,19 +47,21 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     setError(null);
   }, [existingNode?.id, open]);
 
-  // Bootstrap: setter üçün mövcud tree node-u tap və ya yeni root yarat.
-  // Kamran kimi cascade recipient-lər üçün onların CHILD node-u istifadə edilir
-  // ki, yeni bölgü onun altına düşsün (yeni bir root deyil).
+  // Bootstrap: MÜTLƏQ Cascade Load popup-un tapdığı eyni node üzərində işləyirik.
+  // Əgər `nodeId` verilibsə, məhz o node götürülür — heç bir axtarış/yeni root yaradılmır.
+  // Yalnız nodeId ümumiyyətlə mövcud olmadıqda (edge case) köhnə fallback işə düşür.
   useEffect(() => {
     if (!open || existingNode || !bootstrap) return;
+    // 1) Popup-dan gələn konkret nodeId — sabit istifadə et.
+    if (bootstrap.nodeId) {
+      const fixed = getNodes().find(n => n.id === bootstrap.nodeId);
+      if (fixed) { setNode(fixed); return; }
+    }
     const emp = bootstrap.assigneeId
       ? getEmployees().find(e => e.id === bootstrap.assigneeId)
       : getEmployees().find(e => `${e.firstName} ${e.lastName}` === bootstrap.assigneeName);
     if (!emp) return;
-    // Bir workflow üçün YALNIZ BİR cascade ağacı olmalıdır.
-    // Öncəlik: bu şəxsin CHILD node-u (yəni yuxarı rəhbərdən pay aldığı node) —
-    // belədə onun paylanması eyni ağacın davamı olur (HR→Elvin→Kamran→Orxan zənciri qırılmır).
-    // Yalnız child yoxdursa öz root-una düşürük.
+    // 2) Fallback: mövcud CHILD node → ROOT → findRootByGoal → yeni root.
     const nodes = getNodes().filter(n => n.assigneeId === emp.id && (Number(n.limit) || 0) > 0);
     const exact = nodes.filter(n => n.cardName === bootstrap.cardName && n.goalName === bootstrap.goalName);
     const pool = exact.length > 0 ? exact : nodes;
@@ -63,7 +69,6 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     const rootNode = pool.find(n => n.parentId === null);
     if (childNode) { setNode(childNode); return; }
     if (rootNode) { setNode(rootNode); return; }
-    // Ağacda yoxdursa: bu HR-in bu şəxsə verdiyi ilk Owner kartına uyğundur — yeni root yaradırıq.
     const existingRoot = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
     if (existingRoot) { setNode(existingRoot); return; }
     setNode(createRoot({

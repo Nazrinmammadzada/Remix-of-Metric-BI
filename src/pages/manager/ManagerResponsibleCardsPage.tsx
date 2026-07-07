@@ -326,6 +326,7 @@ const AssignView = () => {
             assigneeId: distribute.assigneeId,
             limit: (distribute as any).cascadeLimit ?? parseNum(distribute.target),
             defaultSliceValue: (distribute as any).defaultSliceValue ?? parseNum(distribute.target),
+            nodeId: (distribute as any).cascadeNodeId,
           }}
         />
       )}
@@ -353,6 +354,7 @@ const AssignView = () => {
             unit,
             cascadable: true,
             cascadeLimit: value,
+            cascadeNodeId: incoming?.nodeId,
             defaultSliceValue: assignedValue,
             subKpiName: saved?.name || entry.subKpiName,
           } as KpiSetEntry;
