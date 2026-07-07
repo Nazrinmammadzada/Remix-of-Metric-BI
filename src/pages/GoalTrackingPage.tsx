@@ -29,8 +29,35 @@ const STATUS_META: Record<ExecStatus, { label: string; cls: string; icon: typeof
 };
 
 const GoalTrackingPage = () => {
-  const assignments = useCascadeAssignments();
+  const baseAssignments = useCascadeAssignments();
+  const cascadeNodes = useCascadeTree();
   const [search, setSearch] = useState("");
+
+  // Cascade Tree-dəki ilkin Root-lar (HR-ın yaratdığı kartlar) və onların bütün
+  // alt zənciri Hədəf Təyinatlarının İzlənməsinə əlavə edilir.
+  const assignments = useMemo<CascadeAssignment[]>(() => {
+    const roots = cascadeNodes.filter(n => !n.parentId);
+    const treeAssignments: CascadeAssignment[] = roots.map(r => {
+      const kids = cascadeNodes.filter(n => n.rootId === r.rootId && n.parentId);
+      return {
+        id: `tr-${r.id}`,
+        entryId: r.id,
+        cardName: r.cardName,
+        subKpiName: r.goalName || "Ana hədəf",
+        parentTarget: String(r.limit),
+        unit: r.unit,
+        status: "submitted" as const,
+        updatedAt: r.updatedAt,
+        slices: kids.map(k => ({
+          id: k.id,
+          assigneeName: k.assigneeName,
+          target: String(k.limit),
+          limits: emptyLimits(),
+        })),
+      };
+    });
+    return [...baseAssignments, ...treeAssignments];
+  }, [baseAssignments, cascadeNodes]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
