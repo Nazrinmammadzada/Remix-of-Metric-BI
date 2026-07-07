@@ -32,6 +32,12 @@ import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
 
+// One-time reset so employee table columns appear in code-defined order
+if (!localStorage.getItem("__org_emp_order_fixed")) {
+  localStorage.removeItem("org-employees:order");
+  localStorage.setItem("__org_emp_order_fixed", "1");
+}
+
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
@@ -1082,7 +1088,7 @@ const EmployeesTab = () => {
     lastName: validateName(editForm.lastName, "Soyad"),
     fatherName: validateName(editForm.fatherName, "Ata adı"),
     phone: validatePhone(editForm.phone),
-    email: validateEmail(editForm.email, emailsExcluding(editing?.id)),
+    // email intentionally excluded — not editable in edit dialog
   }), [editForm, employees, editing]);
   const editValid = Object.values(editErrors).every(v => !v);
 
@@ -1109,13 +1115,13 @@ const EmployeesTab = () => {
   const saveEdit = () => {
     if (!editing) return;
     if (!editValid) { toast.error("Formu düzgün doldurun"); return; }
-    const { fin: _ignored, ...rest } = editForm;
+    const { fin: _ignored, email: _eignored, ...rest } = editForm;
     updateEmployee(editing.id, {
       firstName: rest.firstName.trim(),
       lastName: rest.lastName.trim(),
       fatherName: rest.fatherName.trim() || undefined,
       phone: formatPhone(rest.phone),
-      email: rest.email.trim(),
+      // email intentionally not updated — not editable
     });
     toast.success("Yeniləndi");
     setEditing(null);
@@ -1319,8 +1325,9 @@ const EmployeesTab = () => {
               placeholder="+994 50 123 45 67"
               onChange={v => setEditForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
-              <ValidatedField label="Email" value={editForm.email} error={editErrors.email}
-                onChange={v => setEditForm(p => ({ ...p, email: v.trim() }))} />
+              <ValidatedField label="Email" value={editing?.email || ""} error={null}
+                disabled
+                onChange={() => {}} />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
