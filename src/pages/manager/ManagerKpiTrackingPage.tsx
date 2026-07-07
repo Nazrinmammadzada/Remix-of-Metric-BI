@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
-import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { useSharedKpiCards, type SharedKpiCard, type ExecutionStatus } from "@/lib/kpiCardStore";
+import { useKpiLifecycles, type CardLifecycle, type LifecycleReview } from "@/lib/kpiLifecycleStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import KpiScoresPage from "@/pages/KpiScoresPage";
