@@ -448,7 +448,7 @@ export function DataTable<T>({
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
