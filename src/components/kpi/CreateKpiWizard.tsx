@@ -467,6 +467,7 @@ interface Props {
 }
 
 export default function CreateKpiWizard({ open, onOpenChange, initial, onComplete }: Props) {
+  const wizardUser = (typeof window !== "undefined") ? (window as any).__lovableAuthUser as { name?: string; department?: string } | undefined : undefined;
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<CreateKpiWizardDraft>(() => ({ ...emptyKpiWizardDraft(), ...(initial || {}) }));
 
