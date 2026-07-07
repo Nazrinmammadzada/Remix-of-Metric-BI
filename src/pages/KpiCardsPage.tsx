@@ -1681,39 +1681,29 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 const listFiltered = filteredCards.filter(c => c.name.toLowerCase().includes(listSearch.toLowerCase()) || c.responsible.toLowerCase().includes(listSearch.toLowerCase()));
                 return (
                   <div className="bg-card border border-border rounded-xl p-4">
-                    <div className="relative mb-3">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input value={listSearch} onChange={e => setListSearch(e.target.value)} placeholder="KPI və ya məsul şəxs ilə axtar..." className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
-                    </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th data-col="name" className="py-2 px-2">Ad</th>
-                          <th data-col="type" className="py-2 px-2">Tip</th>
-                          <th data-col="resp" className="py-2 px-2">Məsul</th>
-                          <th data-col="target" className="py-2 px-2">Hədəf</th>
-                          <th data-col="current" className="py-2 px-2">Cari</th>
-                          <th data-col="progress" className="py-2 px-2">Progress</th>
-                          <th data-col="status" className="py-2 px-2">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {listFiltered.length === 0 ? (
-                          <tr><td colSpan={7} className="py-6 text-center text-xs text-muted-foreground">Nəticə yoxdur</td></tr>
-                        ) : listFiltered.map(card => (
-                          <tr key={card.id} onClick={() => openDetail(card)} className="border-b border-border last:border-0 hover:bg-secondary/40 cursor-pointer">
-                            <td data-col="name" className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
-                            <td data-col="type" className="py-2 px-2 text-muted-foreground">{card.type}</td>
-                            <td data-col="resp" className="py-2 px-2 text-muted-foreground">{card.responsible}</td>
-                            <td data-col="target" className="py-2 px-2">{card.target} {card.unit}</td>
-                            <td data-col="current" className="py-2 px-2">{card.current} {card.unit}</td>
-                            <td data-col="progress" className="py-2 px-2">{card.progress}%</td>
-                            <td data-col="status" className="py-2 px-2 text-xs">{card.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    </div>
+                    <DataTable<KpiCard>
+                      rows={listFiltered}
+                      rowKey={(c) => c.id}
+                      storageKey="kpi-cards-list"
+                      emptyMessage="Nəticə yoxdur"
+                      toolbarLeft={
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <input value={listSearch} onChange={e => setListSearch(e.target.value)} placeholder="KPI və ya məsul şəxs ilə axtar..." className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background w-64" />
+                        </div>
+                      }
+                      columns={[
+                        { key: "name", label: "Ad", filterType: "text", accessor: (c) => withKartSuffix(c.name), render: (c) => <span className="font-medium text-foreground cursor-pointer" onClick={() => openDetail(c)}>{withKartSuffix(c.name)}</span> },
+                        { key: "type", label: "Tip", filterType: "text", accessor: (c) => c.type, render: (c) => <span className="text-muted-foreground">{c.type}</span> },
+                        { key: "resp", label: "Məsul", filterType: "text", accessor: (c) => c.responsible, render: (c) => <span className="text-muted-foreground">{c.responsible}</span> },
+                        { key: "target", label: "Hədəf", filterType: "text", accessor: (c) => `${c.target} ${c.unit}` },
+                        { key: "current", label: "Cari", filterType: "text", accessor: (c) => `${c.current} ${c.unit}` },
+                        { key: "progress", label: "Progress", filterType: "number", accessor: (c) => c.progress, render: (c) => `${c.progress}%` },
+                        { key: "status", label: "Status", filterType: "select", selectOptions: ["Təsdiqlənib", "Gözləyir"], accessor: (c) => c.approvalStatus === "approved" ? "Təsdiqlənib" : "Gözləyir" },
+                      ]}
+                    />
+                  </div>
+
                 );
               }
 
