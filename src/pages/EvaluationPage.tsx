@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Plus, Search, Settings2, Download, CheckCircle2, XCircle, Trash2, Filter, ListChecks, UserCheck, Users, ArrowRight, ArrowLeft, Sparkles, Target, Send, Calendar as CalendarIcon, Shuffle, Hand, CalendarDays, Pencil, Star } from "lucide-react";
+import { ClipboardList, Plus, Search, Settings2, Download, CheckCircle2, XCircle, Trash2, Filter, ListChecks, UserCheck, Users, ArrowRight, ArrowLeft, Sparkles, Target, Send, Calendar as CalendarIcon, Shuffle, Hand, CalendarDays, Pencil, Star, Eye, ArrowLeftCircle } from "lucide-react";
+import { getSharedKpiCards, type SharedKpiCard } from "@/lib/kpiCardStore";
+import { mockStructures, mockTeams } from "@/data/mockExtras";
 import { PageHero } from "@/components/ui/page-hero";
 import ExportMenu from "@/components/common/ExportMenu";
 import Header from "@/components/layout/Header";
