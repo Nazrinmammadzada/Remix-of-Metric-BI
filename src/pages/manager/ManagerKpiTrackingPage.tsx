@@ -834,10 +834,20 @@ interface SubordinatesViewProps {
   subtitle?: string;
 }
 
+interface SubordinatesViewProps {
+  scopePath?: string | null;
+  actionsMode?: "tracking" | "results";
+  onOpenEmployee?: (empId: number, name: string) => void;
+  onOpenEmployeeKpis?: (empId: number, name: string) => void;
+  title?: string;
+  subtitle?: string;
+}
+
 export const SubordinatesView = ({
   scopePath,
   actionsMode = "tracking",
   onOpenEmployee,
+  onOpenEmployeeKpis,
   title = "Tabeçiliyimdəkilərin KPI-ları",
   subtitle = "Əsas səhifə / KPI İzlənməsi / Tabeçiliyimdəkilərin KPI-ları",
 }: SubordinatesViewProps = {}) => {
