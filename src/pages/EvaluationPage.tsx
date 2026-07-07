@@ -508,10 +508,11 @@ const ManualAssignmentDialog = ({ onCreated }: { onCreated: () => void }) => {
             </Button>
           ) : (
             <Button onClick={submit} disabled={nextDisabled} className="gap-1">
-              <CheckCircle2 className="w-4 h-4" /> Təyinatı yarat
+              <CheckCircle2 className="w-4 h-4" /> Qiymətləndirəni təyin et
             </Button>
           )}
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
