@@ -1256,7 +1256,7 @@ const EmployeesTab = () => {
               accessor: (e) => e.active ? "Aktiv" : "Deaktiv",
               render: (e) => (
                 <button
-                  onClick={() => { toggleEmployeeActive(e.id); }}
+                  onClick={() => handleStatusToggle(e)}
                   className={`relative w-10 h-5 rounded-full transition-colors ${e.active ? 'bg-primary' : 'bg-muted'}`}
                 >
                   <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-card shadow transition-transform ${e.active ? 'translate-x-5' : 'translate-x-0.5'}`} />
