@@ -1853,7 +1853,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
               <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6 pt-4 space-y-4">
               {detailTab === "bsc" && <BscScorecardTab kpi={selectedKpi} />}
-              {detailTab === "lifecycle" && <LifecycleView lifecycle={getLifecycle(selectedKpi.id) || null} />}
+              {detailTab === "lifecycle" && (() => {
+                const st = getStatusFor(selectedKpi.id).status;
+                const lc = st === "qaralama"
+                  ? (getLifecycle(selectedKpi.id) || null)
+                  : getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
+                      startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
+                    });
+                return <LifecycleView lifecycle={lc} />;
+              })()}
               {isExtraTab(detailTab) && <KpiExtraTabContent kpi={selectedKpi} tab={detailTab} />}
 
               {detailTab === "general" && (
