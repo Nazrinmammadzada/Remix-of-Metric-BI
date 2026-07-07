@@ -831,9 +831,35 @@ export const SubordinatesView = ({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string } | null>(null);
-  const empKpiListEmployee = useMemo(() => {
-    if (!empKpiListFor) return null;
-    return getEmployees().find(e => e.id === empKpiListFor.empId) || null;
+  const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
+  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("info");
+
+  // Deterministic period/date helpers for the employee's KPI card list
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const dateFromHash = (h: number, base = 2025) => {
+    const day = 1 + (Math.abs(h) % 28);
+    const mo = 1 + (Math.abs(h >> 3) % 12);
+    return `${pad2(day)}.${pad2(mo)}.${base}`;
+  };
+  const PERIODS = ["2025 / 1-ci rüb", "2025 / 2-ci rüb", "2025 / 3-cü rüb", "2025 / 4-cü rüb"];
+  const empKpiCards = useMemo(() => {
+    if (!empKpiListFor) return [] as (Kpi & { progress: number; createdAt: string; updatedAt: string })[];
+    return buildEmpKpis(empKpiListFor.empId).map((k, i) => {
+      const h = hashStr(k.id);
+      const pct = Math.round((k.fakt / k.plan) * 100);
+      const period = PERIODS[Math.abs(h) % PERIODS.length];
+      const createdAt = dateFromHash(h, 2025);
+      const updatedAt = dateFromHash(h ^ 0x9e3779b1, 2025);
+      const deadline = dateFromHash(h ^ 0x51f4a5, 2025);
+      const kpi: Kpi = {
+        id: k.id, name: k.name, description: k.desc, period,
+        target: k.plan, actual: k.fakt, unit: k.unit || "ədəd", stage: "assigned",
+        status: k.status, deadline, createdAt, updatedAt,
+        responsible: { name: empKpiListFor.name, role: "Əməkdaş" },
+        measure: k.unit || "ədəd", type: "Rüblük", method: "—", weight: 20,
+      };
+      return { ...kpi, progress: Math.min(pct, 100), createdAt, updatedAt };
+    });
   }, [empKpiListFor]);
 
   const selected = selectedId ? tree.find(n => n.id === selectedId) ?? null : null;
@@ -1081,19 +1107,68 @@ export const SubordinatesView = ({
         </button>
       )}
 
-      {/* Əməkdaşın KPI kartları siyahısı — Nəticələr modulunun eyni komponenti (KpiScoresPage) */}
-      <Dialog open={!!empKpiListFor} onOpenChange={(o) => !o && setEmpKpiListFor(null)}>
-        <DialogContent className="w-[90vw] max-w-[1500px] h-[88vh] min-h-[88vh] max-h-[88vh] p-0 flex flex-col overflow-hidden">
+      {/* Əməkdaşın KPI kartları siyahısı — Nəticələr modulu ilə eyni sadə cədvəl */}
+      <Dialog open={!!empKpiListFor} onOpenChange={(o) => { if (!o) { setEmpKpiListFor(null); } }}>
+        <DialogContent className="w-[90vw] max-w-[1200px] h-[80vh] max-h-[80vh] p-0 flex flex-col overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
             <DialogTitle className="text-xl">KPI Kartları — {empKpiListFor?.name ?? "—"}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-            {empKpiListEmployee && (
-              <KpiScoresPage employeesOverride={[empKpiListEmployee] as any} hideChrome />
-            )}
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/40 text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-medium">KPI kartının adı</th>
+                    <th className="text-left px-4 py-3 font-medium">Dövr</th>
+                    <th className="text-center px-4 py-3 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 font-medium w-44">Progress</th>
+                    <th className="text-left px-4 py-3 font-medium">Yaradılma tarixi</th>
+                    <th className="text-left px-4 py-3 font-medium">Son yenilənmə tarixi</th>
+                    <th className="text-right px-4 py-3 font-medium w-24">Əməliyyat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {empKpiCards.length === 0 ? (
+                    <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">Bu əməkdaş üçün KPI kartı yoxdur.</td></tr>
+                  ) : empKpiCards.map(k => (
+                    <tr key={k.id} className="border-t border-border hover:bg-secondary/20">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-foreground">{withKartSuffix(k.name)}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{k.description}</div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{k.period}</td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge className={statusMeta[k.status].cls}>{statusMeta[k.status].label}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Progress value={k.progress} className="h-2 flex-1" />
+                          <span className="text-xs tabular-nums font-medium w-9 text-right">{k.progress}%</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{k.createdAt}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{k.updatedAt}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => { setViewKpi(k); setViewKpiTab("info"); }}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label="Bax"
+                          title="Bax"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* KPI Detail — mövcud KpiDrawer komponenti reuse edilir */}
+      <KpiDrawer kpi={viewKpi} tab={viewKpiTab} setTab={setViewKpiTab} onClose={() => setViewKpi(null)} />
 
     </div>
   );
