@@ -1,15 +1,10 @@
+import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { TrendingUp, Target, CheckCircle, AlertTriangle, Sparkles } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { AIChatSection } from "@/components/ai/AIChatSection";
-
-const chartData = [
-  { month: "Yan", value: 65 }, { month: "Fev", value: 68 }, { month: "Mar", value: 70 },
-  { month: "Apr", value: 72 }, { month: "May", value: 74 }, { month: "İyn", value: 76 },
-  { month: "İyl", value: 78 }, { month: "Avq", value: 80 }, { month: "Sen", value: 82 },
-  { month: "Okt", value: 84 }, { month: "Nov", value: 86 }, { month: "Dek", value: 88 },
-];
+import PeriodPicker, { buildDemoSeries, currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
 const departments = [
   { name: "Satış", value: 92, count: 8 },
@@ -19,14 +14,16 @@ const departments = [
   { name: "Marketinq", value: 82, count: 4 },
 ];
 
+const ensureKarti = (n: string) => (/\s+Kartı$/i.test(n) ? n : `${n} Kartı`);
+
 const tableData = [
-  { name: "Aylıq Satış Hədəfi", department: "Satış", target: "5M AZN", current: "4.2M AZN", progress: 84, responsible: "Samir Həsənov" },
-  { name: "Parakəndə Satış", department: "Parakəndə", target: "2M AZN", current: "1.9M AZN", progress: 95, responsible: "Farid Həsənov" },
-  { name: "Müştəri Əldə Etmə", department: "Marketinq", target: "500", current: "485", progress: 97, responsible: "Emin Məmmədov" },
-  { name: "Müştəri Saxlama", department: "Müştəri Xidmətləri", target: "95%", current: "93%", progress: 98, responsible: "Leyla Həsənova" },
-  { name: "İnnovasiya İndeksi", department: "R&D", target: "80%", current: "72%", progress: 65, responsible: "Rəşad Əliyev" },
-  { name: "Əməliyyat Effektivliyi", department: "Əməliyyatlar", target: "90%", current: "88%", progress: 98, responsible: "Kamran Quliyev" },
-  { name: "Müştəri Şikayətləri", department: "Müştəri Xidmətləri", target: "< 5%", current: "7%", progress: 40, responsible: "Nigar Hüseynova" },
+  { name: ensureKarti("Aylıq Satış Hədəfi"),   assignType: "Toplu",  createdAt: "12.01.2026", progress: 84, responsible: "Samir Həsənov" },
+  { name: ensureKarti("Parakəndə Satış"),      assignType: "Toplu",  createdAt: "05.02.2026", progress: 95, responsible: "Farid Həsənov" },
+  { name: ensureKarti("Müştəri Əldə Etmə"),    assignType: "Fərdi",  createdAt: "18.03.2026", progress: 97, responsible: "Emin Məmmədov" },
+  { name: ensureKarti("Müştəri Saxlama"),      assignType: "Toplu",  createdAt: "22.03.2026", progress: 98, responsible: "Leyla Həsənova" },
+  { name: ensureKarti("İnnovasiya İndeksi"),   assignType: "Fərdi",  createdAt: "07.04.2026", progress: 65, responsible: "Rəşad Əliyev" },
+  { name: ensureKarti("Əməliyyat Effektivliyi"), assignType: "Toplu", createdAt: "14.05.2026", progress: 98, responsible: "Kamran Quliyev" },
+  { name: ensureKarti("Müştəri Şikayətləri"),  assignType: "Fərdi",  createdAt: "02.06.2026", progress: 40, responsible: "Nigar Hüseynova" },
 ];
 
 const stats = [
@@ -37,6 +34,10 @@ const stats = [
 ];
 
 const HomePage = () => {
+  const [period, setPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const chartData = useMemo(() => buildDemoSeries(period, 78), [period]);
+  const subtitle = periodLabel(period);
+
   return (
     <div className="min-h-screen">
       <Header title="Əsas Səhifə" />
@@ -58,15 +59,9 @@ const HomePage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <FancyCard
             title="Performans Dinamikası"
-            subtitle="Son 12 ay üzrə müqayisə"
+            subtitle={subtitle}
             className="lg:col-span-2"
-            right={
-              <div className="flex gap-1 bg-secondary rounded-lg p-0.5">
-                <button className="px-3 py-1 text-xs rounded-md bg-primary text-primary-foreground">İl</button>
-                <button className="px-3 py-1 text-xs rounded-md text-muted-foreground">Rüb</button>
-                <button className="px-3 py-1 text-xs rounded-md text-muted-foreground">Ay</button>
-              </div>
-            }
+            right={<PeriodPicker value={period} onChange={setPeriod} />}
           >
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={chartData}>
@@ -77,9 +72,13 @@ const HomePage = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                <Tooltip
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                  labelFormatter={(l) => `${l} • ${subtitle}`}
+                  formatter={(v: number) => [`${v}%`, "Performans"]}
+                />
                 <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
               </LineChart>
             </ResponsiveContainer>
@@ -108,20 +107,19 @@ const HomePage = () => {
             <thead>
               <tr className="text-muted-foreground text-left border-b border-border">
                 <th className="pb-3 font-medium">KPI Adı</th>
-                <th className="pb-3 font-medium">Departament</th>
-                <th className="pb-3 font-medium">Hədəf</th>
-                <th className="pb-3 font-medium">Cari</th>
-                <th className="pb-3 font-medium">Progress</th>
+                <th className="pb-3 font-medium">Təyinat növü</th>
+                <th className="pb-3 font-medium">Yaradılma tarixi</th>
                 <th className="pb-3 font-medium">Məsul</th>
+                <th className="pb-3 font-medium">Progress</th>
               </tr>
             </thead>
             <tbody>
               {tableData.map((row, i) => (
                 <tr key={i} className="border-b border-border last:border-0">
                   <td className="py-3 font-medium text-foreground">{row.name}</td>
-                  <td className="py-3 text-muted-foreground">{row.department}</td>
-                  <td className="py-3 text-foreground">{row.target}</td>
-                  <td className="py-3 text-foreground">{row.current}</td>
+                  <td className="py-3 text-muted-foreground">{row.assignType}</td>
+                  <td className="py-3 text-muted-foreground">{row.createdAt}</td>
+                  <td className="py-3 text-muted-foreground">{row.responsible}</td>
                   <td className="py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-20 bg-secondary rounded-full h-1.5">
@@ -130,7 +128,6 @@ const HomePage = () => {
                       <span className="text-xs font-medium">{row.progress}%</span>
                     </div>
                   </td>
-                  <td className="py-3 text-muted-foreground">{row.responsible}</td>
                 </tr>
               ))}
             </tbody>
