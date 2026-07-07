@@ -11,7 +11,7 @@ import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown,
+  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown, Shuffle,
 } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
@@ -1848,8 +1848,40 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   );
   const teams = useMemo(() => getTeams(), []);
   const [teamName, setTeamName] = useState<string>(
-    initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "") || "") : ""
+    initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "").split(" — ")[0] || "") : ""
   );
+  const [teamSearch, setTeamSearch] = useState("");
+  const [teamMemberEvs, setTeamMemberEvs] = useState<WizardEvaluatorRef[]>(
+    initialTab === "team" && target.evaluators.length > 0 && !target.evaluators[0].name.startsWith("[Komanda]")
+      ? target.evaluators : []
+  );
+  const [randomCount, setRandomCount] = useState<number>(1);
+  const selectedTeam = teams.find(t => t.name === teamName) || null;
+  const teamMembers: { name: string }[] = selectedTeam
+    ? [{ name: selectedTeam.leader }, ...selectedTeam.members.map(m => ({ name: m.name }))]
+    : [];
+  const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
+  const toggleTeamMember = (name: string) => {
+    setTeamMemberEvs(prev => prev.find(p => p.name === name)
+      ? prev.filter(p => p.name !== name)
+      : [...prev, { id: crypto.randomUUID(), name, weight: 0 }]);
+  };
+  const updateTeamMemberWeight = (name: string, w: number) => {
+    setTeamMemberEvs(prev => prev.map(p => p.name === name ? { ...p, weight: w } : p));
+  };
+  const randomPickTeam = () => {
+    if (!selectedTeam || teamMembers.length === 0) return;
+    const wanted = Math.max(1, Math.min(randomCount || 1, teamMembers.length));
+    const pool = [...teamMembers];
+    const picked: string[] = [];
+    for (let i = 0; i < wanted && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0].name);
+    }
+    const each = Math.floor(100 / picked.length);
+    setTeamMemberEvs(picked.map(n => ({ id: crypto.randomUUID(), name: n, weight: each })));
+    toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
+  };
   const [integration, setIntegration] = useState<string>(
     initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
   );
@@ -1864,7 +1896,18 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
       onSave(personEvs);
     } else if (tab === "team") {
       if (!teamName) { toast.error("Komanda seçin"); return; }
-      onSave([{ id: crypto.randomUUID(), name: `[Komanda] ${teamName}`, weight: 100 }]);
+      if (teamMemberEvs.length === 0) {
+        // whole team
+        onSave([{ id: crypto.randomUUID(), name: `[Komanda] ${teamName}`, weight: 100 }]);
+      } else {
+        if (teamMemberEvs.length > 1) {
+          const sum = teamMemberEvs.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+          if (sum !== 100) { toast.error(`Faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+        } else {
+          teamMemberEvs[0].weight = 100;
+        }
+        onSave(teamMemberEvs.map(e => ({ ...e, name: `[${teamName}] ${e.name}` })));
+      }
     } else if (tab === "self") {
       onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
     } else {
@@ -1915,14 +1958,79 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
             </div>
           )}
           {tab === "team" && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Komanda</label>
-              <select value={teamName} onChange={e => setTeamName(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                <option value="">— Komanda seçin —</option>
-                {teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-              </select>
-              <p className="text-[11px] text-muted-foreground">Seçilmiş komandanın bütün üzvləri qiymətləndirici sayılacaq.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Komanda</label>
+                <div className="relative mt-1 mb-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    value={teamSearch}
+                    onChange={e => setTeamSearch(e.target.value)}
+                    placeholder="Komanda axtar..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                  />
+                </div>
+                <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y">
+                  {filteredTeams.map(t => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => { setTeamName(t.name); setTeamMemberEvs([]); }}
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-secondary ${teamName === t.name ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-medium" : ""}`}
+                    >
+                      <span>{t.name}</span>
+                      {teamName === t.name && <Check className="w-4 h-4" />}
+                    </button>
+                  ))}
+                  {filteredTeams.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Nəticə yoxdur</div>
+                  )}
+                </div>
+              </div>
+              {selectedTeam && (
+                <>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Üzvlər ({teamMembers.length})</span>
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[11px] text-muted-foreground">Say:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={teamMembers.length}
+                        value={randomCount}
+                        onChange={e => setRandomCount(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-14 px-2 py-1 text-xs border border-border rounded bg-background"
+                      />
+                      <button type="button" onClick={randomPickTeam} className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
+                        <Shuffle className="w-3 h-3" /> Təsadüfi
+                      </button>
+                    </div>
+                  </div>
+                  <div className="border border-border rounded-lg divide-y max-h-60 overflow-y-auto">
+                    {teamMembers.map(m => {
+                      const sel = teamMemberEvs.find(p => p.name === m.name);
+                      return (
+                        <div key={m.name} className="flex items-center gap-2 p-2">
+                          <input type="checkbox" checked={!!sel} onChange={() => toggleTeamMember(m.name)} />
+                          <span className="flex-1 text-sm">{m.name}</span>
+                          {sel && (
+                            <div className="flex items-center gap-1">
+                              <WeightInput value={sel.weight} onChange={n => updateTeamMemberWeight(m.name, n)} className="w-16 !px-2 !py-1 text-xs" />
+                              <span className="text-xs text-muted-foreground">%</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {teamMemberEvs.length > 1 && (
+                    <div className="text-xs text-muted-foreground">
+                      Toplam ağırlıq: {teamMemberEvs.reduce((s, p) => s + (Number(p.weight) || 0), 0)}%
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">Heç bir üzv seçilməsə, komandanın bütün üzvləri qiymətləndirici sayılacaq.</p>
+                </>
+              )}
             </div>
           )}
           {tab === "self" && (
