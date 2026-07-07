@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { useKpiLifecycles } from "@/lib/kpiLifecycleStore";
+import KpiScoresPage from "@/pages/KpiScoresPage";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import {
