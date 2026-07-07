@@ -1437,12 +1437,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
                           return (
                             <tr key={card.id} className="border-b border-border last:border-0 hover:bg-secondary/40">
-                              <td className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
-                              <td className="py-2 px-2 text-muted-foreground text-xs">{getAssignKindFor(card.id)}</td>
-                              <td className="py-2 px-2 text-muted-foreground text-xs">{getCreatedAtFor(card.id)}</td>
-                              <td className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
-                              <td className="py-2 px-2">{card.progress}%</td>
-                              <td className="py-2 px-2">
+                              <td data-col="name" className="py-2 px-2 font-medium text-foreground">{withKartSuffix(card.name)}</td>
+                              <td data-col="kind" className="py-2 px-2 text-muted-foreground text-xs">{getAssignKindFor(card.id)}</td>
+                              <td data-col="created" className="py-2 px-2 text-muted-foreground text-xs">{getCreatedAtFor(card.id)}</td>
+                              <td data-col="period" className="py-2 px-2 text-muted-foreground text-xs">{card.period}</td>
+                              <td data-col="progress" className="py-2 px-2">{card.progress}%</td>
+                              <td data-col="status" className="py-2 px-2">
                                 <button
                                   onClick={() => setStatusDialogCardId(card.id)}
                                   className={`text-[11px] font-medium px-2.5 py-1 rounded-full border min-w-[128px] w-[128px] text-center inline-flex items-center justify-center cursor-pointer hover:opacity-80 ${STATUS_STYLES[st.status]}`}
@@ -1451,7 +1451,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   {STATUS_LABELS[st.status]}
                                 </button>
                               </td>
-                              <td className="py-2 px-2">
+                              <td data-col="ops" className="py-2 px-2">
                                 <div className="flex items-center gap-1">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); openDetail(card); }}
