@@ -629,6 +629,7 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff,
               onToggle={onToggle}
               onAddSub={onAddSub}
               onOpenStaff={onOpenStaff}
+              highlightId={highlightId}
             />
           ))}
         </div>
