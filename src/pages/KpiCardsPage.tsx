@@ -1563,6 +1563,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       </tbody>
                     </table>
                   </div>
+                  </TableFrame>
                 </div>
               );
             })() : kartView === "kart2" ? (() => {
