@@ -21,7 +21,9 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
   const navigate = useNavigate();
   const isSingleKpi = reasons.length === 1 && reasons[0].code === "kpi_active";
   const isSingleLeader = reasons.length === 1 && reasons[0].code === "structure_leader";
+  const leaderReason = reasons.find((r) => r.code === "structure_leader");
   const leader = isSingleLeader ? reasons[0] : null;
+  const hasLeaderInMulti = !isSingleLeader && !!leaderReason;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,15 +70,16 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
           >
             Ləğv et
           </button>
-          {isSingleLeader ? (
+          {isSingleLeader || hasLeaderInMulti ? (
             <button
               onClick={() => {
+                const r = (isSingleLeader ? leader! : leaderReason!);
                 onOpenChange(false);
-                if (leader!.targetRoute) navigate(leader!.targetRoute);
+                if (r.targetRoute) navigate(r.targetRoute);
               }}
               className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
             >
-              {leader!.primaryLabel}
+              Rəhbəri dəyiş
             </button>
           ) : (
             <button
