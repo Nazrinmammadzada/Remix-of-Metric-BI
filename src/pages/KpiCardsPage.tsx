@@ -1415,23 +1415,24 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <Plus className="w-5 h-5" /> Yeni KPI Kartı
                     </button>
                   </div>
+                  <TableFrame columns={tbl1Cols} state={tbl1State} onChange={setTbl1State}>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground border-b border-border">
-                          <th className="py-2 px-2">Ad</th>
-                          <th className="py-2 px-2">Təyinat növü</th>
-                          <th className="py-2 px-2">Yaranma tarixi</th>
-                          <th className="py-2 px-2">Dövr</th>
-                          <th className="py-2 px-2">Progress</th>
-                          <th className="py-2 px-2">Status</th>
-                          <th className="py-2 px-2">Əməliyyat</th>
+                          <th data-col="name" className="py-2 px-2">Ad</th>
+                          <th data-col="kind" className="py-2 px-2">Təyinat növü</th>
+                          <th data-col="created" className="py-2 px-2">Yaranma tarixi</th>
+                          <th data-col="period" className="py-2 px-2">Dövr</th>
+                          <th data-col="progress" className="py-2 px-2">Progress</th>
+                          <th data-col="status" className="py-2 px-2">Status</th>
+                          <th data-col="ops" className="py-2 px-2">Əməliyyat</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredCards.length === 0 ? (
                           <tr><td colSpan={7} className="py-8 text-center text-xs text-muted-foreground">Filtrə uyğun KPİ tapılmadı</td></tr>
-                        ) : filteredCards.map(card => {
+                        ) : filteredCards.slice(0, tbl1State.rowsPerPage).map(card => {
                           const st = getStatusFor(card.id);
                           const reason = (st as any).rejection_reason || (st.status === "imtina" ? `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi` : "");
                           return (
