@@ -1232,7 +1232,11 @@ export const SubordinatesView = ({
                       <td className="px-4 py-3 text-muted-foreground">{k.updatedAt}</td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => { setViewKpi(k); setViewKpiTab("general"); }}
+                          onClick={() => {
+                            if (!empKpiListFor) return;
+                            setCardDrawer({ card: k, employee: empKpiListFor });
+                            setEmpKpiListFor(null);
+                          }}
                           className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           aria-label="Bax"
                           title="Bax"
