@@ -1088,7 +1088,7 @@ const EmployeesTab = () => {
     lastName: validateName(editForm.lastName, "Soyad"),
     fatherName: validateName(editForm.fatherName, "Ata adı"),
     phone: validatePhone(editForm.phone),
-    email: validateEmail(editForm.email, emailsExcluding(editing?.id)),
+    // email intentionally excluded — not editable in edit dialog
   }), [editForm, employees, editing]);
   const editValid = Object.values(editErrors).every(v => !v);
 
