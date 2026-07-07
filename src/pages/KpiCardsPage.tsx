@@ -977,7 +977,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     if (card?.startDate) return card.startDate;
     // Deterministic fallback date based on card id so column is never empty
     const base = new Date(2026, 0, 15);
-    base.setDate(base.getDate() - (cardId * 3));
+    base.setDate(base.getDate() - (Math.abs(cardId) % 365) * 3);
+    if (isNaN(base.getTime())) return "2026-01-15";
     return base.toISOString().slice(0, 10);
   };
   const getAssignKindFor = (cardId: number): "Fərdi" | "Toplu" => {
