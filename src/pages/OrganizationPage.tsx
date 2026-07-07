@@ -18,8 +18,8 @@ import {
   getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
   assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
-  setStarPerson,
-  type OrgEmployee, type OrgStructure, type OrgPosition,
+  setStarPerson, findLeaderStructuresOf,
+  type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
 
 
