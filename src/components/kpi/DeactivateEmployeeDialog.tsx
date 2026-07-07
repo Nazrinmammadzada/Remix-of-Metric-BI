@@ -21,7 +21,9 @@ export const DeactivateEmployeeDialog = ({ open, onOpenChange, employeeName, rea
   const navigate = useNavigate();
   const isSingleKpi = reasons.length === 1 && reasons[0].code === "kpi_active";
   const isSingleLeader = reasons.length === 1 && reasons[0].code === "structure_leader";
+  const leaderReason = reasons.find((r) => r.code === "structure_leader");
   const leader = isSingleLeader ? reasons[0] : null;
+  const hasLeaderInMulti = !isSingleLeader && !!leaderReason;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
