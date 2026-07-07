@@ -31,12 +31,32 @@ const KEY = "cascade_tree_nodes_v4";
 try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
+// Köhnə demo seed-də Elvin üçün 500 000-lik Marketinq root var idi.
+// Real axında Cascade Load yalnız HR-in verdiyi root / yuxarı rəhbərin child node-u olmalıdır.
+const stripLegacyMarketingDemo = (rows: CascadeTreeNode[]): CascadeTreeNode[] => {
+  const legacyRootIds = new Set(
+    rows
+      .filter(n =>
+        n.id === "cn-m-root" ||
+        (n.rootId === "cn-m-root" && n.cardName === "Marketinq Kampaniya Hədəfi")
+      )
+      .map(n => n.rootId || n.id)
+  );
+  if (legacyRootIds.size === 0) return rows;
+  return rows.filter(n => !legacyRootIds.has(n.rootId) && !legacyRootIds.has(n.id));
+};
+
 const load = (): CascadeTreeNode[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw) as CascadeTreeNode[];
+      const cleaned = stripLegacyMarketingDemo(parsed);
+      if (cleaned.length !== parsed.length) localStorage.setItem(KEY, JSON.stringify(cleaned));
+      return cleaned;
+    }
   } catch {}
-  const seed = seedNodes();
+  const seed = stripLegacyMarketingDemo(seedNodes());
   localStorage.setItem(KEY, JSON.stringify(seed));
   return seed;
 };
@@ -236,22 +256,7 @@ function seedNodes(): CascadeTreeNode[] {
     rows.push(mk("cn-s-b1-2", "cn-s-b1", "cn-s-root", "", nurlan, 70_000, card, goal));
   }
 
-  // 2) Marketinq — tam paylanmış (3 səviyyə, çoxlu qollar)
-  const elvin = byName("Elvin Rəhimov");
-  const kamran = byName("Kamran Quliyev");
-  const aynur = byName("Aynur Cəfərova");
-  const orxan = byName("Orxan Bayramov");
-  const aytac = byName("Aytac Kərimova");
-  if (elvin && kamran && aynur && orxan && aytac) {
-    const card = "Marketinq Kampaniya Hədəfi"; const goal = "Lead Generation Həcmi";
-    rows.push(mk("cn-m-root", null, "cn-m-root", "", elvin, 500_000, card, goal));
-    rows.push(mk("cn-m-a", "cn-m-root", "cn-m-root", "", kamran, 300_000, card, goal));
-    rows.push(mk("cn-m-b", "cn-m-root", "cn-m-root", "", aynur, 200_000, card, goal));
-    rows.push(mk("cn-m-a1", "cn-m-a", "cn-m-root", "", orxan, 300_000, card, goal));
-    rows.push(mk("cn-m-b1", "cn-m-b", "cn-m-root", "", aytac, 200_000, card, goal));
-  }
-
-  // 3) Maliyyə — qismən paylanmış (qırmızı zona nümunəsi)
+  // 2) Maliyyə — qismən paylanmış (qırmızı zona nümunəsi)
   const nigar = byName("Nigar Hüseynova");
   const turan = byName("Turan Nəsibov");
   if (nigar && turan) {
