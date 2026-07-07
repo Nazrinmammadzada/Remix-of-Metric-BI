@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ExportMenu from "@/components/common/ExportMenu";
 import { getEmployees } from "@/lib/orgStore";
 import { MONTHS, type Month } from "@/lib/salaryStore";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const YEARS = [2024, 2025, 2026];
 
@@ -287,6 +288,7 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
           </div>
 
           <div className="overflow-x-auto">
+            <SmartTableFrame>
             <table className="w-full text-sm">
               <thead className="bg-secondary/40">
                 <tr className="text-left text-muted-foreground">
@@ -331,6 +333,7 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                 ))}
               </tbody>
             </table>
+            </SmartTableFrame>
           </div>
         </div>
       </main>

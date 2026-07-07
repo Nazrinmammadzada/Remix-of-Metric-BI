@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import KpiPlanningDialog from "./KpiPlanningDialog";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 type Status = "Aktiv" | "Planlaşdırılır" | "Tamamlandı" | "Arxivləşdirilib";
 type EvalType = "Yarımillik" | "İllik" | "Hər ikisi";
@@ -191,6 +192,7 @@ const PlanningRegistryDialog = ({ trigger }: Props) => {
           {/* Table */}
           <div className="flex-1 overflow-auto px-6 py-4">
             <div className="rounded-xl border border-border overflow-hidden">
+              <SmartTableFrame>
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-xs text-muted-foreground">
                   <tr>
@@ -238,6 +240,7 @@ const PlanningRegistryDialog = ({ trigger }: Props) => {
                   </TooltipProvider>
                 </tbody>
               </table>
+              </SmartTableFrame>
             </div>
           </div>
 
@@ -316,6 +319,7 @@ const PlanningRegistryDialog = ({ trigger }: Props) => {
                 <section>
                   <h3 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase mb-2">Dövrlər</h3>
                   <div className="rounded-lg border border-border overflow-hidden">
+                    <SmartTableFrame>
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40 text-xs text-muted-foreground">
                         <tr>
@@ -336,6 +340,7 @@ const PlanningRegistryDialog = ({ trigger }: Props) => {
                         )}
                       </tbody>
                     </table>
+                    </SmartTableFrame>
                   </div>
                 </section>
               </div>

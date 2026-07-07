@@ -25,6 +25,7 @@ import { RatingCircles } from "@/components/evaluation/RatingCircles";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import AssignGoalDialog from "@/components/kpi/AssignGoalDialog";
 import CascadeLoadConfirmDialog from "@/components/kpi/CascadeLoadConfirmDialog";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("az-AZ").format(Math.round(n * 100) / 100);
@@ -243,6 +244,7 @@ const AssignView = () => {
 
               {isOpen && (
                 <div className="border-t border-border overflow-x-auto">
+                  <SmartTableFrame>
                   <table className="w-full text-sm">
                     <thead className="bg-emerald-600 text-white">
                       <tr>
@@ -306,6 +308,7 @@ const AssignView = () => {
                       })}
                     </tbody>
                   </table>
+                  </SmartTableFrame>
                 </div>
               )}
             </div>
@@ -462,6 +465,7 @@ const EvaluateView = () => {
 
               {isOpen && (
                 <div className="border-t border-border overflow-x-auto">
+                  <SmartTableFrame>
                   <table className="w-full text-sm">
                     <thead className="bg-emerald-600 text-white">
                       <tr>
@@ -528,6 +532,7 @@ const EvaluateView = () => {
                       )}
                     </tbody>
                   </table>
+                  </SmartTableFrame>
                 </div>
               )}
             </div>

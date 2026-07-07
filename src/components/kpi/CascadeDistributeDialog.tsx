@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { GitBranch, Crown, AlertTriangle, Users, ShieldCheck } from "lucide-react";
 import { getEmployees, getSubordinatesOfStarHolder, getStructures } from "@/lib/orgStore";
 import { distribute, createRoot, findRootByGoal, getNodes, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 interface Props {
   open: boolean;
@@ -243,6 +244,7 @@ const SubTable = ({
     {list.length === 0 ? (
       <div className="p-6 text-center text-sm text-muted-foreground">Bu qrupda şəxs yoxdur.</div>
     ) : (
+      <SmartTableFrame>
       <table className="w-full text-sm">
         <thead className="bg-secondary/40 text-xs text-muted-foreground sticky top-0">
           <tr>
@@ -276,6 +278,7 @@ const SubTable = ({
           ))}
         </tbody>
       </table>
+      </SmartTableFrame>
     )}
   </div>
   );

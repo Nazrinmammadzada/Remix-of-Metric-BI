@@ -8,6 +8,7 @@ import { getFormulas, saveFormulas, getVariables, type Formula, type FormulaVari
 import { ensureAssignmentForFormula } from "@/lib/formulaAssignmentsStore";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { DataTable } from "@/components/common/DataTable";
+import SmartTableFrame from "@/components/common/SmartTableFrame";
 
 
 
@@ -201,6 +202,7 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
             </div>
 
             <div className="border border-border rounded-lg overflow-hidden">
+              <SmartTableFrame>
               <table className="w-full text-sm">
                 <thead><tr className="bg-secondary/50 text-muted-foreground text-left"><th className="px-3 py-2">Qısaltma</th><th className="px-3 py-2">Adı</th><th className="px-3 py-2">İzahı</th><th className="px-3 py-2">Mənbə</th></tr></thead>
                 <tbody>
@@ -215,6 +217,7 @@ const FormulasPage = ({ onBack }: { onBack?: () => void } = {}) => {
                   {filteredVars.length === 0 && <tr><td colSpan={4} className="px-3 py-4 text-center text-muted-foreground">Nəticə yoxdur</td></tr>}
                 </tbody>
               </table>
+              </SmartTableFrame>
             </div>
           </div>
         </DialogContent>
