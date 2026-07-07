@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Plus, Search, Settings2, Download, CheckCircle2, XCircle, Trash2, Filter, ListChecks, UserCheck, Users, ArrowRight, ArrowLeft, Sparkles, Target, Send, Calendar as CalendarIcon, Shuffle, Hand, CalendarDays, Pencil, Star, Eye, ArrowLeftCircle } from "lucide-react";
+import { ClipboardList, Plus, Search, Settings2, Download, CheckCircle2, XCircle, Trash2, Filter, ListChecks, UserCheck, Users, ArrowRight, ArrowLeft, Sparkles, Target, Send, Calendar as CalendarIcon, Shuffle, Hand, CalendarDays, Pencil, Star, Eye, ArrowLeftCircle, ChevronDown } from "lucide-react";
 import { getSharedKpiCards, type SharedKpiCard } from "@/lib/kpiCardStore";
 import { mockStructures, mockTeams } from "@/data/mockExtras";
 import { PageHero } from "@/components/ui/page-hero";
@@ -771,18 +771,17 @@ const employeePosition = (id: string): string => {
 const buildGroups = (scope: StatusScope): StatusGroup[] => {
   const cards = getSharedKpiCards().filter(c => c.status !== "imtina");
   if (scope === "individual") {
-    // Fərdi: teamIds && structureIds boş olan kartlar
-    const map = new Map<string, StatusGroup>();
-    cards.filter(c => (!c.teamIds || c.teamIds.length === 0) && (!c.structureIds || c.structureIds.length === 0))
-      .forEach(c => {
-        c.assigneeIds.forEach(aid => {
-          const g = map.get(aid) || { key: aid, name: employeeName(aid), subtitle: employeePosition(aid), cards: [], goalCount: 0 };
-          g.cards.push(c);
-          g.goalCount += c.targets.length;
-          map.set(aid, g);
-        });
-      });
-    return Array.from(map.values());
+    // Fərdi: default olaraq bütün əməkdaşlar görünür; kart/hədəf sayları həmin əməkdaşa düşən KPI-lardan hesablanır.
+    return mockEmployees.map(e => {
+      const employeeCards = cards.filter(c => c.assigneeIds.includes(e.id));
+      return {
+        key: e.id,
+        name: e.fullName,
+        subtitle: e.position,
+        cards: employeeCards,
+        goalCount: employeeCards.reduce((sum, card) => sum + card.targets.length, 0),
+      };
+    });
   }
   if (scope === "team") {
     const map = new Map<string, StatusGroup>();
@@ -830,11 +829,22 @@ interface RaterEval {
   evaluatorId: string;
   score: number | null;
   max: number;
+  weight: number;
   date: string | null;
   done: boolean;
 }
 
 const buildRaters = (seed: string, evaluatorIds: string[], scoreLimit: number): RaterEval[] => {
+  const weightPatterns: Record<number, number[]> = {
+    1: [100],
+    2: [60, 40],
+    3: [40, 35, 25],
+    4: [35, 25, 20, 20],
+  };
+  const weights = weightPatterns[evaluatorIds.length] || evaluatorIds.map((_, i) => {
+    const base = Math.floor(100 / evaluatorIds.length);
+    return i === 0 ? base + (100 - base * evaluatorIds.length) : base;
+  });
   return evaluatorIds.map((eid, ei) => {
     const h = hash(seed + eid);
     const done = (h + ei) % 4 !== 0; // ~75% completed
@@ -844,6 +854,7 @@ const buildRaters = (seed: string, evaluatorIds: string[], scoreLimit: number): 
       evaluatorId: eid,
       score,
       max: scoreLimit,
+      weight: weights[ei] || 0,
       date: done ? `2026-01-${String(day).padStart(2, "0")}` : null,
       done,
     };
@@ -853,7 +864,9 @@ const buildRaters = (seed: string, evaluatorIds: string[], scoreLimit: number): 
 const finalScore = (raters: RaterEval[]): number | null => {
   const done = raters.filter(r => r.done && r.score !== null);
   if (done.length === 0) return null;
-  return Math.round((done.reduce((s, r) => s + (r.score! / r.max) * 5, 0) / done.length) * 10) / 10;
+  const totalWeight = done.reduce((sum, r) => sum + r.weight, 0) || done.length;
+  const weighted = done.reduce((sum, r) => sum + ((r.score! / r.max) * 5 * r.weight), 0) / totalWeight;
+  return Math.round(weighted * 10) / 10;
 };
 
 const RaterList = ({ raters }: { raters: RaterEval[] }) => (
@@ -865,7 +878,7 @@ const RaterList = ({ raters }: { raters: RaterEval[] }) => (
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-foreground truncate">{employeeName(r.evaluatorId)}</p>
-          <p className="text-[10px] text-muted-foreground truncate">{employeePosition(r.evaluatorId)}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{employeePosition(r.evaluatorId)} · Çəki: {r.weight}%</p>
         </div>
         {r.done ? (
           <>
@@ -884,11 +897,11 @@ const RaterList = ({ raters }: { raters: RaterEval[] }) => (
 );
 
 const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | null; scope: StatusScope; onClose: () => void }) => {
-  const [section, setSection] = useState<"goals" | "competencies">("goals");
   const [showMembers, setShowMembers] = useState(false);
+  const [openCardIds, setOpenCardIds] = useState<string[]>([]);
   useEffect(() => {
-    setSection("goals");
     setShowMembers(false);
+    setOpenCardIds([]);
   }, [group?.key]);
   if (!group) return null;
 
@@ -901,6 +914,198 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
   const groupExtraEvaluators = (n: number): string[] => {
     const h = hash(group.key);
     return Array.from({ length: n }, (_, i) => extraEvaluatorPool[(h + i * 7) % extraEvaluatorPool.length]);
+  };
+
+  const toggleCard = (cardId: string) => {
+    setOpenCardIds(prev => prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]);
+  };
+
+  const renderIndividualGoals = () => (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Target className="w-4 h-4 text-primary" />
+        <p className="text-sm font-semibold text-foreground">Hədəflər</p>
+        <Badge variant="secondary" className="h-6">{group.cards.length} kart</Badge>
+      </div>
+      {group.cards.length === 0 ? (
+        <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">Bu əməkdaş üçün KPI kartı yoxdur</div>
+      ) : group.cards.map(card => {
+        const isOpen = openCardIds.includes(card.id);
+        return (
+          <div key={card.id} className="border border-border rounded-xl overflow-hidden bg-card">
+            <button type="button" onClick={() => toggleCard(card.id)} className="w-full px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{card.name} kartı</p>
+                  <p className="text-[11px] text-muted-foreground">Dövr: {card.startDate} — {card.endDate} · {card.targets.length} hədəf</p>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </div>
+            </button>
+            {isOpen && (
+              <div className="divide-y divide-border">
+                {card.targets.map((t, ti) => {
+                  const base = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
+                  const evalIds = ti === 0 && card === group.cards[0]
+                    ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
+                    : base;
+                  const raters = buildRaters(card.id + t.id, evalIds, t.scoreLimit);
+                  const finalS = finalScore(raters);
+                  const h = hash(card.id + t.id);
+                  const actual = 60 + (h % 60);
+                  return (
+                    <div key={t.id} className="p-3 space-y-2 bg-background">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{t.name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {t.type} · hədəf çəkisi {t.weight}% · nəticə {actual}%
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
+                          <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                            <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <RaterList raters={raters} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderIndividualCompetencies = () => (
+    <div className="border border-border rounded-xl overflow-hidden bg-card">
+      <div className="px-4 py-3 border-b border-border bg-muted/30">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <p className="text-sm font-semibold text-foreground">Səriştələr</p>
+        </div>
+        <p className="text-[11px] text-muted-foreground">Əməkdaşlar səriştə meyarları üzrə qiymətləndirilir</p>
+      </div>
+      <div className="divide-y divide-border">
+        {competencies.map((c, ci) => {
+          const base = group.cards[0]?.evaluatorIds && group.cards[0].evaluatorIds.length > 0
+            ? group.cards[0].evaluatorIds
+            : groupExtraEvaluators(1);
+          const evalIds = ci === 0
+            ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
+            : base;
+          const raters = buildRaters(group.key + "-comp-" + c, evalIds, 5);
+          const finalS = finalScore(raters);
+          return (
+            <div key={c} className="p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <p className="text-sm font-medium text-foreground">{c}</p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
+                  <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                    <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
+                  </Badge>
+                </div>
+              </div>
+              <RaterList raters={raters} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderTeamDetail = () => {
+    const team = mockTeams.find(t => t.id === group.key);
+    const members = group.members || [];
+    const teamCompetencies = ["Komanda əməkdaşlığı", "İcra intizamı", "Müştəri yönümlülük"];
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Komanda rəhbəri</p><p className="text-sm font-semibold text-foreground">{employeeName(team?.leaderId || "")}</p></div>
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Üzv sayı</p><p className="text-sm font-semibold text-foreground">{members.length}</p></div>
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Qiymətləndirmə tipi</p><p className="text-sm font-semibold text-foreground">Səriştə əsaslı</p></div>
+        </div>
+        <div className="border border-border rounded-xl overflow-hidden bg-card">
+          <div className="px-4 py-3 border-b border-border bg-muted/30">
+            <p className="text-sm font-semibold text-foreground">Komanda üzrə səriştə nümunələri</p>
+            <p className="text-[11px] text-muted-foreground">Komanda baxışında KPI hədəfləri deyil, üzvlərin səriştə qiymətləndirmələri izlənir</p>
+          </div>
+          <div className="divide-y divide-border">
+            {members.slice(0, 5).map((member, mi) => {
+              const competency = teamCompetencies[mi % teamCompetencies.length];
+              const evalIds = Array.from(new Set([team?.leaderId || "e1", ...groupExtraEvaluators(mi === 0 ? 2 : 1)])).filter(id => id !== member.id);
+              const raters = buildRaters(`${group.key}-${member.id}-${competency}`, evalIds, 5);
+              const finalS = finalScore(raters);
+              return (
+                <div key={member.id} className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{member.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{member.position} · {competency}</p>
+                    </div>
+                    <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                      <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
+                    </Badge>
+                  </div>
+                  <RaterList raters={raters} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderStructureDetail = () => {
+    const teams = mockTeams.filter(t => t.structureId === group.key);
+    const members = group.members || [];
+    const structureCompetencies = ["Liderlik", "Əməkdaşlıq", "Proses intizamı", "İnkişaf potensialı"];
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Struktur rəhbəri</p><p className="text-sm font-semibold text-foreground">{employeeName(mockStructures.find(s => s.id === group.key)?.managerId || "")}</p></div>
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Komanda sayı</p><p className="text-sm font-semibold text-foreground">{teams.length}</p></div>
+          <div className="rounded-xl border border-border bg-card p-3"><p className="text-[11px] text-muted-foreground">Əməkdaş sayı</p><p className="text-sm font-semibold text-foreground">{members.length}</p></div>
+        </div>
+        <div className="border border-border rounded-xl overflow-hidden bg-card">
+          <div className="px-4 py-3 border-b border-border bg-muted/30">
+            <p className="text-sm font-semibold text-foreground">Struktur üzrə səriştə icmalı</p>
+            <p className="text-[11px] text-muted-foreground">Struktur baxışında komandalar üzrə fərqli səriştə nümunələri və tamamlanma statusu göstərilir</p>
+          </div>
+          <div className="divide-y divide-border">
+            {teams.map((team, ti) => {
+              const competency = structureCompetencies[ti % structureCompetencies.length];
+              const evalIds = Array.from(new Set([team.leaderId, mockStructures.find(s => s.id === group.key)?.managerId || "e1", ...groupExtraEvaluators(ti === 0 ? 1 : 0)]));
+              const raters = buildRaters(`${group.key}-${team.id}-${competency}`, evalIds, 5);
+              const finalS = finalScore(raters);
+              return (
+                <div key={team.id} className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{team.name}</p>
+                      <p className="text-[11px] text-muted-foreground">{team.memberIds.length} əməkdaş · nümunə səriştə: {competency}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="h-6">Tamamlanma: {70 + ((hash(team.id) % 3) * 10)}%</Badge>
+                      <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                        <Star className="w-3 h-3" /> Orta: {finalS !== null ? `${finalS}/5` : "—"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <RaterList raters={raters} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -917,29 +1122,11 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
           </DialogDescription>
         </DialogHeader>
 
-        {/* Section switcher (Goals / Competencies) + members button */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2 border border-border rounded-xl bg-card p-1 w-fit">
-            {[
-              { k: "goals" as const, l: "Hədəflər", icon: Target },
-              { k: "competencies" as const, l: "Səriştələr", icon: Sparkles },
-            ].map(t => {
-              const Icon = t.icon;
-              const active = section === t.k;
-              return (
-                <button key={t.k} onClick={() => setSection(t.k)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}>
-                  <Icon className="w-3.5 h-3.5" /> {t.l}
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex items-center justify-end gap-3 flex-wrap">
           {scope !== "individual" && group.members && group.members.length > 0 && (
             <button onClick={() => setShowMembers(v => !v)}
               className="text-[11px] text-primary hover:underline">
-              {showMembers ? "Qiymətləndirmələrə qayıt" : scope === "team" ? "Komanda üzvlərinə bax" : "Strukturdakı əməkdaşlar"}
+              {showMembers ? "Qiymətləndirmələrə qayıt" : scope === "team" ? "Komanda üzvlərinə bax" : "Strukturdakı əməkdaşlara bax"}
             </button>
           )}
         </div>
@@ -957,84 +1144,15 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
                 </div>
               ))}
             </div>
-          ) : section === "goals" ? (
-            group.cards.length === 0 ? (
-              <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">Kart yoxdur</div>
-            ) : group.cards.map(card => (
-              <div key={card.id} className="border border-border rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-border bg-muted/30">
-                  <p className="text-sm font-semibold text-foreground">{card.name}</p>
-                  <p className="text-[11px] text-muted-foreground">Dövr: {card.startDate} — {card.endDate}</p>
-                </div>
-                <div className="divide-y divide-border">
-                  {card.targets.map((t, ti) => {
-                    // Multi-rater: use card.evaluatorIds, and on first target of first card,
-                    // inject 2 extras so multi-rater (3 evaluators) is visible.
-                    const base = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
-                    const evalIds = ti === 0 && card === group.cards[0]
-                      ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
-                      : base;
-                    const raters = buildRaters(card.id + t.id, evalIds, t.scoreLimit);
-                    const finalS = finalScore(raters);
-                    const h = hash(card.id + t.id);
-                    const actual = 60 + (h % 60); // 60..119
-                    return (
-                      <div key={t.id} className="p-3 space-y-2">
-                        <div className="flex items-start justify-between gap-2 flex-wrap">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground">{t.name}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {t.type} · çəki {t.weight}% · nəticə {actual}%
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
-                            <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
-                              <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
-                            </Badge>
-                          </div>
-                        </div>
-                        <RaterList raters={raters} />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))
+          ) : scope === "individual" ? (
+            <>
+              {renderIndividualGoals()}
+              {renderIndividualCompetencies()}
+            </>
+          ) : scope === "team" ? (
+            renderTeamDetail()
           ) : (
-            <div className="border border-border rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-border bg-muted/30">
-                <p className="text-sm font-semibold text-foreground">Səriştələr</p>
-                <p className="text-[11px] text-muted-foreground">Hər səriştə üzrə qiymətləndirənlər və verilən ballar</p>
-              </div>
-              <div className="divide-y divide-border">
-                {competencies.map((c, ci) => {
-                  const base = group.cards[0]?.evaluatorIds && group.cards[0].evaluatorIds.length > 0
-                    ? group.cards[0].evaluatorIds
-                    : [group.cards[0]?.ownerId || "e1"];
-                  // First competency shown with 3 evaluators to demonstrate multi-rater
-                  const evalIds = ci === 0
-                    ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
-                    : base;
-                  const raters = buildRaters(group.key + "-comp-" + c, evalIds, 5);
-                  const finalS = finalScore(raters);
-                  return (
-                    <div key={c} className="p-3 space-y-2">
-                      <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-foreground">{c}</p>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
-                          <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
-                            <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <RaterList raters={raters} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            renderStructureDetail()
           )}
         </div>
 
@@ -1251,17 +1369,6 @@ const EvaluationPage = () => {
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeftCircle className="w-4 h-4" /> Bütün bölmələr
             </button>
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-              {SECTIONS.map(s => {
-                const activeK = section === s.k;
-                return (
-                  <button key={s.k} onClick={() => setSection(s.k)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeK ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                    {s.l}
-                  </button>
-                );
-              })}
-            </div>
           </div>
           <div className="flex items-center gap-3 mb-2">
             {active?.icon && <active.icon className="w-5 h-5 text-primary" />}
