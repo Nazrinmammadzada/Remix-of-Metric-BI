@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import ExportMenu from "@/components/common/ExportMenu";
+import { DataTable } from "@/components/common/DataTable";
 import { getEmployees } from "@/lib/orgStore";
 import { MONTHS, type Month } from "@/lib/salaryStore";
 
@@ -260,8 +261,12 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
         </div>
 
         {/* Table */}
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 border-b border-border">
+        <DataTable<ScoreRow>
+          rows={selectedCards.length === 0 ? [] : rows}
+          rowKey={(r) => `${r.empId}-${r.cardIdx}`}
+          storageKey="kpi-scores-table"
+          emptyMessage={selectedCards.length === 0 ? "Cədvəli görmək üçün il, ay və ən azı bir KPI kartı seçin" : "Nəticə tapılmadı"}
+          toolbarLeft={
             <div className="relative">
               <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -271,6 +276,8 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                 className="pl-8 pr-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring w-64"
               />
             </div>
+          }
+          toolbarRight={
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">Cəmi: {rows.length} nəticə</span>
               <ExportMenu
@@ -284,55 +291,28 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                 })}
               />
             </div>
-          </div>
+          }
+          columns={[
+            { key: "name", label: "Əməkdaşın A.S.A.", filterType: "text", accessor: (r) => [r.fullName, r.fatherName].filter(Boolean).join(" "), render: (r) => <span className="font-medium text-foreground">{[r.fullName, r.fatherName].filter(Boolean).join(" ")}</span> },
+            { key: "card", label: "KPI Kartının Adı", filterType: "text", accessor: (r) => r.cardName },
+            { key: "period", label: "Dövr", filterType: "text", accessor: (r) => r.periodLabel, render: (r) => <span className="text-muted-foreground">{r.periodLabel}</span> },
+            { key: "start", label: "Başlama Tarixi", filterType: "text", accessor: (r) => r.startDate, render: (r) => <span className="text-muted-foreground">{r.startDate}</span> },
+            { key: "end", label: "Bitmə Tarixi", filterType: "text", accessor: (r) => r.endDate, render: (r) => <span className="text-muted-foreground">{r.endDate}</span> },
+            { key: "score", label: "Qiymət (Bal)", filterType: "number", accessor: (r) => r.score, render: (r) => (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs border ${scoreColor(r.score)}`}>{r.score.toFixed(2)} / 5</span>
+            ) },
+            { key: "op", label: "Əməliyyat", filterType: "none", align: "center", width: 100, render: (r) => (
+              <button
+                onClick={() => setViewEmp({ id: r.empId, fullName: r.fullName, cardIdx: r.cardIdx, cardName: r.cardName })}
+                title="Detallar"
+                className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            ) },
+          ]}
+        />
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40">
-                <tr className="text-left text-muted-foreground">
-                  <th className="px-4 py-3 font-medium">Əməkdaşın A.S.A.</th>
-                  <th className="px-4 py-3 font-medium">KPI Kartının Adı</th>
-                  <th className="px-4 py-3 font-medium">Dövr</th>
-                  <th className="px-4 py-3 font-medium">Başlama Tarixi</th>
-                  <th className="px-4 py-3 font-medium">Bitmə Tarixi</th>
-                  <th className="px-4 py-3 font-medium">Qiymət (Bal)</th>
-                  <th className="px-4 py-3 font-medium w-24">Əməliyyatlar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedCards.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
-                    Cədvəli görmək üçün il, ay və ən azı bir KPI kartı seçin
-                  </td></tr>
-                ) : rows.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">Nəticə tapılmadı</td></tr>
-                ) : rows.map((r, i) => (
-                  <tr key={`${r.empId}-${r.cardIdx}-${i}`} className="border-t border-border hover:bg-secondary/30">
-                    <td className="px-4 py-2.5 font-medium text-foreground">{[r.fullName, r.fatherName].filter(Boolean).join(" ")}</td>
-                    <td className="px-4 py-2.5">{r.cardName}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{r.periodLabel}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{r.startDate}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{r.endDate}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs border ${scoreColor(r.score)}`}>
-                        {r.score.toFixed(2)} / 5
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <button
-                        onClick={() => setViewEmp({ id: r.empId, fullName: r.fullName, cardIdx: r.cardIdx, cardName: r.cardName })}
-                        title="Detallar"
-                        className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-        </div>
       </main>
 
       <EmployeeKpiDialog
