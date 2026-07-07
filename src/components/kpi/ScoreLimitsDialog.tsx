@@ -374,32 +374,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          {mode === "edit" && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                const base = suggestLimitsFromTarget(tgt);
-                const scale = scales.find(s => s.id === scaleId);
-                // Seçilmiş bal aralığı default deyilsə, max-a uyğun proporsional miqyaslandır
-                if (scale && !scale.isDefault && scale.max > 0) {
-                  const factor = scale.max / 5; // default 5-li sistemə nisbətdə
-                  const scaled: LimitSet = { ...base };
-                  (Object.keys(scaled) as LimitTier[]).forEach(k => {
-                    scaled[k] = {
-                      min: Math.round(scaled[k].min * factor),
-                      max: Math.round(scaled[k].max * factor),
-                    };
-                  });
-                  setLimits(scaled);
-                } else {
-                  setLimits(base);
-                }
-              }}
-              className="gap-1.5"
-            >
-              <Wand2 className="w-4 h-4" /> Avtomatik
-            </Button>
-          )}
+
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {mode === "view" ? "Bağla" : "Ləğv et"}
           </Button>
