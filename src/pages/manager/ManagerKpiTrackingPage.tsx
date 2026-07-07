@@ -228,7 +228,7 @@ const HubCard = ({ icon: Icon, title, subtitle, count, gradient, onClick }: any)
 // ============================================================
 // OWN KPIs VIEW — full featured
 // ============================================================
-type DrawerTab = "info" | "history" | "comments" | "reminders";
+type DrawerTab = "general" | "bsc" | "lifecycle" | "history" | "team" | "comments" | "status" | "setStatus";
 
 interface CommentItem { id: string; author: string; role: string; date: string; text: string; }
 interface HistoryItem { id: string; date: string; time: string; author: string; field: string; from: string; to: string; }
@@ -259,7 +259,7 @@ const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: stri
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [drawerKpi, setDrawerKpi] = useState<Kpi | null>(null);
-  const [drawerTab, setDrawerTab] = useState<DrawerTab>("info");
+  const [drawerTab, setDrawerTab] = useState<DrawerTab>("general");
   const [distributeNode, setDistributeNode] = useState<CascadeTreeNode | null>(null);
 
   const periods = useMemo(() => Array.from(new Set(data.map(d => d.period))), [data]);
@@ -387,10 +387,10 @@ const OwnKpisView = ({ title, subtitle, data, cascadeNodes = [] }: { title: stri
                         </button>
                       </PopoverTrigger>
                       <PopoverContent align="end" className="w-52 p-1">
-                        <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openDrawer(k, "info")} />
+                        <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openDrawer(k, "general")} />
                         <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openDrawer(k, "history")} />
                         <MenuItem icon={MessageSquare} label="Şərhlər" onClick={() => openDrawer(k, "comments")} />
-                        <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "reminders")} />
+                        <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "history")} />
                         {k.cascadeNodeId && (
                           <MenuItem
                             icon={GitBranch}
@@ -493,7 +493,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
   };
 
   return (
-    <aside className="fixed top-0 right-0 h-screen w-full sm:w-[440px] bg-card border-l border-border shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-300">
+    <aside className="fixed top-0 right-0 h-screen w-full sm:w-[640px] bg-card border-l border-border shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-300">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <h3 className="text-base font-semibold text-foreground">KPI-yə bax</h3>
@@ -533,44 +533,110 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
             <MetaRow label="Son yenilənmə" value={kpi.updatedAt} />
           </div>
 
-          {/* Tabs */}
-          <Tabs value={tab} onValueChange={(v) => setTab(v as DrawerTab)}>
-            <TabsList className="grid grid-cols-4 w-full">
-              <TabsTrigger value="info">İcra məlumatı</TabsTrigger>
-              <TabsTrigger value="history">Tarixçə</TabsTrigger>
-              <TabsTrigger value="comments">Şərhlər</TabsTrigger>
-              <TabsTrigger value="reminders">Xatırlatmalar</TabsTrigger>
-            </TabsList>
+          {/* Tabs — KPI Detail: 8 fixed tab (spec üzrə) */}
+          <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 mb-3">
+            {[
+              ["general", "Ümumi"],
+              ["bsc", "Balanced Scorecard"],
+              ["lifecycle", "Lifecycle"],
+              ["history", "Tarixçə"],
+              ["team", "KPI Üzvləri"],
+              ["comments", "Şərhlər"],
+              ["status", "Təsdiqləmə Zənciri"],
+              ["setStatus", "Set Statusu"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setTab(key as DrawerTab)}
+                className={`px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${tab === key ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-            <TabsContent value="info" className="mt-3">
-              <div className="rounded-xl border border-border p-4 grid grid-cols-2 gap-x-4 gap-y-3">
-                <MetaRow label="Ölçü vahidi" value={kpi.measure} />
-                <MetaRow label="Hədəf tipi" value={kpi.type} />
-                <MetaRow label="Hesablama üsulu" value={kpi.method} />
-                <MetaRow label="Çəki" value={`${kpi.weight}%`} />
-                <MetaRow label="Cari nəticə" value={`${fmt(kpi.actual)} / ${fmt(kpi.target)}`} />
-                <MetaRow label="Qalan hədəf" value={`${fmt(Math.max(kpi.target - kpi.actual, 0))} ${kpi.unit === "AZN" ? "₼" : kpi.unit}`} />
-                <MetaRow label="Növbəti icmal" value="05.06.2025" />
-                <MetaRow label="Hədəf tipi" value={p >= 100 ? "Tamamlanıb" : "Artan (↑) daha yaxşıdır"} />
+          {tab === "general" && (
+            <div className="rounded-xl border border-border p-4 grid grid-cols-2 gap-x-4 gap-y-3">
+              <MetaRow label="Ölçü vahidi" value={kpi.measure} />
+              <MetaRow label="Hədəf tipi" value={kpi.type} />
+              <MetaRow label="Hesablama üsulu" value={kpi.method} />
+              <MetaRow label="Çəki" value={`${kpi.weight}%`} />
+              <MetaRow label="Cari nəticə" value={`${fmt(kpi.actual)} / ${fmt(kpi.target)}`} />
+              <MetaRow label="Qalan hədəf" value={`${fmt(Math.max(kpi.target - kpi.actual, 0))} ${kpi.unit === "AZN" ? "₼" : kpi.unit}`} />
+              <MetaRow label="Növbəti icmal" value="05.06.2025" />
+              <MetaRow label="Trend" value={p >= 100 ? "Tamamlanıb" : "Artan (↑) daha yaxşıdır"} />
+            </div>
+          )}
+
+          {tab === "bsc" && (
+            <div className="rounded-xl border border-border p-4">
+              <div className="text-sm font-semibold text-foreground mb-2">Balanced Scorecard</div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <MetaRow label="Perspektiv" value="Maliyyə" />
+                <MetaRow label="Strateji hədəf" value={kpi.name} />
+                <MetaRow label="Ölçü (KPI)" value={`${kpi.measure}`} />
+                <MetaRow label="Hədəf dəyəri" value={`${fmt(kpi.target)} ${kpi.unit}`} />
+                <MetaRow label="Cari nəticə" value={`${fmt(kpi.actual)} ${kpi.unit}`} />
+                <MetaRow label="İcra faizi" value={`${p}%`} />
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            <TabsContent value="history" className="mt-3">
-              <ol className="relative border-l border-border pl-4 space-y-4">
-                {history.map(h => (
-                  <li key={h.id} className="relative">
-                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/15" />
-                    <div className="text-[11px] text-muted-foreground">{h.date} {h.time}</div>
-                    <div className="text-sm font-medium text-foreground">{h.author}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {h.field}: <span className="text-foreground">{h.from}</span> → <span className="text-primary font-medium">{h.to}</span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </TabsContent>
+          {tab === "lifecycle" && (
+            <ol className="relative border-l border-border pl-4 space-y-4">
+              {[
+                { name: "Planlama", date: kpi.createdAt, done: true },
+                { name: "Təsdiqləmə", date: kpi.createdAt, done: true },
+                { name: "İcra", date: kpi.updatedAt, done: p < 100 },
+                { name: "Qiymətləndirmə", date: kpi.deadline, done: p >= 100 },
+              ].map((s, i) => (
+                <li key={i} className="relative">
+                  <span className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ${s.done ? "bg-emerald-500 ring-emerald-500/15" : "bg-muted ring-muted"}`} />
+                  <div className="text-sm font-medium text-foreground">{s.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{s.date}</div>
+                </li>
+              ))}
+            </ol>
+          )}
 
-            <TabsContent value="comments" className="mt-3">
+          {tab === "history" && (
+            <ol className="relative border-l border-border pl-4 space-y-4">
+              {history.map(h => (
+                <li key={h.id} className="relative">
+                  <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/15" />
+                  <div className="text-[11px] text-muted-foreground">{h.date} {h.time}</div>
+                  <div className="text-sm font-medium text-foreground">{h.author}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {h.field}: <span className="text-foreground">{h.from}</span> → <span className="text-primary font-medium">{h.to}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {tab === "team" && (
+            <div className="space-y-2">
+              {[
+                { name: kpi.responsible.name, role: kpi.responsible.role, tag: "Məsul" },
+                { name: "Aysel İbrahimova", role: "Qiymətləndirici", tag: "Qiymətləndirici" },
+                { name: "Rəşad Quliyev", role: "Təsdiqləyən", tag: "Təsdiqləyən" },
+              ].map((m, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                  <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">
+                    {m.name.split(" ").map(x => x[0]).join("").slice(0,2)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{m.name}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{m.role}</div>
+                  </div>
+                  <Badge className="bg-secondary text-secondary-foreground">{m.tag}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === "comments" && (
+            <>
               <div className="space-y-3">
                 {comments.map(c => (
                   <div key={c.id} className="flex gap-2.5">
@@ -600,29 +666,47 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
                 />
                 <Button size="sm" onClick={sendComment} className="gap-1"><Send className="w-3.5 h-3.5" /> Göndər</Button>
               </div>
-            </TabsContent>
+            </>
+          )}
 
-            <TabsContent value="reminders" className="mt-3">
-              <ol className="relative border-l border-border pl-4 space-y-4">
-                {reminders.map(r => (
-                  <li key={r.id} className="relative">
-                    <span className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ${r.read ? "bg-emerald-500 ring-emerald-500/15" : "bg-amber-500 ring-amber-500/15"}`} />
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-[11px] text-muted-foreground">{r.date} {r.time}</div>
-                        <div className="text-sm font-medium text-foreground">{r.author}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">{r.text}</div>
-                      </div>
-                      <Badge className={r.read ? "bg-zone-green-bg text-zone-green-text hover:bg-zone-green-bg" : "bg-zone-yellow-bg text-zone-yellow-text hover:bg-zone-yellow-bg"}>
-                        {r.read ? "Oxundu" : "Oxunmayıb"}
-                      </Badge>
-                    </div>
-                  </li>
-                ))}
-                <li className="text-[11px] text-muted-foreground pl-1">Yalnız rəhbər tərəfindən göndərilən xatırlatmalar göstərilir.</li>
-              </ol>
-            </TabsContent>
-          </Tabs>
+          {tab === "status" && (
+            <ol className="space-y-2">
+              {[
+                { role: "Şöbə Müdiri", name: "Abbas Əliyev", state: "ok" as const },
+                { role: "Departament Direktoru", name: "Aysel Məmmədova", state: "wait" as const },
+                { role: "HR Admin", name: "Super Adminov", state: "wait" as const },
+              ].map((r, i) => (
+                <li key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg border ${r.state === "ok" ? "border-emerald-500/30 bg-emerald-500/10" : "border-blue-500/30 bg-blue-500/10"}`}>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{i + 1}. {r.name}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{r.role}</div>
+                  </div>
+                  <span className="text-xs font-medium shrink-0 ml-2">{r.state === "ok" ? "Təsdiqləndi" : "Gözlənilir"}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {tab === "setStatus" && (
+            <div className="rounded-xl border border-border p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Cari set statusu</span>
+                <Badge className={statusMeta[kpi.status].cls}>{statusMeta[kpi.status].label}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">İcra faizi</span>
+                <span className="text-sm font-medium tabular-nums">{p}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Deadline</span>
+                <span className="text-sm">{kpi.deadline}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Son yenilənmə</span>
+                <span className="text-sm">{kpi.updatedAt}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </aside>
@@ -832,7 +916,7 @@ export const SubordinatesView = ({
   const [panelOpen, setPanelOpen] = useState(false);
   const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string } | null>(null);
   const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
-  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("info");
+  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("general");
 
   // Deterministic period/date helpers for the employee's KPI card list
   const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -1150,7 +1234,7 @@ export const SubordinatesView = ({
                       <td className="px-4 py-3 text-muted-foreground">{k.updatedAt}</td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => { setViewKpi(k); setViewKpiTab("info"); }}
+                          onClick={() => { setViewKpi(k); setViewKpiTab("general"); }}
                           className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                           aria-label="Bax"
                           title="Bax"
