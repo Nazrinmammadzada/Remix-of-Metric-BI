@@ -295,7 +295,7 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
           }
           columns={[
             { key: "name", label: "Əməkdaşın A.S.A.", filterType: "text", accessor: (r) => [r.fullName, r.fatherName].filter(Boolean).join(" "), render: (r) => <span className="font-medium text-foreground">{[r.fullName, r.fatherName].filter(Boolean).join(" ")}</span> },
-            { key: "card", label: "KPI Kartının Adı", filterType: "text", accessor: (r) => r.cardName },
+            { key: "card", label: "KPI Kartının Adı", filterType: "text", accessor: (r) => withKartSuffix(r.cardName), render: (r) => <span>{withKartSuffix(r.cardName)}</span> },
             { key: "period", label: "Dövr", filterType: "text", accessor: (r) => r.periodLabel, render: (r) => <span className="text-muted-foreground">{r.periodLabel}</span> },
             { key: "start", label: "Başlama Tarixi", filterType: "text", accessor: (r) => r.startDate, render: (r) => <span className="text-muted-foreground">{r.startDate}</span> },
             { key: "end", label: "Bitmə Tarixi", filterType: "text", accessor: (r) => r.endDate, render: (r) => <span className="text-muted-foreground">{r.endDate}</span> },
