@@ -131,7 +131,7 @@ const initialKpiCards: KpiCard[] = [
     id: 1, name: "Aylıq Satış Hədəfi", icon: Target, zone: "green", target: "5M", current: "4.2M", unit: "AZN", progress: 84, minTarget: 60,
     responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Absolut Hədəf", formula: "Cari Satış / Hədəf Satış × 100", generalTarget: "5M AZN",
     department: "Satış Departamenti", group: "Bakı Satış Qrupu", subdivision: "Satış Şöbəsi",
-    startDate: "01.01.2026", endDate: "31.01.2026", frequency: "Aylıq", weight: 30, approvalStatus: "approved",
+    startDate: "01.01.2026", endDate: "31.01.2026", frequency: "Aylıq", weight: 30, approvalStatus: "approved", matrixId: "matrix-standard",
     description: "Aylıq satış hədəfinin yerinə yetirilməsi üçün əsas göstərici.",
     team: [
       { name: "Samir Həsənov", role: "Komanda Lideri", avatar: "S" },
@@ -153,7 +153,7 @@ const initialKpiCards: KpiCard[] = [
     id: 2, name: "Parakəndə Satış Göstəriciləri", icon: TrendingUp, zone: "yellow", target: "2M", current: "1.9M", unit: "AZN", progress: 75, minTarget: 70,
     responsible: "Farid Həsənov", period: "2026 - İllik", type: "Faiz Hədəfi", formula: "Parakəndə Satış / Ümumi Satış × 100", generalTarget: "2M AZN",
     department: "Satış Departamenti", group: "Regional Satış Qrupu", subdivision: "Satış Şöbəsi",
-    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "İllik", weight: 25, approvalStatus: "approved",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "İllik", weight: 25, approvalStatus: "approved", matrixId: "matrix-standard",
     description: "Parakəndə satış kanalı üzrə performans göstəricisi.",
     team: [
       { name: "Farid Həsənov", role: "Regional Menecer", avatar: "F" },
@@ -169,7 +169,7 @@ const initialKpiCards: KpiCard[] = [
     id: 3, name: "Müştəri Əldə Etmə", icon: Users, zone: "green", target: "500", current: "485", unit: "Müştəri", progress: 97, minTarget: 75,
     responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Yeni Müştəri / Hədəf × 100", generalTarget: "500 Müştəri",
     department: "Marketinq", group: "Rəqəmsal Marketinq Qrupu", subdivision: "Marketinq Şöbəsi",
-    startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 20, approvalStatus: "approved",
+    startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 20, approvalStatus: "approved", matrixId: "matrix-standard",
     description: "Yeni müştərilərin cəlb edilməsi üzrə hədəf.",
     team: [
       { name: "Emin Məmmədov", role: "Marketinq Meneceri", avatar: "E" },
@@ -191,7 +191,7 @@ const initialKpiCards: KpiCard[] = [
     id: 4, name: "Müştəri Saxlama Nisbəti", icon: CheckCircle, zone: "green", target: "95%", current: "93%", unit: "", progress: 98, minTarget: 80,
     responsible: "Leyla Həsənova", period: "2026-Q1", type: "Faiz Hədəfi", formula: "Saxlanılan / Ümumi × 100", generalTarget: "95%",
     department: "Müştəri Xidmətləri", group: "CRM Qrupu", subdivision: "CRM Şöbəsi",
-    startDate: "01.01.2026", endDate: "31.03.2026", frequency: "Rüblük", weight: 15, approvalStatus: "approved",
+    startDate: "01.01.2026", endDate: "31.03.2026", frequency: "Rüblük", weight: 15, approvalStatus: "approved", matrixId: "matrix-standard",
     description: "Mövcud müştərilərin saxlanılma nisbəti.",
     team: [
       { name: "Leyla Həsənova", role: "CRM Meneceri", avatar: "L" },
@@ -207,7 +207,7 @@ const initialKpiCards: KpiCard[] = [
     id: 5, name: "İnnovasiya İndeksi", icon: Lightbulb, zone: "yellow", target: "80%", current: "72%", unit: "", progress: 65, minTarget: 60,
     responsible: "Rəşad Əliyev", period: "2026 - İllik", type: "Benchmark", formula: "İnnovasiya Skoru / Hədəf × 100", generalTarget: "80%",
     department: "R&D", group: "Tədqiqat Qrupu", subdivision: "R&D Şöbəsi",
-    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "İllik", weight: 5, approvalStatus: "pending",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "İllik", weight: 5, approvalStatus: "pending", matrixId: "matrix-standard",
     description: "İnnovasiya və yenilikçilik indeksi.",
     team: [{ name: "Rəşad Əliyev", role: "R&D Meneceri", avatar: "R" }],
     history: [
@@ -219,7 +219,7 @@ const initialKpiCards: KpiCard[] = [
     id: 6, name: "Əməliyyat Effektivliyi", icon: Settings2, zone: "green", target: "90%", current: "88%", unit: "", progress: 98, minTarget: 70,
     responsible: "Samir Həsənov", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Effektiv Əməliyyat / Ümumi × 100", generalTarget: "90%",
     department: "Əməliyyatlar", group: "Əməliyyat Qrupu", subdivision: "Əməliyyat Şöbəsi",
-    startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 5, approvalStatus: "pending",
+    startDate: "01.03.2026", endDate: "31.03.2026", frequency: "Aylıq", weight: 5, approvalStatus: "pending", matrixId: "matrix-standard",
     description: "Əməliyyat proseslərinin effektivlik göstəricisi.",
     team: [
       { name: "Kamran Quliyev", role: "Əməliyyat Meneceri", avatar: "K" },
@@ -235,7 +235,7 @@ const initialKpiCards: KpiCard[] = [
     id: 7, name: "Fərdi: Şəxsi İnkişaf Planı", icon: UserCheck, zone: "green", target: "10", current: "8", unit: "Modul", progress: 80, minTarget: 70,
     responsible: "Leyla Həsənova", period: "2026 - Aylıq", type: "Say Hədəfi", formula: "Tamamlanan / Plan × 100", generalTarget: "10 Modul",
     department: "Satış Departamenti", group: "Bakı Satış Qrupu", subdivision: "Satış Şöbəsi",
-    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 10, approvalStatus: "approved",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 10, approvalStatus: "approved", matrixId: "matrix-standard",
     description: "Əməkdaşın fərdi inkişaf modulları üzrə tamamlama göstəricisi.",
     team: [{ name: "Leyla Məmmədova", role: "Satış Mütəxəssisi", avatar: "L" }],
     history: [{ date: "Mart 2026", value: "8 Modul", change: 2 }],
@@ -245,7 +245,7 @@ const initialKpiCards: KpiCard[] = [
     id: 8, name: "Fərdi: Layihə Töhfəsi (Arxiv)", icon: UserCheck, zone: "yellow", target: "5", current: "3", unit: "Layihə", progress: 60, minTarget: 60,
     responsible: "Leyla Həsənova", period: "2025 - İllik", type: "Say Hədəfi", formula: "Tamamlanan Layihə / Hədəf × 100", generalTarget: "5 Layihə",
     department: "Əməliyyatlar", group: "Əməliyyat Qrupu", subdivision: "Əməliyyat Şöbəsi",
-    startDate: "01.01.2025", endDate: "31.12.2025", frequency: "İllik", weight: 8, approvalStatus: "approved",
+    startDate: "01.01.2025", endDate: "31.12.2025", frequency: "İllik", weight: 8, approvalStatus: "approved", matrixId: "matrix-standard",
     description: "İşdən çıxmış əməkdaşın fərdi KPI kartı — status dondurulmuşdur.",
     team: [{ name: "Tural İsmayılov", role: "Proses Analitik", avatar: "T" }],
     history: [{ date: "Dekabr 2025", value: "3 Layihə", change: 0 }],
@@ -257,7 +257,7 @@ const initialKpiCards: KpiCard[] = [
     id: 9, name: "Müştəri Şikayətlərinin Azaldılması", icon: AlertTriangle, zone: "red", target: "50", current: "72", unit: "şikayət", progress: 45, minTarget: 70,
     responsible: "Nigar Hüseynova", period: "2026 - Rüblük", type: "Say Hədəfi", formula: "Hədəf / Faktiki × 100", generalTarget: "50 şikayət",
     department: "Müştəri Xidmətləri", group: "CRM Qrupu", subdivision: "CRM Şöbəsi",
-    startDate: "01.01.2026", endDate: "30.06.2026", frequency: "Rüblük", weight: 20, approvalStatus: "pending",
+    startDate: "01.01.2026", endDate: "30.06.2026", frequency: "Rüblük", weight: 20, approvalStatus: "pending", matrixId: "matrix-standard",
     description: "Müştəri şikayətlərinin ümumi sayının azaldılması üzrə KPI. Departament Direktoru tərəfindən imtina olunub.",
     team: [
       { name: "Nigar Hüseynova", role: "CRM Meneceri", avatar: "N" },
@@ -276,7 +276,7 @@ const initialKpiCards: KpiCard[] = [
     id: 10, name: "Marketinq Kampaniyalarının ROI-si", icon: TrendingUp, zone: "red", target: "150%", current: "95%", unit: "%", progress: 63, minTarget: 80,
     responsible: "Emin Məmmədov", period: "2026 - Aylıq", type: "Faiz Hədəfi", formula: "Gəlir / Xərc × 100", generalTarget: "150%",
     department: "Marketinq", group: "Rəqəmsal Marketinq Qrupu", subdivision: "Marketinq Şöbəsi",
-    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 15, approvalStatus: "pending",
+    startDate: "01.01.2026", endDate: "31.12.2026", frequency: "Aylıq", weight: 15, approvalStatus: "pending", matrixId: "matrix-standard",
     description: "Marketinq kampaniyalarının qaytarılan investisiya nisbəti. HR Direktoru tərəfindən imtina olunub.",
     team: [
       { name: "Emin Məmmədov", role: "Marketinq Meneceri", avatar: "E" },

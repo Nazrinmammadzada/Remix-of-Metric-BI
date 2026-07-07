@@ -120,7 +120,7 @@ const ManagerKpiTrackingPage = () => {
     tree.filter(n => n.assigneeName === user.name).forEach(n => {
       result.push({
         id: `ct-${n.id}`,
-        name: `${n.cardName} — ${n.goalName || "Ana hədəf"}`,
+        name: `${withKartSuffix(n.cardName)} — ${n.goalName || "Ana hədəf"}`,
         description: `${n.parentId ? "Yuxarı rəhbərdən pay" : "HR tərəfindən təyin edilmiş hədəf"}: ${new Intl.NumberFormat("az-AZ").format(n.limit)} ${n.unit}`,
         period: new Date(n.createdAt).toLocaleDateString("az-AZ"),
         target: Number(n.limit) || 0,

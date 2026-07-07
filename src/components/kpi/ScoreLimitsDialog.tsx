@@ -127,17 +127,45 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-primary" />
-            {editMeta ? "Hədəf və Qiymət Limitləri" : "Qiymət Limitləri"}
-            {mode === "view" && <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">Read-only</span>}
-          </DialogTitle>
-          {!editMeta && (
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{subKpiName}</span> • Hədəf: {target} {unit}
-            </p>
-          )}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <DialogTitle className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-primary" />
+                {editMeta ? "Hədəf və Qiymət Limitləri" : "Qiymət Limitləri"}
+                {mode === "view" && <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">Read-only</span>}
+              </DialogTitle>
+              {!editMeta && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="font-medium text-foreground">{subKpiName}</span> • Hədəf: {target} {unit}
+                </p>
+              )}
+            </div>
+            {mode === "edit" && (
+              <button
+                type="button"
+                onClick={() => {
+                  const base = suggestLimitsFromTarget(tgt);
+                  const scale = scales.find(s => s.id === scaleId);
+                  if (scale && !scale.isDefault && scale.max > 0) {
+                    const factor = scale.max / 5;
+                    const scaled: LimitSet = { ...base };
+                    (Object.keys(scaled) as LimitTier[]).forEach(k => {
+                      scaled[k] = { min: Math.round(scaled[k].min * factor), max: Math.round(scaled[k].max * factor) };
+                    });
+                    setLimits(scaled);
+                  } else {
+                    setLimits(base);
+                  }
+                }}
+                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border border-border bg-background hover:bg-secondary/60 text-foreground"
+                title="Hədəfə görə limitləri avtomatik təyin et"
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Avtomatik
+              </button>
+            )}
+          </div>
         </DialogHeader>
+
 
         {editMeta && mode === "edit" && (
           <div className="grid grid-cols-12 gap-2">
@@ -346,32 +374,7 @@ const ScoreLimitsDialog = ({ open, onOpenChange, mode, subKpiName, target, unit,
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          {mode === "edit" && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                const base = suggestLimitsFromTarget(tgt);
-                const scale = scales.find(s => s.id === scaleId);
-                // Seçilmiş bal aralığı default deyilsə, max-a uyğun proporsional miqyaslandır
-                if (scale && !scale.isDefault && scale.max > 0) {
-                  const factor = scale.max / 5; // default 5-li sistemə nisbətdə
-                  const scaled: LimitSet = { ...base };
-                  (Object.keys(scaled) as LimitTier[]).forEach(k => {
-                    scaled[k] = {
-                      min: Math.round(scaled[k].min * factor),
-                      max: Math.round(scaled[k].max * factor),
-                    };
-                  });
-                  setLimits(scaled);
-                } else {
-                  setLimits(base);
-                }
-              }}
-              className="gap-1.5"
-            >
-              <Wand2 className="w-4 h-4" /> Avtomatik
-            </Button>
-          )}
+
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {mode === "view" ? "Bağla" : "Ləğv et"}
           </Button>
