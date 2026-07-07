@@ -480,20 +480,29 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
         </DialogContent>
       </Dialog>
 
-      {/* Staff (positions + slots) modal */}
-      <StaffModal node={liveStaffModal} onClose={() => setStaffModalFor(null)} />
+      {/* Staff (positions + slots) modal — Rəhbəri dəyiş rejimində
+          tac ikonu klik ilə leader-swap tetiklənir (LeaderChangeCtx vasitəsilə). */}
+      <LeaderChangeCtx.Provider
+        value={
+          changeLeaderFor && leaderChange
+            ? { oldLeaderId: changeLeaderFor, leaderInfo: leaderChange, onPick: handleLeaderPick }
+            : null
+        }
+      >
+        <StaffModal
+          node={liveStaffModal}
+          onClose={() => {
+            setStaffModalFor(null);
+            if (leaderChange) {
+              setLeaderChange(null);
+              setHighlightId(null);
+              onClearChangeLeader?.();
+            }
+          }}
+        />
+      </LeaderChangeCtx.Provider>
 
       <ChrImportDialog open={showChrImport} onClose={() => setShowChrImport(false)} />
-
-      {/* Rəhbəri dəyiş dialoqu — dərinlik dəf'ə: əməkdaş bir neçə strukturun rəhbəridirsə,
-          hər biri üçün ardıcıl açılır və sonda əməkdaş avtomatik Passiv edilir. */}
-      <ChangeLeaderDialog
-        open={!!leaderChange}
-        onOpenChange={(o) => { if (!o) { setLeaderChange(null); setHighlightId(null); onClearChangeLeader?.(); } }}
-        info={leaderChange}
-        currentLeaderId={changeLeaderFor ?? 0}
-        onSaved={handleLeaderSaved}
-      />
     </div>
   );
 };
