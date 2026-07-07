@@ -33,6 +33,7 @@ import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { generateOtp } from "@/lib/passwordStore";
 import { collectDeactivationReasons } from "@/lib/employeeDeactivation";
 import DeactivateEmployeeDialog from "@/components/kpi/DeactivateEmployeeDialog";
+import ChangeLeaderDialog from "@/components/kpi/ChangeLeaderDialog";
 
 // One-time reset so employee table columns appear in code-defined order
 if (!localStorage.getItem("__org_emp_order_fixed")) {
