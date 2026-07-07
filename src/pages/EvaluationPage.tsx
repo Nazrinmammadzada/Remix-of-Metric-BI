@@ -534,9 +534,10 @@ const AssignmentsTab = () => {
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
           <Sparkles className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm font-medium text-foreground">Hələ təyinat yoxdur</p>
-          <p className="text-xs text-muted-foreground mt-1">Yuxarıdakı "Təyinat yarat" düyməsindən başlayın</p>
+          <p className="text-sm font-medium text-foreground">Hələ qiymətləndirən yoxdur</p>
+          <p className="text-xs text-muted-foreground mt-1">Yuxarıdakı "Qiymətləndirən təyin et" düyməsindən başlayın</p>
         </div>
+
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map(a => {
