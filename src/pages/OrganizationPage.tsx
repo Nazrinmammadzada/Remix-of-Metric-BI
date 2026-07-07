@@ -459,6 +459,16 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
       <StaffModal node={liveStaffModal} onClose={() => setStaffModalFor(null)} />
 
       <ChrImportDialog open={showChrImport} onClose={() => setShowChrImport(false)} />
+
+      {/* Rəhbəri dəyiş dialoqu — dərinlik dəf'ə: əməkdaş bir neçə strukturun rəhbəridirsə,
+          hər biri üçün ardıcıl açılır və sonda əməkdaş avtomatik Passiv edilir. */}
+      <ChangeLeaderDialog
+        open={!!leaderChange}
+        onOpenChange={(o) => { if (!o) { setLeaderChange(null); setHighlightId(null); onClearChangeLeader?.(); } }}
+        info={leaderChange}
+        currentLeaderId={changeLeaderFor ?? 0}
+        onSaved={handleLeaderSaved}
+      />
     </div>
   );
 };
