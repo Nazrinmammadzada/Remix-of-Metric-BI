@@ -114,6 +114,8 @@ interface KpiCard {
   subKpis?: SubKpi[];
   isPersonal?: boolean;
   frozen?: boolean;
+  /** Təsdiqləmə matrisinin id-si (varsa) — "Təsdiqləmə Zənciri" tabının göstərilməsini idarə edir */
+  matrixId?: string | null;
 }
 
 const initialKpiCards: KpiCard[] = [
