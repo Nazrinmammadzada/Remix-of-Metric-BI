@@ -87,27 +87,35 @@ const seedEmployees: OrgEmployee[] = [
   mkEmp(19, "Səbinə",  "Cəfərova",   "Nəsir",    "sebine@kpi.az",     { structurePath: "Maliyyə Departamenti › Mühasibatlıq Şöbəsi",          positionName: "Mühasib",                salary: 1900 }),
   mkEmp(20, "Sənan",   "Əhmədov",    "Bəhmən",   "senan@kpi.az",      { structurePath: "Maliyyə Departamenti › Büdcə və Planlaşdırma Şöbəsi", positionName: "Maliyyə Analitiki",      salary: 1900 }),
 
-  // --- Bench (20 unassigned, active) ---
-  mkEmp(21, "Ceyhun",  "Abbasov",    "Rəhim",    "ceyhun@kpi.az"),
-  mkEmp(22, "Nəzrin",  "Qurbanova",  "Fəxrəddin","nezrin@kpi.az"),
-  mkEmp(23, "Tural",   "Abbasov",    "Vüsal",    "tural@kpi.az"),
-  mkEmp(24, "Günay",   "Salmanova",  "Xəyal",    "gunay@kpi.az"),
-  mkEmp(25, "Ramil",   "Səfərov",    "Tofiq",    "ramil@kpi.az"),
-  mkEmp(26, "Ülviyyə", "Nəbiyeva",   "Zaur",     "ulviyye@kpi.az"),
-  mkEmp(27, "Elvin",   "Quliyev",    "Elgün",    "elvin@kpi.az"),
-  mkEmp(28, "Günel",   "İsmayılova", "Rövşən",   "gunel2@kpi.az"),
-  mkEmp(29, "Vüsal",   "Mirzəyev",   "Kamal",    "vusal@kpi.az"),
-  mkEmp(30, "Nərgiz",  "Əhmədova",   "Aslan",    "nergiz@kpi.az"),
-  mkEmp(31, "Toğrul",  "Kərimov",    "Elşad",    "togrul@kpi.az"),
-  mkEmp(32, "Nurlan",  "Bağırov",    "Yusif",    "nurlan@kpi.az"),
-  mkEmp(33, "Aynurə",  "Rəsulova",   "Tapdıq",   "aynure@kpi.az"),
-  mkEmp(34, "Rufət",   "Zeynalov",   "Ceyhun",   "rufet@kpi.az"),
-  mkEmp(35, "Xəyalə",  "Süleymanova","Mahir",    "xeyale@kpi.az"),
-  mkEmp(36, "Anar",    "Mehdiyev",   "İsmayıl",  "anar@kpi.az"),
-  mkEmp(37, "Sara",    "Babayeva",   "Rasim",    "sara@kpi.az"),
-  mkEmp(38, "İlkin",   "Nəsirov",    "Vahid",    "ilkin@kpi.az"),
-  mkEmp(39, "Konul",   "Əsgərova",   "Firdovsi", "konul@kpi.az"),
-  mkEmp(40, "Zaur",    "Talıbov",    "Nazim",    "zaur@kpi.az"),
+  // --- Rank-and-file, hamısı bir strukturda vəzifə daşıyır (bench yoxdur) ---
+  // Satış — Bakı Satış Şöbəsi
+  mkEmp(21, "Ceyhun",  "Abbasov",    "Rəhim",     "ceyhun@kpi.az",  { structurePath: "Satış Departamenti › Bakı Satış Şöbəsi",              positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  mkEmp(22, "Nəzrin",  "Qurbanova",  "Fəxrəddin", "nezrin@kpi.az",  { structurePath: "Satış Departamenti › Bakı Satış Şöbəsi",              positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  mkEmp(23, "Tural",   "Abbasov",    "Vüsal",     "tural@kpi.az",   { structurePath: "Satış Departamenti › Bakı Satış Şöbəsi",              positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  // Satış — Regional Satış Şöbəsi
+  mkEmp(24, "Günay",   "Salmanova",  "Xəyal",     "gunay@kpi.az",   { structurePath: "Satış Departamenti › Regional Satış Şöbəsi",          positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  mkEmp(25, "Ramil",   "Səfərov",    "Tofiq",     "ramil@kpi.az",   { structurePath: "Satış Departamenti › Regional Satış Şöbəsi",          positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  mkEmp(26, "Ülviyyə", "Nəbiyeva",   "Zaur",      "ulviyye@kpi.az", { structurePath: "Satış Departamenti › Regional Satış Şöbəsi",          positionName: "Satış Mütəxəssisi",      salary: 1800 }),
+  // Marketinq — Rəqəmsal Marketinq Şöbəsi (yeni 3 əməkdaş)
+  mkEmp(27, "Elvin",   "Quliyev",    "Elgün",     "elvin@kpi.az",   { structurePath: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",  positionName: "Marketinq Mütəxəssisi",  salary: 1900 }),
+  mkEmp(28, "Günel",   "İsmayılova", "Rövşən",    "gunel2@kpi.az",  { structurePath: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",  positionName: "Marketinq Mütəxəssisi",  salary: 1900 }),
+  mkEmp(29, "Vüsal",   "Mirzəyev",   "Kamal",     "vusal@kpi.az",   { structurePath: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",  positionName: "Marketinq Mütəxəssisi",  salary: 1900 }),
+  // Marketinq — Brend Şöbəsi
+  mkEmp(30, "Nərgiz",  "Əhmədova",   "Aslan",     "nergiz@kpi.az",  { structurePath: "Marketinq Departamenti › Brend Şöbəsi",               positionName: "Brend Mütəxəssisi",      salary: 1900 }),
+  mkEmp(31, "Toğrul",  "Kərimov",    "Elşad",     "togrul@kpi.az",  { structurePath: "Marketinq Departamenti › Brend Şöbəsi",               positionName: "Brend Mütəxəssisi",      salary: 1900 }),
+  mkEmp(32, "Nurlan",  "Bağırov",    "Yusif",     "nurlan@kpi.az",  { structurePath: "Marketinq Departamenti › Brend Şöbəsi",               positionName: "Brend Mütəxəssisi",      salary: 1900 }),
+  // HR — İşə Qəbul Şöbəsi
+  mkEmp(33, "Aynurə",  "Rəsulova",   "Tapdıq",    "aynure@kpi.az",  { structurePath: "İnsan Resursları Departamenti › İşə Qəbul Şöbəsi",    positionName: "İşə Qəbul Mütəxəssisi",  salary: 1700 }),
+  mkEmp(34, "Rufət",   "Zeynalov",   "Ceyhun",    "rufet@kpi.az",   { structurePath: "İnsan Resursları Departamenti › İşə Qəbul Şöbəsi",    positionName: "İşə Qəbul Mütəxəssisi",  salary: 1700 }),
+  // HR — Təlim və İnkişaf Şöbəsi
+  mkEmp(35, "Xəyalə",  "Süleymanova","Mahir",     "xeyale@kpi.az",  { structurePath: "İnsan Resursları Departamenti › Təlim və İnkişaf Şöbəsi", positionName: "L&D Mütəxəssisi",     salary: 1700 }),
+  mkEmp(36, "Anar",    "Mehdiyev",   "İsmayıl",   "anar@kpi.az",    { structurePath: "İnsan Resursları Departamenti › Təlim və İnkişaf Şöbəsi", positionName: "L&D Mütəxəssisi",     salary: 1700 }),
+  // Maliyyə — Mühasibatlıq Şöbəsi
+  mkEmp(37, "Sara",    "Babayeva",   "Rasim",     "sara@kpi.az",    { structurePath: "Maliyyə Departamenti › Mühasibatlıq Şöbəsi",          positionName: "Mühasib",                salary: 1900 }),
+  mkEmp(38, "İlkin",   "Nəsirov",    "Vahid",     "ilkin@kpi.az",   { structurePath: "Maliyyə Departamenti › Mühasibatlıq Şöbəsi",          positionName: "Mühasib",                salary: 1900 }),
+  // Maliyyə — Büdcə və Planlaşdırma Şöbəsi
+  mkEmp(39, "Konul",   "Əsgərova",   "Firdovsi",  "konul@kpi.az",   { structurePath: "Maliyyə Departamenti › Büdcə və Planlaşdırma Şöbəsi", positionName: "Maliyyə Analitiki",      salary: 1900 }),
+  mkEmp(40, "Zaur",    "Talıbov",    "Nazim",     "zaur@kpi.az",    { structurePath: "Maliyyə Departamenti › Büdcə və Planlaşdırma Şöbəsi", positionName: "Maliyyə Analitiki",      salary: 1900 }),
 ];
 
 // Slot / position id counters
