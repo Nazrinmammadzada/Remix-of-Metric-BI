@@ -825,19 +825,87 @@ const buildGroups = (scope: StatusScope): StatusGroup[] => {
   return Array.from(map.values());
 };
 
+// ---------- Multi-rater evaluation row ----------
+interface RaterEval {
+  evaluatorId: string;
+  score: number | null;
+  max: number;
+  date: string | null;
+  done: boolean;
+}
+
+const buildRaters = (seed: string, evaluatorIds: string[], scoreLimit: number): RaterEval[] => {
+  return evaluatorIds.map((eid, ei) => {
+    const h = hash(seed + eid);
+    const done = (h + ei) % 4 !== 0; // ~75% completed
+    const score = done ? 1 + (h % scoreLimit) : null;
+    const day = 5 + (h % 22);
+    return {
+      evaluatorId: eid,
+      score,
+      max: scoreLimit,
+      date: done ? `2026-01-${String(day).padStart(2, "0")}` : null,
+      done,
+    };
+  });
+};
+
+const finalScore = (raters: RaterEval[]): number | null => {
+  const done = raters.filter(r => r.done && r.score !== null);
+  if (done.length === 0) return null;
+  return Math.round((done.reduce((s, r) => s + (r.score! / r.max) * 5, 0) / done.length) * 10) / 10;
+};
+
+const RaterList = ({ raters }: { raters: RaterEval[] }) => (
+  <div className="space-y-1.5">
+    {raters.map((r, i) => (
+      <div key={i} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2">
+        <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+          {getInitials(employeeName(r.evaluatorId))}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-foreground truncate">{employeeName(r.evaluatorId)}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{employeePosition(r.evaluatorId)}</p>
+        </div>
+        {r.done ? (
+          <>
+            <Badge className="gap-1 bg-primary/15 text-primary hover:bg-primary/20 h-6">
+              <Star className="w-3 h-3" /> {r.score}/{r.max}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground shrink-0">{r.date}</span>
+            <Badge variant="secondary" className="gap-1 h-6"><CheckCircle2 className="w-3 h-3 text-primary" /> Qiymətləndirib</Badge>
+          </>
+        ) : (
+          <Badge variant="secondary" className="gap-1 h-6"><XCircle className="w-3 h-3" /> Gözləyir</Badge>
+        )}
+      </div>
+    ))}
+  </div>
+);
+
 const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | null; scope: StatusScope; onClose: () => void }) => {
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [section, setSection] = useState<"goals" | "competencies">("goals");
   const [showMembers, setShowMembers] = useState(false);
   useEffect(() => {
-    if (group && group.cards.length > 0) setSelectedCardId(group.cards[0].id);
-    else setSelectedCardId(null);
+    setSection("goals");
     setShowMembers(false);
   }, [group?.key]);
   if (!group) return null;
-  const card = group.cards.find(c => c.id === selectedCardId) || group.cards[0];
+
+  // Competencies from the criteria catalog
+  const competencies = getCriteria().slice(0, 6);
+
+  // Deterministic set of "evaluators" per group. For individual, use card.evaluatorIds
+  // + a couple of extra people so multi-rater is visible on at least one item.
+  const extraEvaluatorPool = mockEmployees.filter(e => e.id !== group.key).map(e => e.id);
+  const groupExtraEvaluators = (n: number): string[] => {
+    const h = hash(group.key);
+    return Array.from({ length: n }, (_, i) => extraEvaluatorPool[(h + i * 7) % extraEvaluatorPool.length]);
+  };
+
   return (
     <Dialog open={!!group} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-primary" />
@@ -848,104 +916,128 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
             {group.subtitle && ` · ${group.subtitle}`}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 md:col-span-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">KPI kartları</p>
-              {scope !== "individual" && group.members && group.members.length > 0 && (
-                <button onClick={() => setShowMembers(v => !v)}
-                  className="text-[11px] text-primary hover:underline">
-                  {showMembers ? "Kartlara qayıt" : scope === "team" ? "Komanda üzvlərinə bax" : "Strukturdakı əməkdaşlar"}
+
+        {/* Section switcher (Goals / Competencies) + members button */}
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 border border-border rounded-xl bg-card p-1 w-fit">
+            {[
+              { k: "goals" as const, l: "Hədəflər", icon: Target },
+              { k: "competencies" as const, l: "Səriştələr", icon: Sparkles },
+            ].map(t => {
+              const Icon = t.icon;
+              const active = section === t.k;
+              return (
+                <button key={t.k} onClick={() => setSection(t.k)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    active ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}>
+                  <Icon className="w-3.5 h-3.5" /> {t.l}
                 </button>
-              )}
-            </div>
-            {!showMembers ? (
-              <div className="border border-border rounded-xl divide-y divide-border max-h-96 overflow-y-auto">
-                {group.cards.map(c => {
-                  const active = c.id === card.id;
-                  return (
-                    <button key={c.id} onClick={() => setSelectedCardId(c.id)}
-                      className={`w-full text-left px-3 py-2.5 transition-colors ${active ? "bg-primary/10" : "hover:bg-muted/40"}`}>
-                      <p className={`text-sm font-medium truncate ${active ? "text-primary" : "text-foreground"}`}>{c.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{c.targets.length} hədəf · {c.frequency}</p>
-                    </button>
-                  );
-                })}
-                {group.cards.length === 0 && <div className="p-6 text-center text-xs text-muted-foreground">Kart yoxdur</div>}
-              </div>
-            ) : (
-              <div className="border border-border rounded-xl divide-y divide-border max-h-96 overflow-y-auto">
-                {group.members?.map(m => (
-                  <div key={m.id} className="flex items-center gap-2 px-3 py-2.5">
-                    <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">{getInitials(m.name)}</div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{m.position}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              );
+            })}
           </div>
-          <div className="col-span-12 md:col-span-8">
-            {card ? (
-              <div className="border border-border rounded-xl overflow-hidden">
+          {scope !== "individual" && group.members && group.members.length > 0 && (
+            <button onClick={() => setShowMembers(v => !v)}
+              className="text-[11px] text-primary hover:underline">
+              {showMembers ? "Qiymətləndirmələrə qayıt" : scope === "team" ? "Komanda üzvlərinə bax" : "Strukturdakı əməkdaşlar"}
+            </button>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+          {showMembers ? (
+            <div className="border border-border rounded-xl divide-y divide-border">
+              {group.members?.map(m => (
+                <div key={m.id} className="flex items-center gap-2 px-3 py-2.5">
+                  <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">{getInitials(m.name)}</div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{m.position}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : section === "goals" ? (
+            group.cards.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">Kart yoxdur</div>
+            ) : group.cards.map(card => (
+              <div key={card.id} className="border border-border rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-border bg-muted/30">
                   <p className="text-sm font-semibold text-foreground">{card.name}</p>
                   <p className="text-[11px] text-muted-foreground">Dövr: {card.startDate} — {card.endDate}</p>
                 </div>
-                <div className="divide-y divide-border max-h-96 overflow-y-auto">
+                <div className="divide-y divide-border">
                   {card.targets.map((t, ti) => {
-                    const evaluators = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
+                    // Multi-rater: use card.evaluatorIds, and on first target of first card,
+                    // inject 2 extras so multi-rater (3 evaluators) is visible.
+                    const base = card.evaluatorIds.length > 0 ? card.evaluatorIds : [card.ownerId];
+                    const evalIds = ti === 0 && card === group.cards[0]
+                      ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
+                      : base;
+                    const raters = buildRaters(card.id + t.id, evalIds, t.scoreLimit);
+                    const finalS = finalScore(raters);
+                    const h = hash(card.id + t.id);
+                    const actual = 60 + (h % 60); // 60..119
                     return (
                       <div key={t.id} className="p-3 space-y-2">
-                        <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start justify-between gap-2 flex-wrap">
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground">{t.name}</p>
-                            <p className="text-[11px] text-muted-foreground">{t.type} · çəki {t.weight}%</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {t.type} · çəki {t.weight}% · nəticə {actual}%
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
+                            <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                              <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
+                            </Badge>
                           </div>
                         </div>
-                        <div className="space-y-1.5">
-                          {evaluators.map((eid, ei) => {
-                            const h = hash(card.id + t.id + eid);
-                            const done = (h + ti + ei) % 3 !== 0;
-                            const score = done ? 1 + (h % t.scoreLimit) : null;
-                            const day = 5 + (h % 22);
-                            const date = done ? `2026-01-${String(day).padStart(2, "0")}` : null;
-                            return (
-                              <div key={eid} className="flex items-center gap-2 rounded-lg border border-border bg-background p-2">
-                                <div className="w-7 h-7 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
-                                  {getInitials(employeeName(eid))}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-medium text-foreground truncate">{employeeName(eid)}</p>
-                                  <p className="text-[10px] text-muted-foreground truncate">{employeePosition(eid)}</p>
-                                </div>
-                                {done ? (
-                                  <>
-                                    <Badge className="gap-1 bg-primary/15 text-primary hover:bg-primary/20 h-6">
-                                      <Star className="w-3 h-3" /> {score}/{t.scoreLimit}
-                                    </Badge>
-                                    <span className="text-[10px] text-muted-foreground shrink-0">{date}</span>
-                                    <Badge variant="secondary" className="gap-1 h-6"><CheckCircle2 className="w-3 h-3 text-primary" /> Qiymətləndirib</Badge>
-                                  </>
-                                ) : (
-                                  <Badge variant="secondary" className="gap-1 h-6"><XCircle className="w-3 h-3" /> Gözləyir</Badge>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <RaterList raters={raters} />
                       </div>
                     );
                   })}
                 </div>
               </div>
-            ) : (
-              <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">Kart seçilməyib</div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="border border-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-border bg-muted/30">
+                <p className="text-sm font-semibold text-foreground">Səriştələr</p>
+                <p className="text-[11px] text-muted-foreground">Hər səriştə üzrə qiymətləndirənlər və verilən ballar</p>
+              </div>
+              <div className="divide-y divide-border">
+                {competencies.map((c, ci) => {
+                  const base = group.cards[0]?.evaluatorIds && group.cards[0].evaluatorIds.length > 0
+                    ? group.cards[0].evaluatorIds
+                    : [group.cards[0]?.ownerId || "e1"];
+                  // First competency shown with 3 evaluators to demonstrate multi-rater
+                  const evalIds = ci === 0
+                    ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
+                    : base;
+                  const raters = buildRaters(group.key + "-comp-" + c, evalIds, 5);
+                  const finalS = finalScore(raters);
+                  return (
+                    <div key={c} className="p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground">{c}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
+                          <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                            <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <RaterList raters={raters} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Bağla</Button>
         </DialogFooter>
@@ -1003,6 +1095,7 @@ const StatusTab = () => {
           <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3 text-left">{label} adı</th>
+              {subTab === "individual" && <th className="px-4 py-3 text-left">Vəzifə</th>}
               <th className="px-4 py-3 text-left">KPI kartlarının sayı</th>
               <th className="px-4 py-3 text-left">Hədəflərin sayı</th>
               <th className="px-4 py-3 text-right">Bax</th>
@@ -1018,10 +1111,15 @@ const StatusTab = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground">{g.name}</p>
-                      {g.subtitle && <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>}
+                      {subTab !== "individual" && g.subtitle && (
+                        <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>
+                      )}
                     </div>
                   </div>
                 </td>
+                {subTab === "individual" && (
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{g.subtitle || "—"}</td>
+                )}
                 <td className="px-4 py-3">
                   <Badge variant="secondary">{g.cards.length}</Badge>
                 </td>
@@ -1036,7 +1134,7 @@ const StatusTab = () => {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
+              <tr><td colSpan={subTab === "individual" ? 5 : 4} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
             )}
           </tbody>
         </table>
