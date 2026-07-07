@@ -192,7 +192,7 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
 
                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
                     <Sliders className="w-3 h-3 text-primary" />
-                    Qiymət Limitləri {sk.limits ? "(KPI Set-dən)" : "(avtomatik təklif)"}
+                    Qiymət Limitləri
                   </div>
                   {limits ? (() => {
                     const subTarget = parseNum(sk.target || "0");
