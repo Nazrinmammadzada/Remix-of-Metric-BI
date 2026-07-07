@@ -154,7 +154,7 @@ const OrganizationPage = () => {
               </button>
               <TabToolbar total={stats.total} active={stats.active} />
             </div>
-            {tab === "struktur" ? <StructureTab /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
+            {tab === "struktur" ? <StructureTab changeLeaderFor={changeLeaderFor} onClearChangeLeader={clearChangeLeaderParam} /> : tab === "emekdaslar" ? <EmployeesTab /> : <CatalogTab />}
           </div>
         )}
       </main>
