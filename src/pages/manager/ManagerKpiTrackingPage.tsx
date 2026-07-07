@@ -104,13 +104,19 @@ const statusMeta: Record<KpiStatus, { label: string; cls: string }> = {
   delayed:     { label: "Gecikir",   cls: "bg-zone-red-bg text-zone-red-text hover:bg-zone-red-bg" },
 };
 
-type View = "hub" | "own" | "team" | "sub";
+type View = "hub" | "own" | "team" | "sub" | "reviews";
 
 const ManagerKpiTrackingPage = () => {
   const [view, setView] = useState<View>("hub");
   const { user } = useAuth();
   const tree = useCascadeTree();
   const sharedCards = useSharedKpiCards();
+  const lifecycles = useKpiLifecycles();
+  const [empKpisDialog, setEmpKpisDialog] = useState<{ empId: number; name: string } | null>(null);
+  const empKpisEmployee = useMemo(() => {
+    if (!empKpisDialog) return null;
+    return getEmployees().find(e => e.id === empKpisDialog.empId) || null;
+  }, [empKpisDialog]);
 
   // Cari istifadəçiyə cascade və Owner-tipli SharedKpiCard-lardan yaranan dinamik KPI-lar
   const dynamicMyKpis = useMemo<Kpi[]>(() => {
