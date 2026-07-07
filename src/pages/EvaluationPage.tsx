@@ -825,7 +825,7 @@ const StatusTab = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.slice(0, tblState.rowsPerPage).map((r, idx) => {
+            {filtered.map((r, idx) => {
               // Mock target evaluators based on index — some completed, some pending
               const targetEvaluators = [
                 { name: "Samir Həsənov", done: idx % 2 === 0 },
