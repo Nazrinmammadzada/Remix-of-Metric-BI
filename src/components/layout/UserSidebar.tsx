@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutGrid, ClipboardCheck, BarChart3, Users, Settings, ClipboardList, Shield, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, LayoutGrid, ClipboardCheck, BarChart3, Users, Settings, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
@@ -13,7 +13,6 @@ const allNavItems = [
   { path: "/user/hesabat", label: "Hesabat", icon: BarChart3, permissions: ["reporting"] },
   { path: "/user/komandalar", label: "Mənim Komandam", icon: Users, permissions: ["teams", "teams_compare"] },
   { path: "/user/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardList, permissions: ["home"] },
-  { path: "/user/whistleblower", label: "Anonim Bildiriş", icon: Shield, permissions: ["home"] },
   { path: "/user/ayarlar", label: "Ayarlar", icon: Settings, permissions: ["home"] },
 ];
 
