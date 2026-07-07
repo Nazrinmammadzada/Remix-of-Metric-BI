@@ -917,9 +917,11 @@ export const SubordinatesView = ({
   const [q, setQ] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string } | null>(null);
+  const [empKpiListFor, setEmpKpiListFor] = useState<{ empId: number; name: string; position?: string; division?: string } | null>(null);
   const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
   const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("general");
+  const [cardDrawer, setCardDrawer] = useState<{ card: Kpi & { progress: number; createdAt: string; updatedAt: string }; employee: { empId: number; name: string; position?: string; division?: string } } | null>(null);
+  const [targetDetail, setTargetDetail] = useState<{ cardId: string; cardName: string; target: CardTarget } | null>(null);
 
   // Deterministic period/date helpers for the employee's KPI card list
   const pad2 = (n: number) => String(n).padStart(2, "0");
