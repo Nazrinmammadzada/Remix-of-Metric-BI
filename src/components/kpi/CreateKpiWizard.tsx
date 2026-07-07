@@ -1848,8 +1848,40 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   );
   const teams = useMemo(() => getTeams(), []);
   const [teamName, setTeamName] = useState<string>(
-    initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "") || "") : ""
+    initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "").split(" — ")[0] || "") : ""
   );
+  const [teamSearch, setTeamSearch] = useState("");
+  const [teamMemberEvs, setTeamMemberEvs] = useState<WizardEvaluatorRef[]>(
+    initialTab === "team" && target.evaluators.length > 0 && !target.evaluators[0].name.startsWith("[Komanda]")
+      ? target.evaluators : []
+  );
+  const [randomCount, setRandomCount] = useState<number>(1);
+  const selectedTeam = teams.find(t => t.name === teamName) || null;
+  const teamMembers: { name: string }[] = selectedTeam
+    ? [{ name: selectedTeam.leader }, ...selectedTeam.members.map(m => ({ name: m.name }))]
+    : [];
+  const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
+  const toggleTeamMember = (name: string) => {
+    setTeamMemberEvs(prev => prev.find(p => p.name === name)
+      ? prev.filter(p => p.name !== name)
+      : [...prev, { id: crypto.randomUUID(), name, weight: 0 }]);
+  };
+  const updateTeamMemberWeight = (name: string, w: number) => {
+    setTeamMemberEvs(prev => prev.map(p => p.name === name ? { ...p, weight: w } : p));
+  };
+  const randomPickTeam = () => {
+    if (!selectedTeam || teamMembers.length === 0) return;
+    const wanted = Math.max(1, Math.min(randomCount || 1, teamMembers.length));
+    const pool = [...teamMembers];
+    const picked: string[] = [];
+    for (let i = 0; i < wanted && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0].name);
+    }
+    const each = Math.floor(100 / picked.length);
+    setTeamMemberEvs(picked.map(n => ({ id: crypto.randomUUID(), name: n, weight: each })));
+    toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
+  };
   const [integration, setIntegration] = useState<string>(
     initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
   );
@@ -1864,7 +1896,18 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
       onSave(personEvs);
     } else if (tab === "team") {
       if (!teamName) { toast.error("Komanda seçin"); return; }
-      onSave([{ id: crypto.randomUUID(), name: `[Komanda] ${teamName}`, weight: 100 }]);
+      if (teamMemberEvs.length === 0) {
+        // whole team
+        onSave([{ id: crypto.randomUUID(), name: `[Komanda] ${teamName}`, weight: 100 }]);
+      } else {
+        if (teamMemberEvs.length > 1) {
+          const sum = teamMemberEvs.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+          if (sum !== 100) { toast.error(`Faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+        } else {
+          teamMemberEvs[0].weight = 100;
+        }
+        onSave(teamMemberEvs.map(e => ({ ...e, name: `[${teamName}] ${e.name}` })));
+      }
     } else if (tab === "self") {
       onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
     } else {
