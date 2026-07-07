@@ -1024,6 +1024,20 @@ const EmployeesTab = () => {
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
 
   const [otpDialog, setOtpDialog] = useState<{ user: OrgEmployee; code: string } | null>(null);
+  const [deactivateDialog, setDeactivateDialog] = useState<{ name: string; reasons: import("@/lib/employeeDeactivation").DeactivationReason[] } | null>(null);
+
+  const handleStatusToggle = (e: OrgEmployee) => {
+    // Passiv → Aktiv keçidi sərbəstdir
+    if (!e.active) { toggleEmployeeActive(e.id); toast.success("Əməkdaş uğurla aktiv edildi."); return; }
+    const reasons = collectDeactivationReasons(e.id);
+    if (reasons.length > 0) {
+      const nm = [e.firstName, e.lastName, e.fatherName].filter(Boolean).join(" ");
+      setDeactivateDialog({ name: nm, reasons });
+      return;
+    }
+    toggleEmployeeActive(e.id);
+    toast.success("Əməkdaş uğurla passiv edildi.");
+  };
 
   const structureOptions = useMemo(() => {
     const set = new Set<string>();
