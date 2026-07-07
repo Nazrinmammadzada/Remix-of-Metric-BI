@@ -239,7 +239,19 @@ export default function BscScorecardTab({ kpi }: { kpi: KpiLike }) {
                         })}
                       </div>
                     );
-                  })() : (
+                  })() : (sk.scoreDescriptions && sk.scoreDescriptions.length > 0) ? (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[1,2,3,4,5].map(s => {
+                        const row = sk.scoreDescriptions!.find((d: any) => Number(d.score) === s);
+                        return (
+                          <div key={s} className="rounded-md border border-border bg-background px-2 py-1.5 text-center">
+                            <p className="text-[10px] text-muted-foreground">Bal {s}</p>
+                            <p className="text-[11px] font-medium text-foreground truncate">{row?.description || "—"}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
                     <p className="text-[11px] text-muted-foreground">Hələ limit təyin olunmayıb.</p>
                   )}
                 </div>

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Columns, ChevronDown } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Search, Columns, ChevronDown, ChevronRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,6 +38,8 @@ interface DataTableProps<T> {
   /** include row number column at the start */
   showRowNumbers?: boolean;
   rowNumberLabel?: string;
+  /** if provided, each row is expandable via a chevron and this returns the details cell content */
+  renderExpandedRow?: (row: T) => React.ReactNode | null;
 }
 
 interface NumberFilter { op: "eq" | "lt" | "gt" | "between"; a: string; b: string; }
@@ -96,7 +98,9 @@ export function DataTable<T>({
   toolbarRight,
   showRowNumbers = true,
   rowNumberLabel = "№",
+  renderExpandedRow,
 }: DataTableProps<T>) {
+  const [expandedKey, setExpandedKey] = useState<string | number | null>(null);
   // ----- persisted settings -----
   const loadPersist = <V,>(k: string, fallback: V): V => {
     if (!storageKey) return fallback;
@@ -358,6 +362,9 @@ export function DataTable<T>({
         <table className="w-full" style={{ fontSize: `${fontSize}px`, tableLayout: "fixed" }}>
           <thead className="bg-secondary/40">
             <tr className="text-left text-muted-foreground">
+              {renderExpandedRow && (
+                <th className="px-2 py-3 font-medium align-top" style={{ width: 36, minWidth: 36 }}></th>
+              )}
               {showRowNumbers && (
                 <th className="px-3 py-3 font-medium align-top" style={{ width: 64, minWidth: 64 }}>{rowNumberLabel}</th>
               )}
@@ -397,28 +404,53 @@ export function DataTable<T>({
           <tbody>
             {pagedRows.length === 0 ? (
               <tr>
-                <td colSpan={orderedVisible.length + (showRowNumbers ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">
+                <td colSpan={orderedVisible.length + (showRowNumbers ? 1 : 0) + (renderExpandedRow ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">
                   {emptyMessage}
                 </td>
               </tr>
-            ) : pagedRows.map((row, idx) => (
-              <tr key={rowKey(row)} className="border-t border-border hover:bg-secondary/30">
-                {showRowNumbers && (
-                  <td className="px-3 py-2 text-muted-foreground" style={{ width: 64, minWidth: 64 }}>
-                    {startIdx + idx + 1}
-                  </td>
-                )}
-                {orderedVisible.map(c => (
-                  <td
-                    key={c.key}
-                    className={`px-3 py-2 truncate ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""} ${c.className ?? ""}`}
-                    style={{ width: `${getColWidth(c.key)}px`, minWidth: `${getColWidth(c.key)}px` }}
-                  >
-                    {c.render ? c.render(row, startIdx + idx) : toText(c.accessor?.(row))}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            ) : pagedRows.map((row, idx) => {
+              const k = rowKey(row);
+              const isOpen = expandedKey === k;
+              return (
+                <Fragment key={k}>
+                  <tr className="border-t border-border hover:bg-secondary/30">
+                    {renderExpandedRow && (
+                      <td className="px-2 py-2 align-top" style={{ width: 36, minWidth: 36 }}>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedKey(isOpen ? null : k)}
+                          className="p-1 rounded hover:bg-secondary text-muted-foreground"
+                          aria-label={isOpen ? "Bağla" : "Aç"}
+                        >
+                          {isOpen ? <ChevronDown className="w-4 h-4 text-primary" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
+                      </td>
+                    )}
+                    {showRowNumbers && (
+                      <td className="px-3 py-2 text-muted-foreground" style={{ width: 64, minWidth: 64 }}>
+                        {startIdx + idx + 1}
+                      </td>
+                    )}
+                    {orderedVisible.map(c => (
+                      <td
+                        key={c.key}
+                        className={`px-3 py-2 truncate ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""} ${c.className ?? ""}`}
+                        style={{ width: `${getColWidth(c.key)}px`, minWidth: `${getColWidth(c.key)}px` }}
+                      >
+                        {c.render ? c.render(row, startIdx + idx) : toText(c.accessor?.(row))}
+                      </td>
+                    ))}
+                  </tr>
+                  {renderExpandedRow && isOpen && (
+                    <tr key={`${k}-exp`} className="bg-secondary/20 border-t border-border">
+                      <td colSpan={orderedVisible.length + (showRowNumbers ? 1 : 0) + 1} className="px-4 py-3">
+                        {renderExpandedRow(row)}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

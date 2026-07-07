@@ -28,12 +28,6 @@ interface CommentItem { id: number; author: string; date: string; text: string; 
 const COMMENTS_KEY = "kpi_card_comments_v1";
 const COMMENTS_EVT = "kpi-card-comments-updated";
 
-const DEFAULT_COMMENTS: CommentItem[] = [
-  { id: 1, author: "Admin", date: "01.03.2026 10:30", text: "Mart ayında kampaniyaların effektivliyi gözləniləndən yüksəkdir. Hədəfə çatma ehtimalı artıb." },
-  { id: 2, author: "Samir Həsənov", date: "15.02.2026 16:45", text: "Yeni məhsul xəttinin satışları yaxşı nəticə verir. Mövsümi faktorlar nəzərə alınıb." },
-  { id: 3, author: "Admin", date: "01.01.2026 09:15", text: "KPI yaradıldı və 2026 - Aylıq dövrü üçün aktiv edildi." },
-];
-
 type Store = Record<string, CommentItem[]>;
 
 const loadStore = (): Store => {
@@ -51,8 +45,7 @@ const saveStore = (s: Store) => {
 const loadFor = (cardId?: number): CommentItem[] => {
   const store = loadStore();
   const key = String(cardId ?? "default");
-  if (store[key]) return store[key];
-  return DEFAULT_COMMENTS;
+  return store[key] ?? [];
 };
 
 function Comments({ cardId }: { cardId?: number }) {
