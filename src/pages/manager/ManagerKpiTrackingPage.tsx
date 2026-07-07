@@ -1081,6 +1081,20 @@ export const SubordinatesView = ({
         </button>
       )}
 
+      {/* Əməkdaşın KPI kartları siyahısı — Nəticələr modulunun eyni komponenti (KpiScoresPage) */}
+      <Dialog open={!!empKpiListFor} onOpenChange={(o) => !o && setEmpKpiListFor(null)}>
+        <DialogContent className="w-[90vw] max-w-[1500px] h-[88vh] min-h-[88vh] max-h-[88vh] p-0 flex flex-col overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0 border-b border-border">
+            <DialogTitle className="text-xl">KPI Kartları — {empKpiListFor?.name ?? "—"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            {empKpiListEmployee && (
+              <KpiScoresPage employeesOverride={[empKpiListEmployee] as any} hideChrome />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
