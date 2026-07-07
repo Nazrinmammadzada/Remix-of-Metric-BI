@@ -1561,5 +1561,237 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
   );
 };
 
+// ============================================================
+// REVIEWS VIEW — Lifecycle Status = Review olan KPI kartları
+// ============================================================
+type ReviewRow = {
+  key: string;
+  cardId: number;
+  cardName: string;
+  empId: number | null;
+  empName: string;
+  department: string;
+  division: string;
+  position: string;
+  progress: number;
+  reviewLabel: string;
+  reviewStart: string;
+  updatedAt: string;
+  execution: ExecutionStatus | null;
+};
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const fmtDate = (s?: string) => {
+  if (!s) return "—";
+  const parts = s.split("-");
+  if (parts.length !== 3) return s;
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+};
+const progressFromExec = (e: ExecutionStatus | null): number => {
+  switch (e) {
+    case "tamamlandi": return 100;
+    case "icrada": return 60;
+    case "gecikme": return 30;
+    default: return 0;
+  }
+};
+const execLabel: Record<ExecutionStatus, { label: string; cls: string }> = {
+  baslanmayib: { label: "Başlanmayıb", cls: "bg-secondary text-secondary-foreground" },
+  icrada: { label: "İcradadır", cls: "bg-zone-yellow-bg text-zone-yellow-text" },
+  tamamlandi: { label: "Tamamlandı", cls: "bg-zone-green-bg text-zone-green-text" },
+  gecikme: { label: "Gecikir", cls: "bg-zone-red-bg text-zone-red-text" },
+};
+
+const useReviewRows = (): ReviewRow[] => {
+  const lifecycles = useKpiLifecycles();
+  const sharedCards = useSharedKpiCards();
+  return useMemo(() => {
+    const today = iso(new Date());
+    const employees = getEmployees();
+    const rows: ReviewRow[] = [];
+
+    const isActive = (r: LifecycleReview) => r.start && r.end && r.start <= today && today <= r.end;
+
+    lifecycles.forEach((lc: CardLifecycle) => {
+      if (!lc.reviews || lc.reviews.length === 0) return;
+      // Tap active review if any; otherwise use nearest upcoming/most recent for demo visibility
+      const active = lc.reviews.find(isActive)
+        ?? [...lc.reviews].sort((a, b) => (a.start || "").localeCompare(b.start || ""))[0];
+      if (!active) return;
+
+      const sharedCard: SharedKpiCard | undefined = sharedCards.find(c => c.numericId === lc.cardId);
+      const assigneeIds = sharedCard?.assigneeIds ?? [];
+
+      if (assigneeIds.length === 0) {
+        rows.push({
+          key: `${lc.cardId}-none`,
+          cardId: lc.cardId,
+          cardName: lc.cardName,
+          empId: null,
+          empName: "—",
+          department: "—",
+          division: "—",
+          position: "—",
+          progress: 0,
+          reviewLabel: active.period || "Review",
+          reviewStart: fmtDate(active.start),
+          updatedAt: (lc.updatedAt || "").slice(0, 10) ? fmtDate((lc.updatedAt || "").slice(0, 10)) : "—",
+          execution: null,
+        });
+        return;
+      }
+
+      assigneeIds.forEach((aid) => {
+        const empIdNum = Number(String(aid).replace(/^e/, ""));
+        const emp = employees.find(e => e.id === empIdNum);
+        const path = (emp?.structurePath || "").split("›").map(s => s.trim());
+        const exec: ExecutionStatus | null = sharedCard?.execution?.[aid] ?? "baslanmayib";
+        rows.push({
+          key: `${lc.cardId}-${aid}`,
+          cardId: lc.cardId,
+          cardName: lc.cardName,
+          empId: emp?.id ?? null,
+          empName: emp ? `${emp.firstName} ${emp.lastName}` : String(aid),
+          department: path[0] || "—",
+          division: path[1] || "—",
+          position: emp?.positionName || "—",
+          progress: progressFromExec(exec),
+          reviewLabel: active.period || "Review",
+          reviewStart: fmtDate(active.start),
+          updatedAt: fmtDate((lc.updatedAt || "").slice(0, 10)),
+          execution: exec,
+        });
+      });
+    });
+
+    return rows;
+  }, [lifecycles, sharedCards]);
+};
+
+const ReviewsCount = () => {
+  const rows = useReviewRows();
+  return <>{rows.length}</>;
+};
+
+const ReviewsView = () => {
+  const rows = useReviewRows();
+  const [q, setQ] = useState("");
+  const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
+  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("general");
+
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return rows;
+    return rows.filter(r =>
+      r.cardName.toLowerCase().includes(s) ||
+      r.empName.toLowerCase().includes(s) ||
+      r.department.toLowerCase().includes(s) ||
+      r.division.toLowerCase().includes(s) ||
+      r.position.toLowerCase().includes(s),
+    );
+  }, [rows, q]);
+
+  const openKpi = (r: ReviewRow) => {
+    const kpi: Kpi = {
+      id: r.key,
+      name: r.cardName,
+      description: `Review mərhələsində olan KPI kartı — ${r.reviewLabel}`,
+      period: r.reviewLabel,
+      target: 100, actual: r.progress, unit: "%",
+      stage: "assigned",
+      status: r.progress >= 100 ? "completed" : r.progress >= 75 ? "in_progress" : r.progress >= 50 ? "at_risk" : "delayed",
+      deadline: r.reviewStart,
+      createdAt: r.reviewStart,
+      updatedAt: r.updatedAt,
+      responsible: { name: r.empName, role: r.position },
+      measure: "%", type: "Review", method: "Lifecycle review", weight: 20,
+    };
+    setViewKpi(kpi);
+    setViewKpiTab("lifecycle");
+  };
+
+  return (
+    <>
+      <PageHero badge="Rəhbər Paneli" icon={RefreshCw} title="Reviewlar" subtitle="Hazırda Review mərhələsində olan bütün KPI kartlarının vahid izləmə cədvəli." />
+
+      <div className="rounded-xl border border-border bg-card p-3 mb-3 flex items-center gap-3 flex-wrap mt-2">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="KPI, əməkdaş, departament, şöbə və ya vəzifə üzrə axtarış..."
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+        <Badge className="bg-sky-500/15 text-sky-700 hover:bg-sky-500/15">Review: {filtered.length}</Badge>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/50 text-muted-foreground text-xs uppercase">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">KPI Kartının adı</th>
+                <th className="text-left px-4 py-3 font-medium">Əməkdaş (A.S.A.)</th>
+                <th className="text-left px-4 py-3 font-medium">Departament</th>
+                <th className="text-left px-4 py-3 font-medium">Şöbə</th>
+                <th className="text-left px-4 py-3 font-medium">Vəzifə</th>
+                <th className="text-left px-4 py-3 font-medium w-[180px]">Progress</th>
+                <th className="text-left px-4 py-3 font-medium">Review statusu</th>
+                <th className="text-left px-4 py-3 font-medium">Review başlanma</th>
+                <th className="text-left px-4 py-3 font-medium">Son yenilənmə</th>
+                <th className="text-right px-4 py-3 font-medium">Əməliyyat</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    Hazırda Review mərhələsində olan KPI kartı yoxdur.
+                  </td>
+                </tr>
+              ) : filtered.map(r => {
+                const exec = r.execution ? execLabel[r.execution] : { label: "—", cls: "bg-secondary text-secondary-foreground" };
+                return (
+                  <tr key={r.key} className="hover:bg-secondary/30">
+                    <td className="px-4 py-3 font-medium text-foreground">{withKartSuffix(r.cardName)}</td>
+                    <td className="px-4 py-3">{r.empName}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.department}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.division}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.position}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Progress value={r.progress} className="h-2 flex-1" />
+                        <span className="text-xs tabular-nums font-medium w-9 text-right">{r.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><Badge className={exec.cls}>{exec.label}</Badge></td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.reviewStart}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{r.updatedAt}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => openKpi(r)}
+                        className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Bax"
+                        title="Bax"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <KpiDrawer kpi={viewKpi} tab={viewKpiTab} setTab={setViewKpiTab} onClose={() => setViewKpi(null)} />
+    </>
+  );
+};
+
 export default ManagerKpiTrackingPage;
+
 
