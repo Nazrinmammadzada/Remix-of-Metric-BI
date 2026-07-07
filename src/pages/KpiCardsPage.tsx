@@ -603,6 +603,64 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const id = editingId ?? Math.max(Date.now(), Math.max(0, ...kpiCards.map(c => c.id)) + 1);
     const prevStatus = editingId != null ? statusMap[editingId]?.status : undefined;
     const wasRejected = prevStatus === "imtina";
+    // === Helpers ===
+    const stripNameLoc = (v: string) => String(v || "").split(" — ")[0].trim();
+    // Wizard ranges → 5 tier LimitSet (bal 1..5)
+    const rangesToLimitSet = (ranges?: { min: string; max: string; score: string }[]): LimitSet | undefined => {
+      if (!ranges || ranges.length === 0) return undefined;
+      const zero = { min: 0, max: 0 };
+      const map: LimitSet = { l1: { ...zero }, l2: { ...zero }, l3: { ...zero }, l4: { ...zero }, l5: { ...zero } };
+      let touched = false;
+      ranges.forEach(r => {
+        const s = Number(r.score);
+        if (!Number.isFinite(s) || s < 1 || s > 5) return;
+        const key = (`l${s}` as keyof LimitSet);
+        map[key] = { min: Number(r.min) || 0, max: Number(r.max) || 0 };
+        touched = true;
+      });
+      return touched ? map : undefined;
+    };
+    // Build subKpis from wizard targets
+    const wizardSubKpis: SubKpi[] = (d.targets || []).map((t: any, i: number) => ({
+      id: i + 1,
+      name: t.name || `Hədəf ${i + 1}`,
+      target: String(t.targetValue ?? ""),
+      unit: t.type === "Məbləğ" ? (t.currency || "AZN") : t.type === "Faiz" ? "%" : "",
+      weight: Number(t.weight) || 0,
+      current: "",
+      progress: 0,
+      assignerMode: t.createdBy === "other" ? "other" : "self",
+      assigner: t.assigner ? stripNameLoc(t.assigner) : undefined,
+      evaluator: t.evaluators && t.evaluators.length
+        ? { type: "person", persons: t.evaluators.map((e: any) => ({ name: stripNameLoc(e.name), weight: Number(e.weight) || 0 })) }
+        : undefined,
+      limits: rangesToLimitSet(t.ranges),
+      scoreDescriptions: (t.scoreDescriptions || []).map((s: any) => ({
+        score: Number(s.score) || 0,
+        description: s.description || "",
+        timeStart: s.timeStart,
+        timeEnd: s.timeEnd,
+      })),
+    } as SubKpi));
+    // Team = unique participants (assigner + evaluators)
+    const teamMap = new Map<string, { name: string; role: string; avatar: string }>();
+    (d.targets || []).forEach((t: any) => {
+      const push = (raw: string, role: string) => {
+        const n = stripNameLoc(raw);
+        if (!n || teamMap.has(n)) return;
+        teamMap.set(n, { name: n, role, avatar: n[0]?.toUpperCase() || "?" });
+      };
+      if (t.assigner) push(t.assigner, "Təyin edici");
+      (t.evaluators || []).forEach((e: any) => push(e.name, "Qiymətləndirici"));
+    });
+    // Owner (kart sahibi) — birinci üzv kimi
+    const ownerName = d.createdBy === "self" ? "Özüm" : (d.createdByEmployee || "");
+    const ownerNameClean = stripNameLoc(ownerName);
+    if (ownerNameClean && !teamMap.has(ownerNameClean)) {
+      teamMap.set(ownerNameClean, { name: ownerNameClean, role: "Kart sahibi", avatar: ownerNameClean[0]?.toUpperCase() || "?" });
+    }
+    const wizardTeam = Array.from(teamMap.values());
+
     const builtCard: KpiCard = {
       id, name: d.name, icon: Target, zone: "yellow",
       target: "—", current: "0", unit: "", progress: 0, minTarget: 60,
@@ -612,9 +670,10 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       department: "—", group: "—", subdivision: "—",
       startDate: d.startDate || "", endDate: d.endDate || "",
       frequency: d.frequency,
-      team: [], history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
+      team: wizardTeam, history: [], description: `Bal sistemi: ${d.scoringSystem} · ${d.mode === "individual" ? "Fərdi" : "Toplu"}`,
       weight: 10, approvalStatus: action === "create_active" ? "approved" : "pending",
-      subKpis: [],
+      subKpis: wizardSubKpis,
+      matrixId: d.useMatrix ? (d.approvalMatrixId || null) : null,
     };
     setKpiCards(prev => {
       if (editingId != null) {
