@@ -10,6 +10,7 @@ import {
 } from "@/lib/kpiSetStore";
 import { getScoreScales, getDefaultScale, type ScoreScale } from "@/lib/evaluationConfigStore";
 import { WeightInput } from "@/components/kpi/WeightInput";
+import { withKartSuffix } from "@/lib/utils";
 
 // Yalnız Məbləğ üçün vahid seçilə bilər. Digərləri auto-unit.
 const AMOUNT_UNITS = ["AZN", "USD", "EUR"];
