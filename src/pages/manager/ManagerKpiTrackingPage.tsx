@@ -1417,5 +1417,150 @@ const SubDetailPanel = ({ node, tab, setTab, onClose }: {
   );
 };
 
+// ============================================================
+// REVIEWS VIEW — Lifecycle = Review olan bütün KPI kartları
+// ============================================================
+const ReviewsView = ({ onOpenEmployeeKpis }: { onOpenEmployeeKpis?: (empId: number, name: string) => void }) => {
+  const lifecycles = useKpiLifecycles();
+  const sharedCards = useSharedKpiCards();
+  const [q, setQ] = useState("");
+
+  const rows = useMemo(() => {
+    const emps = getEmployees();
+    const empByKey = new Map<string, ReturnType<typeof getEmployees>[number]>();
+    emps.forEach(e => empByKey.set(`e${e.id}`, e));
+
+    type Row = {
+      key: string; cardId: number; cardName: string; empId: number | null; empName: string;
+      dept: string; division: string; position: string;
+      reviewStart: string; updatedAt: string; progress: number;
+    };
+    const out: Row[] = [];
+
+    lifecycles.forEach(lc => {
+      if (!lc.reviews || lc.reviews.length === 0) return;
+      const reviewStart = lc.reviews[0]?.start || "";
+      const card = sharedCards.find(c => c.numericId === lc.cardId || c.id === String(lc.cardId));
+      const assignees = card?.assigneeIds ?? [];
+      if (assignees.length === 0) {
+        out.push({
+          key: `${lc.cardId}-none`, cardId: lc.cardId, cardName: lc.cardName,
+          empId: null, empName: "—", dept: "—", division: "—", position: "—",
+          reviewStart, updatedAt: lc.updatedAt?.slice(0, 10) || "—", progress: 0,
+        });
+        return;
+      }
+      assignees.forEach(aid => {
+        const e = empByKey.get(aid);
+        if (!e) return;
+        const path = (e.structurePath || "").split(" › ");
+        out.push({
+          key: `${lc.cardId}-${aid}`,
+          cardId: lc.cardId, cardName: lc.cardName,
+          empId: e.id, empName: `${e.firstName} ${e.lastName}`,
+          dept: path[0] || "—", division: path[1] || "—", position: e.positionName || "—",
+          reviewStart, updatedAt: lc.updatedAt?.slice(0, 10) || "—",
+          progress: 60 + ((hashStr(`${lc.cardId}-${aid}`)) % 40),
+        });
+      });
+    });
+
+    const s = q.trim().toLowerCase();
+    if (!s) return out;
+    return out.filter(r =>
+      r.cardName.toLowerCase().includes(s) ||
+      r.empName.toLowerCase().includes(s) ||
+      r.dept.toLowerCase().includes(s) ||
+      r.division.toLowerCase().includes(s) ||
+      r.position.toLowerCase().includes(s)
+    );
+  }, [lifecycles, sharedCards, q]);
+
+  return (
+    <div>
+      <PageHero
+        badge="Rəhbər Paneli"
+        icon={Clock}
+        title="Reviewlar"
+        subtitle="Hazırda Review mərhələsində olan bütün KPI kartları"
+      />
+
+      <div className="rounded-xl border border-border bg-card p-3 mb-3 flex items-center gap-3 flex-wrap">
+        <div className="flex-1" />
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Axtarış..."
+            className="w-64 pl-8 pr-3 py-1.5 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-ring" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[1100px]">
+            <thead className="bg-secondary/40 text-muted-foreground">
+              <tr>
+                <th className="text-left px-4 py-3 font-medium">KPI kartı</th>
+                <th className="text-left px-4 py-3 font-medium">Əməkdaş (A.S.A.)</th>
+                <th className="text-left px-4 py-3 font-medium">Departament</th>
+                <th className="text-left px-4 py-3 font-medium">Şöbə</th>
+                <th className="text-left px-4 py-3 font-medium">Vəzifə</th>
+                <th className="text-center px-4 py-3 font-medium">Status</th>
+                <th className="text-center px-4 py-3 font-medium">Review başlanma</th>
+                <th className="text-center px-4 py-3 font-medium">Son yenilənmə</th>
+                <th className="text-left px-4 py-3 font-medium w-40">Progress</th>
+                <th className="text-right px-4 py-3 font-medium w-20">Əməliyyat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.key} className="border-t border-border hover:bg-secondary/20">
+                  <td className="px-4 py-2.5 font-medium text-foreground">{withKartSuffix(r.cardName)}</td>
+                  <td className="px-4 py-2.5 text-foreground">{r.empName}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.dept}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.division}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{r.position}</td>
+                  <td className="px-4 py-2.5 text-center">
+                    <Badge className="bg-sky-500/10 text-sky-700 hover:bg-sky-500/10">Review</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-center tabular-nums">{r.reviewStart || "—"}</td>
+                  <td className="px-4 py-2.5 text-center tabular-nums">{r.updatedAt}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                        <div className={`h-full ${r.progress >= 90 ? "bg-emerald-500" : r.progress >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
+                          style={{ width: `${Math.min(r.progress, 100)}%` }} />
+                      </div>
+                      <span className="text-xs tabular-nums font-medium w-9 text-right">{r.progress}%</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      disabled={r.empId == null}
+                      onClick={() => { if (r.empId != null) onOpenEmployeeKpis?.(r.empId, r.empName); }}
+                      className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground disabled:opacity-40"
+                      aria-label="KPI-yə bax"
+                      title="KPI-yə bax"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Hazırda Review mərhələsində olan KPI kartı yoxdur.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default ManagerKpiTrackingPage;
+
 
