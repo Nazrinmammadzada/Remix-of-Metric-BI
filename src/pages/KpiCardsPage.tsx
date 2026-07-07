@@ -79,6 +79,10 @@ interface SubKpi {
   /** "other" rejimində min/max çəki — verildikdə təyin edən bu aralıqda dəyər yazmalıdır */
   weightMin?: number;
   weightMax?: number;
+  /** Wizard-dan gələn qiymət limitləri (Balanced Scorecard-da göstərilir) */
+  limits?: LimitSet;
+  /** Qiymət-təsvir sətirləri (İcra / Fərdi İnkişaf / Zaman) */
+  scoreDescriptions?: ScoreDescRow[];
 }
 
 interface KpiCard {
