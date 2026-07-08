@@ -231,7 +231,7 @@ const HubCard = ({ icon: Icon, title, subtitle, count, gradient, onClick }: any)
 // ============================================================
 // OWN KPIs VIEW — full featured
 // ============================================================
-type DrawerTab = "general" | "bsc" | "lifecycle" | "history" | "team" | "comments" | "status" | "setStatus";
+type DrawerTab = "general" | "targets" | "bsc" | "lifecycle" | "history" | "team" | "comments" | "status" | "setStatus" | "review";
 
 interface CommentItem { id: string; author: string; role: string; date: string; text: string; }
 interface HistoryItem { id: string; date: string; time: string; author: string; field: string; from: string; to: string; }
@@ -459,8 +459,10 @@ const StatCard = ({ icon: Icon, label, value, tone }: { icon: any; label: string
 // ============================================================
 // DRAWER — no backdrop, right-side, ~440px
 // ============================================================
-const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
+const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
   kpi: Kpi | null; tab: DrawerTab; setTab: (t: DrawerTab) => void; onClose: () => void;
+  onOpenTarget?: (t: CardTarget) => void;
+  reviewMeta?: { reviewLabel: string; reviewStart: string; reviewNumber?: number; evaluator?: string; nextReview?: string };
 }) => {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [draft, setDraft] = useState("");
@@ -540,6 +542,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
           <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 mb-3">
             {[
               ["general", "Ümumi"],
+              ["targets", "Hədəflər"],
               ["bsc", "Balanced Scorecard"],
               ["lifecycle", "Lifecycle"],
               ["history", "Tarixçə"],
@@ -547,6 +550,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
               ["comments", "Şərhlər"],
               ["status", "Təsdiqləmə Zənciri"],
               ["setStatus", "Set Statusu"],
+              ["review", "Review"],
             ].map(([key, label]) => (
               <button
                 key={key}
@@ -710,6 +714,147 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose }: {
               </div>
             </div>
           )}
+
+          {tab === "targets" && (() => {
+            const targets = buildCardTargets(kpi.id, kpi.target || 100, kpi.unit || "%");
+            return (
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-secondary/40 text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">Hədəf</th>
+                      <th className="text-right px-3 py-2 font-medium">Plan</th>
+                      <th className="text-right px-3 py-2 font-medium">Fakt</th>
+                      <th className="text-left px-3 py-2 font-medium w-24">İcra %</th>
+                      <th className="text-center px-3 py-2 font-medium">Status</th>
+                      {onOpenTarget && <th className="text-right px-3 py-2 font-medium w-12">Bax</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {targets.map(t => {
+                      const pct = Math.round((t.fakt / t.plan) * 100);
+                      const bar = pct >= 90 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-rose-500";
+                      return (
+                        <tr key={t.id} className="border-t border-border align-top hover:bg-secondary/20">
+                          <td className="px-3 py-2.5">
+                            <div className="font-medium text-foreground">{t.name}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">Çəki: {t.weight}%</div>
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{fmt(t.plan)} {t.unit}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{fmt(t.fakt)} {t.unit}</td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                                <div className={`h-full ${bar}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                              </div>
+                              <span className="tabular-nums font-medium w-8 text-right">{pct}%</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <Badge className={`${statusMeta[t.status].cls} text-[10px] px-1.5 py-0.5`}>{statusMeta[t.status].label}</Badge>
+                          </td>
+                          {onOpenTarget && (
+                            <td className="px-3 py-2.5 text-right">
+                              <button onClick={() => onOpenTarget(t)} className="w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Bax" title="Hədəf detalı">
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {tab === "review" && (() => {
+            const targets = buildCardTargets(kpi.id, kpi.target || 100, kpi.unit || "%");
+            const completed = targets.filter(t => t.status === "completed").length;
+            const atRisk = targets.filter(t => t.status === "at_risk" || t.status === "delayed").length;
+            const avgProg = targets.length ? Math.round(targets.reduce((s, t) => s + Math.round((t.fakt / t.plan) * 100), 0) / targets.length) : 0;
+            const reviewNotes = ["Plan üzrə irəliləyir.", "Bir qədər gecikmə var.", "Yaxşı nəticə göstərilir.", "Təkmilləşdirmə tələb olunur.", "Komanda fəaldır."];
+            return (
+              <div className="space-y-4">
+                {/* Review Status */}
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <div className="text-sm font-semibold text-foreground mb-3">Review Statusu</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <MetaRow label="Status" value={<Badge className="bg-sky-500/15 text-sky-700">Review davam edir</Badge>} />
+                    <MetaRow label="Review növü" value={reviewMeta?.reviewLabel || "Həftəlik Review"} />
+                    <MetaRow label="Review #" value={reviewMeta?.reviewNumber ?? 2} />
+                    <MetaRow label="Plan tarixi" value={reviewMeta?.reviewStart || kpi.deadline} />
+                    <MetaRow label="Son yenilənmə" value={kpi.updatedAt} />
+                    <MetaRow label="Qiymətləndirici" value={reviewMeta?.evaluator || kpi.responsible.name} />
+                    <MetaRow label="Qiymətləndirilən əməkdaş" value={kpi.responsible.name} />
+                  </div>
+                </div>
+
+                {/* Review Xülasəsi */}
+                <div>
+                  <div className="text-sm font-semibold text-foreground mb-2">Review Xülasəsi</div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <SummaryStat label="Ortalama Progress" value={`${avgProg}%`} tone="indigo" />
+                    <SummaryStat label="Tamamlanan KPI" value={`${completed} / ${targets.length}`} tone="green" />
+                    <SummaryStat label="Riskdə olan KPI" value={`${atRisk}`} tone="red" />
+                    <SummaryStat label="Son qiymətləndirmə" value="4.6 / 5" tone="amber" />
+                    <SummaryStat label="Növbəti Review" value={reviewMeta?.nextReview || "22.06.2025"} tone="blue" />
+                  </div>
+                </div>
+
+                {/* KPI-lərin Review vəziyyəti */}
+                <div>
+                  <div className="text-sm font-semibold text-foreground mb-2">KPI-lərin Review vəziyyəti</div>
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-secondary/40 text-muted-foreground">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">KPI / Hədəf</th>
+                          <th className="text-left px-3 py-2 font-medium w-24">Progress</th>
+                          <th className="text-center px-3 py-2 font-medium">Status</th>
+                          <th className="text-right px-3 py-2 font-medium">Son nəticə</th>
+                          <th className="text-left px-3 py-2 font-medium">Review qeydi</th>
+                          {onOpenTarget && <th className="text-right px-3 py-2 font-medium w-12">Bax</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {targets.map((t, i) => {
+                          const pct = Math.round((t.fakt / t.plan) * 100);
+                          const bar = pct >= 90 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-rose-500";
+                          return (
+                            <tr key={t.id} className="border-t border-border hover:bg-secondary/20">
+                              <td className="px-3 py-2.5 font-medium text-foreground">{t.name}</td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                                    <div className={`h-full ${bar}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                                  </div>
+                                  <span className="tabular-nums font-medium w-8 text-right">{pct}%</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                <Badge className={`${statusMeta[t.status].cls} text-[10px] px-1.5 py-0.5`}>{statusMeta[t.status].label}</Badge>
+                              </td>
+                              <td className="px-3 py-2.5 text-right tabular-nums">{(pct / 20).toFixed(1)} / 5</td>
+                              <td className="px-3 py-2.5 text-muted-foreground">{reviewNotes[i % reviewNotes.length]}</td>
+                              {onOpenTarget && (
+                                <td className="px-3 py-2.5 text-right">
+                                  <button onClick={() => onOpenTarget(t)} className="w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Bax" title="Hədəf detalı">
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </aside>
@@ -722,6 +867,22 @@ const MetaRow = ({ label, value }: { label: string; value: React.ReactNode }) =>
     <div className="text-sm text-foreground mt-0.5">{value}</div>
   </div>
 );
+
+const SummaryStat = ({ label, value, tone }: { label: string; value: React.ReactNode; tone: "indigo" | "green" | "red" | "amber" | "blue" }) => {
+  const map = {
+    indigo: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+    green:  "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    red:    "bg-rose-500/10 text-rose-600 border-rose-500/20",
+    amber:  "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    blue:   "bg-sky-500/10 text-sky-600 border-sky-500/20",
+  } as const;
+  return (
+    <div className={`rounded-lg border p-2.5 ${map[tone]}`}>
+      <div className="text-[10px] uppercase tracking-wide opacity-80">{label}</div>
+      <div className="text-sm font-semibold mt-0.5">{value}</div>
+    </div>
+  );
+};
 
 // ============================================================
 // SUBORDINATES VIEW — Dynamic tree from real org data
@@ -1719,7 +1880,7 @@ const TargetDetailDrawer = ({ data, onClose }: {
   data: { cardId: string; cardName: string; target: CardTarget } | null;
   onClose: () => void;
 }) => {
-  const [tab, setTab] = useState<"history" | "comments" | "reminders">("history");
+  const [tab, setTab] = useState<"general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments">("general");
   const [draft, setDraft] = useState("");
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
 
@@ -1770,13 +1931,78 @@ const TargetDetailDrawer = ({ data, onClose }: {
 
         <div className="px-4 pt-3 flex-1 overflow-hidden flex flex-col">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex flex-col flex-1 min-h-0">
-            <TabsList className="w-full grid grid-cols-3 mb-3">
-              <TabsTrigger value="history" className="text-xs">Tarixçə</TabsTrigger>
-              <TabsTrigger value="comments" className="text-xs">Şərhlər</TabsTrigger>
-              <TabsTrigger value="reminders" className="text-xs">Xatırlat.</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-8 mb-3 h-auto">
+              <TabsTrigger value="general" className="text-[10px] px-1">Ümumi</TabsTrigger>
+              <TabsTrigger value="execution" className="text-[10px] px-1">İcra</TabsTrigger>
+              <TabsTrigger value="fact" className="text-[10px] px-1">Fakt</TabsTrigger>
+              <TabsTrigger value="evaluation" className="text-[10px] px-1">Qiymət.</TabsTrigger>
+              <TabsTrigger value="history" className="text-[10px] px-1">Tarixçə</TabsTrigger>
+              <TabsTrigger value="review" className="text-[10px] px-1">Review</TabsTrigger>
+              <TabsTrigger value="comments" className="text-[10px] px-1">Şərhlər</TabsTrigger>
+              <TabsTrigger value="attachments" className="text-[10px] px-1">Əlavələr</TabsTrigger>
             </TabsList>
 
             <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-4">
+              <TabsContent value="general" className="mt-0">
+                <div className="rounded-xl border border-border p-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <MetaRow label="Hədəfin adı" value={target.name} />
+                  <MetaRow label="KPI kartı" value={withKartSuffix(cardName)} />
+                  <MetaRow label="Status" value={<Badge className={`${statusMeta[target.status].cls} text-[10px]`}>{statusMeta[target.status].label}</Badge>} />
+                  <MetaRow label="Plan" value={`${fmt(target.plan)} ${target.unit}`} />
+                  <MetaRow label="Fakt" value={`${fmt(target.fakt)} ${target.unit}`} />
+                  <MetaRow label="Cari nəticə" value={`${pct}%`} />
+                  <MetaRow label="Progress" value={<div className="flex items-center gap-1.5"><div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${Math.min(pct, 100)}%` }} /></div><span className="tabular-nums">{pct}%</span></div>} />
+                  <MetaRow label="Çəki" value={`${target.weight}%`} />
+                  <MetaRow label="Son qiymətləndirmə" value={`${(pct / 20).toFixed(1)} / 5`} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="execution" className="mt-0">
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="İcra vəziyyəti" value="Davam edir" />
+                  <MetaRow label="Başlanma tarixi" value={history[0]?.date || "—"} />
+                  <MetaRow label="Son yenilənmə" value={history[history.length - 1]?.date || "—"} />
+                  <MetaRow label="Məsul şəxs" value="—" />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="fact" className="mt-0">
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium">Tarix</th>
+                        <th className="text-right px-3 py-2 font-medium">Plan</th>
+                        <th className="text-right px-3 py-2 font-medium">Fakt</th>
+                        <th className="text-right px-3 py-2 font-medium">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.slice(0, 4).map((h, i) => {
+                        const plan = Math.round(target.plan / 4);
+                        const fakt = Math.round(target.fakt / (4 - i * 0.5));
+                        return (
+                          <tr key={h.id} className="border-t border-border">
+                            <td className="px-3 py-2">{h.date}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{fmt(plan)}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{fmt(fakt)}</td>
+                            <td className={`px-3 py-2 text-right tabular-nums ${fakt >= plan ? "text-emerald-600" : "text-rose-600"}`}>{fakt >= plan ? "+" : ""}{fmt(fakt - plan)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="evaluation" className="mt-0">
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="Qiymətləndirici" value="Rəhbər" />
+                  <MetaRow label="Bal" value={`${(pct / 20).toFixed(1)} / 5`} />
+                  <MetaRow label="Nəticə" value={pct >= 90 ? "Əla" : pct >= 75 ? "Yaxşı" : "Təkmilləşdirilməli"} />
+                </div>
+              </TabsContent>
+
               <TabsContent value="history" className="mt-0">
                 <ol className="relative border-l-2 border-border pl-4 space-y-4">
                   {history.map(h => (
@@ -1790,6 +2016,34 @@ const TargetDetailDrawer = ({ data, onClose }: {
                     </li>
                   ))}
                 </ol>
+              </TabsContent>
+
+              <TabsContent value="review" className="mt-0 space-y-3">
+                <div>
+                  <div className="text-xs font-semibold text-foreground mb-1.5">Review Timeline</div>
+                  <ol className="relative border-l-2 border-border pl-4 space-y-3">
+                    {[
+                      { d: "01.06.2025 09:00", a: "Sistem", t: "Review yaradıldı" },
+                      { d: "05.06.2025 10:30", a: "Rəhbər", t: "Review başladı" },
+                      { d: "10.06.2025 14:20", a: "Rəhbər", t: "Qeyd əlavə etdi: Plan üzrə irəliləyir." },
+                      { d: "12.06.2025 11:15", a: "Əməkdaş", t: "Cavab verdi: Növbəti həftə əlavə plan hazırlanır." },
+                    ].map((x, i) => (
+                      <li key={i} className="relative">
+                        <span className="absolute -left-[9px] top-1 w-3 h-3 rounded-full bg-sky-500 ring-4 ring-sky-500/15" />
+                        <div className="text-[11px] text-muted-foreground">{x.d}</div>
+                        <div className="text-sm font-medium text-foreground">{x.a}</div>
+                        <div className="text-xs text-muted-foreground">{x.t}</div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="Qiymətləndiricinin qeydi" value="Yeni müştəri hədəfi üzrə bir qədər gecikmə var. Növbəti həftə əlavə plan hazırlansın." />
+                  <MetaRow label="Əməkdaşın cavabı" value="Yeni kampaniyaya start verilib. Gələn həftə nəticələr yaxşılaşacaq." />
+                  <MetaRow label="Review qərarı" value={<Badge className="bg-sky-500/15 text-sky-700">Davam edir</Badge>} />
+                  <MetaRow label="Növbəti Review tarixi" value="22.06.2025" />
+                </div>
+                <div className="text-[10px] text-muted-foreground italic">Yalnız oxuma rejimi</div>
               </TabsContent>
 
               <TabsContent value="comments" className="mt-0">
@@ -1808,24 +2062,18 @@ const TargetDetailDrawer = ({ data, onClose }: {
                 </div>
               </TabsContent>
 
-              <TabsContent value="reminders" className="mt-0">
-                <ol className="relative border-l-2 border-border pl-4 space-y-4">
-                  {reminders.map(r => (
-                    <li key={r.id} className="relative">
-                      <span className={`absolute -left-[9px] top-1 w-3 h-3 rounded-full ring-4 ${r.read ? "bg-emerald-500 ring-emerald-500/15" : "bg-amber-500 ring-amber-500/15"}`} />
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="text-[11px] text-muted-foreground">{r.date} {r.time}</div>
-                          <div className="text-sm font-medium text-foreground">{r.author}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">{r.text}</div>
-                        </div>
-                        <Badge className={r.read ? "bg-zone-green-bg text-zone-green-text hover:bg-zone-green-bg" : "bg-zone-yellow-bg text-zone-yellow-text hover:bg-zone-yellow-bg"}>
-                          {r.read ? "Oxundu" : "Oxunmayıb"}
-                        </Badge>
+              <TabsContent value="attachments" className="mt-0">
+                <ul className="space-y-2 text-xs">
+                  {["Review_Report.pdf", "Satış_Hesabatı.xlsx", "Bonus_Hesabatı.pdf"].map(f => (
+                    <li key={f} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-secondary/30">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-foreground">{f}</span>
                       </div>
+                      <button className="text-primary hover:underline">Yüklə</button>
                     </li>
                   ))}
-                </ol>
+                </ul>
               </TabsContent>
             </div>
           </Tabs>
@@ -1962,7 +2210,9 @@ const ReviewsView = () => {
   const rows = useReviewRows();
   const [q, setQ] = useState("");
   const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
-  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("general");
+  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("review");
+  const [viewMeta, setViewMeta] = useState<{ reviewLabel: string; reviewStart: string; evaluator?: string } | null>(null);
+  const [targetDetail, setTargetDetail] = useState<{ cardId: string; cardName: string; target: CardTarget } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -1992,7 +2242,8 @@ const ReviewsView = () => {
       measure: "%", type: "Review", method: "Lifecycle review", weight: 20,
     };
     setViewKpi(kpi);
-    setViewKpiTab("lifecycle");
+    setViewKpiTab("review");
+    setViewMeta({ reviewLabel: r.reviewLabel, reviewStart: r.reviewStart, evaluator: r.position });
   };
 
   return (
@@ -2072,7 +2323,15 @@ const ReviewsView = () => {
         </div>
       </div>
 
-      <KpiDrawer kpi={viewKpi} tab={viewKpiTab} setTab={setViewKpiTab} onClose={() => setViewKpi(null)} />
+      <KpiDrawer
+        kpi={viewKpi}
+        tab={viewKpiTab}
+        setTab={setViewKpiTab}
+        onClose={() => { setViewKpi(null); setViewMeta(null); }}
+        reviewMeta={viewMeta ?? undefined}
+        onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
+      />
+      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} />
     </>
   );
 };
