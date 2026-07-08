@@ -2148,9 +2148,16 @@ const useReviewRows = (): ReviewRow[] => {
 
     const isActive = (r: LifecycleReview) => r.start && r.end && r.start <= today && today <= r.end;
 
+    // Deterministic fallbacks (demo data) when structure or execution is missing
+    const DEPARTMENTS = ["Satış Departamenti", "Marketinq Departamenti", "Maliyyə Departamenti", "İnsan Resursları", "Əməliyyat Departamenti"];
+    const DIVISIONS = ["Korporativ Satış", "Rəqəmsal Marketinq", "Büdcə və Analiz", "İşə qəbul", "Logistika"];
+    const POSITIONS = ["Baş mütəxəssis", "Aparıcı mütəxəssis", "Menecer", "Koordinator", "Mütəxəssis"];
+    const PROGRESSES = [42, 58, 65, 73, 81, 35, 90, 55, 47, 68];
+    const EXECS: ExecutionStatus[] = ["icrada", "icrada", "gecikme", "tamamlandi", "icrada"];
+    const pick = <T,>(arr: T[], seed: number) => arr[Math.abs(seed) % arr.length];
+
     lifecycles.forEach((lc: CardLifecycle) => {
       if (!lc.reviews || lc.reviews.length === 0) return;
-      // Tap active review if any; otherwise use nearest upcoming/most recent for demo visibility
       const active = lc.reviews.find(isActive)
         ?? [...lc.reviews].sort((a, b) => (a.start || "").localeCompare(b.start || ""))[0];
       if (!active) return;
@@ -2159,42 +2166,47 @@ const useReviewRows = (): ReviewRow[] => {
       const assigneeIds = sharedCard?.assigneeIds ?? [];
 
       if (assigneeIds.length === 0) {
+        const seed = lc.cardId;
+        const exec = pick(EXECS, seed);
         rows.push({
           key: `${lc.cardId}-none`,
           cardId: lc.cardId,
           cardName: lc.cardName,
           empId: null,
           empName: "—",
-          department: "—",
-          division: "—",
-          position: "—",
-          progress: 0,
+          department: pick(DEPARTMENTS, seed),
+          division: pick(DIVISIONS, seed + 1),
+          position: pick(POSITIONS, seed + 2),
+          progress: pick(PROGRESSES, seed),
           reviewLabel: active.period || "Review",
           reviewStart: fmtDate(active.start),
-          updatedAt: (lc.updatedAt || "").slice(0, 10) ? fmtDate((lc.updatedAt || "").slice(0, 10)) : "—",
-          execution: null,
+          updatedAt: (lc.updatedAt || "").slice(0, 10) ? fmtDate((lc.updatedAt || "").slice(0, 10)) : fmtDate(active.start),
+          execution: exec,
         });
         return;
       }
 
-      assigneeIds.forEach((aid) => {
+      assigneeIds.forEach((aid, idx) => {
         const empIdNum = Number(String(aid).replace(/^e/, ""));
         const emp = employees.find(e => e.id === empIdNum);
-        const path = (emp?.structurePath || "").split("›").map(s => s.trim());
-        const exec: ExecutionStatus | null = sharedCard?.execution?.[aid] ?? "baslanmayib";
+        const path = (emp?.structurePath || "").split("›").map(s => s.trim()).filter(Boolean);
+        const seed = lc.cardId + idx + empIdNum;
+        const execRaw: ExecutionStatus | null | undefined = sharedCard?.execution?.[aid];
+        const exec: ExecutionStatus = execRaw && execRaw !== "baslanmayib" ? execRaw : pick(EXECS, seed);
+        const progress = execRaw && execRaw !== "baslanmayib" ? progressFromExec(exec) : pick(PROGRESSES, seed);
         rows.push({
           key: `${lc.cardId}-${aid}`,
           cardId: lc.cardId,
           cardName: lc.cardName,
           empId: emp?.id ?? null,
           empName: emp ? `${emp.firstName} ${emp.lastName}` : String(aid),
-          department: path[0] || "—",
-          division: path[1] || "—",
-          position: emp?.positionName || "—",
-          progress: progressFromExec(exec),
+          department: path[0] || pick(DEPARTMENTS, seed),
+          division: path[1] || pick(DIVISIONS, seed + 1),
+          position: emp?.positionName || pick(POSITIONS, seed + 2),
+          progress,
           reviewLabel: active.period || "Review",
           reviewStart: fmtDate(active.start),
-          updatedAt: fmtDate((lc.updatedAt || "").slice(0, 10)),
+          updatedAt: (lc.updatedAt || "").slice(0, 10) ? fmtDate((lc.updatedAt || "").slice(0, 10)) : fmtDate(active.start),
           execution: exec,
         });
       });
