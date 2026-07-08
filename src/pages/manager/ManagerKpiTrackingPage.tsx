@@ -541,7 +541,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
 
           {/* Tabs — KPI Detail: 8 fixed tab (spec üzrə) */}
           <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 mb-3">
-            {[
+            {([
               ["general", "Ümumi"],
               ["targets", "Hədəflər"],
               ["bsc", "Balanced Scorecard"],
@@ -552,7 +552,9 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
               ["status", "Təsdiqləmə Zənciri"],
               ["setStatus", "Set Statusu"],
               ["review", "Review"],
-            ].map(([key, label]) => (
+            ] as [DrawerTab, string][])
+              .filter(([key]) => !tabsFilter || tabsFilter.includes(key))
+              .map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTab(key as DrawerTab)}
