@@ -1880,7 +1880,7 @@ const TargetDetailDrawer = ({ data, onClose }: {
   data: { cardId: string; cardName: string; target: CardTarget } | null;
   onClose: () => void;
 }) => {
-  const [tab, setTab] = useState<"history" | "comments" | "reminders">("history");
+  const [tab, setTab] = useState<"general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments">("general");
   const [draft, setDraft] = useState("");
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
 
