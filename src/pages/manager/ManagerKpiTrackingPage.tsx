@@ -2236,7 +2236,15 @@ const ReviewsView = () => {
         </div>
       </div>
 
-      <KpiDrawer kpi={viewKpi} tab={viewKpiTab} setTab={setViewKpiTab} onClose={() => setViewKpi(null)} />
+      <KpiDrawer
+        kpi={viewKpi}
+        tab={viewKpiTab}
+        setTab={setViewKpiTab}
+        onClose={() => { setViewKpi(null); setViewMeta(null); }}
+        reviewMeta={viewMeta ?? undefined}
+        onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
+      />
+      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} />
     </>
   );
 };
