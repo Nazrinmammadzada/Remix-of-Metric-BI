@@ -459,10 +459,11 @@ const StatCard = ({ icon: Icon, label, value, tone }: { icon: any; label: string
 // ============================================================
 // DRAWER — no backdrop, right-side, ~440px
 // ============================================================
-const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
+const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFilter }: {
   kpi: Kpi | null; tab: DrawerTab; setTab: (t: DrawerTab) => void; onClose: () => void;
   onOpenTarget?: (t: CardTarget) => void;
   reviewMeta?: { reviewLabel: string; reviewStart: string; reviewNumber?: number; evaluator?: string; nextReview?: string };
+  tabsFilter?: DrawerTab[];
 }) => {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [draft, setDraft] = useState("");
