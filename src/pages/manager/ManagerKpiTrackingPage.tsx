@@ -542,6 +542,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
           <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 mb-3">
             {[
               ["general", "Ümumi"],
+              ["targets", "Hədəflər"],
               ["bsc", "Balanced Scorecard"],
               ["lifecycle", "Lifecycle"],
               ["history", "Tarixçə"],
@@ -549,6 +550,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
               ["comments", "Şərhlər"],
               ["status", "Təsdiqləmə Zənciri"],
               ["setStatus", "Set Statusu"],
+              ["review", "Review"],
             ].map(([key, label]) => (
               <button
                 key={key}
