@@ -459,10 +459,11 @@ const StatCard = ({ icon: Icon, label, value, tone }: { icon: any; label: string
 // ============================================================
 // DRAWER — no backdrop, right-side, ~440px
 // ============================================================
-const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
+const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFilter }: {
   kpi: Kpi | null; tab: DrawerTab; setTab: (t: DrawerTab) => void; onClose: () => void;
   onOpenTarget?: (t: CardTarget) => void;
   reviewMeta?: { reviewLabel: string; reviewStart: string; reviewNumber?: number; evaluator?: string; nextReview?: string };
+  tabsFilter?: DrawerTab[];
 }) => {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [draft, setDraft] = useState("");
@@ -540,7 +541,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
 
           {/* Tabs — KPI Detail: 8 fixed tab (spec üzrə) */}
           <div className="flex gap-1 border-b border-border overflow-x-auto -mx-1 px-1 mb-3">
-            {[
+            {([
               ["general", "Ümumi"],
               ["targets", "Hədəflər"],
               ["bsc", "Balanced Scorecard"],
@@ -551,7 +552,9 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
               ["status", "Təsdiqləmə Zənciri"],
               ["setStatus", "Set Statusu"],
               ["review", "Review"],
-            ].map(([key, label]) => (
+            ] as [DrawerTab, string][])
+              .filter(([key]) => !tabsFilter || tabsFilter.includes(key))
+              .map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setTab(key as DrawerTab)}
@@ -2269,7 +2272,6 @@ const ReviewsView = () => {
             <thead className="bg-secondary/50 text-muted-foreground text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">KPI Kartının adı</th>
-                <th className="text-left px-4 py-3 font-medium">Əməkdaş (A.S.A.)</th>
                 <th className="text-left px-4 py-3 font-medium">Departament</th>
                 <th className="text-left px-4 py-3 font-medium">Şöbə</th>
                 <th className="text-left px-4 py-3 font-medium">Vəzifə</th>
@@ -2283,7 +2285,7 @@ const ReviewsView = () => {
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-muted-foreground">
                     Hazırda Review mərhələsində olan KPI kartı yoxdur.
                   </td>
                 </tr>
@@ -2292,7 +2294,6 @@ const ReviewsView = () => {
                 return (
                   <tr key={r.key} className="hover:bg-secondary/30">
                     <td className="px-4 py-3 font-medium text-foreground">{withKartSuffix(r.cardName)}</td>
-                    <td className="px-4 py-3">{r.empName}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.department}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.division}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.position}</td>
@@ -2329,7 +2330,7 @@ const ReviewsView = () => {
         setTab={setViewKpiTab}
         onClose={() => { setViewKpi(null); setViewMeta(null); }}
         reviewMeta={viewMeta ?? undefined}
-        onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
+        tabsFilter={["general", "review"]}
       />
       <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} />
     </>
