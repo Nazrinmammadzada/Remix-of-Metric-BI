@@ -231,7 +231,7 @@ const HubCard = ({ icon: Icon, title, subtitle, count, gradient, onClick }: any)
 // ============================================================
 // OWN KPIs VIEW — full featured
 // ============================================================
-type DrawerTab = "general" | "bsc" | "lifecycle" | "history" | "team" | "comments" | "status" | "setStatus";
+type DrawerTab = "general" | "targets" | "bsc" | "lifecycle" | "history" | "team" | "comments" | "status" | "setStatus" | "review";
 
 interface CommentItem { id: string; author: string; role: string; date: string; text: string; }
 interface HistoryItem { id: string; date: string; time: string; author: string; field: string; from: string; to: string; }
