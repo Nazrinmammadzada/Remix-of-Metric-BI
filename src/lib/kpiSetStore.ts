@@ -274,7 +274,10 @@ export const getLimitsFor = (cardId: number, subKpiId: number): LimitSet | undef
   load().find(e => e.cardId === cardId && e.subKpiId === subKpiId)?.limits;
 
 export const setEntryLimits = (id: string, limits: LimitSet) => {
-  persist(load().map(e => (e.id === id ? { ...e, limits, status: "completed", updatedAt: Date.now() } : e)));
+  const rows = load();
+  const target = rows.find(e => e.id === id);
+  persist(rows.map(e => (e.id === id ? { ...e, limits, status: "completed", updatedAt: Date.now() } : e)));
+  if (target) maybeTriggerApproval(target.cardId);
 };
 
 /** Rəhbərin pending entry üçün hədəf ad/hədəf/vahid/limit/cascadable/çəki/dinamik aralıq təyin etməsi. */
@@ -288,13 +291,24 @@ export const setEntryDetails = (
     scoreDescriptions?: ScoreDescRow[];
   }
 ) => {
+  let touchedCardId: number | null = null;
   persist(load().map(e => {
     if (e.id !== id) return e;
     const next = { ...e, ...patch, updatedAt: Date.now() };
     const hasLimits = !!(next.limits || (next.dynamicLimits && next.dynamicLimits.length) || (next.scoreDescriptions && next.scoreDescriptions.length));
     if (hasLimits && next.subKpiName && next.target) next.status = "completed";
+    if (next.status === "completed") touchedCardId = next.cardId;
     return next;
   }));
+  if (touchedCardId != null) maybeTriggerApproval(touchedCardId);
+};
+
+/**
+ * Set entry completed olduqda approval workflow-nu tetiklə.
+ * Dinamik import — circular dependency-dən qaçmaq üçün.
+ */
+const maybeTriggerApproval = (cardId: number) => {
+  import("./kpiApprovalFlow").then(m => m.triggerCardApprovalIfComplete(cardId)).catch(() => {});
 };
 
 /**
