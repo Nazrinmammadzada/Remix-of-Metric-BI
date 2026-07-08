@@ -2123,7 +2123,9 @@ const ReviewsView = () => {
   const rows = useReviewRows();
   const [q, setQ] = useState("");
   const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
-  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("general");
+  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("review");
+  const [viewMeta, setViewMeta] = useState<{ reviewLabel: string; reviewStart: string; evaluator?: string } | null>(null);
+  const [targetDetail, setTargetDetail] = useState<{ cardId: string; cardName: string; target: CardTarget } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
