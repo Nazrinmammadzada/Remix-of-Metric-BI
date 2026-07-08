@@ -742,14 +742,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       });
     } catch (err) { console.warn("lifecycle save failed", err); }
 
-    // === Status — HR özü set edibsə (matrissiz & pending delegation yoxdursa) aktiv ===
+    // === Status ===
+    // Matris seçilməyibsə → əvvəlki davranış: submit dərhal "aktiv" (heç bir approval axını yoxdur).
+    // Matris seçilibsə → əvvəlcə Set tamamlanmalıdır; Set bitəndə sistem avtomatik
+    // "tesdiq_gozlenilir"-ə keçirir (bax: kpiApprovalFlow.triggerCardApprovalIfComplete).
     const hasPendingSet = (d.targets || []).some((t: any) => t.createdBy === "other");
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
       : action === "submit"
-        // Matris seçilibsə də, əvvəlcə Set tamamlanmalıdır. Yalnız Set bitdikdən sonra
-        // sistem avtomatik "tesdiq_gozlenilir"-ə keçir və Sistem Təsdiqlərində görünür.
-        ? (hasPendingSet ? "natamam" : (d.useMatrix ? "tesdiq_gozlenilir" : "aktiv"))
+        ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
         : "qaralama";
     try {
       await upsertStatus({
