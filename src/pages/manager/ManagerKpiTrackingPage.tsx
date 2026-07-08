@@ -714,6 +714,147 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta }: {
               </div>
             </div>
           )}
+
+          {tab === "targets" && (() => {
+            const targets = buildCardTargets(kpi.id, kpi.target || 100, kpi.unit || "%");
+            return (
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-secondary/40 text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-3 py-2 font-medium">Hədəf</th>
+                      <th className="text-right px-3 py-2 font-medium">Plan</th>
+                      <th className="text-right px-3 py-2 font-medium">Fakt</th>
+                      <th className="text-left px-3 py-2 font-medium w-24">İcra %</th>
+                      <th className="text-center px-3 py-2 font-medium">Status</th>
+                      {onOpenTarget && <th className="text-right px-3 py-2 font-medium w-12">Bax</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {targets.map(t => {
+                      const pct = Math.round((t.fakt / t.plan) * 100);
+                      const bar = pct >= 90 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-rose-500";
+                      return (
+                        <tr key={t.id} className="border-t border-border align-top hover:bg-secondary/20">
+                          <td className="px-3 py-2.5">
+                            <div className="font-medium text-foreground">{t.name}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">Çəki: {t.weight}%</div>
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{fmt(t.plan)} {t.unit}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{fmt(t.fakt)} {t.unit}</td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                                <div className={`h-full ${bar}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                              </div>
+                              <span className="tabular-nums font-medium w-8 text-right">{pct}%</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <Badge className={`${statusMeta[t.status].cls} text-[10px] px-1.5 py-0.5`}>{statusMeta[t.status].label}</Badge>
+                          </td>
+                          {onOpenTarget && (
+                            <td className="px-3 py-2.5 text-right">
+                              <button onClick={() => onOpenTarget(t)} className="w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Bax" title="Hədəf detalı">
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+
+          {tab === "review" && (() => {
+            const targets = buildCardTargets(kpi.id, kpi.target || 100, kpi.unit || "%");
+            const completed = targets.filter(t => t.status === "completed").length;
+            const atRisk = targets.filter(t => t.status === "at_risk" || t.status === "delayed").length;
+            const avgProg = targets.length ? Math.round(targets.reduce((s, t) => s + Math.round((t.fakt / t.plan) * 100), 0) / targets.length) : 0;
+            const reviewNotes = ["Plan üzrə irəliləyir.", "Bir qədər gecikmə var.", "Yaxşı nəticə göstərilir.", "Təkmilləşdirmə tələb olunur.", "Komanda fəaldır."];
+            return (
+              <div className="space-y-4">
+                {/* Review Status */}
+                <div className="rounded-xl border border-border bg-background p-4">
+                  <div className="text-sm font-semibold text-foreground mb-3">Review Statusu</div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                    <MetaRow label="Status" value={<Badge className="bg-sky-500/15 text-sky-700">Review davam edir</Badge>} />
+                    <MetaRow label="Review növü" value={reviewMeta?.reviewLabel || "Həftəlik Review"} />
+                    <MetaRow label="Review #" value={reviewMeta?.reviewNumber ?? 2} />
+                    <MetaRow label="Plan tarixi" value={reviewMeta?.reviewStart || kpi.deadline} />
+                    <MetaRow label="Son yenilənmə" value={kpi.updatedAt} />
+                    <MetaRow label="Qiymətləndirici" value={reviewMeta?.evaluator || kpi.responsible.name} />
+                    <MetaRow label="Qiymətləndirilən əməkdaş" value={kpi.responsible.name} />
+                  </div>
+                </div>
+
+                {/* Review Xülasəsi */}
+                <div>
+                  <div className="text-sm font-semibold text-foreground mb-2">Review Xülasəsi</div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <SummaryStat label="Ortalama Progress" value={`${avgProg}%`} tone="indigo" />
+                    <SummaryStat label="Tamamlanan KPI" value={`${completed} / ${targets.length}`} tone="green" />
+                    <SummaryStat label="Riskdə olan KPI" value={`${atRisk}`} tone="red" />
+                    <SummaryStat label="Son qiymətləndirmə" value="4.6 / 5" tone="amber" />
+                    <SummaryStat label="Növbəti Review" value={reviewMeta?.nextReview || "22.06.2025"} tone="blue" />
+                  </div>
+                </div>
+
+                {/* KPI-lərin Review vəziyyəti */}
+                <div>
+                  <div className="text-sm font-semibold text-foreground mb-2">KPI-lərin Review vəziyyəti</div>
+                  <div className="rounded-xl border border-border overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-secondary/40 text-muted-foreground">
+                        <tr>
+                          <th className="text-left px-3 py-2 font-medium">KPI / Hədəf</th>
+                          <th className="text-left px-3 py-2 font-medium w-24">Progress</th>
+                          <th className="text-center px-3 py-2 font-medium">Status</th>
+                          <th className="text-right px-3 py-2 font-medium">Son nəticə</th>
+                          <th className="text-left px-3 py-2 font-medium">Review qeydi</th>
+                          {onOpenTarget && <th className="text-right px-3 py-2 font-medium w-12">Bax</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {targets.map((t, i) => {
+                          const pct = Math.round((t.fakt / t.plan) * 100);
+                          const bar = pct >= 90 ? "bg-emerald-500" : pct >= 75 ? "bg-amber-500" : "bg-rose-500";
+                          return (
+                            <tr key={t.id} className="border-t border-border hover:bg-secondary/20">
+                              <td className="px-3 py-2.5 font-medium text-foreground">{t.name}</td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                                    <div className={`h-full ${bar}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                                  </div>
+                                  <span className="tabular-nums font-medium w-8 text-right">{pct}%</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                <Badge className={`${statusMeta[t.status].cls} text-[10px] px-1.5 py-0.5`}>{statusMeta[t.status].label}</Badge>
+                              </td>
+                              <td className="px-3 py-2.5 text-right tabular-nums">{(pct / 20).toFixed(1)} / 5</td>
+                              <td className="px-3 py-2.5 text-muted-foreground">{reviewNotes[i % reviewNotes.length]}</td>
+                              {onOpenTarget && (
+                                <td className="px-3 py-2.5 text-right">
+                                  <button onClick={() => onOpenTarget(t)} className="w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground" aria-label="Bax" title="Hədəf detalı">
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </aside>
