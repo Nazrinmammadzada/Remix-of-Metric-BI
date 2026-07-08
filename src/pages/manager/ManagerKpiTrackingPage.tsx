@@ -868,6 +868,22 @@ const MetaRow = ({ label, value }: { label: string; value: React.ReactNode }) =>
   </div>
 );
 
+const SummaryStat = ({ label, value, tone }: { label: string; value: React.ReactNode; tone: "indigo" | "green" | "red" | "amber" | "blue" }) => {
+  const map = {
+    indigo: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+    green:  "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    red:    "bg-rose-500/10 text-rose-600 border-rose-500/20",
+    amber:  "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    blue:   "bg-sky-500/10 text-sky-600 border-sky-500/20",
+  } as const;
+  return (
+    <div className={`rounded-lg border p-2.5 ${map[tone]}`}>
+      <div className="text-[10px] uppercase tracking-wide opacity-80">{label}</div>
+      <div className="text-sm font-semibold mt-0.5">{value}</div>
+    </div>
+  );
+};
+
 // ============================================================
 // SUBORDINATES VIEW — Dynamic tree from real org data
 // ============================================================
