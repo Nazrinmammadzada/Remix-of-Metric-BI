@@ -2330,7 +2330,7 @@ const ReviewsView = () => {
         setTab={setViewKpiTab}
         onClose={() => { setViewKpi(null); setViewMeta(null); }}
         reviewMeta={viewMeta ?? undefined}
-        onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
+        tabsFilter={["general", "review"]}
       />
       <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} />
     </>
