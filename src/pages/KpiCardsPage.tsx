@@ -747,7 +747,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
       action === "create_active" ? "aktiv"
       : action === "submit"
-        ? (d.useMatrix ? "tesdiq_gozlenilir" : (hasPendingSet ? "natamam" : "aktiv"))
+        // Matris seçilibsə də, əvvəlcə Set tamamlanmalıdır. Yalnız Set bitdikdən sonra
+        // sistem avtomatik "tesdiq_gozlenilir"-ə keçir və Sistem Təsdiqlərində görünür.
+        ? (hasPendingSet ? "natamam" : (d.useMatrix ? "tesdiq_gozlenilir" : "aktiv"))
         : "qaralama";
     try {
       await upsertStatus({
