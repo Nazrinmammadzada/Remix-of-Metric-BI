@@ -789,7 +789,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   };
 
   const validateApprovalTargets = (d: CreateKpiWizardDraft): string | null => {
-    if (d.approvalMethod === "matrix") {
+    if (d.useMatrix && d.approvalMethod === "matrix") {
       if (!d.approvalMatrixId) return "Təsdiqləmə matrisi seçin";
       return null;
     }
