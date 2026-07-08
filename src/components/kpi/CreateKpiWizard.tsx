@@ -789,6 +789,10 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   };
 
   const validateApprovalTargets = (d: CreateKpiWizardDraft): string | null => {
+    // "Təsdiqləmə matrisi olsun" seçilməyibsə approval validasiyası ümumiyyətlə işləmir.
+    // Bu halda nə matris, nə əməkdaş/struktur seçimi ilə bağlı error/toast göstərilməməlidir.
+    if (!d.useMatrix) return null;
+
     if (d.useMatrix && d.approvalMethod === "matrix") {
       if (!d.approvalMatrixId) return "Təsdiqləmə matrisi seçin";
       return null;
