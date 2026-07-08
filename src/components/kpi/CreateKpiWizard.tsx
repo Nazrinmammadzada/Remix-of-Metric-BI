@@ -868,7 +868,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     className="w-full px-3.5 py-2 text-base border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary/40 outline-none" />
                 </Field>
 
-                <Field label="KPI təyinat növü" required span="col-span-12">
+                <Field label="Tətbiq ediləcək əməkdaş(lar)" required span="col-span-12">
                   <div className="grid grid-cols-2 gap-2 max-w-md">
                     {([
                       { v: "individual" as const, t: "Fərdi", icon: User },
