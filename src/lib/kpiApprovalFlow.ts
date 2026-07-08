@@ -116,13 +116,7 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
 
     // Həm SharedKpiCard, həm də lokal KpiCard status store-u yenilə.
     try { setKpiStatus(ctx.id, "tesdiq_gozlenilir", "system", "Set tamamlandı — avtomatik təsdiq axını başladıldı"); } catch {}
-    try {
-      setKpiCardStatus({
-        card_id: cardId,
-        status: "tesdiq_gozlenilir",
-        submitted_for_approval: true,
-      } as any);
-    } catch {}
+    try { submitToMatrix(cardId); } catch {}
   } catch (err) {
     console.warn("triggerCardApprovalIfComplete failed", err);
   }
