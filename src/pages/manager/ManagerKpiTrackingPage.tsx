@@ -2155,7 +2155,8 @@ const ReviewsView = () => {
       measure: "%", type: "Review", method: "Lifecycle review", weight: 20,
     };
     setViewKpi(kpi);
-    setViewKpiTab("lifecycle");
+    setViewKpiTab("review");
+    setViewMeta({ reviewLabel: r.reviewLabel, reviewStart: r.reviewStart, evaluator: r.position });
   };
 
   return (
