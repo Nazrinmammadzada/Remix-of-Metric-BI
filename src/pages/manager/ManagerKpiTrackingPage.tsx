@@ -2272,7 +2272,6 @@ const ReviewsView = () => {
             <thead className="bg-secondary/50 text-muted-foreground text-xs uppercase">
               <tr>
                 <th className="text-left px-4 py-3 font-medium">KPI Kartının adı</th>
-                <th className="text-left px-4 py-3 font-medium">Əməkdaş (A.S.A.)</th>
                 <th className="text-left px-4 py-3 font-medium">Departament</th>
                 <th className="text-left px-4 py-3 font-medium">Şöbə</th>
                 <th className="text-left px-4 py-3 font-medium">Vəzifə</th>
