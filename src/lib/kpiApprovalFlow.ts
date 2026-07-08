@@ -9,7 +9,7 @@ import { getSharedKpiCards, setKpiStatus } from "./kpiCardStore";
 import { getApprovalMatrices, roleUserMap } from "./matrixStore";
 import { enqueueApproval, getApprovals } from "./approvalsStore";
 import { getKpiCardMeta } from "./kpiCardMetaStore";
-import { setKpiStatus as setKpiCardStatus } from "./kpiCardStatusStore";
+import { submitToMatrix } from "./kpiCardStatusStore";
 import { enrichedEmployees } from "@/data/mockExtras";
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
