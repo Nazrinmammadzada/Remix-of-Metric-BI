@@ -1,68 +1,66 @@
-// Rəhbər · Bonuslarım — 2 kart: Öz bonuslarım / Tabeçiliyimdəkilərin bonusları.
-// Hər 2 kartın daxili HR-in bonuslar modulunun eynisi (BonusPage komponenti).
-import { useState } from "react";
+// Rəhbər · Bonuslarım — dinamik: cari daxil olmuş istifadəçiyə görə hesablanır.
+// Öz bonuslarım — yalnız cari istifadəçi. Tabeçiliyimdəkilərin bonusları —
+// istifadəçinin struktur vahidi altında olan tabeliyində olan əməkdaşlar
+// (starPerson iyerarxiyasına əsasən). Heç bir hardcoded şəxs istifadə olunmur.
+import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Gift, User, Network, ChevronLeft, ChevronRight } from "lucide-react";
 import BonusPage, { type Employee } from "@/pages/BonusPage";
+import { useAuth } from "@/contexts/AuthContext";
+import { getEmployees, getStructures, getSubordinatesOfStarHolder, type OrgEmployee } from "@/lib/orgStore";
 
-// Elvin (Marketinq Direktoru) — öz bonusu
-const OWN_EMPLOYEES: Employee[] = [
-  {
-    id: "e4", firstName: "Elvin", lastName: "Rəhimov", fatherName: "Tofiq", department: "Marketinq Departamenti",
-    position: "Marketinq Direktoru", baseSalary: 4600, targetBonusPct: 25,
-    subKpis: [
-      { name: "Departament satış həcmi",   weight: 40, evaluator: "Farid Həsənov",  score: 92 },
-      { name: "Brend kampaniya ROI",        weight: 30, evaluator: "İnteqrasiya (CRM)", score: 88 },
-      { name: "Komanda inkişafı",           weight: 30, evaluator: "Günel Əlizadə", score: 90 },
-    ],
-  },
+const DEFAULT_KPIS = (evaluator: string) => [
+  { name: "Fərdi performans",   weight: 40, evaluator, score: 85 },
+  { name: "Komanda töhfəsi",     weight: 30, evaluator, score: 88 },
+  { name: "Layihə icrası",       weight: 30, evaluator: "Özü", score: 90 },
 ];
 
-// Elvin'in tabeliyində olan əməkdaşlar
-const SUB_EMPLOYEES: Employee[] = [
-  {
-    id: "e7", firstName: "Kamran", lastName: "Quliyev", fatherName: "Zaur", department: "Rəqəmsal Marketinq",
-    position: "Şöbə Müdiri", baseSalary: 2900, targetBonusPct: 20,
-    subKpis: [
-      { name: "Rəqəmsal ROI",               weight: 50, evaluator: "Elvin Rəhimov", score: 95 },
-      { name: "Kampaniya sayı",             weight: 30, evaluator: "Elvin Rəhimov", score: 85 },
-      { name: "Komanda işi",                weight: 20, evaluator: "Özü", score: 88 },
-    ],
-  },
-  {
-    id: "e8", firstName: "Aynur", lastName: "Cəfərova", fatherName: "Elşən", department: "Brend",
-    position: "Şöbə Müdiri", baseSalary: 2900, targetBonusPct: 20,
-    subKpis: [
-      { name: "Brend awareness",            weight: 40, evaluator: "Elvin Rəhimov", score: 82 },
-      { name: "Yeni kampaniyalar",          weight: 30, evaluator: "Elvin Rəhimov", score: 80 },
-      { name: "Sosial media reach",         weight: 30, evaluator: "İnteqrasiya (SMM)", score: 85 },
-    ],
-  },
-  {
-    id: "e15", firstName: "Orxan", lastName: "Bayramov", fatherName: "Cavid", department: "Rəqəmsal Marketinq",
-    position: "Marketinq Mütəxəssisi", baseSalary: 1900, targetBonusPct: 15,
-    subKpis: [
-      { name: "Google Ads performans",      weight: 40, evaluator: "Kamran Quliyev", score: 78 },
-      { name: "Content marketing",          weight: 30, evaluator: "Kamran Quliyev", score: 82 },
-      { name: "Analitika hesabatları",      weight: 30, evaluator: "Özü", score: 88 },
-    ],
-  },
-  {
-    id: "e16", firstName: "Aytac", lastName: "Kərimova", fatherName: "Elmar", department: "Brend",
-    position: "Brend Mütəxəssisi", baseSalary: 1900, targetBonusPct: 15,
-    subKpis: [
-      { name: "Sosial media follower artımı", weight: 40, evaluator: "Aynur Cəfərova", score: 90 },
-      { name: "Vizual identitet",             weight: 30, evaluator: "Aynur Cəfərova", score: 85 },
-      { name: "Kampaniya materialları",       weight: 30, evaluator: "Özü", score: 87 },
-    ],
-  },
-];
+const toBonusEmployee = (e: OrgEmployee, evaluator: string): Employee => ({
+  id: String(e.id),
+  firstName: e.firstName,
+  lastName: e.lastName,
+  fatherName: e.fatherName,
+  department: e.structurePath || "—",
+  position: e.positionName || "—",
+  baseSalary: e.salary || 0,
+  targetBonusPct: 20,
+  subKpis: DEFAULT_KPIS(evaluator),
+});
 
 type View = "hub" | "own" | "sub";
 
 const ManagerBonusPage = () => {
   const [view, setView] = useState<View>("hub");
+  const { user } = useAuth();
+
+  const { own, sub } = useMemo(() => {
+    const all = getEmployees().filter(e => e.active);
+    const me = all.find(e => e.email === user?.email) || all.find(e => `${e.firstName} ${e.lastName}` === user?.name);
+    if (!me) return { own: [] as Employee[], sub: [] as Employee[] };
+
+    // Cari istifadəçinin struktur vahidini tap
+    const findUnitId = (): number | null => {
+      const walk = (list: any[], path: string[]): number | null => {
+        for (const n of list) {
+          const cur = [...path, n.name];
+          if (cur.join(" › ") === me.structurePath) return n.id;
+          const ch = walk(n.children, cur);
+          if (ch) return ch;
+        }
+        return null;
+      };
+      return walk(getStructures(), []);
+    };
+    const unitId = findUnitId();
+    const subs = unitId ? getSubordinatesOfStarHolder(me.id, unitId) : [];
+    const meName = `${me.firstName} ${me.lastName}`;
+    return {
+      own: [toBonusEmployee(me, "Rəhbər")],
+      sub: subs.map(s => toBonusEmployee(s, meName)),
+    };
+  }, [user?.email, user?.name]);
+
   return (
     <div className="min-h-screen">
       <Header title="Bonuslarım" />
@@ -76,21 +74,21 @@ const ManagerBonusPage = () => {
           <>
             <PageHero badge="Rəhbər Paneli" icon={Gift} title="Bonuslarım" subtitle="Şəxsi və tabeçilik bonuslarını izləyin." />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
-              <HubCard icon={User} title="Öz bonuslarım" subtitle="Sizin fərdi performansınıza görə hesablanmış bonuslar." count={OWN_EMPLOYEES.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
-              <HubCard icon={Network} title="Tabeçiliyimdəkilərin bonusları" subtitle="Tabeliyinizdəki əməkdaşların bonusları." count={SUB_EMPLOYEES.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("sub")} />
+              <HubCard icon={User} title="Öz bonuslarım" subtitle="Sizin fərdi performansınıza görə hesablanmış bonuslar." count={own.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
+              <HubCard icon={Network} title="Tabeçiliyimdəkilərin bonusları" subtitle="Tabeliyinizdəki əməkdaşların bonusları." count={sub.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("sub")} />
             </div>
           </>
         )}
         {view === "own" && (
           <>
             <PageHero badge="Rəhbər Paneli" icon={User} title="Öz bonuslarım" subtitle="Sizin fərdi performansınıza görə hesablanmış bonuslar." />
-            <BonusPage employeesOverride={OWN_EMPLOYEES} hideChrome hideCalcButton />
+            <BonusPage employeesOverride={own} hideChrome hideCalcButton />
           </>
         )}
         {view === "sub" && (
           <>
             <PageHero badge="Rəhbər Paneli" icon={Network} title="Tabeçiliyimdəkilərin bonusları" subtitle="Tabeliyinizdəki əməkdaşların bonusları." />
-            <BonusPage employeesOverride={SUB_EMPLOYEES} hideChrome hideCalcButton />
+            <BonusPage employeesOverride={sub} hideChrome hideCalcButton />
           </>
         )}
       </main>
