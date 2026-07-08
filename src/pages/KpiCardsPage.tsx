@@ -811,6 +811,35 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       });
     } catch (err) { console.warn("pending kpi set seed failed", err); }
 
+    // === Approval bridge meta ===
+    // HR wizard yaratdığı kart SharedKpiCard-a yazılmır — Approval Workflow-nun
+    // Elvin Set-i bitirdikdə Günelə (matrisdəki şəxsə) task göndərə bilməsi üçün
+    // lokal `numericId → {matrixId, ownerId, name, ...}` bridge saxlayırıq.
+    if (d.useMatrix && (d.approvalMatrixId || null)) {
+      try {
+        const meMod = await import("@/lib/kpiCardMetaStore");
+        const { getCurrentEmployeeId } = await import("@/lib/scope");
+        const { getEmployees: getOrgEmps } = await import("@/lib/orgStore");
+        const meId = getCurrentEmployeeId(user) || "e1";
+        const empsAll = getOrgEmps();
+        const nameToEId = (n: string): string | null => {
+          const clean = stripName(n);
+          const emp = empsAll.find(e => `${e.firstName} ${e.lastName}` === clean);
+          return emp ? `e${emp.id}` : null;
+        };
+        const assigneeIds = Array.from(new Set(
+          ownerAssigneeNames.map(nameToEId).filter((x): x is string => !!x)
+        ));
+        meMod.upsertKpiCardMeta({
+          cardId: id,
+          name: d.name || "Adsız KPI",
+          matrixId: d.approvalMatrixId || null,
+          ownerId: meId,
+          assigneeIds,
+        });
+      } catch (err) { console.warn("kpi card meta upsert failed", err); }
+    }
+
 
 
 
