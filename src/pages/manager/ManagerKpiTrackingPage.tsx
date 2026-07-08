@@ -2285,7 +2285,7 @@ const ReviewsView = () => {
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-12 text-center text-sm text-muted-foreground">
                     Hazırda Review mərhələsində olan KPI kartı yoxdur.
                   </td>
                 </tr>
@@ -2294,7 +2294,6 @@ const ReviewsView = () => {
                 return (
                   <tr key={r.key} className="hover:bg-secondary/30">
                     <td className="px-4 py-3 font-medium text-foreground">{withKartSuffix(r.cardName)}</td>
-                    <td className="px-4 py-3">{r.empName}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.department}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.division}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.position}</td>
