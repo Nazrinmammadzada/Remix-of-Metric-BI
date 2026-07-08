@@ -1931,13 +1931,78 @@ const TargetDetailDrawer = ({ data, onClose }: {
 
         <div className="px-4 pt-3 flex-1 overflow-hidden flex flex-col">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex flex-col flex-1 min-h-0">
-            <TabsList className="w-full grid grid-cols-3 mb-3">
-              <TabsTrigger value="history" className="text-xs">Tarixçə</TabsTrigger>
-              <TabsTrigger value="comments" className="text-xs">Şərhlər</TabsTrigger>
-              <TabsTrigger value="reminders" className="text-xs">Xatırlat.</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-8 mb-3 h-auto">
+              <TabsTrigger value="general" className="text-[10px] px-1">Ümumi</TabsTrigger>
+              <TabsTrigger value="execution" className="text-[10px] px-1">İcra</TabsTrigger>
+              <TabsTrigger value="fact" className="text-[10px] px-1">Fakt</TabsTrigger>
+              <TabsTrigger value="evaluation" className="text-[10px] px-1">Qiymət.</TabsTrigger>
+              <TabsTrigger value="history" className="text-[10px] px-1">Tarixçə</TabsTrigger>
+              <TabsTrigger value="review" className="text-[10px] px-1">Review</TabsTrigger>
+              <TabsTrigger value="comments" className="text-[10px] px-1">Şərhlər</TabsTrigger>
+              <TabsTrigger value="attachments" className="text-[10px] px-1">Əlavələr</TabsTrigger>
             </TabsList>
 
             <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-4">
+              <TabsContent value="general" className="mt-0">
+                <div className="rounded-xl border border-border p-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <MetaRow label="Hədəfin adı" value={target.name} />
+                  <MetaRow label="KPI kartı" value={withKartSuffix(cardName)} />
+                  <MetaRow label="Status" value={<Badge className={`${statusMeta[target.status].cls} text-[10px]`}>{statusMeta[target.status].label}</Badge>} />
+                  <MetaRow label="Plan" value={`${fmt(target.plan)} ${target.unit}`} />
+                  <MetaRow label="Fakt" value={`${fmt(target.fakt)} ${target.unit}`} />
+                  <MetaRow label="Cari nəticə" value={`${pct}%`} />
+                  <MetaRow label="Progress" value={<div className="flex items-center gap-1.5"><div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${Math.min(pct, 100)}%` }} /></div><span className="tabular-nums">{pct}%</span></div>} />
+                  <MetaRow label="Çəki" value={`${target.weight}%`} />
+                  <MetaRow label="Son qiymətləndirmə" value={`${(pct / 20).toFixed(1)} / 5`} />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="execution" className="mt-0">
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="İcra vəziyyəti" value="Davam edir" />
+                  <MetaRow label="Başlanma tarixi" value={history[0]?.date || "—"} />
+                  <MetaRow label="Son yenilənmə" value={history[history.length - 1]?.date || "—"} />
+                  <MetaRow label="Məsul şəxs" value="—" />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="fact" className="mt-0">
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-secondary/40 text-muted-foreground">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium">Tarix</th>
+                        <th className="text-right px-3 py-2 font-medium">Plan</th>
+                        <th className="text-right px-3 py-2 font-medium">Fakt</th>
+                        <th className="text-right px-3 py-2 font-medium">Δ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.slice(0, 4).map((h, i) => {
+                        const plan = Math.round(target.plan / 4);
+                        const fakt = Math.round(target.fakt / (4 - i * 0.5));
+                        return (
+                          <tr key={h.id} className="border-t border-border">
+                            <td className="px-3 py-2">{h.date}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{fmt(plan)}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">{fmt(fakt)}</td>
+                            <td className={`px-3 py-2 text-right tabular-nums ${fakt >= plan ? "text-emerald-600" : "text-rose-600"}`}>{fakt >= plan ? "+" : ""}{fmt(fakt - plan)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="evaluation" className="mt-0">
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="Qiymətləndirici" value="Rəhbər" />
+                  <MetaRow label="Bal" value={`${(pct / 20).toFixed(1)} / 5`} />
+                  <MetaRow label="Nəticə" value={pct >= 90 ? "Əla" : pct >= 75 ? "Yaxşı" : "Təkmilləşdirilməli"} />
+                </div>
+              </TabsContent>
+
               <TabsContent value="history" className="mt-0">
                 <ol className="relative border-l-2 border-border pl-4 space-y-4">
                   {history.map(h => (
@@ -1951,6 +2016,34 @@ const TargetDetailDrawer = ({ data, onClose }: {
                     </li>
                   ))}
                 </ol>
+              </TabsContent>
+
+              <TabsContent value="review" className="mt-0 space-y-3">
+                <div>
+                  <div className="text-xs font-semibold text-foreground mb-1.5">Review Timeline</div>
+                  <ol className="relative border-l-2 border-border pl-4 space-y-3">
+                    {[
+                      { d: "01.06.2025 09:00", a: "Sistem", t: "Review yaradıldı" },
+                      { d: "05.06.2025 10:30", a: "Rəhbər", t: "Review başladı" },
+                      { d: "10.06.2025 14:20", a: "Rəhbər", t: "Qeyd əlavə etdi: Plan üzrə irəliləyir." },
+                      { d: "12.06.2025 11:15", a: "Əməkdaş", t: "Cavab verdi: Növbəti həftə əlavə plan hazırlanır." },
+                    ].map((x, i) => (
+                      <li key={i} className="relative">
+                        <span className="absolute -left-[9px] top-1 w-3 h-3 rounded-full bg-sky-500 ring-4 ring-sky-500/15" />
+                        <div className="text-[11px] text-muted-foreground">{x.d}</div>
+                        <div className="text-sm font-medium text-foreground">{x.a}</div>
+                        <div className="text-xs text-muted-foreground">{x.t}</div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="Qiymətləndiricinin qeydi" value="Yeni müştəri hədəfi üzrə bir qədər gecikmə var. Növbəti həftə əlavə plan hazırlansın." />
+                  <MetaRow label="Əməkdaşın cavabı" value="Yeni kampaniyaya start verilib. Gələn həftə nəticələr yaxşılaşacaq." />
+                  <MetaRow label="Review qərarı" value={<Badge className="bg-sky-500/15 text-sky-700">Davam edir</Badge>} />
+                  <MetaRow label="Növbəti Review tarixi" value="22.06.2025" />
+                </div>
+                <div className="text-[10px] text-muted-foreground italic">Yalnız oxuma rejimi</div>
               </TabsContent>
 
               <TabsContent value="comments" className="mt-0">
@@ -1969,24 +2062,18 @@ const TargetDetailDrawer = ({ data, onClose }: {
                 </div>
               </TabsContent>
 
-              <TabsContent value="reminders" className="mt-0">
-                <ol className="relative border-l-2 border-border pl-4 space-y-4">
-                  {reminders.map(r => (
-                    <li key={r.id} className="relative">
-                      <span className={`absolute -left-[9px] top-1 w-3 h-3 rounded-full ring-4 ${r.read ? "bg-emerald-500 ring-emerald-500/15" : "bg-amber-500 ring-amber-500/15"}`} />
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="text-[11px] text-muted-foreground">{r.date} {r.time}</div>
-                          <div className="text-sm font-medium text-foreground">{r.author}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">{r.text}</div>
-                        </div>
-                        <Badge className={r.read ? "bg-zone-green-bg text-zone-green-text hover:bg-zone-green-bg" : "bg-zone-yellow-bg text-zone-yellow-text hover:bg-zone-yellow-bg"}>
-                          {r.read ? "Oxundu" : "Oxunmayıb"}
-                        </Badge>
+              <TabsContent value="attachments" className="mt-0">
+                <ul className="space-y-2 text-xs">
+                  {["Review_Report.pdf", "Satış_Hesabatı.xlsx", "Bonus_Hesabatı.pdf"].map(f => (
+                    <li key={f} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-secondary/30">
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-foreground">{f}</span>
                       </div>
+                      <button className="text-primary hover:underline">Yüklə</button>
                     </li>
                   ))}
-                </ol>
+                </ul>
               </TabsContent>
             </div>
           </Tabs>
