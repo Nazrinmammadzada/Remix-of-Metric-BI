@@ -646,6 +646,10 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     const isTime = t.type === "Zaman";
     const needsRanges = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
 
+    if (t.type === "Səriştə") {
+      if (!t.competencyMatrix) return `"${t.name}": Səriştə matrisi seçilməlidir`;
+      return null;
+    }
     for (const r of required) {
       const row = sd.find(x => Number(x.score) === r);
       if (!row) return `"${t.name}" üçün ${r} balı tələb olunur — "Qiymətlər" düyməsini açın`;
