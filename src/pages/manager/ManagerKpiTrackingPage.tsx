@@ -806,9 +806,9 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
                   </div>
                 </div>
 
-                {/* KPI-lərin Review vəziyyəti */}
+                {/* Hədəflərin Review vəziyyəti */}
                 <div>
-                  <div className="text-sm font-semibold text-foreground mb-2">KPI-lərin Review vəziyyəti</div>
+                  <div className="text-sm font-semibold text-foreground mb-2">Hədəflərin Review vəziyyəti</div>
                   <div className="rounded-xl border border-border overflow-hidden">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary/40 text-muted-foreground">
