@@ -2284,6 +2284,85 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
               )}
             </div>
           )}
+          {tab === "structure" && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Struktur</label>
+                <div className="relative mt-1 mb-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    value={structSearch}
+                    onChange={e => setStructSearch(e.target.value)}
+                    placeholder="Struktur axtar..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                  />
+                </div>
+                <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y">
+                  {filteredStructures.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => { setStructPath(s.label); setStructMemberEvs([]); }}
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-secondary ${structPath === s.label ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-medium" : ""}`}
+                    >
+                      <span className="truncate">{s.label}</span>
+                      {structPath === s.label && <Check className="w-4 h-4 shrink-0" />}
+                    </button>
+                  ))}
+                  {filteredStructures.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Nəticə yoxdur</div>
+                  )}
+                </div>
+              </div>
+              {structPath && (
+                <>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Əməkdaşlar ({structMembers.length})</span>
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[11px] text-muted-foreground">Say:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={structMembers.length}
+                        value={structRandomCount}
+                        onChange={e => setStructRandomCount(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-14 px-2 py-1 text-xs border border-border rounded bg-background"
+                      />
+                      <button type="button" onClick={randomPickStruct} className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
+                        <Shuffle className="w-3 h-3" /> Təsadüfi
+                      </button>
+                    </div>
+                  </div>
+                  <div className="border border-border rounded-lg divide-y max-h-60 overflow-y-auto">
+                    {structMembers.map(m => {
+                      const sel = structMemberEvs.find(p => p.name === m.name);
+                      return (
+                        <div key={m.name} className="flex items-center gap-2 p-2">
+                          <input type="checkbox" checked={!!sel} onChange={() => toggleStructMember(m.name)} />
+                          <span className="flex-1 text-sm">{m.name}</span>
+                          {sel && (
+                            <div className="flex items-center gap-1">
+                              <WeightInput value={sel.weight} onChange={n => updateStructMemberWeight(m.name, n)} className="w-16 !px-2 !py-1 text-xs" />
+                              <span className="text-xs text-muted-foreground">%</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {structMembers.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Bu strukturda aktiv əməkdaş yoxdur</div>
+                    )}
+                  </div>
+                  {structMemberEvs.length > 1 && (
+                    <div className="text-xs text-muted-foreground">
+                      Toplam ağırlıq: {structMemberEvs.reduce((s, p) => s + (Number(p.weight) || 0), 0)}%
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">Heç bir əməkdaş seçilməsə, strukturun bütün əməkdaşları qiymətləndirici sayılacaq.</p>
+                </>
+              )}
+            </div>
+          )}
           {tab === "self" && (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/20 p-3 text-sm text-foreground">
               Bu hədəfi <strong>əməkdaşın özü</strong> qiymətləndirəcək (self-evaluation).
