@@ -11,6 +11,8 @@ export interface HrAdminAccount {
   permissions: string[];
   createdAt: number;
   active: boolean;
+  mustChangePassword?: boolean;
+  lastLoginAt?: number;
 }
 
 const KEY = "kpi_hr_admin_accounts_v1";
@@ -57,11 +59,18 @@ export const createHrAdmin = (
     permissions: [...permissions],
     createdAt: Date.now(),
     active: true,
+    mustChangePassword: true,
   };
   persist([...list, account]);
   setPasswordForEmail(e, p);
   return { ok: true, account };
 };
+
+export const setHrAdminMustChangePassword = (id: string, value: boolean) =>
+  updateHrAdmin(id, { mustChangePassword: value });
+
+export const setHrAdminLastLoginNow = (id: string) =>
+  updateHrAdmin(id, { lastLoginAt: Date.now() });
 
 export const updateHrAdmin = (id: string, patch: Partial<Omit<HrAdminAccount, "id" | "createdAt">>) => {
   persist(load().map(a => a.id === id ? { ...a, ...patch } : a));

@@ -9,6 +9,7 @@ import UserLayout from "@/components/layout/UserLayout";
 import RouteGuard from "@/components/layout/RouteGuard";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AccessDenied from "./pages/AccessDenied";
 import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
@@ -63,6 +64,7 @@ const queryClient = new QueryClient();
 const RootRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (user.role === "SUPER_ADMIN") return <Navigate to="/super-admin" replace />;
   if (user.role === "MANAGER") return <Navigate to="/manager" replace />;
   if (user.role === "USER") return <Navigate to="/user" replace />;
@@ -72,6 +74,7 @@ const RootRedirect = () => {
 const LoginGuard = () => {
   const { user } = useAuth();
   if (user) {
+    if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
     const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
       : user.role === "HR" ? "/hr"
       : user.role === "MANAGER" ? "/manager"
@@ -79,6 +82,26 @@ const LoginGuard = () => {
     return <Navigate to={dest} replace />;
   }
   return <LoginPage />;
+};
+
+// Force users with a temporary password to visit /change-password first.
+const RequirePasswordChanged = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  if (user?.mustChangePassword) return <Navigate to="/change-password" replace />;
+  return <>{children}</>;
+};
+
+const ChangePasswordGuard = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.mustChangePassword) {
+    const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
+      : user.role === "HR" ? "/hr"
+      : user.role === "MANAGER" ? "/manager"
+      : "/user";
+    return <Navigate to={dest} replace />;
+  }
+  return <ChangePasswordPage />;
 };
 
 const App = () => {
@@ -96,10 +119,11 @@ const App = () => {
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginGuard />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/change-password" element={<ChangePasswordGuard />} />
             <Route path="/access-denied" element={<AccessDenied />} />
 
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
-            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><AppLayout /></RouteGuard>}>
+            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><AppLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/hr" element={<HomePage />} />
               <Route path="/kpi-kartlari" element={<KpiHubPage />} />
               <Route path="/kpi-qiymetleri" element={<KpiScoresPage />} />
@@ -133,12 +157,12 @@ const App = () => {
             </Route>
 
             {/* Super Admin Panel — yalnız HR (Admin) idarəetməsi */}
-            <Route element={<RouteGuard requiredRole="SUPER_ADMIN"><SuperAdminLayout /></RouteGuard>}>
+            <Route element={<RouteGuard requiredRole="SUPER_ADMIN"><RequirePasswordChanged><SuperAdminLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/super-admin" element={<SuperAdminCompaniesPage />} />
             </Route>
 
             {/* User Panel — Super Admin bura giriş edə bilməz */}
-            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><UserLayout /></RouteGuard>}>
+            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><UserLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/user" element={<UserHomePage />} />
               <Route path="/user/kpi-kartlari" element={<RouteGuard requiredPermissions={["kpi_own", "kpi_team"]}><UserKpiCardsPage /></RouteGuard>} />
               <Route path="/user/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
@@ -150,7 +174,7 @@ const App = () => {
             </Route>
 
             {/* Manager (Rəhbər) Panel */}
-            <Route element={<RouteGuard requiredRole="MANAGER"><ManagerLayout /></RouteGuard>}>
+            <Route element={<RouteGuard requiredRole="MANAGER"><RequirePasswordChanged><ManagerLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/manager" element={<ManagerHomePage />} />
               <Route path="/manager/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />

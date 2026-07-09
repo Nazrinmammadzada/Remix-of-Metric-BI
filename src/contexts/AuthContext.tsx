@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
-import { findHrAdminByEmail } from "@/lib/hrAdminStore";
+import { getPasswordForEmail, setPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
+import {
+  findHrAdminByEmail,
+  setHrAdminLastLoginNow,
+  setHrAdminMustChangePassword,
+} from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 
 export interface AuthUser {
@@ -11,6 +15,7 @@ export interface AuthUser {
   department: string;
   team: string;
   permissions: string[];
+  mustChangePassword?: boolean;
 }
 
 // Super Admin — yalnız HR (Admin) hesablarını idarə edir, başqa heç bir modula girişi yoxdur.
@@ -94,6 +99,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   hasPermission: (perm: string) => boolean;
+  changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -101,6 +107,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false }),
   logout: () => {},
   hasPermission: () => false,
+  changePassword: async () => ({ success: false }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -152,6 +159,7 @@ const resolveUser = (email: string): AuthUser | null => {
       department: "HR",
       team: "HR Komandası",
       permissions: hr.permissions,
+      mustChangePassword: !!hr.mustChangePassword,
     };
   }
   return null;
@@ -225,6 +233,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!ok) {
       return { success: false, error: "Email və ya şifrə yanlışdır" };
     }
+    // Track first-login timestamp for HR admin accounts (used to gate
+    // company deletion when data may already have been created).
+    const hr = findHrAdminByEmail(lower);
+    if (hr) setHrAdminLastLoginNow(hr.id);
     setUser(resolved);
     await saveSession(resolved);
     return { success: true };
@@ -240,8 +252,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return user.permissions.includes(perm);
   };
 
+  const changePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: "Sessiya tapılmadı" };
+    const value = newPassword.trim();
+    if (value.length < 8) return { success: false, error: "Şifrə ən az 8 simvol olmalıdır" };
+    setPasswordForEmail(user.email, value);
+    const hr = findHrAdminByEmail(user.email);
+    if (hr) setHrAdminMustChangePassword(hr.id, false);
+    setUser({ ...user, mustChangePassword: false });
+    return { success: true };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, login, logout, hasPermission, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

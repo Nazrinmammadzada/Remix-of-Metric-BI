@@ -1,17 +1,67 @@
 import { useState } from "react";
-import { Plus, Mail, Trash2, Search, ShieldCheck, ShieldOff, X, Check, KeyRound } from "lucide-react";
+import { Plus, Mail, Trash2, Search, ShieldCheck, ShieldOff, X, Check, KeyRound, Copy, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import {
   useHrAdmins,
   createHrAdmin,
   deleteHrAdmin,
-  toggleHrAdminPermission,
   setHrAdminActive,
   setHrAdminPermissions,
+  setHrAdminMustChangePassword,
   HrAdminAccount,
 } from "@/lib/hrAdminStore";
 import { setPasswordForEmail } from "@/lib/passwordStore";
 import { MODULE_PERMS, ALL_MODULE_KEYS } from "@/lib/modulePermissions";
+
+const OneTimePasswordPanel = ({
+  email,
+  password,
+  onClose,
+}: { email: string; password: string; onClose: () => void }) => {
+  const [ack, setAck] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = () => navigator.clipboard.writeText(password).then(() => {
+    setCopied(true);
+    toast.success("Şifrə kopyalandı");
+  });
+  return (
+    <div className="p-5 space-y-4">
+      <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+        <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-muted-foreground">
+          Bu şifrə YALNIZ indi göstərilir. Bağladıqdan sonra sistem şifrəni bir daha göstərməyəcək.
+          İndi kopyalayıb istifadəçiyə təhlükəsiz kanal ilə çatdırın. İstifadəçi ilk girişdə şifrəni məcburi dəyişəcək.
+        </p>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground">E-poçt</label>
+        <div className="mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background font-mono">{email}</div>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground">Müvəqqəti şifrə</label>
+        <div className="mt-1 flex items-center gap-2">
+          <div className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background font-mono break-all">{password}</div>
+          <button onClick={copy} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-border hover:bg-secondary text-sm">
+            <Copy className="w-4 h-4" /> {copied ? "Kopyalandı" : "Kopyala"}
+          </button>
+        </div>
+      </div>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} className="mt-0.5 w-4 h-4 accent-primary" />
+        <span className="text-foreground">Şifrəni qeyd etdim və istifadəçiyə çatdıracağam.</span>
+      </label>
+      <div className="flex items-center justify-end">
+        <button
+          onClick={onClose}
+          disabled={!ack}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          Bağla
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const SuperAdminUsersPage = () => {
   const admins = useHrAdmins();
@@ -177,29 +227,41 @@ const CreateAdminDialog = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [perms, setPerms] = useState<string[]>([...ALL_MODULE_KEYS]);
+  const [reveal, setReveal] = useState<{ email: string; password: string } | null>(null);
 
   const togglePerm = (k: string) =>
     setPerms(p => (p.includes(k) ? p.filter(x => x !== k) : [...p, k]));
 
   const submit = () => {
-    const res = createHrAdmin(name, email, password, perms);
-    if (!res.ok) {
+    const trimmed = password.trim();
+    const res = createHrAdmin(name, email, trimmed, perms);
+    if (!res.ok || !res.account) {
       toast.error(res.error || "Xəta baş verdi");
       return;
     }
     toast.success("HR (Admin) hesabı yaradıldı");
-    onClose();
+    setReveal({ email: res.account.email, password: trimmed });
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4">
       <div className="bg-card rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h3 className="text-lg font-bold text-foreground">Yeni HR (Admin) Hesabı</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center">
+          <h3 className="text-lg font-bold text-foreground">
+            {reveal ? "Hesab yaradıldı" : "Yeni HR (Admin) Hesabı"}
+          </h3>
+          <button
+            onClick={reveal ? undefined : onClose}
+            disabled={!!reveal}
+            className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center disabled:opacity-30"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
+        {reveal ? (
+          <OneTimePasswordPanel email={reveal.email} password={reveal.password} onClose={onClose} />
+        ) : (
+        <>
         <div className="p-5 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -282,6 +344,8 @@ const CreateAdminDialog = ({ onClose }: { onClose: () => void }) => {
             Yarat
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
@@ -346,46 +410,64 @@ const PermissionsDialog = ({ admin, onClose }: { admin: HrAdminAccount; onClose:
 // ---------- Reset password dialog ----------
 const ResetPasswordDialog = ({ admin, onClose }: { admin: HrAdminAccount; onClose: () => void }) => {
   const [pwd, setPwd] = useState("");
+  const [reveal, setReveal] = useState<string | null>(null);
   const submit = () => {
-    if (pwd.trim().length < 6) {
+    const value = pwd.trim();
+    if (value.length < 6) {
       toast.error("Şifrə ən az 6 simvol olmalıdır");
       return;
     }
-    setPasswordForEmail(admin.email, pwd.trim());
+    setPasswordForEmail(admin.email, value);
+    setHrAdminMustChangePassword(admin.id, true);
     toast.success("Şifrə yeniləndi");
-    onClose();
+    setReveal(value);
   };
   return (
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4">
       <div className="bg-card rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h3 className="text-lg font-bold text-foreground">Şifrəni Sıfırla</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              {reveal ? "Yeni müvəqqəti şifrə" : "Şifrəni Sıfırla"}
+            </h3>
             <p className="text-xs text-muted-foreground">{admin.name} • {admin.email}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center">
+          <button
+            onClick={reveal ? undefined : onClose}
+            disabled={!!reveal}
+            className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center disabled:opacity-30"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-5">
-          <label className="text-sm font-medium text-foreground">Yeni şifrə</label>
-          <input
-            type="text"
-            value={pwd}
-            onChange={e => setPwd(e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
-            placeholder="Ən az 6 simvol"
-            autoFocus
-          />
-        </div>
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary">
-            Ləğv et
-          </button>
-          <button onClick={submit} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90">
-            Yenilə
-          </button>
-        </div>
+        {reveal ? (
+          <OneTimePasswordPanel email={admin.email} password={reveal} onClose={onClose} />
+        ) : (
+          <>
+            <div className="p-5">
+              <label className="text-sm font-medium text-foreground">Yeni şifrə</label>
+              <input
+                type="text"
+                value={pwd}
+                onChange={e => setPwd(e.target.value)}
+                className="mt-1 w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                placeholder="Ən az 6 simvol"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Sıfırlandıqdan sonra istifadəçi ilk girişdə yeni şifrə təyin etməli olacaq və şifrə YALNIZ bir dəfə göstəriləcək.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+              <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary">
+                Ləğv et
+              </button>
+              <button onClick={submit} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90">
+                Yenilə
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

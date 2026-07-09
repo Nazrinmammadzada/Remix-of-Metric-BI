@@ -1,9 +1,18 @@
 // Companies registry managed by Super Admin.
 // Each company has a name, logo (data URL) and one admin account (HR role).
 // Admin accounts are mirrored into hrAdminStore so login works as before.
+//
+// SECURITY: Admin passwords are NEVER persisted here. They are shown to the
+// super admin exactly once at creation / reset time, then stored only as a
+// hash in passwordStore. There is no way to retrieve the plaintext later.
 
 import { useEffect, useState } from "react";
-import { createHrAdmin, deleteHrAdmin, getHrAdmins } from "@/lib/hrAdminStore";
+import {
+  createHrAdmin,
+  deleteHrAdmin,
+  getHrAdmins,
+  setHrAdminMustChangePassword,
+} from "@/lib/hrAdminStore";
 import { setPasswordForEmail } from "@/lib/passwordStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 
@@ -11,7 +20,8 @@ export interface CompanyAdmin {
   hrAdminId: string;
   name: string;
   email: string;
-  password: string; // demo-only, stored locally so super admin can view/reset
+  // NOTE: never populated from stored data — the plaintext password is only
+  // returned in-memory from createCompany / updateCompanyAdminPassword.
 }
 
 export interface Company {
@@ -84,7 +94,7 @@ export const createCompany = (
   adminName: string,
   adminEmail?: string,
   adminPassword?: string,
-): { ok: boolean; error?: string; company?: Company } => {
+): { ok: boolean; error?: string; company?: Company; plaintextPassword?: string } => {
   const n = name.trim();
   if (!n) return { ok: false, error: "Şirkət adını daxil edin" };
   if (!adminName.trim()) return { ok: false, error: "Admin adını daxil edin" };
@@ -98,29 +108,48 @@ export const createCompany = (
     id: crypto.randomUUID(),
     name: n,
     logo,
-    admin: { hrAdminId: res.account.id, name: adminName.trim(), email, password },
+    admin: { hrAdminId: res.account.id, name: adminName.trim(), email },
     createdAt: Date.now(),
   };
   persist([...load(), company]);
-  return { ok: true, company };
+  return { ok: true, company, plaintextPassword: password };
 };
 
 export const updateCompanyAdminPassword = (id: string, password: string) => {
-  const list = load().map(c =>
-    c.id === id ? { ...c, admin: { ...c.admin, password } } : c,
-  );
-  persist(list);
-  const c = list.find(x => x.id === id);
-  if (c) setPasswordForEmail(c.admin.email, password);
+  const c = load().find(x => x.id === id);
+  if (!c) return;
+  setPasswordForEmail(c.admin.email, password);
+  // Force the admin to reset the temporary password on next login.
+  setHrAdminMustChangePassword(c.admin.hrAdminId, true);
 };
 
-export const deleteCompany = (id: string) => {
+// A company can only be deleted when its admin has not yet activated the
+// workspace. As soon as the admin logs in we assume they may have created
+// users / departments / teams / positions / KPI cards that would be
+// orphaned by a deletion, so the operation is blocked.
+export const checkCompanyDependencies = (
+  c: Company,
+): { ok: boolean; reason?: string } => {
+  const hr = getHrAdmins().find(a => a.id === c.admin.hrAdminId);
+  if (hr?.lastLoginAt) {
+    const when = new Date(hr.lastLoginAt).toLocaleDateString("az-AZ");
+    return {
+      ok: false,
+      reason: `Bu şirkətin admini (${c.admin.email}) sistemə daxil olub (${when}). Silinmədən əvvəl bu şirkətə aid istifadəçilər, şöbələr, komandalar, vəzifələr və KPI kartları silinməlidir.`,
+    };
+  }
+  return { ok: true };
+};
+
+export const deleteCompany = (id: string): { ok: boolean; error?: string } => {
   const list = load();
   const c = list.find(x => x.id === id);
-  if (c) {
-    try { deleteHrAdmin(c.admin.hrAdminId); } catch {}
-  }
+  if (!c) return { ok: false, error: "Şirkət tapılmadı" };
+  const dep = checkCompanyDependencies(c);
+  if (!dep.ok) return { ok: false, error: dep.reason };
+  try { deleteHrAdmin(c.admin.hrAdminId); } catch {}
   persist(list.filter(x => x.id !== id));
+  return { ok: true };
 };
 
 export const useCompanies = (): Company[] => {
