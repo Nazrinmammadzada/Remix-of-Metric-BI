@@ -678,7 +678,6 @@ const CompetencyMatrixTab = () => {
                     <th className="px-3 py-2 text-left">Tətbiq olunduğu vəzifələr</th>
                     <th className="px-3 py-2 text-left w-20">Suallar</th>
                     <th className="px-3 py-2 text-left w-24">Yekun çəki</th>
-                    <th className="px-3 py-2 text-left w-24">Status</th>
                     <th className="px-3 py-2 text-right w-16">Əməliyyat</th>
                   </tr>
                 </thead>
@@ -696,11 +695,6 @@ const CompetencyMatrixTab = () => {
                         <td className="px-3 py-2 text-muted-foreground text-xs">{m.positions.slice(0, 2).join(", ")}{m.positions.length > 2 ? ` +${m.positions.length - 2}` : ""}</td>
                         <td className="px-3 py-2">{m.questions.length}</td>
                         <td className={`px-3 py-2 ${total === 100 ? "text-emerald-600" : "text-rose-600"}`}>{total}%</td>
-                        <td className="px-3 py-2">
-                          <Badge variant="outline" className={STATUS_META[m.status].className}>
-                            {STATUS_META[m.status].label}
-                          </Badge>
-                        </td>
                         <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -711,8 +705,6 @@ const CompetencyMatrixTab = () => {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => setViewing(m)}><Eye className="w-4 h-4 mr-2" /> Bax</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setEditing(m)}><Pencil className="w-4 h-4 mr-2" /> Redaktə</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { duplicateCompetencyMatrix(m.id); toast.success("Kopyalandı"); }}><Copy className="w-4 h-4 mr-2" /> Kopyala</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { archiveCompetencyMatrix(m.id); toast.success("Arxivləşdirildi"); }}><Archive className="w-4 h-4 mr-2" /> Arxivləşdir</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => setConfirmDelete(m)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Sil</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -722,11 +714,12 @@ const CompetencyMatrixTab = () => {
                     );
                   })}
                   {pageRows.length === 0 && (
-                    <tr><td colSpan={6} className="px-3 py-8 text-center text-sm text-muted-foreground">Nəticə yoxdur</td></tr>
+                    <tr><td colSpan={5} className="px-3 py-8 text-center text-sm text-muted-foreground">Nəticə yoxdur</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
+
 
             {/* Pagination */}
             <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
