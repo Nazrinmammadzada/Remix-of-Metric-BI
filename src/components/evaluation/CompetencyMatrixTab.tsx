@@ -121,7 +121,17 @@ const PositionMultiSelect = ({ value, onChange }: { value: string[]; onChange: (
 };
 
 // ================= Create/Edit Modal =================
-const CreateEditModal = ({ open, onClose, initial }: { open: boolean; onClose: () => void; initial?: CompetencyMatrix }) => {
+const CreateEditModal = ({
+  open, onClose, initial, mode = "full",
+  allMatrices,
+}: {
+  open: boolean;
+  onClose: () => void;
+  initial?: CompetencyMatrix;
+  mode?: "full" | "answersOnly";
+  allMatrices?: CompetencyMatrix[];
+}) => {
+  const isAnswersOnly = mode === "answersOnly";
   const [name, setName] = useState(initial?.name || "");
   const [positions, setPositions] = useState<string[]>(initial?.positions || []);
   const [description, setDescription] = useState(initial?.description || "");
@@ -146,13 +156,14 @@ const CreateEditModal = ({ open, onClose, initial }: { open: boolean; onClose: (
   const totalWeight = questions.reduce((s, q) => s + (Number(q.weight) || 0), 0);
   const weightOk = totalWeight === 100;
   const uniqueScores = new Set(answers.map(a => a.score)).size === answers.length;
-  const canSubmit =
-    name.trim().length > 0 &&
-    positions.length > 0 &&
-    questions.length >= 1 &&
-    weightOk &&
-    answers.length >= 2 &&
-    uniqueScores;
+  const canSubmit = isAnswersOnly
+    ? (answers.length >= 2 && uniqueScores)
+    : (
+        name.trim().length > 0 &&
+        positions.length > 0 &&
+        questions.length >= 1 &&
+        weightOk
+      );
 
   const updateQ = (id: string, patch: Partial<CompetencyQuestion>) =>
     setQuestions(qs => qs.map(q => q.id === id ? { ...q, ...patch } : q));
@@ -166,6 +177,24 @@ const CreateEditModal = ({ open, onClose, initial }: { open: boolean; onClose: (
 
   const submit = () => {
     if (!canSubmit) return;
+    if (isAnswersOnly) {
+      // Apply the answer set to all matrices (shared across matrices).
+      (allMatrices || []).forEach(m => {
+        upsertCompetencyMatrix({
+          id: m.id,
+          name: m.name,
+          positions: m.positions,
+          description: m.description,
+          questions: m.questions,
+          answers,
+          status: m.status,
+          usedKpiCount: m.usedKpiCount,
+        });
+      });
+      toast.success("Cavab variantları bütün matrislərə tətbiq edildi");
+      onClose();
+      return;
+    }
     upsertCompetencyMatrix({
       id: initial?.id,
       name: name.trim(),
@@ -184,125 +213,134 @@ const CreateEditModal = ({ open, onClose, initial }: { open: boolean; onClose: (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-[980px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initial ? "Səriştə matrisini redaktə et" : "Yeni səriştə matrisi yarat"}</DialogTitle>
+          <DialogTitle>
+            {isAnswersOnly
+              ? "Cavab variantları və balları redaktə et"
+              : initial ? "Səriştə matrisini redaktə et" : "Yeni səriştə matrisi yarat"}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* Section 1 — Ümumi məlumat */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-foreground">Ümumi məlumat</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Matris adı *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Məsələn: Reception əməkdaşı matrisi" />
+        {!isAnswersOnly && (
+          <>
+            {/* Section 1 — Ümumi məlumat */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground">Ümumi məlumat</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Matris adı *</Label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="Məsələn: Reception əməkdaşı matrisi" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Tətbiq olunduğu vəzifələr *</Label>
+                  <PositionMultiSelect value={positions} onChange={setPositions} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Təsvir</Label>
+                <Textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 250))} placeholder="Matris haqqında qısa təsvir (istəyə bağlı)" rows={2} />
+                <p className="text-[11px] text-muted-foreground text-right">{description.length}/250</p>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Tətbiq olunduğu vəzifələr *</Label>
-              <PositionMultiSelect value={positions} onChange={setPositions} />
+
+            {/* Section 2 — Suallar */}
+            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-foreground">Suallar (Kompetensiyalar)</h3>
+                <Button size="sm" onClick={addQ} className="gap-1"><Plus className="w-4 h-4" /> Sual əlavə et</Button>
+              </div>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-left w-10">#</th>
+                      <th className="px-3 py-2 text-left">Sual (Kompetensiya)</th>
+                      <th className="px-3 py-2 text-left w-32">Çəki (%)</th>
+                      <th className="px-3 py-2 text-right w-24">Əməliyyat</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {questions.map((q, i) => (
+                      <tr key={q.id} className="border-t border-border">
+                        <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                        <td className="px-3 py-2">
+                          <Input value={q.text} onChange={e => updateQ(q.id, { text: e.target.value })} className="h-8" />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="number" min={0} max={100}
+                            value={q.weight}
+                            onChange={e => updateQ(q.id, { weight: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
+                            className="h-8 w-24"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <Button size="sm" variant="ghost" onClick={() => removeQ(q.id)}>
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="border-t border-border bg-muted/20">
+                      <td colSpan={2} className="px-3 py-2 font-semibold text-foreground">Çəki cəmi</td>
+                      <td colSpan={2} className={`px-3 py-2 font-semibold ${weightOk ? "text-emerald-600" : "text-rose-600"}`}>
+                        {totalWeight}%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Təsvir</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value.slice(0, 250))} placeholder="Matris haqqında qısa təsvir (istəyə bağlı)" rows={2} />
-            <p className="text-[11px] text-muted-foreground text-right">{description.length}/250</p>
-          </div>
-        </div>
+          </>
+        )}
 
-        {/* Section 2 — Suallar */}
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Suallar (Kompetensiyalar)</h3>
-            <Button size="sm" onClick={addQ} className="gap-1"><Plus className="w-4 h-4" /> Sual əlavə et</Button>
-          </div>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left w-10">#</th>
-                  <th className="px-3 py-2 text-left">Sual (Kompetensiya)</th>
-                  <th className="px-3 py-2 text-left w-32">Çəki (%)</th>
-                  <th className="px-3 py-2 text-right w-24">Əməliyyat</th>
-                </tr>
-              </thead>
-              <tbody>
-                {questions.map((q, i) => (
-                  <tr key={q.id} className="border-t border-border">
-                    <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
-                    <td className="px-3 py-2">
-                      <Input value={q.text} onChange={e => updateQ(q.id, { text: e.target.value })} className="h-8" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Input
-                        type="number" min={0} max={100}
-                        value={q.weight}
-                        onChange={e => updateQ(q.id, { weight: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
-                        className="h-8 w-24"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <Button size="sm" variant="ghost" onClick={() => removeQ(q.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </td>
+        {isAnswersOnly && (
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Cavab variantları və ballar</h3>
+              <Button size="sm" onClick={addA} className="gap-1"><Plus className="w-4 h-4" /> Cavab variantı əlavə et</Button>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 text-left">Cavab variantı</th>
+                    <th className="px-3 py-2 text-left w-32">Bal</th>
+                    <th className="px-3 py-2 text-right w-24">Əməliyyat</th>
                   </tr>
-                ))}
-                <tr className="border-t border-border bg-muted/20">
-                  <td colSpan={2} className="px-3 py-2 font-semibold text-foreground">Çəki cəmi</td>
-                  <td colSpan={2} className={`px-3 py-2 font-semibold ${weightOk ? "text-emerald-600" : "text-rose-600"}`}>
-                    {totalWeight}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {answers.map(a => (
+                    <tr key={a.id} className="border-t border-border">
+                      <td className="px-3 py-2">
+                        <Input value={a.label} onChange={e => updateA(a.id, { label: e.target.value })} className="h-8" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          value={a.score}
+                          onChange={e => updateA(a.id, { score: Number(e.target.value) || 0 })}
+                          className="h-8 w-24"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Button size="sm" variant="ghost" onClick={() => removeA(a.id)}>
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {!uniqueScores && (
+              <p className="text-xs text-rose-600">Cavab balları təkrarlanmamalıdır.</p>
+            )}
           </div>
-        </div>
-
-        {/* Section 3 — Cavab variantları */}
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Cavab variantları və ballar</h3>
-            <Button size="sm" onClick={addA} className="gap-1"><Plus className="w-4 h-4" /> Cavab variantı əlavə et</Button>
-          </div>
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 text-left">Cavab variantı</th>
-                  <th className="px-3 py-2 text-left w-32">Bal</th>
-                  <th className="px-3 py-2 text-right w-24">Əməliyyat</th>
-                </tr>
-              </thead>
-              <tbody>
-                {answers.map(a => (
-                  <tr key={a.id} className="border-t border-border">
-                    <td className="px-3 py-2">
-                      <Input value={a.label} onChange={e => updateA(a.id, { label: e.target.value })} className="h-8" />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Input
-                        type="number"
-                        value={a.score}
-                        onChange={e => updateA(a.id, { score: Number(e.target.value) || 0 })}
-                        className="h-8 w-24"
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <Button size="sm" variant="ghost" onClick={() => removeA(a.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {!uniqueScores && (
-            <p className="text-xs text-rose-600">Cavab balları təkrarlanmamalıdır.</p>
-          )}
-        </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Ləğv et</Button>
-          <Button onClick={submit} disabled={!canSubmit}>{initial ? "Yadda saxla" : "Yarat"}</Button>
+          <Button onClick={submit} disabled={!canSubmit}>{initial || isAnswersOnly ? "Yadda saxla" : "Yarat"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
