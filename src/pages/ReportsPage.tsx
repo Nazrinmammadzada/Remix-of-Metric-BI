@@ -257,45 +257,48 @@ const ReportsPage = () => {
 
         {/* Setup card */}
         <div className="bg-card rounded-xl p-5 border border-border max-w-3xl shadow-sm">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Team multi-select */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Filter type */}
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Komandalar</label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Filtr növü</label>
               <div className="relative">
-                <div onClick={() => setShowTeamDropdown(!showTeamDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
-                  <span className={selectedTeams.length > 0 ? "text-foreground" : "text-muted-foreground"}>
-                    {selectedTeams.length > 0 ? `${selectedTeams.length} komanda seçildi` : "Komanda seçin"}
-                  </span>
+                <div onClick={() => setShowFilterTypeDropdown(v => !v)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
+                  <span className="text-foreground">{FILTER_LABELS[filterType]}</span>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </div>
-                {showTeamDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
-                    <div className="p-2">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input value={teamSearch} onChange={e => setTeamSearch(e.target.value)} placeholder="Komanda axtar..." className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" onClick={e => e.stopPropagation()} />
+                {showFilterTypeDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                    {(Object.keys(FILTER_LABELS) as FilterType[]).map(t => (
+                      <div key={t} onClick={() => handleFilterTypeChange(t)} className={`px-3 py-2 text-sm hover:bg-secondary cursor-pointer flex items-center justify-between ${filterType === t ? 'bg-primary/5 font-medium' : ''}`}>
+                        <span>{FILTER_LABELS[t]}</span>
+                        {filterType === t && <Check className="w-4 h-4 text-primary" />}
                       </div>
-                    </div>
-                    <div className="max-h-48 overflow-y-auto">
-                      {filteredTeams.map(t => (
-                        <div key={t.id} onClick={e => { e.stopPropagation(); toggleTeam(t.name); }} className={`px-3 py-2 text-sm hover:bg-secondary cursor-pointer flex items-center justify-between ${selectedTeams.includes(t.name) ? 'bg-primary/5' : ''}`}>
-                          <span>{t.name}</span>
-                          {selectedTeams.includes(t.name) && <Check className="w-4 h-4 text-primary" />}
-                        </div>
-                      ))}
-                      {filteredTeams.length === 0 && <p className="px-3 py-3 text-xs text-muted-foreground">Tapılmadı</p>}
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>
-              {selectedTeams.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedTeams.map(t => (
-                    <span key={t} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      {t}<X className="w-3 h-3 cursor-pointer" onClick={() => toggleTeam(t)} />
-                    </span>
-                  ))}
-                </div>
+            </div>
+
+            {/* Dynamic second dropdown */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">{FILTER_LABELS[filterType]}</label>
+              {isMulti ? (
+                <DropdownMultiSelect
+                  options={secondOptions as string[]}
+                  selected={filterValues}
+                  onToggle={toggleFilterValue}
+                  onChange={setFilterValuesBulk}
+                  placeholder={`${FILTER_LABELS[filterType]} seçin`}
+                  searchPlaceholder="Axtar..."
+                />
+              ) : (
+                <SearchableSelect
+                  value={filterValues[0] || ""}
+                  onChange={v => { setFilterValues(v ? [v] : []); setSelectedTargets([]); setGenerated(false); }}
+                  options={secondOptions as any}
+                  placeholder="Şəxs seçin"
+                  allowClear
+                />
               )}
             </div>
 
@@ -304,8 +307,8 @@ const ReportsPage = () => {
               <label className="text-sm font-medium text-foreground mb-1.5 block">Hədəflər</label>
               <div className="relative">
                 <div
-                  onClick={() => selectedTeams.length > 0 && setShowTargetDropdown(!showTargetDropdown)}
-                  className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${selectedTeams.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                  onClick={() => filterValues.length > 0 && setShowTargetDropdown(!showTargetDropdown)}
+                  className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${filterValues.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                 >
                   <span className={selectedTargets.length > 0 ? "text-foreground" : "text-muted-foreground"}>
                     {selectedTargets.length > 0 ? `${selectedTargets.length} hədəf seçildi` : "Hədəf seçin"}
@@ -357,11 +360,12 @@ const ReportsPage = () => {
           </div>
 
           <div className="flex justify-end mt-5">
-            <button onClick={handleGenerate} disabled={selectedTeams.length === 0 || selectedTargets.length === 0} className="px-5 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
+            <button onClick={handleGenerate} disabled={filterValues.length === 0 || selectedTargets.length === 0} className="px-5 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
               Hesabatı formalaşdır
             </button>
           </div>
         </div>
+
 
         {/* Charts */}
         {generated && chartKpis.length > 0 && (
