@@ -65,7 +65,8 @@ const scoreColor = (pct: number): string => {
 const PositionMultiSelect = ({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const filtered = POSITION_POOL.filter(p => p.toLowerCase().includes(q.toLowerCase()));
+  const pool = useMemo(() => getPositionPool(), []);
+  const filtered = pool.filter(p => p.toLowerCase().includes(q.toLowerCase()));
   const toggle = (p: string) => {
     onChange(value.includes(p) ? value.filter(x => x !== p) : [...value, p]);
   };
