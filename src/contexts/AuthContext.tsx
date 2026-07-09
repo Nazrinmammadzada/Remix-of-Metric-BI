@@ -99,6 +99,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   hasPermission: (perm: string) => boolean;
+  changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -106,6 +107,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false }),
   logout: () => {},
   hasPermission: () => false,
+  changePassword: async () => ({ success: false }),
 });
 
 export const useAuth = () => useContext(AuthContext);
