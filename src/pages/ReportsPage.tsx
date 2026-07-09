@@ -10,6 +10,19 @@ import { getTeams, type Team } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import ExcelImportButton from "@/components/common/ExcelImportButton";
 import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
+import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
+import SearchableSelect from "@/components/common/SearchableSelect";
+import { mockEmployees } from "@/data/mockData";
+import { mockStructures, mockTeams } from "@/data/mockExtras";
+import { getPositions } from "@/lib/catalogStore";
+
+type FilterType = "position" | "person" | "structure" | "team";
+const FILTER_LABELS: Record<FilterType, string> = {
+  position: "Vəzifə",
+  person: "Şəxs",
+  structure: "Struktur",
+  team: "Komanda",
+};
 
 // --- Sample KPI dataset (organized by team) ---
 const teamKpis: Record<string, { name: string; structure: string; subStructure: string; progress: number; target: string; current: string; icon: any }[]> = {
