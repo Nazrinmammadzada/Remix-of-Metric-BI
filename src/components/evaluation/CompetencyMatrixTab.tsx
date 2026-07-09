@@ -806,6 +806,15 @@ const CompetencyMatrixTab = () => {
       {/* Modals */}
       <CreateEditModal open={createOpen} onClose={() => setCreateOpen(false)} />
       {editing && <CreateEditModal open={!!editing} onClose={() => setEditing(null)} initial={editing} />}
+      {answersEditOpen && (
+        <CreateEditModal
+          open={answersEditOpen}
+          onClose={() => setAnswersEditOpen(false)}
+          initial={selected || undefined}
+          mode="answersOnly"
+          allMatrices={list}
+        />
+      )}
       <ViewModal matrix={viewing} onClose={() => setViewing(null)} />
       <Dialog open={!!confirmDelete} onOpenChange={o => !o && setConfirmDelete(null)}>
         <DialogContent className="max-w-sm">
