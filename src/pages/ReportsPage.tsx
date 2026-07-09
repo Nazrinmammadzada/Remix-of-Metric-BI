@@ -196,7 +196,7 @@ const ReportsPage = () => {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.setFontSize(16); pdf.text("KPI Hesabat", 14, 15);
-      pdf.setFontSize(10); pdf.text(`Komandalar: ${selectedTeams.join(", ")}`, 14, 22);
+      pdf.setFontSize(10); pdf.text(`${FILTER_LABELS[filterType]}: ${filterValues.join(", ")}`, 14, 22);
       pdf.addImage(imgData, "PNG", 10, 28, pdfWidth - 20, pdfHeight * ((pdfWidth - 20) / pdfWidth));
       pdf.save("KPI_Hesabat.pdf");
     } catch (e) { console.error(e); }
