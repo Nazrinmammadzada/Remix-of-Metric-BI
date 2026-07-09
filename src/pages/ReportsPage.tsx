@@ -406,7 +406,7 @@ const ReportsPage = () => {
               {/* Pie 2 - Komanda üzrə Bölgü */}
               <ChartFrame title="Komanda üzrə Bölgü" subtitle="Komandaların ümumi proqres payı">
                 {(factor) => {
-                  const data = (selectedTeams.length > 0 ? teamCompare : pieData).map(d => ({
+                  const data = (resolvedTeams.length > 0 ? teamCompare : pieData).map(d => ({
                     name: d.name, value: Math.min(100, Math.round(d.value * factor)),
                   }));
                   return (
