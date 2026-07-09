@@ -11,6 +11,8 @@ export interface HrAdminAccount {
   permissions: string[];
   createdAt: number;
   active: boolean;
+  mustChangePassword?: boolean;
+  lastLoginAt?: number;
 }
 
 const KEY = "kpi_hr_admin_accounts_v1";
