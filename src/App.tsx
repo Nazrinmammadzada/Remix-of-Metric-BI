@@ -9,6 +9,7 @@ import UserLayout from "@/components/layout/UserLayout";
 import RouteGuard from "@/components/layout/RouteGuard";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AccessDenied from "./pages/AccessDenied";
 import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
