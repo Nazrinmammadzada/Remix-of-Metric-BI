@@ -2145,6 +2145,19 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
         }
         onSave(teamMemberEvs.map(e => ({ ...e, name: `[${teamName}] ${e.name}` })));
       }
+    } else if (tab === "structure") {
+      if (!structPath) { toast.error("Struktur seçin"); return; }
+      if (structMemberEvs.length === 0) {
+        onSave([{ id: crypto.randomUUID(), name: `[Struktur] ${structPath}`, weight: 100 }]);
+      } else {
+        if (structMemberEvs.length > 1) {
+          const sum = structMemberEvs.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+          if (sum !== 100) { toast.error(`Faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+        } else {
+          structMemberEvs[0].weight = 100;
+        }
+        onSave(structMemberEvs.map(e => ({ ...e, name: `[${structPath}] ${e.name}` })));
+      }
     } else if (tab === "self") {
       onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
     } else {
@@ -2156,6 +2169,7 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "person", label: "Şəxs" },
     { key: "team", label: "Komanda" },
+    { key: "structure", label: "Struktur" },
     { key: "self", label: "Özü" },
     { key: "integration", label: "İnteqrasiya" },
   ];
