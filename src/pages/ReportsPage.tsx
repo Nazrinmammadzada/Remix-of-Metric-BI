@@ -212,7 +212,8 @@ const ReportsPage = () => {
       toast.error("Komanda tanınmadı");
       return;
     }
-    setSelectedTeams(matched);
+    setFilterType("team");
+    setFilterValues(matched);
     setTimeout(() => {
       const all: string[] = [];
       matched.forEach(t => (teamKpis[t] || []).forEach(k => {
