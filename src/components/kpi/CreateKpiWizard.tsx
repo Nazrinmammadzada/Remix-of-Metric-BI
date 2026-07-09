@@ -12,7 +12,7 @@ import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown, Shuffle,
+  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown, Shuffle, Briefcase,
 } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
