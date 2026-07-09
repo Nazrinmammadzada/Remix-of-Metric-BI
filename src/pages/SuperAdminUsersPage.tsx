@@ -410,46 +410,64 @@ const PermissionsDialog = ({ admin, onClose }: { admin: HrAdminAccount; onClose:
 // ---------- Reset password dialog ----------
 const ResetPasswordDialog = ({ admin, onClose }: { admin: HrAdminAccount; onClose: () => void }) => {
   const [pwd, setPwd] = useState("");
+  const [reveal, setReveal] = useState<string | null>(null);
   const submit = () => {
-    if (pwd.trim().length < 6) {
+    const value = pwd.trim();
+    if (value.length < 6) {
       toast.error("Şifrə ən az 6 simvol olmalıdır");
       return;
     }
-    setPasswordForEmail(admin.email, pwd.trim());
+    setPasswordForEmail(admin.email, value);
+    setHrAdminMustChangePassword(admin.id, true);
     toast.success("Şifrə yeniləndi");
-    onClose();
+    setReveal(value);
   };
   return (
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4">
       <div className="bg-card rounded-xl w-full max-w-md">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h3 className="text-lg font-bold text-foreground">Şifrəni Sıfırla</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              {reveal ? "Yeni müvəqqəti şifrə" : "Şifrəni Sıfırla"}
+            </h3>
             <p className="text-xs text-muted-foreground">{admin.name} • {admin.email}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center">
+          <button
+            onClick={reveal ? undefined : onClose}
+            disabled={!!reveal}
+            className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center disabled:opacity-30"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-5">
-          <label className="text-sm font-medium text-foreground">Yeni şifrə</label>
-          <input
-            type="text"
-            value={pwd}
-            onChange={e => setPwd(e.target.value)}
-            className="mt-1 w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
-            placeholder="Ən az 6 simvol"
-            autoFocus
-          />
-        </div>
-        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
-          <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary">
-            Ləğv et
-          </button>
-          <button onClick={submit} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90">
-            Yenilə
-          </button>
-        </div>
+        {reveal ? (
+          <OneTimePasswordPanel email={admin.email} password={reveal} onClose={onClose} />
+        ) : (
+          <>
+            <div className="p-5">
+              <label className="text-sm font-medium text-foreground">Yeni şifrə</label>
+              <input
+                type="text"
+                value={pwd}
+                onChange={e => setPwd(e.target.value)}
+                className="mt-1 w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                placeholder="Ən az 6 simvol"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Sıfırlandıqdan sonra istifadəçi ilk girişdə yeni şifrə təyin etməli olacaq və şifrə YALNIZ bir dəfə göstəriləcək.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+              <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary">
+                Ləğv et
+              </button>
+              <button onClick={submit} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90">
+                Yenilə
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
