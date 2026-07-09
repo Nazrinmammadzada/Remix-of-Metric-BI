@@ -765,7 +765,7 @@ const CompetencyMatrixTab = () => {
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <h3 className="font-semibold text-foreground">Cavab variantları və ballar — {selected.name}</h3>
-            <Button size="sm" variant="outline" onClick={() => setEditing(selected)} className="gap-1">
+            <Button size="sm" variant="outline" onClick={() => setAnswersEditOpen(true)} className="gap-1">
               <Pencil className="w-3.5 h-3.5" /> Redaktə et
             </Button>
           </div>
