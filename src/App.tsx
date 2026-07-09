@@ -64,6 +64,7 @@ const queryClient = new QueryClient();
 const RootRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (user.role === "SUPER_ADMIN") return <Navigate to="/super-admin" replace />;
   if (user.role === "MANAGER") return <Navigate to="/manager" replace />;
   if (user.role === "USER") return <Navigate to="/user" replace />;
@@ -73,6 +74,7 @@ const RootRedirect = () => {
 const LoginGuard = () => {
   const { user } = useAuth();
   if (user) {
+    if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
     const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
       : user.role === "HR" ? "/hr"
       : user.role === "MANAGER" ? "/manager"
@@ -80,6 +82,26 @@ const LoginGuard = () => {
     return <Navigate to={dest} replace />;
   }
   return <LoginPage />;
+};
+
+// Force users with a temporary password to visit /change-password first.
+const RequirePasswordChanged = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  if (user?.mustChangePassword) return <Navigate to="/change-password" replace />;
+  return <>{children}</>;
+};
+
+const ChangePasswordGuard = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.mustChangePassword) {
+    const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
+      : user.role === "HR" ? "/hr"
+      : user.role === "MANAGER" ? "/manager"
+      : "/user";
+    return <Navigate to={dest} replace />;
+  }
+  return <ChangePasswordPage />;
 };
 
 const App = () => {
