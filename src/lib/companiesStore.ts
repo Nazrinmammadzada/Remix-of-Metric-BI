@@ -1,9 +1,18 @@
 // Companies registry managed by Super Admin.
 // Each company has a name, logo (data URL) and one admin account (HR role).
 // Admin accounts are mirrored into hrAdminStore so login works as before.
+//
+// SECURITY: Admin passwords are NEVER persisted here. They are shown to the
+// super admin exactly once at creation / reset time, then stored only as a
+// hash in passwordStore. There is no way to retrieve the plaintext later.
 
 import { useEffect, useState } from "react";
-import { createHrAdmin, deleteHrAdmin, getHrAdmins } from "@/lib/hrAdminStore";
+import {
+  createHrAdmin,
+  deleteHrAdmin,
+  getHrAdmins,
+  setHrAdminMustChangePassword,
+} from "@/lib/hrAdminStore";
 import { setPasswordForEmail } from "@/lib/passwordStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 
