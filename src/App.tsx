@@ -157,12 +157,12 @@ const App = () => {
             </Route>
 
             {/* Super Admin Panel — yalnız HR (Admin) idarəetməsi */}
-            <Route element={<RouteGuard requiredRole="SUPER_ADMIN"><SuperAdminLayout /></RouteGuard>}>
+            <Route element={<RouteGuard requiredRole="SUPER_ADMIN"><RequirePasswordChanged><SuperAdminLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/super-admin" element={<SuperAdminCompaniesPage />} />
             </Route>
 
             {/* User Panel — Super Admin bura giriş edə bilməz */}
-            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><UserLayout /></RouteGuard>}>
+            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><UserLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/user" element={<UserHomePage />} />
               <Route path="/user/kpi-kartlari" element={<RouteGuard requiredPermissions={["kpi_own", "kpi_team"]}><UserKpiCardsPage /></RouteGuard>} />
               <Route path="/user/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
@@ -174,7 +174,7 @@ const App = () => {
             </Route>
 
             {/* Manager (Rəhbər) Panel */}
-            <Route element={<RouteGuard requiredRole="MANAGER"><ManagerLayout /></RouteGuard>}>
+            <Route element={<RouteGuard requiredRole="MANAGER"><RequirePasswordChanged><ManagerLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/manager" element={<ManagerHomePage />} />
               <Route path="/manager/sistem-tesdiq" element={<UserApprovalsPage />} />
               <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
