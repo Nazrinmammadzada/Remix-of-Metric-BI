@@ -20,6 +20,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { Badge } from "@/components/ui/badge";
 import { mockEmployees, getInitials, MockEmployee, buildPeerAssignments, CURRENT_CYCLE_ID } from "@/data/mockData";
@@ -948,36 +950,79 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
         <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl">{emptyText}</div>
       ) : group.cards.map(card => {
         const isOpen = openCardIds.includes(card.id);
+        // Aggregate stats for header
+        const cardStats = card.targets.map((t, ti) => {
+          const evalIds = getGoalEvaluatorIds(card, ti);
+          const raters = buildRaters(card.id + t.id, evalIds, t.scoreLimit);
+          return { raters, finalS: finalScore(raters) };
+        });
+        const doneRaters = cardStats.flatMap(s => s.raters).filter(r => r.done).length;
+        const totalRaters = cardStats.flatMap(s => s.raters).length;
+        const avgFinal = (() => {
+          const arr = cardStats.map(s => s.finalS).filter((v): v is number => v !== null);
+          if (arr.length === 0) return null;
+          return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+        })();
+        const cardCompletePct = totalRaters ? Math.round((doneRaters / totalRaters) * 100) : 0;
         return (
-          <div key={card.id} className="border border-border rounded-xl overflow-hidden bg-card">
-            <button type="button" onClick={() => toggleCard(card.id)} className="w-full px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors text-left">
+          <div key={card.id} className="border border-border rounded-2xl overflow-hidden bg-card shadow-sm hover:shadow-md transition-shadow">
+            <button type="button" onClick={() => toggleCard(card.id)} className="w-full px-4 py-3.5 bg-gradient-to-r from-primary/5 via-card to-card hover:from-primary/10 transition-all text-left">
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">{card.name} kartı</p>
-                  <p className="text-[11px] text-muted-foreground">Dövr: {card.startDate} — {card.endDate} · {card.targets.length} hədəf</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{card.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {card.startDate} — {card.endDate} · {card.targets.length} hədəf
+                    </p>
+                  </div>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="outline" className="h-6 gap-1">
+                    <Users className="w-3 h-3" /> {doneRaters}/{totalRaters}
+                  </Badge>
+                  <Badge className={`h-6 gap-1 ${avgFinal !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={avgFinal !== null ? "default" : "secondary"}>
+                    <Star className="w-3 h-3" /> {avgFinal !== null ? `${avgFinal}/5` : "—"}
+                  </Badge>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <Progress value={cardCompletePct} className="h-1.5 flex-1" />
+                <span className="text-[10px] text-muted-foreground shrink-0 w-8 text-right">{cardCompletePct}%</span>
               </div>
             </button>
             {isOpen && (
               <div className="divide-y divide-border">
                 {card.targets.map((t, ti) => {
-                  const evalIds = getGoalEvaluatorIds(card, ti);
-                  const raters = buildRaters(card.id + t.id, evalIds, t.scoreLimit);
-                  const finalS = finalScore(raters);
+                  const { raters, finalS } = cardStats[ti];
                   const h = hash(card.id + t.id);
                   const actual = 60 + (h % 60);
+                  const doneCount = raters.filter(r => r.done).length;
+                  const latestDate = raters.filter(r => r.done && r.date).map(r => r.date!).sort().slice(-1)[0] || null;
+                  const status = doneCount === raters.length ? "Tamamlanıb" : doneCount === 0 ? "Gözləyir" : "Davam edir";
+                  const statusTone = status === "Tamamlanıb" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : status === "Gözləyir" ? "bg-muted text-muted-foreground border-border" : "bg-amber-500/15 text-amber-600 border-amber-500/30";
                   return (
-                    <div key={t.id} className="p-3 space-y-2 bg-background">
+                    <div key={t.id} className="p-4 space-y-3 bg-background">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">{t.name}</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {t.type} · hədəf çəkisi {t.weight}% · nəticə {actual}%
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-[11px] text-muted-foreground">{t.type}</span>
+                            <span className="text-[11px] text-muted-foreground">·</span>
+                            <span className="text-[11px] text-muted-foreground">Çəki: <span className="font-medium text-foreground">{t.weight}%</span></span>
+                            <span className="text-[11px] text-muted-foreground">·</span>
+                            <span className="text-[11px] text-muted-foreground">Nəticə: <span className="font-medium text-foreground">{actual}%</span></span>
+                            {latestDate && <>
+                              <span className="text-[11px] text-muted-foreground">·</span>
+                              <span className="text-[11px] text-muted-foreground">Tarix: <span className="font-medium text-foreground">{latestDate}</span></span>
+                            </>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
+                          <Badge variant="outline" className={`h-6 border ${statusTone}`}>{status}</Badge>
                           <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
                             <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
                           </Badge>
@@ -995,45 +1040,81 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
     </div>
   );
 
+
   const renderIndividualGoals = () => renderGoalCards("Hədəflər", "Bu əməkdaş üçün KPI kartı yoxdur");
 
-  const renderIndividualCompetencies = () => (
-    <div className="border border-border rounded-xl overflow-hidden bg-card">
-      <div className="px-4 py-3 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <p className="text-sm font-semibold text-foreground">Səriştələr</p>
-        </div>
-        <p className="text-[11px] text-muted-foreground">Əməkdaşlar səriştə meyarları üzrə qiymətləndirilir</p>
-      </div>
-      <div className="divide-y divide-border">
-        {competencies.map((c, ci) => {
-          const base = group.cards[0]?.evaluatorIds && group.cards[0].evaluatorIds.length > 0
-            ? group.cards[0].evaluatorIds
-            : groupExtraEvaluators(1);
-          const evalIds = ci === 0
-            ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
-            : base;
-          const raters = buildRaters(group.key + "-comp-" + c, evalIds, 5);
-          const finalS = finalScore(raters);
+  const renderIndividualCompetencies = () => {
+    // Simple category grouping: split criteria into 2 categories for a structured look.
+    const half = Math.ceil(competencies.length / 2);
+    const categories: { name: string; icon: typeof Sparkles; items: string[] }[] = [
+      { name: "Peşəkar bacarıqlar", icon: Sparkles, items: competencies.slice(0, half) },
+      { name: "Davranış və münasibət", icon: UserCheck, items: competencies.slice(half) },
+    ].filter(c => c.items.length > 0);
+
+    return (
+      <div className="space-y-4">
+        {categories.map(cat => {
+          const CatIcon = cat.icon;
           return (
-            <div key={c} className="p-3 space-y-2">
-              <div className="flex items-start justify-between gap-2 flex-wrap">
-                <p className="text-sm font-medium text-foreground">{c}</p>
+            <div key={cat.name} className="border border-border rounded-2xl overflow-hidden bg-card shadow-sm">
+              <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-primary/5 via-card to-card">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="h-6">Qiymətləndirən: {raters.length}</Badge>
-                  <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
-                    <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
-                  </Badge>
+                  <div className="w-8 h-8 rounded-lg bg-primary/15 text-primary flex items-center justify-center">
+                    <CatIcon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{cat.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{cat.items.length} səriştə meyarı</p>
+                  </div>
                 </div>
               </div>
-              <RaterList raters={raters} />
+              <div className="divide-y divide-border">
+                {cat.items.map((c, ci) => {
+                  const base = group.cards[0]?.evaluatorIds && group.cards[0].evaluatorIds.length > 0
+                    ? group.cards[0].evaluatorIds
+                    : groupExtraEvaluators(1);
+                  const evalIds = ci === 0
+                    ? Array.from(new Set([...base, ...groupExtraEvaluators(2)]))
+                    : base;
+                  const raters = buildRaters(group.key + "-comp-" + c, evalIds, 5);
+                  const finalS = finalScore(raters);
+                  const weight = Math.round(100 / cat.items.length);
+                  const doneCount = raters.filter(r => r.done).length;
+                  const latestDate = raters.filter(r => r.done && r.date).map(r => r.date!).sort().slice(-1)[0] || null;
+                  const status = doneCount === raters.length ? "Tamamlanıb" : doneCount === 0 ? "Gözləyir" : "Davam edir";
+                  const statusTone = status === "Tamamlanıb" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" : status === "Gözləyir" ? "bg-muted text-muted-foreground border-border" : "bg-amber-500/15 text-amber-600 border-amber-500/30";
+                  return (
+                    <div key={c} className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{c}</p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-[11px] text-muted-foreground">Çəki: <span className="font-medium text-foreground">{weight}%</span></span>
+                            {latestDate && <>
+                              <span className="text-[11px] text-muted-foreground">·</span>
+                              <span className="text-[11px] text-muted-foreground">Tarix: <span className="font-medium text-foreground">{latestDate}</span></span>
+                            </>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={`h-6 border ${statusTone}`}>{status}</Badge>
+                          <Badge className={`h-6 gap-1 ${finalS !== null ? "bg-primary/15 text-primary hover:bg-primary/20" : ""}`} variant={finalS !== null ? "default" : "secondary"}>
+                            <Star className="w-3 h-3" /> Yekun: {finalS !== null ? `${finalS}/5` : "—"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <RaterList raters={raters} />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </div>
-    </div>
-  );
+    );
+  };
+
 
   const renderTeamDetail = () => {
     const team = mockTeams.find(t => t.id === group.key);
@@ -1106,16 +1187,29 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
               ))}
             </div>
           ) : scope === "individual" ? (
-            <>
-              {renderIndividualGoals()}
-              {renderIndividualCompetencies()}
-            </>
+            <Tabs defaultValue="goals" className="w-full">
+              <TabsList className="grid grid-cols-2 w-full max-w-md">
+                <TabsTrigger value="goals" className="gap-2">
+                  <Target className="w-4 h-4" /> Hədəflər
+                </TabsTrigger>
+                <TabsTrigger value="comps" className="gap-2">
+                  <Sparkles className="w-4 h-4" /> Səriştələr
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="goals" className="mt-4 space-y-3">
+                {renderIndividualGoals()}
+              </TabsContent>
+              <TabsContent value="comps" className="mt-4">
+                {renderIndividualCompetencies()}
+              </TabsContent>
+            </Tabs>
           ) : scope === "team" ? (
             renderTeamDetail()
           ) : (
             renderStructureDetail()
           )}
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Bağla</Button>
@@ -1169,82 +1263,67 @@ const StatusTab = () => {
         <Badge variant="secondary" className="ml-auto">{filtered.length} nəticə</Badge>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/30 text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 text-left">{label} adı</th>
-              {subTab === "individual" && <th className="px-4 py-3 text-left">Vəzifə</th>}
-              {subTab === "individual" ? (
-                <>
-                  <th className="px-4 py-3 text-left">KPI kartlarının sayı</th>
-                  <th className="px-4 py-3 text-left">Hədəflərin sayı</th>
-                </>
-              ) : subTab === "team" ? (
-                <>
-                  <th className="px-4 py-3 text-left">Üzv sayı</th>
-                  <th className="px-4 py-3 text-left">Qiymətləndirmə tipi</th>
-                </>
-              ) : (
-                <>
-                  <th className="px-4 py-3 text-left">Komanda sayı</th>
-                  <th className="px-4 py-3 text-left">Əməkdaş sayı</th>
-                </>
-              )}
-              <th className="px-4 py-3 text-right">Bax</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(g => {
-              const teamCount = subTab === "structure" ? mockTeams.filter(t => t.structureId === g.key).length : 0;
-              return (
-                <tr key={g.key} className="border-t border-border hover:bg-muted/20">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-semibold">
-                        {getInitials(g.name)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground">{g.name}</p>
-                        {subTab !== "individual" && g.subtitle && (
-                          <p className="text-[11px] text-muted-foreground">{g.subtitle}</p>
-                        )}
-                      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {filtered.map(g => {
+          const teamCount = subTab === "structure" ? mockTeams.filter(t => t.structureId === g.key).length : 0;
+          const metaChips: { label: string; value: string | number }[] =
+            subTab === "individual"
+              ? [
+                  { label: "KPI kartı", value: g.cards.length },
+                  { label: "Hədəf", value: g.goalCount },
+                ]
+              : subTab === "team"
+                ? [
+                    { label: "Üzv", value: g.members?.length || 0 },
+                    { label: "Hədəf", value: g.goalCount },
+                    { label: "Tip", value: "Hədəf əsaslı" },
+                  ]
+                : [
+                    { label: "Komanda", value: teamCount },
+                    { label: "Əməkdaş", value: g.members?.length || 0 },
+                    { label: "Hədəf", value: g.goalCount },
+                  ];
+          return (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => setOpenGroup(g)}
+              className="group relative text-left rounded-2xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold shrink-0 ring-2 ring-primary/10">
+                  {getInitials(g.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{g.name}</p>
+                      {g.subtitle && (
+                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{g.subtitle}</p>
+                      )}
                     </div>
-                  </td>
-                  {subTab === "individual" && (
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{g.subtitle || "—"}</td>
-                  )}
-                  {subTab === "individual" ? (
-                    <>
-                      <td className="px-4 py-3"><Badge variant="secondary">{g.cards.length}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant="secondary">{g.goalCount}</Badge></td>
-                    </>
-                  ) : subTab === "team" ? (
-                    <>
-                      <td className="px-4 py-3"><Badge variant="secondary">{g.members?.length || 0}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant="secondary">Hədəf əsaslı</Badge></td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-4 py-3"><Badge variant="secondary">{teamCount}</Badge></td>
-                      <td className="px-4 py-3"><Badge variant="secondary">{g.members?.length || 0}</Badge></td>
-                    </>
-                  )}
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" className="gap-1" onClick={() => setOpenGroup(g)}>
-                      <Eye className="w-4 h-4" /> Bax
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
-              <tr><td colSpan={subTab === "individual" ? 5 : 4} className="px-4 py-10 text-center text-muted-foreground text-sm">Nəticə yoxdur</td></tr>
-            )}
-          </tbody>
-        </table>
+                    <Eye className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-3">
+                    {metaChips.map(chip => (
+                      <Badge key={chip.label} variant="secondary" className="h-6 font-normal">
+                        <span className="text-muted-foreground mr-1">{chip.label}:</span>
+                        <span className="font-semibold text-foreground">{chip.value}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="md:col-span-2 py-16 text-center text-muted-foreground text-sm border border-dashed border-border rounded-2xl">
+            Nəticə yoxdur
+          </div>
+        )}
       </div>
+
 
       <GroupDetailDialog group={openGroup} scope={subTab} onClose={() => setOpenGroup(null)} />
     </div>
