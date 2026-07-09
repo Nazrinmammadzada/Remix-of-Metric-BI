@@ -1221,6 +1221,7 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
 
 const StatusTab = () => {
   const [subTab, setSubTab] = useState<StatusScope>("individual");
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [search, setSearch] = useState("");
   const [openGroup, setOpenGroup] = useState<StatusGroup | null>(null);
   const [, force] = useState(0);
