@@ -898,106 +898,143 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </Field>
 
-                {/* INDIVIDUAL: filters (Vəzifə / Komanda / Struktur) + employee multi-select */}
-                {draft.mode === "individual" && (
-                  <>
-                    <Field label="Filtrlər (Vəzifə / Komanda / Struktur)" span="col-span-12">
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-12 md:col-span-4">
-                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
-                          <MultiSelectDropdown
-                            options={positionOptions}
-                            selected={indFilterPositions}
-                            onChange={setIndFilterPositions}
-                            placeholder="Vəzifə seçin"
-                          />
-                        </div>
-                        <div className="col-span-12 md:col-span-4">
-                          <label className="text-[11px] text-muted-foreground">Komanda</label>
-                          <MultiSelectDropdown
-                            options={teamOptions}
-                            selected={indFilterTeams}
-                            onChange={setIndFilterTeams}
-                            placeholder="Komanda seçin"
-                          />
-                        </div>
-                        <div className="col-span-12 md:col-span-4">
-                          <label className="text-[11px] text-muted-foreground">Struktur</label>
-                          <MultiSelectDropdown
-                            options={structureOptions}
-                            selected={indFilterStructures}
-                            onChange={setIndFilterStructures}
-                            placeholder="Struktur seçin"
-                          />
-                        </div>
+                {/* Tətbiq sahəsi tabs — Şəxs / Komanda / Struktur / Vəzifə */}
+                <Field label="Tətbiq sahəsi" required span="col-span-12">
+                  {(() => {
+                    const CATS: { key: typeof scopeTab; label: string; Icon: any }[] = [
+                      { key: "persons",    label: "Şəxs(lər)", Icon: User },
+                      { key: "teams",      label: "Komanda",   Icon: Users },
+                      { key: "structures", label: "Struktur",  Icon: ShieldCheck },
+                      { key: "positions",  label: "Vəzifə",    Icon: Briefcase },
+                    ];
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {CATS.map(c => {
+                          const active = scopeTab === c.key;
+                          const Icon = c.Icon;
+                          return (
+                            <button key={c.key} type="button" onClick={() => setScopeTab(c.key)}
+                              className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 ${active ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
+                              <span className={`w-4 h-4 rounded border flex items-center justify-center ${active ? "bg-primary border-primary text-white" : "border-muted-foreground/40 bg-background"}`}>
+                                {active && <Check className="w-3 h-3" />}
+                              </span>
+                              <Icon className="w-4 h-4" />
+                              <span className="truncate">{c.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      {(indFilterPositions.length + indFilterTeams.length + indFilterStructures.length) > 0 && (
-                        <div className="flex items-center justify-between mt-1.5">
-                          <p className="text-[11px] text-muted-foreground">
-                            {filteredIndividualEmployeeOptions.length} əməkdaş tapıldı
-                          </p>
-                          <button type="button"
-                            onClick={() => { setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]); }}
-                            className="text-[11px] text-primary hover:underline">
-                            Filtrləri təmizlə
-                          </button>
-                        </div>
-                      )}
-                    </Field>
-                    <Field label="Əməkdaş seçimi" required span="col-span-12">
+                    );
+                  })()}
+                </Field>
+
+                {/* INDIVIDUAL mode: selection under the chosen tab */}
+                {draft.mode === "individual" && (
+                  <Field
+                    label={
+                      scopeTab === "persons" ? "Şəxs(lər) seçin"
+                      : scopeTab === "teams" ? "Komanda seçin"
+                      : scopeTab === "structures" ? "Struktur seçin"
+                      : "Vəzifə seçin"
+                    }
+                    required
+                    span="col-span-12"
+                  >
+                    {scopeTab === "persons" && (
                       <MultiSelectDropdown
                         options={filteredIndividualEmployeeOptions}
                         selected={draft.individualEmployees}
                         onChange={(v) => update({ individualEmployees: v })}
-                        placeholder="Əməkdaş axtarın və seçin..."
+                        placeholder="Şəxs(lər) seçin"
                       />
-                    </Field>
-                  </>
+                    )}
+                    {scopeTab === "teams" && (
+                      <MultiSelectDropdown
+                        options={teamOptions}
+                        selected={indFilterTeams}
+                        onChange={(v) => {
+                          setIndFilterTeams(v);
+                          // auto-fill individualEmployees from filtered pool
+                          const pool = filteredIndividualEmployeeOptions
+                            .filter(o => {
+                              const teams = teamsRaw.filter(t => v.includes(t.name));
+                              return teams.some(t => t.leader === o.value.split(" — ")[0] || t.members.some(m => m.name === o.value.split(" — ")[0]));
+                            })
+                            .map(o => o.value);
+                          if (pool.length) update({ individualEmployees: pool });
+                        }}
+                        placeholder="Komanda seçin"
+                      />
+                    )}
+                    {scopeTab === "structures" && (
+                      <MultiSelectDropdown
+                        options={structureOptions}
+                        selected={indFilterStructures}
+                        onChange={(v) => {
+                          setIndFilterStructures(v);
+                          const pool = employeesRaw
+                            .filter(e => v.some(sp => (e.structurePath || "").startsWith(sp)))
+                            .map(e => e.value);
+                          if (pool.length) update({ individualEmployees: pool });
+                        }}
+                        placeholder="Struktur seçin"
+                      />
+                    )}
+                    {scopeTab === "positions" && (
+                      <MultiSelectDropdown
+                        options={positionOptions}
+                        selected={indFilterPositions}
+                        onChange={(v) => {
+                          setIndFilterPositions(v);
+                          const pool = employeesRaw
+                            .filter(e => v.includes(e.positionName))
+                            .map(e => e.value);
+                          if (pool.length) update({ individualEmployees: pool });
+                        }}
+                        placeholder="Vəzifə seçin"
+                      />
+                    )}
+                    {scopeTab !== "persons" && draft.individualEmployees.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground mt-1.5">
+                        {draft.individualEmployees.length} əməkdaş avtomatik seçildi.
+                      </p>
+                    )}
+                  </Field>
                 )}
 
-
-                {/* BULK: only ONE category at a time */}
+                {/* BULK mode: same tabs — populate bulkSelections for the active category */}
                 {draft.mode === "bulk" && (() => {
                   const bs = draft.bulkSelections;
-                  const activeCat: "teams" | "structures" | "positions" | "persons" | null =
-                    bs.teams.length > 0 ? "teams"
-                    : bs.structures.length > 0 ? "structures"
-                    : bs.positions.length > 0 ? "positions"
-                    : bs.persons.length > 0 ? "persons"
-                    : null;
-                  const dis = (c: typeof activeCat) => activeCat !== null && activeCat !== c;
+                  const setCat = (cat: "persons" | "teams" | "structures" | "positions", v: string[]) => {
+                    const cleared = { teams: [], structures: [], positions: [], persons: [] };
+                    update({ bulkSelections: { ...cleared, [cat]: v } });
+                  };
                   return (
-                    <Field label="Toplu təyinat (yalnız birini doldurun)" required span="col-span-12">
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Komanda</label>
-                          <MultiSelectDropdown options={teamOptions} selected={bs.teams} disabled={dis("teams")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, teams: v } })}
-                            placeholder="Komanda seçin" />
-                        </div>
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Struktur</label>
-                          <MultiSelectDropdown options={structureOptions} selected={bs.structures} disabled={dis("structures")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, structures: v } })}
-                            placeholder="Struktur seçin" />
-                        </div>
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
-                          <MultiSelectDropdown options={positionOptions} selected={bs.positions} disabled={dis("positions")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, positions: v } })}
-                            placeholder="Vəzifə seçin" />
-                        </div>
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Şəxs</label>
-                          <MultiSelectDropdown options={employeeOptions} selected={bs.persons} disabled={dis("persons")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, persons: v } })}
-                            placeholder="Şəxs seçin" />
-                        </div>
-                      </div>
-                      {activeCat && (
-                        <p className="text-[11px] text-muted-foreground mt-1.5">
-                          Yalnız bir kateqoriya seçə bilərsiniz. Dəyişmək üçün cari seçimi təmizləyin.
-                        </p>
+                    <Field
+                      label={
+                        scopeTab === "persons" ? "Şəxs(lər) seçin"
+                        : scopeTab === "teams" ? "Komanda seçin"
+                        : scopeTab === "structures" ? "Struktur seçin"
+                        : "Vəzifə seçin"
+                      }
+                      required
+                      span="col-span-12"
+                    >
+                      {scopeTab === "persons" && (
+                        <MultiSelectDropdown options={employeeOptions} selected={bs.persons}
+                          onChange={(v) => setCat("persons", v)} placeholder="Şəxs(lər) seçin" />
+                      )}
+                      {scopeTab === "teams" && (
+                        <MultiSelectDropdown options={teamOptions} selected={bs.teams}
+                          onChange={(v) => setCat("teams", v)} placeholder="Komanda seçin" />
+                      )}
+                      {scopeTab === "structures" && (
+                        <MultiSelectDropdown options={structureOptions} selected={bs.structures}
+                          onChange={(v) => setCat("structures", v)} placeholder="Struktur seçin" />
+                      )}
+                      {scopeTab === "positions" && (
+                        <MultiSelectDropdown options={positionOptions} selected={bs.positions}
+                          onChange={(v) => setCat("positions", v)} placeholder="Vəzifə seçin" />
                       )}
                       {bs.persons.length >= 2 && (
                         <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1">
@@ -1007,6 +1044,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     </Field>
                   );
                 })()}
+
 
                 <Field label="Dövr" required span="col-span-12 md:col-span-4">
                   <select value={draft.frequency} onChange={e => setFrequency(e.target.value)}
