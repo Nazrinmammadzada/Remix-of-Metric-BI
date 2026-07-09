@@ -1293,11 +1293,12 @@ const SeasonToggle = () => {
   );
 };
 
-type EvalSection = "teyinat" | "status" | "kataloq" | "parametr";
+type EvalSection = "teyinat" | "status" | "kataloq" | "parametr" | "seriste";
 
 const SECTIONS: { k: EvalSection; l: string; desc: string; icon: any; accent: string }[] = [
   { k: "teyinat",  l: "Qiymətləndirənlər", desc: "Qiymətləndirənləri təyin edin və idarə edin", icon: UserCheck,     accent: "from-primary/15 to-primary/5 text-primary" },
   { k: "status",   l: "Status izləmə",     desc: "Fərdi, komanda və struktur üzrə status",       icon: ListChecks,    accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600" },
+  { k: "seriste",  l: "Səriştə Matrisi",   desc: "Davranış və kompetensiya matrislərini idarə edin", icon: Target,    accent: "from-violet-500/15 to-violet-500/5 text-violet-600" },
   { k: "kataloq",  l: "Meyarlar kataloqu", desc: "Qiymətləndirmə meyarlarını idarə edin",        icon: ClipboardList, accent: "from-amber-500/15 to-amber-500/5 text-amber-600" },
   { k: "parametr", l: "Parametrlər",       desc: "Bal aralıqları və digər parametrlər",          icon: Settings2,     accent: "from-sky-500/15 to-sky-500/5 text-sky-600" },
 ];
