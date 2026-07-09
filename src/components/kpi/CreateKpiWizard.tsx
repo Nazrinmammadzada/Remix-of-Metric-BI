@@ -7,6 +7,7 @@ import { getEmployees } from "@/lib/orgStore";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getTeams, addTeam } from "@/lib/teamsStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
+import { getCompetencyMatrices } from "@/lib/competencyMatrixStore";
 import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
