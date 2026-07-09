@@ -180,7 +180,7 @@ const ReportsPage = () => {
   const areaData = lineData.map(d => ({ name: d.name, value: d.actual, hedef: d.target }));
 
   // Per-team comparison
-  const teamCompare = selectedTeams.map(t => {
+  const teamCompare = resolvedTeams.map(t => {
     const kpis = chartKpis.filter(k => k.team === t);
     const avg = kpis.length ? Math.round(kpis.reduce((s, k) => s + k.progress, 0) / kpis.length) : 0;
     return { name: t.length > 18 ? t.substring(0, 18) + "…" : t, value: avg };
