@@ -531,9 +531,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const [indFilterPositions, setIndFilterPositions] = useState<string[]>([]);
   const [indFilterTeams, setIndFilterTeams] = useState<string[]>([]);
   const [indFilterStructures, setIndFilterStructures] = useState<string[]>([]);
+  // Şəxs / Komanda / Struktur / Vəzifə – tab-based application scope selector
+  const [scopeTab, setScopeTab] = useState<"persons" | "teams" | "structures" | "positions">("persons");
   useEffect(() => {
     if (!open) {
       setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]);
+      setScopeTab("persons");
     }
   }, [open]);
 
