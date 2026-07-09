@@ -2030,14 +2030,15 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   onClose: () => void;
   onSave: (evs: WizardEvaluatorRef[]) => void;
 }) {
-  const initialTab: "person" | "team" | "self" | "integration" = (() => {
+  const initialTab: "person" | "team" | "structure" | "self" | "integration" = (() => {
     const first = target.evaluators[0]?.name || "";
     if (first.startsWith("[Komanda]")) return "team";
+    if (first.startsWith("[Struktur]")) return "structure";
     if (first === "[Özü]") return "self";
     if (first.startsWith("[İnteqrasiya]")) return "integration";
     return "person";
   })();
-  const [tab, setTab] = useState<"person" | "team" | "self" | "integration">(initialTab);
+  const [tab, setTab] = useState<"person" | "team" | "structure" | "self" | "integration">(initialTab);
   const [personEvs, setPersonEvs] = useState<WizardEvaluatorRef[]>(
     initialTab === "person" ? target.evaluators : []
   );
@@ -2077,6 +2078,47 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
     setTeamMemberEvs(picked.map(n => ({ id: crypto.randomUUID(), name: n, weight: each })));
     toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
   };
+
+  // ===== Struktur tab (mirrors Komanda tab) =====
+  const structureList = useMemo(() => flattenStructures(getStructures()), []);
+  const allEmployees = useMemo(() => getEmployees().filter(e => e.active), []);
+  const [structPath, setStructPath] = useState<string>(
+    initialTab === "structure" ? (target.evaluators[0]?.name.replace("[Struktur] ", "").split(" — ")[0] || "") : ""
+  );
+  const [structSearch, setStructSearch] = useState("");
+  const [structMemberEvs, setStructMemberEvs] = useState<WizardEvaluatorRef[]>(
+    initialTab === "structure" && target.evaluators.length > 0 && !target.evaluators[0].name.startsWith("[Struktur]")
+      ? target.evaluators : []
+  );
+  const [structRandomCount, setStructRandomCount] = useState<number>(1);
+  const structMembers: { name: string }[] = structPath
+    ? allEmployees
+        .filter(e => (e.structurePath || "").startsWith(structPath))
+        .map(e => ({ name: `${e.firstName} ${e.lastName}` }))
+    : [];
+  const filteredStructures = structureList.filter(s => s.label.toLowerCase().includes(structSearch.toLowerCase()));
+  const toggleStructMember = (name: string) => {
+    setStructMemberEvs(prev => prev.find(p => p.name === name)
+      ? prev.filter(p => p.name !== name)
+      : [...prev, { id: crypto.randomUUID(), name, weight: 0 }]);
+  };
+  const updateStructMemberWeight = (name: string, w: number) => {
+    setStructMemberEvs(prev => prev.map(p => p.name === name ? { ...p, weight: w } : p));
+  };
+  const randomPickStruct = () => {
+    if (!structPath || structMembers.length === 0) return;
+    const wanted = Math.max(1, Math.min(structRandomCount || 1, structMembers.length));
+    const pool = [...structMembers];
+    const picked: string[] = [];
+    for (let i = 0; i < wanted && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0].name);
+    }
+    const each = Math.floor(100 / picked.length);
+    setStructMemberEvs(picked.map(n => ({ id: crypto.randomUUID(), name: n, weight: each })));
+    toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
+  };
+
   const [integration, setIntegration] = useState<string>(
     initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
   );
