@@ -20,7 +20,8 @@ export interface CompanyAdmin {
   hrAdminId: string;
   name: string;
   email: string;
-  password: string; // demo-only, stored locally so super admin can view/reset
+  // NOTE: never populated from stored data — the plaintext password is only
+  // returned in-memory from createCompany / updateCompanyAdminPassword.
 }
 
 export interface Company {
