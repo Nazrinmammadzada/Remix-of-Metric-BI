@@ -10,6 +10,19 @@ import { getTeams, type Team } from "@/lib/teamsStore";
 import { PageHero } from "@/components/ui/page-hero";
 import ExcelImportButton from "@/components/common/ExcelImportButton";
 import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
+import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
+import SearchableSelect from "@/components/common/SearchableSelect";
+import { mockEmployees } from "@/data/mockData";
+import { mockStructures, mockTeams } from "@/data/mockExtras";
+import { getPositions } from "@/lib/catalogStore";
+
+type FilterType = "position" | "person" | "structure" | "team";
+const FILTER_LABELS: Record<FilterType, string> = {
+  position: "Vəzifə",
+  person: "Şəxs",
+  structure: "Struktur",
+  team: "Komanda",
+};
 
 // --- Sample KPI dataset (organized by team) ---
 const teamKpis: Record<string, { name: string; structure: string; subStructure: string; progress: number; target: string; current: string; icon: any }[]> = {
@@ -39,12 +52,12 @@ const COLORS = [
 const ReportsPage = () => {
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
 
-  // Multi-select teams
-  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
-  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
-  const [teamSearch, setTeamSearch] = useState("");
+  // Filter type + values
+  const [filterType, setFilterType] = useState<FilterType>("team");
+  const [filterValues, setFilterValues] = useState<string[]>([]);
+  const [showFilterTypeDropdown, setShowFilterTypeDropdown] = useState(false);
 
-  // Targets dropdown (replaces structure)
+  // Targets dropdown
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [targetSearch, setTargetSearch] = useState("");
@@ -64,24 +77,80 @@ const ReportsPage = () => {
     return () => window.removeEventListener("teams-updated", refresh);
   }, []);
 
-  // All available KPIs from selected teams
+  // Options for the second dropdown based on filter type
+  const secondOptions = useMemo(() => {
+    if (filterType === "position") return getPositions();
+    if (filterType === "structure") return mockStructures.map(s => s.name);
+    if (filterType === "team") return teams.map(t => t.name);
+    if (filterType === "person") return mockEmployees.map(e => ({ value: e.id, label: e.fullName, group: e.position }));
+    return [];
+  }, [filterType, teams]);
+
+  const isMulti = filterType !== "person";
+
+  // Resolve selection → team names (keys into teamKpis)
+  const resolvedTeams = useMemo(() => {
+    if (filterType === "team") return filterValues;
+    if (filterType === "structure") {
+      const ids = mockStructures.filter(s => filterValues.includes(s.name)).map(s => s.id);
+      return Array.from(new Set(mockTeams.filter(t => ids.includes(t.structureId)).map(t => t.name)));
+    }
+    if (filterType === "person") {
+      const eid = filterValues[0];
+      if (!eid) return [];
+      return Array.from(new Set(mockTeams.filter(t => t.memberIds.includes(eid)).map(t => t.name)));
+    }
+    if (filterType === "position") {
+      const empIds = mockEmployees.filter(e => filterValues.includes(e.position)).map(e => e.id);
+      return Array.from(new Set(mockTeams.filter(t => t.memberIds.some(m => empIds.includes(m))).map(t => t.name)));
+    }
+    return [];
+  }, [filterType, filterValues]);
+
+  // Selection summary label
+  const selectionLabel = useMemo(() => {
+    if (filterValues.length === 0) return "";
+    if (filterType === "person") {
+      const emp = mockEmployees.find(e => e.id === filterValues[0]);
+      return emp?.fullName || "";
+    }
+    return `${filterValues.length} seçildi`;
+  }, [filterType, filterValues]);
+
+  // Dedup targets by KPI name across resolved teams
   const availableTargets = useMemo(() => {
+    const seen = new Set<string>();
     const out: { team: string; kpi: typeof teamKpis[string][number] }[] = [];
-    selectedTeams.forEach(t => {
-      (teamKpis[t] || []).forEach(k => out.push({ team: t, kpi: k }));
+    resolvedTeams.forEach(t => {
+      (teamKpis[t] || []).forEach(k => {
+        if (!seen.has(k.name)) { seen.add(k.name); out.push({ team: t, kpi: k }); }
+      });
     });
     return out;
-  }, [selectedTeams]);
+  }, [resolvedTeams]);
 
-  const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
   const displayedTargets = availableTargets.filter(t => t.kpi.name.toLowerCase().includes(targetSearch.toLowerCase()));
   const allTargetsSelected = displayedTargets.length > 0 && displayedTargets.every(t => selectedTargets.includes(t.kpi.name));
 
-  const toggleTeam = (name: string) => {
-    setSelectedTeams(prev => {
-      const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name];
-      return next;
+  const handleFilterTypeChange = (t: FilterType) => {
+    setFilterType(t);
+    setFilterValues([]);
+    setSelectedTargets([]);
+    setGenerated(false);
+    setShowFilterTypeDropdown(false);
+  };
+
+  const toggleFilterValue = (v: string) => {
+    setFilterValues(prev => {
+      if (!isMulti) return prev[0] === v ? [] : [v];
+      return prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
     });
+    setSelectedTargets([]);
+    setGenerated(false);
+  };
+
+  const setFilterValuesBulk = (next: string[]) => {
+    setFilterValues(next);
     setSelectedTargets([]);
     setGenerated(false);
   };
@@ -93,7 +162,7 @@ const ReportsPage = () => {
   const toggleTarget = (name: string) => setSelectedTargets(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
 
   const handleGenerate = () => {
-    if (selectedTeams.length === 0) { toast.error("Ən azı bir komanda seçin"); return; }
+    if (filterValues.length === 0) { toast.error("Ən azı bir dəyər seçin"); return; }
     if (selectedTargets.length === 0) { toast.error("Ən azı bir hədəf seçin"); return; }
     setGenerated(true);
   };
@@ -111,7 +180,7 @@ const ReportsPage = () => {
   const areaData = lineData.map(d => ({ name: d.name, value: d.actual, hedef: d.target }));
 
   // Per-team comparison
-  const teamCompare = selectedTeams.map(t => {
+  const teamCompare = resolvedTeams.map(t => {
     const kpis = chartKpis.filter(k => k.team === t);
     const avg = kpis.length ? Math.round(kpis.reduce((s, k) => s + k.progress, 0) / kpis.length) : 0;
     return { name: t.length > 18 ? t.substring(0, 18) + "…" : t, value: avg };
@@ -127,7 +196,7 @@ const ReportsPage = () => {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.setFontSize(16); pdf.text("KPI Hesabat", 14, 15);
-      pdf.setFontSize(10); pdf.text(`Komandalar: ${selectedTeams.join(", ")}`, 14, 22);
+      pdf.setFontSize(10); pdf.text(`${FILTER_LABELS[filterType]}: ${filterValues.join(", ")}`, 14, 22);
       pdf.addImage(imgData, "PNG", 10, 28, pdfWidth - 20, pdfHeight * ((pdfWidth - 20) / pdfWidth));
       pdf.save("KPI_Hesabat.pdf");
     } catch (e) { console.error(e); }
@@ -143,7 +212,8 @@ const ReportsPage = () => {
       toast.error("Komanda tanınmadı");
       return;
     }
-    setSelectedTeams(matched);
+    setFilterType("team");
+    setFilterValues(matched);
     setTimeout(() => {
       const all: string[] = [];
       matched.forEach(t => (teamKpis[t] || []).forEach(k => {
@@ -187,45 +257,48 @@ const ReportsPage = () => {
 
         {/* Setup card */}
         <div className="bg-card rounded-xl p-5 border border-border max-w-3xl shadow-sm">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Team multi-select */}
+          <div className="grid grid-cols-3 gap-4">
+            {/* Filter type */}
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Komandalar</label>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Filtr növü</label>
               <div className="relative">
-                <div onClick={() => setShowTeamDropdown(!showTeamDropdown)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
-                  <span className={selectedTeams.length > 0 ? "text-foreground" : "text-muted-foreground"}>
-                    {selectedTeams.length > 0 ? `${selectedTeams.length} komanda seçildi` : "Komanda seçin"}
-                  </span>
+                <div onClick={() => setShowFilterTypeDropdown(v => !v)} className="w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
+                  <span className="text-foreground">{FILTER_LABELS[filterType]}</span>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </div>
-                {showTeamDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg">
-                    <div className="p-2">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input value={teamSearch} onChange={e => setTeamSearch(e.target.value)} placeholder="Komanda axtar..." className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded bg-background" onClick={e => e.stopPropagation()} />
+                {showFilterTypeDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                    {(Object.keys(FILTER_LABELS) as FilterType[]).map(t => (
+                      <div key={t} onClick={() => handleFilterTypeChange(t)} className={`px-3 py-2 text-sm hover:bg-secondary cursor-pointer flex items-center justify-between ${filterType === t ? 'bg-primary/5 font-medium' : ''}`}>
+                        <span>{FILTER_LABELS[t]}</span>
+                        {filterType === t && <Check className="w-4 h-4 text-primary" />}
                       </div>
-                    </div>
-                    <div className="max-h-48 overflow-y-auto">
-                      {filteredTeams.map(t => (
-                        <div key={t.id} onClick={e => { e.stopPropagation(); toggleTeam(t.name); }} className={`px-3 py-2 text-sm hover:bg-secondary cursor-pointer flex items-center justify-between ${selectedTeams.includes(t.name) ? 'bg-primary/5' : ''}`}>
-                          <span>{t.name}</span>
-                          {selectedTeams.includes(t.name) && <Check className="w-4 h-4 text-primary" />}
-                        </div>
-                      ))}
-                      {filteredTeams.length === 0 && <p className="px-3 py-3 text-xs text-muted-foreground">Tapılmadı</p>}
-                    </div>
+                    ))}
                   </div>
                 )}
               </div>
-              {selectedTeams.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedTeams.map(t => (
-                    <span key={t} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      {t}<X className="w-3 h-3 cursor-pointer" onClick={() => toggleTeam(t)} />
-                    </span>
-                  ))}
-                </div>
+            </div>
+
+            {/* Dynamic second dropdown */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">{FILTER_LABELS[filterType]}</label>
+              {isMulti ? (
+                <DropdownMultiSelect
+                  options={secondOptions as string[]}
+                  selected={filterValues}
+                  onToggle={toggleFilterValue}
+                  onChange={setFilterValuesBulk}
+                  placeholder={`${FILTER_LABELS[filterType]} seçin`}
+                  searchPlaceholder="Axtar..."
+                />
+              ) : (
+                <SearchableSelect
+                  value={filterValues[0] || ""}
+                  onChange={v => { setFilterValues(v ? [v] : []); setSelectedTargets([]); setGenerated(false); }}
+                  options={secondOptions as any}
+                  placeholder="Şəxs seçin"
+                  allowClear
+                />
               )}
             </div>
 
@@ -234,8 +307,8 @@ const ReportsPage = () => {
               <label className="text-sm font-medium text-foreground mb-1.5 block">Hədəflər</label>
               <div className="relative">
                 <div
-                  onClick={() => selectedTeams.length > 0 && setShowTargetDropdown(!showTargetDropdown)}
-                  className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${selectedTeams.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                  onClick={() => filterValues.length > 0 && setShowTargetDropdown(!showTargetDropdown)}
+                  className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${filterValues.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                 >
                   <span className={selectedTargets.length > 0 ? "text-foreground" : "text-muted-foreground"}>
                     {selectedTargets.length > 0 ? `${selectedTargets.length} hədəf seçildi` : "Hədəf seçin"}
@@ -287,11 +360,12 @@ const ReportsPage = () => {
           </div>
 
           <div className="flex justify-end mt-5">
-            <button onClick={handleGenerate} disabled={selectedTeams.length === 0 || selectedTargets.length === 0} className="px-5 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
+            <button onClick={handleGenerate} disabled={filterValues.length === 0 || selectedTargets.length === 0} className="px-5 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 hover:bg-primary/90 transition-colors">
               Hesabatı formalaşdır
             </button>
           </div>
         </div>
+
 
         {/* Charts */}
         {generated && chartKpis.length > 0 && (
@@ -332,7 +406,7 @@ const ReportsPage = () => {
               {/* Pie 2 - Komanda üzrə Bölgü */}
               <ChartFrame title="Komanda üzrə Bölgü" subtitle="Komandaların ümumi proqres payı">
                 {(factor) => {
-                  const data = (selectedTeams.length > 0 ? teamCompare : pieData).map(d => ({
+                  const data = (resolvedTeams.length > 0 ? teamCompare : pieData).map(d => ({
                     name: d.name, value: Math.min(100, Math.round(d.value * factor)),
                   }));
                   return (
@@ -471,7 +545,7 @@ const ReportsPage = () => {
                 )}
               </ChartFrame>
 
-              {selectedTeams.length > 1 && (
+              {resolvedTeams.length > 1 && (
                 <div className="col-span-2">
                   <ChartFrame title="Komanda Müqayisəsi (Orta Performans)">
                     {(factor) => (
