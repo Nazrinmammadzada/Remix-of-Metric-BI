@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Plus, Search, Settings2, Download, CheckCircle2, XCircle, Trash2, Filter, ListChecks, UserCheck, Users, ArrowRight, ArrowLeft, Sparkles, Target, Send, Calendar as CalendarIcon, Shuffle, Hand, CalendarDays, Pencil, Star, Eye, ArrowLeftCircle, ChevronDown } from "lucide-react";
+import { ClipboardList, Plus, Search, Settings2, Download, CheckCircle2, XCircle, Trash2, Filter, ListChecks, UserCheck, Users, ArrowRight, ArrowLeft, Sparkles, Target, Send, Calendar as CalendarIcon, Shuffle, Hand, CalendarDays, Pencil, Star, Eye, ArrowLeftCircle, ChevronDown, LayoutGrid, List as ListIcon } from "lucide-react";
 import { getSharedKpiCards, type SharedKpiCard } from "@/lib/kpiCardStore";
 import { mockStructures, mockTeams } from "@/data/mockExtras";
 import { PageHero } from "@/components/ui/page-hero";
@@ -1221,6 +1221,7 @@ const GroupDetailDialog = ({ group, scope, onClose }: { group: StatusGroup | nul
 
 const StatusTab = () => {
   const [subTab, setSubTab] = useState<StatusScope>("individual");
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [search, setSearch] = useState("");
   const [openGroup, setOpenGroup] = useState<StatusGroup | null>(null);
   const [, force] = useState(0);
@@ -1260,69 +1261,136 @@ const StatusTab = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={`${label} axtar...`} className="pl-9 w-64" />
         </div>
-        <Badge variant="secondary" className="ml-auto">{filtered.length} nəticə</Badge>
+        <div className="ml-auto flex items-center gap-2">
+          <Badge variant="secondary">{filtered.length} nəticə</Badge>
+          <div className="flex items-center gap-1 border border-border rounded-lg bg-card p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("card")}
+              aria-label="Kart görünüşü"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${viewMode === "card" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Kart
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              aria-label="Siyahı görünüşü"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <ListIcon className="w-3.5 h-3.5" /> Siyahı
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {filtered.map(g => {
-          const teamCount = subTab === "structure" ? mockTeams.filter(t => t.structureId === g.key).length : 0;
-          const metaChips: { label: string; value: string | number }[] =
-            subTab === "individual"
-              ? [
-                  { label: "KPI kartı", value: g.cards.length },
-                  { label: "Hədəf", value: g.goalCount },
-                ]
-              : subTab === "team"
+      {viewMode === "card" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {filtered.map(g => {
+            const teamCount = subTab === "structure" ? mockTeams.filter(t => t.structureId === g.key).length : 0;
+            const metaChips: { label: string; value: string | number }[] =
+              subTab === "individual"
                 ? [
-                    { label: "Üzv", value: g.members?.length || 0 },
+                    { label: "KPI kartı", value: g.cards.length },
                     { label: "Hədəf", value: g.goalCount },
-                    { label: "Tip", value: "Hədəf əsaslı" },
                   ]
-                : [
-                    { label: "Komanda", value: teamCount },
-                    { label: "Əməkdaş", value: g.members?.length || 0 },
-                    { label: "Hədəf", value: g.goalCount },
-                  ];
-          return (
-            <button
-              key={g.key}
-              type="button"
-              onClick={() => setOpenGroup(g)}
-              className="group relative text-left rounded-2xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold shrink-0 ring-2 ring-primary/10">
-                  {getInitials(g.name)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{g.name}</p>
-                      {g.subtitle && (
-                        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{g.subtitle}</p>
-                      )}
+                : subTab === "team"
+                  ? [
+                      { label: "Üzv", value: g.members?.length || 0 },
+                      { label: "Hədəf", value: g.goalCount },
+                      { label: "Tip", value: "Hədəf əsaslı" },
+                    ]
+                  : [
+                      { label: "Komanda", value: teamCount },
+                      { label: "Əməkdaş", value: g.members?.length || 0 },
+                      { label: "Hədəf", value: g.goalCount },
+                    ];
+            return (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setOpenGroup(g)}
+                className="group relative text-left rounded-2xl border border-border bg-card p-4 hover:border-primary/40 hover:shadow-md transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-semibold shrink-0 ring-2 ring-primary/10">
+                    {getInitials(g.name)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{g.name}</p>
+                        {g.subtitle && (
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{g.subtitle}</p>
+                        )}
+                      </div>
+                      <Eye className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
                     </div>
-                    <Eye className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap mt-3">
-                    {metaChips.map(chip => (
-                      <Badge key={chip.label} variant="secondary" className="h-6 font-normal">
-                        <span className="text-muted-foreground mr-1">{chip.label}:</span>
-                        <span className="font-semibold text-foreground">{chip.value}</span>
-                      </Badge>
-                    ))}
+                    <div className="flex items-center gap-1.5 flex-wrap mt-3">
+                      {metaChips.map(chip => (
+                        <Badge key={chip.label} variant="secondary" className="h-6 font-normal">
+                          <span className="text-muted-foreground mr-1">{chip.label}:</span>
+                          <span className="font-semibold text-foreground">{chip.value}</span>
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </button>
-          );
-        })}
-        {filtered.length === 0 && (
-          <div className="md:col-span-2 py-16 text-center text-muted-foreground text-sm border border-dashed border-border rounded-2xl">
-            Nəticə yoxdur
-          </div>
-        )}
-      </div>
+              </button>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="md:col-span-2 py-16 text-center text-muted-foreground text-sm border border-dashed border-border rounded-2xl">
+              Nəticə yoxdur
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 text-left">{label}</th>
+                <th className="px-4 py-2 text-left">Vəzifə / Alt-məlumat</th>
+                <th className="px-4 py-2 text-left w-28">KPI kartı</th>
+                <th className="px-4 py-2 text-left w-24">Hədəf</th>
+                {subTab !== "individual" && <th className="px-4 py-2 text-left w-24">Üzv</th>}
+                <th className="px-4 py-2 text-right w-24">Əməliyyat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(g => (
+                <tr key={g.key} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[11px] font-semibold shrink-0">
+                        {getInitials(g.name)}
+                      </div>
+                      <span className="font-medium text-foreground">{g.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">{g.subtitle || "—"}</td>
+                  <td className="px-4 py-2">{g.cards.length}</td>
+                  <td className="px-4 py-2">{g.goalCount}</td>
+                  {subTab !== "individual" && <td className="px-4 py-2">{g.members?.length || 0}</td>}
+                  <td className="px-4 py-2 text-right">
+                    <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => setOpenGroup(g)}>
+                      <Eye className="w-3.5 h-3.5" /> Bax
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={subTab !== "individual" ? 6 : 5} className="py-10 text-center text-sm text-muted-foreground">
+                    Nəticə yoxdur
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
 
       <GroupDetailDialog group={openGroup} scope={subTab} onClose={() => setOpenGroup(null)} />
