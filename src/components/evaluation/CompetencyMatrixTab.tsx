@@ -605,6 +605,7 @@ const CompetencyMatrixTab = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<CompetencyMatrix | null>(null);
+  const [answersEditOpen, setAnswersEditOpen] = useState(false);
   const [viewing, setViewing] = useState<CompetencyMatrix | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CompetencyMatrix | null>(null);
 
