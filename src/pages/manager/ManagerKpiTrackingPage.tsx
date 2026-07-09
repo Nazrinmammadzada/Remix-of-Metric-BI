@@ -806,9 +806,9 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
                   </div>
                 </div>
 
-                {/* KPI-lərin Review vəziyyəti */}
+                {/* Hədəflərin Review vəziyyəti */}
                 <div>
-                  <div className="text-sm font-semibold text-foreground mb-2">KPI-lərin Review vəziyyəti</div>
+                  <div className="text-sm font-semibold text-foreground mb-2">Hədəflərin Review vəziyyəti</div>
                   <div className="rounded-xl border border-border overflow-hidden">
                     <table className="w-full text-xs">
                       <thead className="bg-secondary/40 text-muted-foreground">
@@ -1879,11 +1879,13 @@ const CardTargetsDrawer = ({ data, onClose, onOpenTarget }: {
 // ============================================================
 // TARGET DETAIL DRAWER — Bir hədəfə aid tarixçə / şərhlər / xatırlat.
 // ============================================================
-const TargetDetailDrawer = ({ data, onClose }: {
+const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
   data: { cardId: string; cardName: string; target: CardTarget } | null;
   onClose: () => void;
+  tabsFilter?: ("general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments")[];
 }) => {
-  const [tab, setTab] = useState<"general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments">("general");
+  const initialTab = (tabsFilter && tabsFilter[0]) || "general";
+  const [tab, setTab] = useState<"general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments">(initialTab);
   const [draft, setDraft] = useState("");
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
 
@@ -1934,18 +1936,24 @@ const TargetDetailDrawer = ({ data, onClose }: {
 
         <div className="px-4 pt-3 flex-1 overflow-hidden flex flex-col">
           <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex flex-col flex-1 min-h-0">
-            <TabsList className="w-full grid grid-cols-8 mb-3 h-auto">
-              <TabsTrigger value="general" className="text-[10px] px-1">Ümumi</TabsTrigger>
-              <TabsTrigger value="execution" className="text-[10px] px-1">İcra</TabsTrigger>
-              <TabsTrigger value="fact" className="text-[10px] px-1">Fakt</TabsTrigger>
-              <TabsTrigger value="evaluation" className="text-[10px] px-1">Qiymət.</TabsTrigger>
-              <TabsTrigger value="history" className="text-[10px] px-1">Tarixçə</TabsTrigger>
-              <TabsTrigger value="review" className="text-[10px] px-1">Review</TabsTrigger>
-              <TabsTrigger value="comments" className="text-[10px] px-1">Şərhlər</TabsTrigger>
-              <TabsTrigger value="attachments" className="text-[10px] px-1">Əlavələr</TabsTrigger>
-            </TabsList>
+            {(() => {
+              const ALL_TABS: [typeof tab, string][] = [
+                ["general", "Ümumi"], ["execution", "İcra"], ["fact", "Fakt"],
+                ["evaluation", "Qiymət."], ["history", "Tarixçə"], ["review", "Review"],
+                ["comments", "Şərhlər"], ["attachments", "Əlavələr"],
+              ];
+              const visible = ALL_TABS.filter(([k]) => !tabsFilter || tabsFilter.includes(k));
+              return (
+                <TabsList className={`w-full grid mb-3 h-auto`} style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}>
+                  {visible.map(([k, l]) => (
+                    <TabsTrigger key={k} value={k} className="text-[10px] px-1">{l}</TabsTrigger>
+                  ))}
+                </TabsList>
+              );
+            })()}
 
             <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-4">
+
               <TabsContent value="general" className="mt-0">
                 <div className="rounded-xl border border-border p-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
                   <MetaRow label="Hədəfin adı" value={target.name} />
@@ -2342,9 +2350,11 @@ const ReviewsView = () => {
         setTab={setViewKpiTab}
         onClose={() => { setViewKpi(null); setViewMeta(null); }}
         reviewMeta={viewMeta ?? undefined}
-        tabsFilter={["general", "review"]}
+        tabsFilter={["review"]}
+        onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
       />
-      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} />
+      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} tabsFilter={["review", "comments"]} />
+
     </>
   );
 };

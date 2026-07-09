@@ -30,13 +30,19 @@ import {
   type CompetencyMatrix, type CompetencyQuestion, type CompetencyAnswer, type CompetencyStatus,
 } from "@/lib/competencyMatrixStore";
 import { mockEmployees } from "@/data/mockData";
+import { getStructures, type OrgStructure } from "@/lib/orgStore";
 
-// ---------- Position pool ----------
-const POSITION_POOL = Array.from(new Set([
-  ...mockEmployees.map(e => e.position),
-  "Reception", "Operator", "Menecer", "Rəhbər", "Analitik", "Maliyyəçi",
-  "IT Mütəxəssis", "HR Mütəxəssis", "Müştəri Xidmətləri", "Satış nümayəndəsi", "Mütəxəssis",
-])).sort();
+// ---------- Position pool (Struktur kataloqundakı mövcud vəzifələr) ----------
+const collectPositions = (nodes: OrgStructure[]): string[] => {
+  const out: string[] = [];
+  for (const n of nodes) {
+    (n.positions || []).forEach(p => out.push(p.name));
+    if (n.children?.length) out.push(...collectPositions(n.children));
+  }
+  return out;
+};
+const getPositionPool = (): string[] =>
+  Array.from(new Set(collectPositions(getStructures()))).sort();
 
 // ---------- helpers ----------
 const uid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `id-${Date.now()}-${Math.random()}`);
@@ -59,7 +65,8 @@ const scoreColor = (pct: number): string => {
 const PositionMultiSelect = ({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const filtered = POSITION_POOL.filter(p => p.toLowerCase().includes(q.toLowerCase()));
+  const pool = useMemo(() => getPositionPool(), []);
+  const filtered = pool.filter(p => p.toLowerCase().includes(q.toLowerCase()));
   const toggle = (p: string) => {
     onChange(value.includes(p) ? value.filter(x => x !== p) : [...value, p]);
   };
@@ -640,166 +647,141 @@ const CompetencyMatrixTab = () => {
         })}
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {/* Left: list */}
-        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Səriştə matrislərinin siyahısı</h3>
+      {/* Full-width: Səriştə matrislərinin siyahısı */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">Səriştə matrislərinin siyahısı</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Axtar..." className="pl-9" />
+            </div>
           </div>
-          <div className="p-4 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Axtar..." className="pl-9" />
-              </div>
-              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v as any); setPage(1); }}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left">Matris adı</th>
+                  <th className="px-3 py-2 text-left">Tətbiq olunduğu vəzifələr</th>
+                  <th className="px-3 py-2 text-left w-20">Suallar</th>
+                  <th className="px-3 py-2 text-left w-24">Yekun çəki</th>
+                  <th className="px-3 py-2 text-right w-16">Əməliyyat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map(m => {
+                  const total = m.questions.reduce((s, q) => s + q.weight, 0);
+                  const isSelected = selected?.id === m.id;
+                  return (
+                    <tr
+                      key={m.id}
+                      onClick={() => setSelectedId(m.id)}
+                      className={`border-t border-border cursor-pointer transition-colors ${isSelected ? "bg-primary/5" : "hover:bg-muted/30"}`}
+                    >
+                      <td className="px-3 py-2 font-medium text-foreground">{m.name}</td>
+                      <td className="px-3 py-2 text-muted-foreground text-xs">{m.positions.slice(0, 3).join(", ")}{m.positions.length > 3 ? ` +${m.positions.length - 3}` : ""}</td>
+                      <td className="px-3 py-2">{m.questions.length}</td>
+                      <td className={`px-3 py-2 ${total === 100 ? "text-emerald-600" : "text-rose-600"}`}>{total}%</td>
+                      <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="icon" variant="ghost" className="h-7 w-7">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setViewing(m)}><Eye className="w-4 h-4 mr-2" /> Bax</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditing(m)}><Pencil className="w-4 h-4 mr-2" /> Redaktə</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setConfirmDelete(m)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Sil</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pageRows.length === 0 && (
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-sm text-muted-foreground">Nəticə yoxdur</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </Button>
+              {Array.from({ length: totalPages }).slice(0, 5).map((_, i) => {
+                const p = i + 1;
+                return (
+                  <Button key={p} variant={p === page ? "default" : "outline"} size="icon" className="h-7 w-7" onClick={() => setPage(p)}>
+                    {p}
+                  </Button>
+                );
+              })}
+              <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>{filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} / {filtered.length}</span>
+              <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
+                <SelectTrigger className="h-7 w-[70px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Status: Hamısı</SelectItem>
-                  <SelectItem value="aktiv">Aktiv</SelectItem>
-                  <SelectItem value="qaralama">Qaralama</SelectItem>
-                  <SelectItem value="passiv">Passiv</SelectItem>
+                  {PAGE_SIZE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="rounded-lg border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Matris adı</th>
-                    <th className="px-3 py-2 text-left">Tətbiq olunduğu vəzifələr</th>
-                    <th className="px-3 py-2 text-left w-20">Suallar</th>
-                    <th className="px-3 py-2 text-left w-24">Yekun çəki</th>
-                    <th className="px-3 py-2 text-left w-24">Status</th>
-                    <th className="px-3 py-2 text-right w-16">Əməliyyat</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.map(m => {
-                    const total = m.questions.reduce((s, q) => s + q.weight, 0);
-                    const isSelected = selected?.id === m.id;
-                    return (
-                      <tr
-                        key={m.id}
-                        onClick={() => setSelectedId(m.id)}
-                        className={`border-t border-border cursor-pointer transition-colors ${isSelected ? "bg-primary/5" : "hover:bg-muted/30"}`}
-                      >
-                        <td className="px-3 py-2 font-medium text-foreground">{m.name}</td>
-                        <td className="px-3 py-2 text-muted-foreground text-xs">{m.positions.slice(0, 2).join(", ")}{m.positions.length > 2 ? ` +${m.positions.length - 2}` : ""}</td>
-                        <td className="px-3 py-2">{m.questions.length}</td>
-                        <td className={`px-3 py-2 ${total === 100 ? "text-emerald-600" : "text-rose-600"}`}>{total}%</td>
-                        <td className="px-3 py-2">
-                          <Badge variant="outline" className={STATUS_META[m.status].className}>
-                            {STATUS_META[m.status].label}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2 text-right" onClick={e => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-7 w-7">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setViewing(m)}><Eye className="w-4 h-4 mr-2" /> Bax</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setEditing(m)}><Pencil className="w-4 h-4 mr-2" /> Redaktə</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { duplicateCompetencyMatrix(m.id); toast.success("Kopyalandı"); }}><Copy className="w-4 h-4 mr-2" /> Kopyala</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => { archiveCompetencyMatrix(m.id); toast.success("Arxivləşdirildi"); }}><Archive className="w-4 h-4 mr-2" /> Arxivləşdir</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => setConfirmDelete(m)} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Sil</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {pageRows.length === 0 && (
-                    <tr><td colSpan={6} className="px-3 py-8 text-center text-sm text-muted-foreground">Nəticə yoxdur</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </Button>
-                {Array.from({ length: totalPages }).slice(0, 5).map((_, i) => {
-                  const p = i + 1;
-                  return (
-                    <Button key={p} variant={p === page ? "default" : "outline"} size="icon" className="h-7 w-7" onClick={() => setPage(p)}>
-                      {p}
-                    </Button>
-                  );
-                })}
-                <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{filtered.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, filtered.length)} / {filtered.length}</span>
-                <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
-                  <SelectTrigger className="h-7 w-[70px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {PAGE_SIZE_OPTIONS.map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
           </div>
         </div>
-
-        {/* Right: detail */}
-        <DetailPanel matrix={selected} />
       </div>
 
-      {/* Bottom row: answers table & sample calc */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {selected ? (
-          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h3 className="font-semibold text-foreground">Cavab variantları və ballar</h3>
-              <Button size="sm" variant="outline" onClick={() => setEditing(selected)} className="gap-1">
-                <Pencil className="w-3.5 h-3.5" /> Redaktə et
-              </Button>
-            </div>
-            <div className="p-4">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Cavab variantı</th>
-                    <th className="px-3 py-2 text-left w-16">Bal</th>
-                    <th className="px-3 py-2 text-left w-24">Faiz</th>
-                    <th className="px-3 py-2 text-left w-16">Rəng</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selected.answers.map(a => {
-                    const maxScore = Math.max(...selected.answers.map(x => x.score), 1);
-                    const pct = Math.round((a.score / maxScore) * 100);
-                    return (
-                      <tr key={a.id} className="border-t border-border">
-                        <td className="px-3 py-2">{a.label}</td>
-                        <td className="px-3 py-2">{a.score}</td>
-                        <td className="px-3 py-2">{pct}%</td>
-                        <td className="px-3 py-2"><span className={`inline-block w-3 h-3 rounded-full ${scoreColor(pct)}`} /></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+      {/* Full-width: Cavab variantları və ballar */}
+      {selected ? (
+        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 className="font-semibold text-foreground">Cavab variantları və ballar — {selected.name}</h3>
+            <Button size="sm" variant="outline" onClick={() => setEditing(selected)} className="gap-1">
+              <Pencil className="w-3.5 h-3.5" /> Redaktə et
+            </Button>
           </div>
-        ) : (
-          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
-            Matris seçin
+          <div className="p-4">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                <tr>
+                  <th className="px-3 py-2 text-left">Cavab variantı</th>
+                  <th className="px-3 py-2 text-left w-24">Bal</th>
+                  <th className="px-3 py-2 text-left w-32">Faiz</th>
+                  <th className="px-3 py-2 text-left w-20">Rəng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selected.answers.map(a => {
+                  const maxScore = Math.max(...selected.answers.map(x => x.score), 1);
+                  const pct = Math.round((a.score / maxScore) * 100);
+                  return (
+                    <tr key={a.id} className="border-t border-border">
+                      <td className="px-3 py-2">{a.label}</td>
+                      <td className="px-3 py-2">{a.score}</td>
+                      <td className="px-3 py-2">{pct}%</td>
+                      <td className="px-3 py-2"><span className={`inline-block w-3 h-3 rounded-full ${scoreColor(pct)}`} /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
-        <SampleCalculation matrix={selected} />
-      </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
+          Cavab variantlarını görmək üçün cədvəldən matris seçin
+        </div>
+      )}
+
 
       {/* Modals */}
       <CreateEditModal open={createOpen} onClose={() => setCreateOpen(false)} />

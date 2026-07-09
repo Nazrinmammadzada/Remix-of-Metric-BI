@@ -1318,17 +1318,19 @@ const EvaluationPage = () => {
         subtitle="Qiymətləndirənləri təyin edin, meyarlar kataloqunu idarə edin və statusu izləyin."
         icon={ClipboardList}
         right={
-          <div className="flex items-center gap-2">
-            <ExportMenu
-              getData={() => ({
-                title: `Qiymətləndirənlər (${CURRENT_CYCLE_ID})`,
-                headers: ["Ad", "Departament", "Vəzifə"],
-                rows: mockEmployees.map(e => [e.fullName, e.department, e.position]),
-                fileName: `qiymetlendirenler-${CURRENT_CYCLE_ID}`,
-              })}
-            />
-            <ManualAssignmentDialog onCreated={() => force(t => t + 1)} />
-          </div>
+          section === "teyinat" ? (
+            <div className="flex items-center gap-2">
+              <ExportMenu
+                getData={() => ({
+                  title: `Qiymətləndirənlər (${CURRENT_CYCLE_ID})`,
+                  headers: ["Ad", "Departament", "Vəzifə"],
+                  rows: mockEmployees.map(e => [e.fullName, e.department, e.position]),
+                  fileName: `qiymetlendirenler-${CURRENT_CYCLE_ID}`,
+                })}
+              />
+              <ManualAssignmentDialog onCreated={() => force(t => t + 1)} />
+            </div>
+          ) : undefined
         }
       />
 

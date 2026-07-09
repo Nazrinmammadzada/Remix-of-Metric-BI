@@ -7,6 +7,7 @@ import { getEmployees } from "@/lib/orgStore";
 import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getTeams, addTeam } from "@/lib/teamsStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
+import { getCompetencyMatrices } from "@/lib/competencyMatrixStore";
 import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
@@ -645,6 +646,10 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     const isTime = t.type === "Zaman";
     const needsRanges = ["Məbləğ", "Say", "Faiz", "Nisbət"].includes(t.type);
 
+    if (t.type === "Səriştə") {
+      if (!t.competencyMatrix) return `"${t.name}": Səriştə matrisi seçilməlidir`;
+      return null;
+    }
     for (const r of required) {
       const row = sd.find(x => Number(x.score) === r);
       if (!row) return `"${t.name}" üçün ${r} balı tələb olunur — "Qiymətlər" düyməsini açın`;
@@ -659,7 +664,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         if (!row.description.trim()) return `"${t.name}": ${r} balının izahı məcburidir`;
       }
     }
-    if (t.type === "Səriştə" && !t.competencyMatrix) return `"${t.name}": Competency Matrix seçilməlidir`;
+    // Səriştə validation handled above
     return null;
   };
 
@@ -1407,6 +1412,12 @@ function Step2Targets({
   const [scoreDlgFor, setScoreDlgFor] = useState<string | null>(null);
   const [assignerPickerFor, setAssignerPickerFor] = useState<string | null>(null);
   const [evalPickerFor, setEvalPickerFor] = useState<string | null>(null);
+  const [questionsDlgFor, setQuestionsDlgFor] = useState<string | null>(null);
+
+  const competencyMatrices = getCompetencyMatrices();
+  const competencyMatrixOptions = competencyMatrices;
+  const questionsDlgTarget = draft.targets.find(t => t.id === questionsDlgFor) || null;
+  const questionsDlgMatrix = questionsDlgTarget ? competencyMatrices.find(m => m.id === questionsDlgTarget.competencyMatrix) || null : null;
 
   const scoreDlgTarget = draft.targets.find(t => t.id === scoreDlgFor) || null;
   const unifiedActive = !!unifiedAssignerApplied || unifiedEvaluatorsApplied.length > 0;
@@ -1556,50 +1567,77 @@ function Step2Targets({
                   className="mt-0.5" />
               </div>
 
-              <div className="col-span-12 md:col-span-3">
-                <label className="text-[11px] text-muted-foreground">
-                  Hədəf dəyəri {isOther ? <span className="text-amber-600">(təyin edən dolduracaq)</span> : "*"}
-                </label>
-                <div className="mt-0.5 flex gap-1">
-                  {(t.type === "Boolean") ? (
-                    <select value={t.targetValue} disabled={isOther}
-                      onChange={e => updHedef(t.id, { targetValue: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
-                      <option value="">— Seçin —</option>
-                      <option value="Bəli">Bəli</option>
-                      <option value="Xeyr">Xeyr</option>
+              {t.type === "Səriştə" ? (
+                <>
+                  <div className="col-span-12 md:col-span-3">
+                    <label className="text-[11px] text-muted-foreground">Səriştə matrisi *</label>
+                    <select value={t.competencyMatrix} disabled={isOther}
+                      onChange={e => updHedef(t.id, { competencyMatrix: e.target.value })}
+                      className="w-full mt-0.5 px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
+                      <option value="">— Matris seçin —</option>
+                      {competencyMatrixOptions.map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
                     </select>
-                  ) : (t.type === "Səriştə" || t.type === "İcra" || t.type === "Fərdi İnkişaf") ? (
-                    <input value={t.targetValue} disabled={isOther}
-                      onChange={e => updHedef(t.id, { targetValue: e.target.value })}
-                      placeholder="Hədəf təsviri"
-                      className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
-                  ) : (
-                    <>
-                      <input type="number" value={t.targetValue} disabled={isOther}
-                        onChange={e => updHedef(t.id, { targetValue: e.target.value })}
-                        placeholder={t.type === "Faiz" ? "0-100" : t.type === "Zaman" ? "Gün / saat" : "0"}
-                        className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
-                      {t.type === "Məbləğ" && (
-                        <select value={t.currency} disabled={isOther}
-                          onChange={e => updHedef(t.id, { currency: e.target.value as any })}
-                          className="px-1.5 py-1.5 text-xs border border-border rounded bg-background disabled:opacity-60">
-                          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </div>
+                  <div className="col-span-6 md:col-span-2 flex items-end">
+                    <button type="button"
+                      onClick={() => setQuestionsDlgFor(t.id)}
+                      disabled={!t.competencyMatrix}
+                      className="w-full px-2 py-1.5 text-xs font-medium rounded border border-primary/60 text-primary hover:bg-primary/10 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <ClipboardList className="w-3.5 h-3.5" /> Suallara bax
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-12 md:col-span-3">
+                    <label className="text-[11px] text-muted-foreground">
+                      Hədəf dəyəri {isOther ? <span className="text-amber-600">(təyin edən dolduracaq)</span> : "*"}
+                    </label>
+                    <div className="mt-0.5 flex gap-1">
+                      {(t.type === "Boolean") ? (
+                        <select value={t.targetValue} disabled={isOther}
+                          onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                          className="w-full px-2 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60">
+                          <option value="">— Seçin —</option>
+                          <option value="Bəli">Bəli</option>
+                          <option value="Xeyr">Xeyr</option>
                         </select>
+                      ) : (t.type === "İcra" || t.type === "Fərdi İnkişaf") ? (
+                        <input value={t.targetValue} disabled={isOther}
+                          onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                          placeholder="Hədəf təsviri"
+                          className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                      ) : (
+                        <>
+                          <input type="number" value={t.targetValue} disabled={isOther}
+                            onChange={e => updHedef(t.id, { targetValue: e.target.value })}
+                            placeholder={t.type === "Faiz" ? "0-100" : t.type === "Zaman" ? "Gün / saat" : "0"}
+                            className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-60" />
+                          {t.type === "Məbləğ" && (
+                            <select value={t.currency} disabled={isOther}
+                              onChange={e => updHedef(t.id, { currency: e.target.value as any })}
+                              className="px-1.5 py-1.5 text-xs border border-border rounded bg-background disabled:opacity-60">
+                              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          )}
+                          {t.type === "Faiz" && <span className="px-2 py-1.5 text-xs text-muted-foreground">%</span>}
+                        </>
                       )}
-                      {t.type === "Faiz" && <span className="px-2 py-1.5 text-xs text-muted-foreground">%</span>}
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="col-span-6 md:col-span-2 flex items-end">
-                <button type="button" onClick={() => setScoreDlgFor(t.id)}
-                  disabled={isOther}
-                  title={isOther ? "Digər əməkdaş təyin edir — qiymətləri o dolduracaq" : ""}
-                  className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
-                  <Star className="w-3.5 h-3.5" /> Qiymətlər
-                </button>
-              </div>
+                    </div>
+                  </div>
+                  <div className="col-span-6 md:col-span-2 flex items-end">
+                    <button type="button" onClick={() => setScoreDlgFor(t.id)}
+                      disabled={isOther}
+                      title={isOther ? "Digər əməkdaş təyin edir — qiymətləri o dolduracaq" : ""}
+                      className="w-full px-2 py-1.5 text-xs font-medium rounded border border-amber-500/60 text-amber-700 hover:bg-amber-500/10 flex items-center justify-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Star className="w-3.5 h-3.5" /> Qiymətlər
+                    </button>
+                  </div>
+                </>
+              )}
+
             </div>
 
             {/* Qiymətləndirici / Təyin edici — minimal inline pill row */}
@@ -1711,6 +1749,34 @@ function Step2Targets({
           onClose={() => setScoreDlgFor(null)}
           onSave={(rows) => { updHedef(scoreDlgTarget.id, { scoreDescriptions: rows }); setScoreDlgFor(null); }}
         />
+      )}
+
+      {/* Səriştə matrisi sualları dialog */}
+      {questionsDlgTarget && questionsDlgMatrix && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setQuestionsDlgFor(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg p-4 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Suallar — {questionsDlgMatrix.name}</h3>
+              <button onClick={() => setQuestionsDlgFor(null)} className="p-1 rounded hover:bg-secondary"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                  <tr><th className="px-3 py-2 text-left w-10">#</th><th className="px-3 py-2 text-left">Sual</th><th className="px-3 py-2 text-right w-20">Çəki</th></tr>
+                </thead>
+                <tbody>
+                  {questionsDlgMatrix.questions.map((q, i) => (
+                    <tr key={q.id} className="border-t border-border">
+                      <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                      <td className="px-3 py-2">{q.text}</td>
+                      <td className="px-3 py-2 text-right">{q.weight}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
