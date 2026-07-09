@@ -545,7 +545,7 @@ const ReportsPage = () => {
                 )}
               </ChartFrame>
 
-              {selectedTeams.length > 1 && (
+              {resolvedTeams.length > 1 && (
                 <div className="col-span-2">
                   <ChartFrame title="Komanda Müqayisəsi (Orta Performans)">
                     {(factor) => (
