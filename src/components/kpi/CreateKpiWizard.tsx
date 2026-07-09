@@ -1407,6 +1407,12 @@ function Step2Targets({
   const [scoreDlgFor, setScoreDlgFor] = useState<string | null>(null);
   const [assignerPickerFor, setAssignerPickerFor] = useState<string | null>(null);
   const [evalPickerFor, setEvalPickerFor] = useState<string | null>(null);
+  const [questionsDlgFor, setQuestionsDlgFor] = useState<string | null>(null);
+
+  const competencyMatrices = getCompetencyMatrices();
+  const competencyMatrixOptions = competencyMatrices;
+  const questionsDlgTarget = draft.targets.find(t => t.id === questionsDlgFor) || null;
+  const questionsDlgMatrix = questionsDlgTarget ? competencyMatrices.find(m => m.id === questionsDlgTarget.competencyMatrix) || null : null;
 
   const scoreDlgTarget = draft.targets.find(t => t.id === scoreDlgFor) || null;
   const unifiedActive = !!unifiedAssignerApplied || unifiedEvaluatorsApplied.length > 0;
