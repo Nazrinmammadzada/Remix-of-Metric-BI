@@ -30,13 +30,19 @@ import {
   type CompetencyMatrix, type CompetencyQuestion, type CompetencyAnswer, type CompetencyStatus,
 } from "@/lib/competencyMatrixStore";
 import { mockEmployees } from "@/data/mockData";
+import { getStructures, type OrgStructure } from "@/lib/orgStore";
 
-// ---------- Position pool ----------
-const POSITION_POOL = Array.from(new Set([
-  ...mockEmployees.map(e => e.position),
-  "Reception", "Operator", "Menecer", "Rəhbər", "Analitik", "Maliyyəçi",
-  "IT Mütəxəssis", "HR Mütəxəssis", "Müştəri Xidmətləri", "Satış nümayəndəsi", "Mütəxəssis",
-])).sort();
+// ---------- Position pool (Struktur kataloqundakı mövcud vəzifələr) ----------
+const collectPositions = (nodes: OrgStructure[]): string[] => {
+  const out: string[] = [];
+  for (const n of nodes) {
+    (n.positions || []).forEach(p => out.push(p.name));
+    if (n.children?.length) out.push(...collectPositions(n.children));
+  }
+  return out;
+};
+const getPositionPool = (): string[] =>
+  Array.from(new Set(collectPositions(getStructures()))).sort();
 
 // ---------- helpers ----------
 const uid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `id-${Date.now()}-${Math.random()}`);
