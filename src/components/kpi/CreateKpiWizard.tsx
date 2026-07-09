@@ -1750,6 +1750,34 @@ function Step2Targets({
           onSave={(rows) => { updHedef(scoreDlgTarget.id, { scoreDescriptions: rows }); setScoreDlgFor(null); }}
         />
       )}
+
+      {/* Səriştə matrisi sualları dialog */}
+      {questionsDlgTarget && questionsDlgMatrix && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setQuestionsDlgFor(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-lg p-4 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Suallar — {questionsDlgMatrix.name}</h3>
+              <button onClick={() => setQuestionsDlgFor(null)} className="p-1 rounded hover:bg-secondary"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+                  <tr><th className="px-3 py-2 text-left w-10">#</th><th className="px-3 py-2 text-left">Sual</th><th className="px-3 py-2 text-right w-20">Çəki</th></tr>
+                </thead>
+                <tbody>
+                  {questionsDlgMatrix.questions.map((q, i) => (
+                    <tr key={q.id} className="border-t border-border">
+                      <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                      <td className="px-3 py-2">{q.text}</td>
+                      <td className="px-3 py-2 text-right">{q.weight}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
