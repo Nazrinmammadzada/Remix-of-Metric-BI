@@ -344,6 +344,8 @@ const CreateAdminDialog = ({ onClose }: { onClose: () => void }) => {
             Yarat
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
