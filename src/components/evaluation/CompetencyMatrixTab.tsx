@@ -403,29 +403,6 @@ const ViewModal = ({ matrix, onClose }: { matrix: CompetencyMatrix | null; onClo
               </table>
             </div>
           </div>
-          <div>
-            <h4 className="text-sm font-semibold mb-2">Cavab variantları</h4>
-            <div className="rounded-lg border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
-                  <tr><th className="px-3 py-2 text-left">Cavab</th><th className="px-3 py-2 text-left w-24">Bal</th><th className="px-3 py-2 text-left w-24">Faiz</th><th className="px-3 py-2 text-left w-24">Rəng</th></tr>
-                </thead>
-                <tbody>
-                  {matrix.answers.map(a => {
-                    const pct = Math.round((a.score / maxScore) * 100);
-                    return (
-                      <tr key={a.id} className="border-t border-border">
-                        <td className="px-3 py-2">{a.label}</td>
-                        <td className="px-3 py-2">{a.score}</td>
-                        <td className="px-3 py-2">{pct}%</td>
-                        <td className="px-3 py-2"><span className={`inline-block w-3 h-3 rounded-full ${scoreColor(pct)}`} /></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Bağla</Button>
