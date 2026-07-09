@@ -664,7 +664,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
         if (!row.description.trim()) return `"${t.name}": ${r} balının izahı məcburidir`;
       }
     }
-    if (t.type === "Səriştə" && !t.competencyMatrix) return `"${t.name}": Competency Matrix seçilməlidir`;
+    // Səriştə validation handled above
     return null;
   };
 
