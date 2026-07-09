@@ -72,7 +72,7 @@ const PositionMultiSelect = ({ value, onChange }: { value: string[]; onChange: (
   };
   return (
     <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -84,11 +84,15 @@ const PositionMultiSelect = ({ value, onChange }: { value: string[]; onChange: (
             <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-[420px] p-0" align="start">
+        <PopoverContent className="w-[420px] p-0 z-[100]" align="start" onWheel={e => e.stopPropagation()}>
           <div className="p-2 border-b border-border">
             <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Axtar..." className="h-8" />
           </div>
-          <div className="max-h-60 overflow-y-auto p-1">
+          <div
+            className="max-h-60 overflow-y-auto p-1 overscroll-contain"
+            onWheel={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
+          >
             {filtered.map(p => {
               const checked = value.includes(p);
               return (
