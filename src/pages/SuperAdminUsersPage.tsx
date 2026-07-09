@@ -227,18 +227,20 @@ const CreateAdminDialog = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [perms, setPerms] = useState<string[]>([...ALL_MODULE_KEYS]);
+  const [reveal, setReveal] = useState<{ email: string; password: string } | null>(null);
 
   const togglePerm = (k: string) =>
     setPerms(p => (p.includes(k) ? p.filter(x => x !== k) : [...p, k]));
 
   const submit = () => {
-    const res = createHrAdmin(name, email, password, perms);
-    if (!res.ok) {
+    const trimmed = password.trim();
+    const res = createHrAdmin(name, email, trimmed, perms);
+    if (!res.ok || !res.account) {
       toast.error(res.error || "Xəta baş verdi");
       return;
     }
     toast.success("HR (Admin) hesabı yaradıldı");
-    onClose();
+    setReveal({ email: res.account.email, password: trimmed });
   };
 
   return (
