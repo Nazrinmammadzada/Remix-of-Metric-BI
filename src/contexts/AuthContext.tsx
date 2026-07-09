@@ -159,6 +159,7 @@ const resolveUser = (email: string): AuthUser | null => {
       department: "HR",
       team: "HR Komandası",
       permissions: hr.permissions,
+      mustChangePassword: !!hr.mustChangePassword,
     };
   }
   return null;
