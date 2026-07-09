@@ -52,12 +52,12 @@ const COLORS = [
 const ReportsPage = () => {
   const [teams, setTeams] = useState<Team[]>(() => getTeams());
 
-  // Multi-select teams
-  const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
-  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
-  const [teamSearch, setTeamSearch] = useState("");
+  // Filter type + values
+  const [filterType, setFilterType] = useState<FilterType>("team");
+  const [filterValues, setFilterValues] = useState<string[]>([]);
+  const [showFilterTypeDropdown, setShowFilterTypeDropdown] = useState(false);
 
-  // Targets dropdown (replaces structure)
+  // Targets dropdown
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [targetSearch, setTargetSearch] = useState("");
@@ -77,24 +77,80 @@ const ReportsPage = () => {
     return () => window.removeEventListener("teams-updated", refresh);
   }, []);
 
-  // All available KPIs from selected teams
+  // Options for the second dropdown based on filter type
+  const secondOptions = useMemo(() => {
+    if (filterType === "position") return getPositions();
+    if (filterType === "structure") return mockStructures.map(s => s.name);
+    if (filterType === "team") return teams.map(t => t.name);
+    if (filterType === "person") return mockEmployees.map(e => ({ value: e.id, label: e.fullName, group: e.position }));
+    return [];
+  }, [filterType, teams]);
+
+  const isMulti = filterType !== "person";
+
+  // Resolve selection → team names (keys into teamKpis)
+  const resolvedTeams = useMemo(() => {
+    if (filterType === "team") return filterValues;
+    if (filterType === "structure") {
+      const ids = mockStructures.filter(s => filterValues.includes(s.name)).map(s => s.id);
+      return Array.from(new Set(mockTeams.filter(t => ids.includes(t.structureId)).map(t => t.name)));
+    }
+    if (filterType === "person") {
+      const eid = filterValues[0];
+      if (!eid) return [];
+      return Array.from(new Set(mockTeams.filter(t => t.memberIds.includes(eid)).map(t => t.name)));
+    }
+    if (filterType === "position") {
+      const empIds = mockEmployees.filter(e => filterValues.includes(e.position)).map(e => e.id);
+      return Array.from(new Set(mockTeams.filter(t => t.memberIds.some(m => empIds.includes(m))).map(t => t.name)));
+    }
+    return [];
+  }, [filterType, filterValues]);
+
+  // Selection summary label
+  const selectionLabel = useMemo(() => {
+    if (filterValues.length === 0) return "";
+    if (filterType === "person") {
+      const emp = mockEmployees.find(e => e.id === filterValues[0]);
+      return emp?.fullName || "";
+    }
+    return `${filterValues.length} seçildi`;
+  }, [filterType, filterValues]);
+
+  // Dedup targets by KPI name across resolved teams
   const availableTargets = useMemo(() => {
+    const seen = new Set<string>();
     const out: { team: string; kpi: typeof teamKpis[string][number] }[] = [];
-    selectedTeams.forEach(t => {
-      (teamKpis[t] || []).forEach(k => out.push({ team: t, kpi: k }));
+    resolvedTeams.forEach(t => {
+      (teamKpis[t] || []).forEach(k => {
+        if (!seen.has(k.name)) { seen.add(k.name); out.push({ team: t, kpi: k }); }
+      });
     });
     return out;
-  }, [selectedTeams]);
+  }, [resolvedTeams]);
 
-  const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
   const displayedTargets = availableTargets.filter(t => t.kpi.name.toLowerCase().includes(targetSearch.toLowerCase()));
   const allTargetsSelected = displayedTargets.length > 0 && displayedTargets.every(t => selectedTargets.includes(t.kpi.name));
 
-  const toggleTeam = (name: string) => {
-    setSelectedTeams(prev => {
-      const next = prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name];
-      return next;
+  const handleFilterTypeChange = (t: FilterType) => {
+    setFilterType(t);
+    setFilterValues([]);
+    setSelectedTargets([]);
+    setGenerated(false);
+    setShowFilterTypeDropdown(false);
+  };
+
+  const toggleFilterValue = (v: string) => {
+    setFilterValues(prev => {
+      if (!isMulti) return prev[0] === v ? [] : [v];
+      return prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v];
     });
+    setSelectedTargets([]);
+    setGenerated(false);
+  };
+
+  const setFilterValuesBulk = (next: string[]) => {
+    setFilterValues(next);
     setSelectedTargets([]);
     setGenerated(false);
   };
@@ -106,7 +162,7 @@ const ReportsPage = () => {
   const toggleTarget = (name: string) => setSelectedTargets(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
 
   const handleGenerate = () => {
-    if (selectedTeams.length === 0) { toast.error("Ən azı bir komanda seçin"); return; }
+    if (filterValues.length === 0) { toast.error("Ən azı bir dəyər seçin"); return; }
     if (selectedTargets.length === 0) { toast.error("Ən azı bir hədəf seçin"); return; }
     setGenerated(true);
   };
