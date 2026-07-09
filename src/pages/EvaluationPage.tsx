@@ -32,6 +32,7 @@ import { hasReviewerSubmitted, getReviewsForReviewee } from "@/lib/peerReviewSto
 import { getManualAssignments, addManualAssignment, removeManualAssignment, getUsedRevieweeIds, type ManualAssignment } from "@/lib/manualAssignmentsStore";
 import { addSurvey } from "@/lib/evaluationSurveyStore";
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
+import CompetencyMatrixTab from "@/components/evaluation/CompetencyMatrixTab";
 
 // =============== Survey Dialog (HR sends evaluation request to employees) ===============
 const SurveyDialog = () => {
