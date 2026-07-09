@@ -1,17 +1,67 @@
 import { useState } from "react";
-import { Plus, Mail, Trash2, Search, ShieldCheck, ShieldOff, X, Check, KeyRound } from "lucide-react";
+import { Plus, Mail, Trash2, Search, ShieldCheck, ShieldOff, X, Check, KeyRound, Copy, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import {
   useHrAdmins,
   createHrAdmin,
   deleteHrAdmin,
-  toggleHrAdminPermission,
   setHrAdminActive,
   setHrAdminPermissions,
+  setHrAdminMustChangePassword,
   HrAdminAccount,
 } from "@/lib/hrAdminStore";
 import { setPasswordForEmail } from "@/lib/passwordStore";
 import { MODULE_PERMS, ALL_MODULE_KEYS } from "@/lib/modulePermissions";
+
+const OneTimePasswordPanel = ({
+  email,
+  password,
+  onClose,
+}: { email: string; password: string; onClose: () => void }) => {
+  const [ack, setAck] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = () => navigator.clipboard.writeText(password).then(() => {
+    setCopied(true);
+    toast.success("Şifrə kopyalandı");
+  });
+  return (
+    <div className="p-5 space-y-4">
+      <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+        <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-muted-foreground">
+          Bu şifrə YALNIZ indi göstərilir. Bağladıqdan sonra sistem şifrəni bir daha göstərməyəcək.
+          İndi kopyalayıb istifadəçiyə təhlükəsiz kanal ilə çatdırın. İstifadəçi ilk girişdə şifrəni məcburi dəyişəcək.
+        </p>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground">E-poçt</label>
+        <div className="mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background font-mono">{email}</div>
+      </div>
+      <div>
+        <label className="text-xs text-muted-foreground">Müvəqqəti şifrə</label>
+        <div className="mt-1 flex items-center gap-2">
+          <div className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background font-mono break-all">{password}</div>
+          <button onClick={copy} className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-border hover:bg-secondary text-sm">
+            <Copy className="w-4 h-4" /> {copied ? "Kopyalandı" : "Kopyala"}
+          </button>
+        </div>
+      </div>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} className="mt-0.5 w-4 h-4 accent-primary" />
+        <span className="text-foreground">Şifrəni qeyd etdim və istifadəçiyə çatdıracağam.</span>
+      </label>
+      <div className="flex items-center justify-end">
+        <button
+          onClick={onClose}
+          disabled={!ack}
+          className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        >
+          Bağla
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const SuperAdminUsersPage = () => {
   const admins = useHrAdmins();
