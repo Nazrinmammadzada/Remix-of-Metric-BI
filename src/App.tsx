@@ -119,10 +119,11 @@ const App = () => {
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginGuard />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/change-password" element={<ChangePasswordGuard />} />
             <Route path="/access-denied" element={<AccessDenied />} />
 
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
-            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><AppLayout /></RouteGuard>}>
+            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><AppLayout /></RequirePasswordChanged></RouteGuard>}>
               <Route path="/hr" element={<HomePage />} />
               <Route path="/kpi-kartlari" element={<KpiHubPage />} />
               <Route path="/kpi-qiymetleri" element={<KpiScoresPage />} />
