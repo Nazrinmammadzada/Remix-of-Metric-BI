@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
-import { findHrAdminByEmail } from "@/lib/hrAdminStore";
+import { getPasswordForEmail, setPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
+import {
+  findHrAdminByEmail,
+  setHrAdminLastLoginNow,
+  setHrAdminMustChangePassword,
+} from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 
 export interface AuthUser {
@@ -11,6 +15,7 @@ export interface AuthUser {
   department: string;
   team: string;
   permissions: string[];
+  mustChangePassword?: boolean;
 }
 
 // Super Admin — yalnız HR (Admin) hesablarını idarə edir, başqa heç bir modula girişi yoxdur.
