@@ -247,11 +247,21 @@ const CreateAdminDialog = ({ onClose }: { onClose: () => void }) => {
     <div className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4">
       <div className="bg-card rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h3 className="text-lg font-bold text-foreground">Yeni HR (Admin) Hesabı</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center">
+          <h3 className="text-lg font-bold text-foreground">
+            {reveal ? "Hesab yaradıldı" : "Yeni HR (Admin) Hesabı"}
+          </h3>
+          <button
+            onClick={reveal ? undefined : onClose}
+            disabled={!!reveal}
+            className="w-8 h-8 rounded-md hover:bg-secondary flex items-center justify-center disabled:opacity-30"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
+        {reveal ? (
+          <OneTimePasswordPanel email={reveal.email} password={reveal.password} onClose={onClose} />
+        ) : (
+        <>
         <div className="p-5 space-y-4 overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
             <div>
