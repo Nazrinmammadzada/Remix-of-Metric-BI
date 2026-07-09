@@ -12,7 +12,7 @@ import { getApprovalMatrices } from "@/lib/matrixStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
-  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown, Shuffle,
+  ClipboardList, Save, Power, Send, Star, Search, X, Check, ChevronDown, Shuffle, Briefcase,
 } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
@@ -531,9 +531,12 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const [indFilterPositions, setIndFilterPositions] = useState<string[]>([]);
   const [indFilterTeams, setIndFilterTeams] = useState<string[]>([]);
   const [indFilterStructures, setIndFilterStructures] = useState<string[]>([]);
+  // Şəxs / Komanda / Struktur / Vəzifə – tab-based application scope selector
+  const [scopeTab, setScopeTab] = useState<"persons" | "teams" | "structures" | "positions">("persons");
   useEffect(() => {
     if (!open) {
       setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]);
+      setScopeTab("persons");
     }
   }, [open]);
 
@@ -895,106 +898,143 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   </div>
                 </Field>
 
-                {/* INDIVIDUAL: filters (Vəzifə / Komanda / Struktur) + employee multi-select */}
-                {draft.mode === "individual" && (
-                  <>
-                    <Field label="Filtrlər (Vəzifə / Komanda / Struktur)" span="col-span-12">
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-12 md:col-span-4">
-                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
-                          <MultiSelectDropdown
-                            options={positionOptions}
-                            selected={indFilterPositions}
-                            onChange={setIndFilterPositions}
-                            placeholder="Vəzifə seçin"
-                          />
-                        </div>
-                        <div className="col-span-12 md:col-span-4">
-                          <label className="text-[11px] text-muted-foreground">Komanda</label>
-                          <MultiSelectDropdown
-                            options={teamOptions}
-                            selected={indFilterTeams}
-                            onChange={setIndFilterTeams}
-                            placeholder="Komanda seçin"
-                          />
-                        </div>
-                        <div className="col-span-12 md:col-span-4">
-                          <label className="text-[11px] text-muted-foreground">Struktur</label>
-                          <MultiSelectDropdown
-                            options={structureOptions}
-                            selected={indFilterStructures}
-                            onChange={setIndFilterStructures}
-                            placeholder="Struktur seçin"
-                          />
-                        </div>
+                {/* Tətbiq sahəsi tabs — Şəxs / Komanda / Struktur / Vəzifə */}
+                <Field label="Tətbiq sahəsi" required span="col-span-12">
+                  {(() => {
+                    const CATS: { key: typeof scopeTab; label: string; Icon: any }[] = [
+                      { key: "persons",    label: "Şəxs(lər)", Icon: User },
+                      { key: "teams",      label: "Komanda",   Icon: Users },
+                      { key: "structures", label: "Struktur",  Icon: ShieldCheck },
+                      { key: "positions",  label: "Vəzifə",    Icon: Briefcase },
+                    ];
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {CATS.map(c => {
+                          const active = scopeTab === c.key;
+                          const Icon = c.Icon;
+                          return (
+                            <button key={c.key} type="button" onClick={() => setScopeTab(c.key)}
+                              className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 ${active ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/30" : "border-border bg-card hover:border-primary/40"}`}>
+                              <span className={`w-4 h-4 rounded border flex items-center justify-center ${active ? "bg-primary border-primary text-white" : "border-muted-foreground/40 bg-background"}`}>
+                                {active && <Check className="w-3 h-3" />}
+                              </span>
+                              <Icon className="w-4 h-4" />
+                              <span className="truncate">{c.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
-                      {(indFilterPositions.length + indFilterTeams.length + indFilterStructures.length) > 0 && (
-                        <div className="flex items-center justify-between mt-1.5">
-                          <p className="text-[11px] text-muted-foreground">
-                            {filteredIndividualEmployeeOptions.length} əməkdaş tapıldı
-                          </p>
-                          <button type="button"
-                            onClick={() => { setIndFilterPositions([]); setIndFilterTeams([]); setIndFilterStructures([]); }}
-                            className="text-[11px] text-primary hover:underline">
-                            Filtrləri təmizlə
-                          </button>
-                        </div>
-                      )}
-                    </Field>
-                    <Field label="Əməkdaş seçimi" required span="col-span-12">
+                    );
+                  })()}
+                </Field>
+
+                {/* INDIVIDUAL mode: selection under the chosen tab */}
+                {draft.mode === "individual" && (
+                  <Field
+                    label={
+                      scopeTab === "persons" ? "Şəxs(lər) seçin"
+                      : scopeTab === "teams" ? "Komanda seçin"
+                      : scopeTab === "structures" ? "Struktur seçin"
+                      : "Vəzifə seçin"
+                    }
+                    required
+                    span="col-span-12"
+                  >
+                    {scopeTab === "persons" && (
                       <MultiSelectDropdown
                         options={filteredIndividualEmployeeOptions}
                         selected={draft.individualEmployees}
                         onChange={(v) => update({ individualEmployees: v })}
-                        placeholder="Əməkdaş axtarın və seçin..."
+                        placeholder="Şəxs(lər) seçin"
                       />
-                    </Field>
-                  </>
+                    )}
+                    {scopeTab === "teams" && (
+                      <MultiSelectDropdown
+                        options={teamOptions}
+                        selected={indFilterTeams}
+                        onChange={(v) => {
+                          setIndFilterTeams(v);
+                          // auto-fill individualEmployees from filtered pool
+                          const pool = filteredIndividualEmployeeOptions
+                            .filter(o => {
+                              const teams = teamsRaw.filter(t => v.includes(t.name));
+                              return teams.some(t => t.leader === o.value.split(" — ")[0] || t.members.some(m => m.name === o.value.split(" — ")[0]));
+                            })
+                            .map(o => o.value);
+                          if (pool.length) update({ individualEmployees: pool });
+                        }}
+                        placeholder="Komanda seçin"
+                      />
+                    )}
+                    {scopeTab === "structures" && (
+                      <MultiSelectDropdown
+                        options={structureOptions}
+                        selected={indFilterStructures}
+                        onChange={(v) => {
+                          setIndFilterStructures(v);
+                          const pool = employeesRaw
+                            .filter(e => v.some(sp => (e.structurePath || "").startsWith(sp)))
+                            .map(e => e.value);
+                          if (pool.length) update({ individualEmployees: pool });
+                        }}
+                        placeholder="Struktur seçin"
+                      />
+                    )}
+                    {scopeTab === "positions" && (
+                      <MultiSelectDropdown
+                        options={positionOptions}
+                        selected={indFilterPositions}
+                        onChange={(v) => {
+                          setIndFilterPositions(v);
+                          const pool = employeesRaw
+                            .filter(e => v.includes(e.positionName))
+                            .map(e => e.value);
+                          if (pool.length) update({ individualEmployees: pool });
+                        }}
+                        placeholder="Vəzifə seçin"
+                      />
+                    )}
+                    {scopeTab !== "persons" && draft.individualEmployees.length > 0 && (
+                      <p className="text-[11px] text-muted-foreground mt-1.5">
+                        {draft.individualEmployees.length} əməkdaş avtomatik seçildi.
+                      </p>
+                    )}
+                  </Field>
                 )}
 
-
-                {/* BULK: only ONE category at a time */}
+                {/* BULK mode: same tabs — populate bulkSelections for the active category */}
                 {draft.mode === "bulk" && (() => {
                   const bs = draft.bulkSelections;
-                  const activeCat: "teams" | "structures" | "positions" | "persons" | null =
-                    bs.teams.length > 0 ? "teams"
-                    : bs.structures.length > 0 ? "structures"
-                    : bs.positions.length > 0 ? "positions"
-                    : bs.persons.length > 0 ? "persons"
-                    : null;
-                  const dis = (c: typeof activeCat) => activeCat !== null && activeCat !== c;
+                  const setCat = (cat: "persons" | "teams" | "structures" | "positions", v: string[]) => {
+                    const cleared = { teams: [], structures: [], positions: [], persons: [] };
+                    update({ bulkSelections: { ...cleared, [cat]: v } });
+                  };
                   return (
-                    <Field label="Toplu təyinat (yalnız birini doldurun)" required span="col-span-12">
-                      <div className="grid grid-cols-12 gap-2">
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Komanda</label>
-                          <MultiSelectDropdown options={teamOptions} selected={bs.teams} disabled={dis("teams")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, teams: v } })}
-                            placeholder="Komanda seçin" />
-                        </div>
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Struktur</label>
-                          <MultiSelectDropdown options={structureOptions} selected={bs.structures} disabled={dis("structures")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, structures: v } })}
-                            placeholder="Struktur seçin" />
-                        </div>
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Vəzifə</label>
-                          <MultiSelectDropdown options={positionOptions} selected={bs.positions} disabled={dis("positions")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, positions: v } })}
-                            placeholder="Vəzifə seçin" />
-                        </div>
-                        <div className="col-span-12 md:col-span-3">
-                          <label className="text-[11px] text-muted-foreground">Şəxs</label>
-                          <MultiSelectDropdown options={employeeOptions} selected={bs.persons} disabled={dis("persons")}
-                            onChange={(v) => update({ bulkSelections: { ...bs, persons: v } })}
-                            placeholder="Şəxs seçin" />
-                        </div>
-                      </div>
-                      {activeCat && (
-                        <p className="text-[11px] text-muted-foreground mt-1.5">
-                          Yalnız bir kateqoriya seçə bilərsiniz. Dəyişmək üçün cari seçimi təmizləyin.
-                        </p>
+                    <Field
+                      label={
+                        scopeTab === "persons" ? "Şəxs(lər) seçin"
+                        : scopeTab === "teams" ? "Komanda seçin"
+                        : scopeTab === "structures" ? "Struktur seçin"
+                        : "Vəzifə seçin"
+                      }
+                      required
+                      span="col-span-12"
+                    >
+                      {scopeTab === "persons" && (
+                        <MultiSelectDropdown options={employeeOptions} selected={bs.persons}
+                          onChange={(v) => setCat("persons", v)} placeholder="Şəxs(lər) seçin" />
+                      )}
+                      {scopeTab === "teams" && (
+                        <MultiSelectDropdown options={teamOptions} selected={bs.teams}
+                          onChange={(v) => setCat("teams", v)} placeholder="Komanda seçin" />
+                      )}
+                      {scopeTab === "structures" && (
+                        <MultiSelectDropdown options={structureOptions} selected={bs.structures}
+                          onChange={(v) => setCat("structures", v)} placeholder="Struktur seçin" />
+                      )}
+                      {scopeTab === "positions" && (
+                        <MultiSelectDropdown options={positionOptions} selected={bs.positions}
+                          onChange={(v) => setCat("positions", v)} placeholder="Vəzifə seçin" />
                       )}
                       {bs.persons.length >= 2 && (
                         <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1">
@@ -1004,6 +1044,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     </Field>
                   );
                 })()}
+
 
                 <Field label="Dövr" required span="col-span-12 md:col-span-4">
                   <select value={draft.frequency} onChange={e => setFrequency(e.target.value)}
@@ -1989,14 +2030,15 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   onClose: () => void;
   onSave: (evs: WizardEvaluatorRef[]) => void;
 }) {
-  const initialTab: "person" | "team" | "self" | "integration" = (() => {
+  const initialTab: "person" | "team" | "structure" | "self" | "integration" = (() => {
     const first = target.evaluators[0]?.name || "";
     if (first.startsWith("[Komanda]")) return "team";
+    if (first.startsWith("[Struktur]")) return "structure";
     if (first === "[Özü]") return "self";
     if (first.startsWith("[İnteqrasiya]")) return "integration";
     return "person";
   })();
-  const [tab, setTab] = useState<"person" | "team" | "self" | "integration">(initialTab);
+  const [tab, setTab] = useState<"person" | "team" | "structure" | "self" | "integration">(initialTab);
   const [personEvs, setPersonEvs] = useState<WizardEvaluatorRef[]>(
     initialTab === "person" ? target.evaluators : []
   );
@@ -2036,6 +2078,47 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
     setTeamMemberEvs(picked.map(n => ({ id: crypto.randomUUID(), name: n, weight: each })));
     toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
   };
+
+  // ===== Struktur tab (mirrors Komanda tab) =====
+  const structureList = useMemo(() => flattenStructures(getStructures()), []);
+  const allEmployees = useMemo(() => getEmployees().filter(e => e.active), []);
+  const [structPath, setStructPath] = useState<string>(
+    initialTab === "structure" ? (target.evaluators[0]?.name.replace("[Struktur] ", "").split(" — ")[0] || "") : ""
+  );
+  const [structSearch, setStructSearch] = useState("");
+  const [structMemberEvs, setStructMemberEvs] = useState<WizardEvaluatorRef[]>(
+    initialTab === "structure" && target.evaluators.length > 0 && !target.evaluators[0].name.startsWith("[Struktur]")
+      ? target.evaluators : []
+  );
+  const [structRandomCount, setStructRandomCount] = useState<number>(1);
+  const structMembers: { name: string }[] = structPath
+    ? allEmployees
+        .filter(e => (e.structurePath || "").startsWith(structPath))
+        .map(e => ({ name: `${e.firstName} ${e.lastName}` }))
+    : [];
+  const filteredStructures = structureList.filter(s => s.label.toLowerCase().includes(structSearch.toLowerCase()));
+  const toggleStructMember = (name: string) => {
+    setStructMemberEvs(prev => prev.find(p => p.name === name)
+      ? prev.filter(p => p.name !== name)
+      : [...prev, { id: crypto.randomUUID(), name, weight: 0 }]);
+  };
+  const updateStructMemberWeight = (name: string, w: number) => {
+    setStructMemberEvs(prev => prev.map(p => p.name === name ? { ...p, weight: w } : p));
+  };
+  const randomPickStruct = () => {
+    if (!structPath || structMembers.length === 0) return;
+    const wanted = Math.max(1, Math.min(structRandomCount || 1, structMembers.length));
+    const pool = [...structMembers];
+    const picked: string[] = [];
+    for (let i = 0; i < wanted && pool.length > 0; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0].name);
+    }
+    const each = Math.floor(100 / picked.length);
+    setStructMemberEvs(picked.map(n => ({ id: crypto.randomUUID(), name: n, weight: each })));
+    toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
+  };
+
   const [integration, setIntegration] = useState<string>(
     initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
   );
@@ -2062,6 +2145,19 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
         }
         onSave(teamMemberEvs.map(e => ({ ...e, name: `[${teamName}] ${e.name}` })));
       }
+    } else if (tab === "structure") {
+      if (!structPath) { toast.error("Struktur seçin"); return; }
+      if (structMemberEvs.length === 0) {
+        onSave([{ id: crypto.randomUUID(), name: `[Struktur] ${structPath}`, weight: 100 }]);
+      } else {
+        if (structMemberEvs.length > 1) {
+          const sum = structMemberEvs.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+          if (sum !== 100) { toast.error(`Faiz cəmi 100% olmalıdır (hazırda ${sum}%)`); return; }
+        } else {
+          structMemberEvs[0].weight = 100;
+        }
+        onSave(structMemberEvs.map(e => ({ ...e, name: `[${structPath}] ${e.name}` })));
+      }
     } else if (tab === "self") {
       onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
     } else {
@@ -2073,6 +2169,7 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   const tabs: { key: typeof tab; label: string }[] = [
     { key: "person", label: "Şəxs" },
     { key: "team", label: "Komanda" },
+    { key: "structure", label: "Struktur" },
     { key: "self", label: "Özü" },
     { key: "integration", label: "İnteqrasiya" },
   ];
@@ -2183,6 +2280,85 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                     </div>
                   )}
                   <p className="text-[11px] text-muted-foreground">Heç bir üzv seçilməsə, komandanın bütün üzvləri qiymətləndirici sayılacaq.</p>
+                </>
+              )}
+            </div>
+          )}
+          {tab === "structure" && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Struktur</label>
+                <div className="relative mt-1 mb-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    value={structSearch}
+                    onChange={e => setStructSearch(e.target.value)}
+                    placeholder="Struktur axtar..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                  />
+                </div>
+                <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y">
+                  {filteredStructures.map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => { setStructPath(s.label); setStructMemberEvs([]); }}
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-secondary ${structPath === s.label ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-medium" : ""}`}
+                    >
+                      <span className="truncate">{s.label}</span>
+                      {structPath === s.label && <Check className="w-4 h-4 shrink-0" />}
+                    </button>
+                  ))}
+                  {filteredStructures.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Nəticə yoxdur</div>
+                  )}
+                </div>
+              </div>
+              {structPath && (
+                <>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Əməkdaşlar ({structMembers.length})</span>
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[11px] text-muted-foreground">Say:</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={structMembers.length}
+                        value={structRandomCount}
+                        onChange={e => setStructRandomCount(Math.max(1, Number(e.target.value) || 1))}
+                        className="w-14 px-2 py-1 text-xs border border-border rounded bg-background"
+                      />
+                      <button type="button" onClick={randomPickStruct} className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-border hover:bg-secondary">
+                        <Shuffle className="w-3 h-3" /> Təsadüfi
+                      </button>
+                    </div>
+                  </div>
+                  <div className="border border-border rounded-lg divide-y max-h-60 overflow-y-auto">
+                    {structMembers.map(m => {
+                      const sel = structMemberEvs.find(p => p.name === m.name);
+                      return (
+                        <div key={m.name} className="flex items-center gap-2 p-2">
+                          <input type="checkbox" checked={!!sel} onChange={() => toggleStructMember(m.name)} />
+                          <span className="flex-1 text-sm">{m.name}</span>
+                          {sel && (
+                            <div className="flex items-center gap-1">
+                              <WeightInput value={sel.weight} onChange={n => updateStructMemberWeight(m.name, n)} className="w-16 !px-2 !py-1 text-xs" />
+                              <span className="text-xs text-muted-foreground">%</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {structMembers.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Bu strukturda aktiv əməkdaş yoxdur</div>
+                    )}
+                  </div>
+                  {structMemberEvs.length > 1 && (
+                    <div className="text-xs text-muted-foreground">
+                      Toplam ağırlıq: {structMemberEvs.reduce((s, p) => s + (Number(p.weight) || 0), 0)}%
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">Heç bir əməkdaş seçilməsə, strukturun bütün əməkdaşları qiymətləndirici sayılacaq.</p>
                 </>
               )}
             </div>
