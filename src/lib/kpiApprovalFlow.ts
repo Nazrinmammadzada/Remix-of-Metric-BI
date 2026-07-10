@@ -90,28 +90,31 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
     const matrix = getApprovalMatrices().find(m => m.id === ctx.matrixId);
     if (!matrix) return;
 
-    // Matrisdəki bütün approver-ləri employee id-lərinə çevir.
-    const approverIds = new Set<string>();
-    matrix.steps.forEach(step => {
+    // Build per-step approver chain (sequential flow). Each matrix step becomes
+    // one link in the chain — only the current step's approvers get the task.
+    const stepsChain: string[][] = matrix.steps.map(step => {
+      const ids = new Set<string>();
       step.assignees.forEach(a => {
         const names = a.type === "user" ? [a.name] : (roleUserMap[a.name] || []);
         names.forEach(n => {
           const id = nameToEmployeeId(n);
-          if (id) approverIds.add(id);
+          if (id) ids.add(id);
         });
       });
-    });
+      return Array.from(ids);
+    }).filter(step => step.length > 0);
 
     // Fallback: ən azı kart sahibi (HR) təsdiqçi olsun ki, approval boş qalmasın.
-    if (approverIds.size === 0 && ctx.ownerId) approverIds.add(ctx.ownerId);
-    if (approverIds.size === 0) return;
+    if (stepsChain.length === 0 && ctx.ownerId) stepsChain.push([ctx.ownerId]);
+    if (stepsChain.length === 0) return;
 
     enqueueApproval({
       kpiCardId: ctx.id,
       kpiName: ctx.name,
       matrixId: ctx.matrixId,
-      approverIds: Array.from(approverIds),
+      approverIds: stepsChain[0],
       createdBy: ctx.ownerId,
+      stepsChain,
     });
 
     // Həm SharedKpiCard, həm də lokal KpiCard status store-u yenilə.
