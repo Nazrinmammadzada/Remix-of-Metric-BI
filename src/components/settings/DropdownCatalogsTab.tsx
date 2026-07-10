@@ -558,7 +558,7 @@ const DropdownCatalogsTab = () => {
                     </button>
                   </>
                 )}
-                {active.id !== "evaluator_types" && (
+                {active.id !== "evaluator_types" && active.id !== "kpi_statuses" && (
                   <button onClick={openAddDialog} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
                     <Plus className="w-4 h-4" /> {addLabel()}
                   </button>
@@ -617,8 +617,12 @@ const DropdownCatalogsTab = () => {
                       <td className="py-4 text-foreground">{v}</td>
                       <td className="py-4">
                         <div className="flex items-center justify-end gap-2 pr-2">
-                          <button onClick={() => setValueDialog({ mode: "edit", index: i, value: v })} className="p-1.5 rounded hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
-                          <button onClick={() => { if (confirm("Bu dəyər silinsin?")) { removeCatalogValue(active.id, i); refresh(); } }} className="p-1.5 rounded hover:bg-zone-red-bg"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                          {active.id !== "kpi_statuses" && (
+                            <>
+                              <button onClick={() => setValueDialog({ mode: "edit", index: i, value: v })} className="p-1.5 rounded hover:bg-secondary"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
+                              <button onClick={() => { if (confirm("Bu dəyər silinsin?")) { removeCatalogValue(active.id, i); refresh(); } }} className="p-1.5 rounded hover:bg-zone-red-bg"><Trash2 className="w-4 h-4 text-destructive" /></button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

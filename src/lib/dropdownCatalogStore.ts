@@ -43,7 +43,7 @@ export interface DropdownCatalog {
   rows?: CatalogRow[];
 }
 
-const KEY = "kpi_dropdown_catalogs_v5";
+const KEY = "kpi_dropdown_catalogs_v6";
 
 const SEED: DropdownCatalog[] = [
   // Hədəf Tipləri (strukturlaşdırılmış)
@@ -110,17 +110,17 @@ const SEED: DropdownCatalog[] = [
   { id: "calc_units", name: "Hesablama Vahidləri", system: true, values: [
     "Valyuta (AZN)", "Faiz (%)", "Zaman (Gün)", "Boolean (Hə/Yox)", "Qiymət", "Nisbət",
   ]},
-  { id: "sub_kpi_units", name: "Hədəf Ölçü Vahidləri", system: true, values: [
-    "Valyuta (AZN)", "Faiz (%)", "Qiymət", "Zaman (Gün)", "Nisbət", "Boolean (Hə/Yox)",
+  { id: "sub_kpi_units", name: "Hədəf Növləri", system: true, values: [
+    "Məbləğ", "Say", "İcra", "Səriştə", "Fərdi İnkişaf", "Faiz", "Nisbət", "Boolean", "Zaman",
   ]},
-  { id: "frequencies", name: "Tezlik (Period)", system: true, values: [
-    "Günlük", "Həftəlik", "Aylıq", "Rüblük", "Yarımillik", "İllik",
+  { id: "frequencies", name: "Dövr", system: true, values: [
+    "Aylıq", "Rüblük", "6 Aylıq", "İllik", "Custom",
   ]},
   { id: "kpi_lifecycle_periods", name: "KPI Lifecycle Dövrləri", system: true, values: [
     "Günlük", "Həftəlik", "Aylıq", "Rüblük", "Yarımillik", "İllik",
   ]},
   { id: "kpi_statuses", name: "KPI Kartı Statusları", system: true, values: [
-    "Təsdiq gözləyən", "Təsdiq edilmiş",
+    "Qaralama", "Natamam", "Təsdiq gözlənilir", "İmtina", "Aktiv", "Qiymətləndirmə", "Tamamlanıb", "Ləğv olundu",
   ]},
   { id: "kpi_zones", name: "KPI Zonaları", system: true, values: [
     "Yaşıl Zona", "Sarı Zona", "Qırmızı Zona",
@@ -144,16 +144,6 @@ const SEED: DropdownCatalog[] = [
   { id: "scoring_systems", name: "Qiymətləndirmə Bal Sistemi", system: true, values: [
     "1-3 Bal Sistemi", "1-5 Bal Sistemi", "1-10 Bal Sistemi", "Faiz (0-100)",
   ]},
-  { id: "approver_roles", name: "Təsdiqləyici Vəzifələri", system: true, values: [
-    "Departament Rəhbəri", "Şöbə Müdiri", "Departament Direktoru", "Komanda Lideri",
-    "HR Direktoru", "CFO", "CEO", "Kurator",
-  ]},
-  { id: "kpi_card_types", name: "KPI Kartı Tipləri", system: true, values: [
-    "Absolut Hədəf", "Faiz Hədəfi", "Trend Hədəfi", "Benchmark", "Say Hədəfi",
-  ]},
-  { id: "notification_channels", name: "Bildiriş Kanalları", system: true, values: [
-    "Email", "SMS", "Telegram", "App-daxili",
-  ]},
 ];
 
 // Strukturlaşdırılmış kataloqlarda values array-ı rows.name-dən avtomatik sinxronlaşdırılır
@@ -176,6 +166,9 @@ export const REMOVED_CATALOG_IDS = new Set<string>([
   "kpi_lifecycle_periods",
   "kpi_zones",
   "integration_systems",
+  "approver_roles",
+  "notification_channels",
+  "kpi_card_types",
 ]);
 
 const load = (): DropdownCatalog[] => {

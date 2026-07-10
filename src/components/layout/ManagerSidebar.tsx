@@ -15,8 +15,8 @@ const navItems = [
   { path: "/manager/mesul-kartlar", label: "Məsul olduğum kartlar", icon: LayoutGrid },
   { path: "/manager/komandam", label: "Komandam", icon: Users },
   { path: "/manager/kpi-izleme", label: "KPI İzlənməsi", icon: Activity },
-  { path: "/manager/neticelerim", label: "Nəticələrim", icon: Trophy },
-  { path: "/manager/bonuslarim", label: "Bonuslarım", icon: Gift },
+  { path: "/manager/neticelerim", label: "Nəticələr", icon: Trophy },
+  { path: "/manager/bonuslarim", label: "Bonuslar", icon: Gift },
   { path: "/manager/hesabat", label: "Hesabatlar", icon: BarChart3 },
   { path: "/manager/ayarlar", label: "Sazlamalar", icon: Settings },
 ];

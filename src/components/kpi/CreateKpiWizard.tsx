@@ -2022,7 +2022,12 @@ function SummarySection({ title, children }: { title: string; children: React.Re
 // =========================================================
 // Qiymətləndirici seçim dialoqu — 4 tab (Şəxs / Komanda / Özü / İnteqrasiya)
 // =========================================================
-const INTEGRATION_SOURCES = ["CRM", "ERP", "SIEM", "CHR", "1C", "Bitrix24", "Jira"];
+const INTEGRATION_SYSTEMS: { name: string; fields: string[] }[] = [
+  { name: "CRM Sistemi", fields: ["Satış həcmi", "Yeni müştəri sayı", "Konversiya faizi", "Aktiv lead sayı"] },
+  { name: "CHR", fields: ["İşçi sayı", "Davamiyyət faizi", "Məzuniyyət günləri", "Maaş fondu"] },
+  { name: "Microsoft 365", fields: ["E-poçt sayı", "Toplantı sayı", "Fayl paylaşımı", "Teams aktivliyi"] },
+  { name: "SIEM Platform", fields: ["İnsident sayı", "Təhlükə səviyyəsi", "Uyğunluq xalı"] },
+];
 
 function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   target: WizardHedef;
@@ -2042,6 +2047,12 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   const [personEvs, setPersonEvs] = useState<WizardEvaluatorRef[]>(
     initialTab === "person" ? target.evaluators : []
   );
+  const [personSearch, setPersonSearch] = useState("");
+  const filteredEmployeeOptions = useMemo(() => {
+    const q = personSearch.trim().toLowerCase();
+    if (!q) return employeeOptions;
+    return employeeOptions.filter(o => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+  }, [personSearch, employeeOptions]);
   const teams = useMemo(() => getTeams(), []);
   const [teamName, setTeamName] = useState<string>(
     initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "").split(" — ")[0] || "") : ""
@@ -2052,10 +2063,12 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
       ? target.evaluators : []
   );
   const [randomCount, setRandomCount] = useState<number>(1);
+  const [teamMemberSearch, setTeamMemberSearch] = useState("");
   const selectedTeam = teams.find(t => t.name === teamName) || null;
   const teamMembers: { name: string }[] = selectedTeam
     ? [{ name: selectedTeam.leader }, ...selectedTeam.members.map(m => ({ name: m.name }))]
     : [];
+  const filteredTeamMembers = teamMembers.filter(m => m.name.toLowerCase().includes(teamMemberSearch.toLowerCase()));
   const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
   const toggleTeamMember = (name: string) => {
     setTeamMemberEvs(prev => prev.find(p => p.name === name)
@@ -2091,11 +2104,13 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
       ? target.evaluators : []
   );
   const [structRandomCount, setStructRandomCount] = useState<number>(1);
+  const [structMemberSearch, setStructMemberSearch] = useState("");
   const structMembers: { name: string }[] = structPath
     ? allEmployees
         .filter(e => (e.structurePath || "").startsWith(structPath))
         .map(e => ({ name: `${e.firstName} ${e.lastName}` }))
     : [];
+  const filteredStructMembers = structMembers.filter(m => m.name.toLowerCase().includes(structMemberSearch.toLowerCase()));
   const filteredStructures = structureList.filter(s => s.label.toLowerCase().includes(structSearch.toLowerCase()));
   const toggleStructMember = (name: string) => {
     setStructMemberEvs(prev => prev.find(p => p.name === name)
@@ -2119,9 +2134,15 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
     toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
   };
 
-  const [integration, setIntegration] = useState<string>(
-    initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
-  );
+  const initialIntegrationName = initialTab === "integration"
+    ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "").split(" · ")[0] || "")
+    : "";
+  const [integration, setIntegration] = useState<string>(initialIntegrationName);
+  const [integrationSearch, setIntegrationSearch] = useState("");
+  const [integrationFields, setIntegrationFields] = useState<string[]>([]);
+  const [integrationWeight, setIntegrationWeight] = useState<number>(100);
+  const currentIntegrationSystem = INTEGRATION_SYSTEMS.find(s => s.name === integration);
+  const filteredIntegrationSystems = INTEGRATION_SYSTEMS.filter(s => s.name.toLowerCase().includes(integrationSearch.toLowerCase()));
 
   const save = () => {
     if (tab === "person") {
@@ -2161,8 +2182,11 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
     } else if (tab === "self") {
       onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
     } else {
-      if (!integration) { toast.error("İnteqrasiya mənbəyi seçin"); return; }
-      onSave([{ id: crypto.randomUUID(), name: `[İnteqrasiya] ${integration}`, weight: 100 }]);
+      if (!integration) { toast.error("İnteqrasiya sistemi seçin"); return; }
+      const label = integrationFields.length > 0
+        ? `[İnteqrasiya] ${integration} · ${integrationFields.join(", ")}`
+        : `[İnteqrasiya] ${integration}`;
+      onSave([{ id: crypto.randomUUID(), name: label, weight: integrationWeight || 100 }]);
     }
   };
 
@@ -2201,8 +2225,17 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
               <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
                 Qiymətləndirici(lər){personEvs.length > 1 && <span className="text-amber-600"> — faiz cəmi 100%</span>}
               </div>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input
+                  value={personSearch}
+                  onChange={e => setPersonSearch(e.target.value)}
+                  placeholder="Əməkdaş axtar (ad, vəzifə)..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                />
+              </div>
               <UnifiedEvaluatorsEditor
-                employeeOptions={employeeOptions}
+                employeeOptions={filteredEmployeeOptions}
                 evaluators={personEvs}
                 onChange={setPersonEvs}
               />
@@ -2257,8 +2290,17 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                       </button>
                     </div>
                   </div>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      value={teamMemberSearch}
+                      onChange={e => setTeamMemberSearch(e.target.value)}
+                      placeholder="Üzv axtar..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                    />
+                  </div>
                   <div className="border border-border rounded-lg divide-y max-h-60 overflow-y-auto">
-                    {teamMembers.map(m => {
+                    {filteredTeamMembers.map(m => {
                       const sel = teamMemberEvs.find(p => p.name === m.name);
                       return (
                         <div key={m.name} className="flex items-center gap-2 p-2">
@@ -2273,6 +2315,9 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                         </div>
                       );
                     })}
+                    {filteredTeamMembers.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Üzv tapılmadı</div>
+                    )}
                   </div>
                   {teamMemberEvs.length > 1 && (
                     <div className="text-xs text-muted-foreground">
@@ -2333,8 +2378,17 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                       </button>
                     </div>
                   </div>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      value={structMemberSearch}
+                      onChange={e => setStructMemberSearch(e.target.value)}
+                      placeholder="Əməkdaş axtar..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                    />
+                  </div>
                   <div className="border border-border rounded-lg divide-y max-h-60 overflow-y-auto">
-                    {structMembers.map(m => {
+                    {filteredStructMembers.map(m => {
                       const sel = structMemberEvs.find(p => p.name === m.name);
                       return (
                         <div key={m.name} className="flex items-center gap-2 p-2">
@@ -2349,8 +2403,8 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                         </div>
                       );
                     })}
-                    {structMembers.length === 0 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Bu strukturda aktiv əməkdaş yoxdur</div>
+                    {filteredStructMembers.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Əməkdaş tapılmadı</div>
                     )}
                   </div>
                   {structMemberEvs.length > 1 && (
@@ -2369,14 +2423,66 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
             </div>
           )}
           {tab === "integration" && (
-            <div className="space-y-1.5">
-              <label className="text-[11px] uppercase tracking-wide text-muted-foreground">İnteqrasiya mənbəyi</label>
-              <select value={integration} onChange={e => setIntegration(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-sm border border-border rounded bg-background">
-                <option value="">— Sistem seçin —</option>
-                {INTEGRATION_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <p className="text-[11px] text-muted-foreground">Bal xarici sistemdən avtomatik oxunacaq.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Növ</label>
+                <div className="mt-1 px-2.5 py-1.5 text-sm border border-border rounded bg-muted/40 text-foreground">
+                  İnteqrasiya
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] uppercase tracking-wide text-muted-foreground">İnteqrasiya sistemi</label>
+                <div className="relative mt-1 mb-2">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    value={integrationSearch}
+                    onChange={e => setIntegrationSearch(e.target.value)}
+                    placeholder="Sistem axtar..."
+                    className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                  />
+                </div>
+                <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y">
+                  {filteredIntegrationSystems.map(s => (
+                    <button
+                      key={s.name}
+                      type="button"
+                      onClick={() => { setIntegration(s.name); setIntegrationFields([]); }}
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-secondary ${integration === s.name ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-medium" : ""}`}
+                    >
+                      <span>{s.name}</span>
+                      {integration === s.name && <Check className="w-4 h-4" />}
+                    </button>
+                  ))}
+                  {filteredIntegrationSystems.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Nəticə yoxdur</div>
+                  )}
+                </div>
+              </div>
+              {currentIntegrationSystem && (
+                <div>
+                  <label className="text-[11px] uppercase tracking-wide text-muted-foreground">Mübadilə olunacaq məlumatlar</label>
+                  <div className="mt-1 border border-border rounded-lg divide-y">
+                    {currentIntegrationSystem.fields.map(f => {
+                      const checked = integrationFields.includes(f);
+                      return (
+                        <label key={f} className="flex items-center gap-2 px-3 py-2 text-sm cursor-pointer hover:bg-secondary/50">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setIntegrationFields(prev => checked ? prev.filter(x => x !== f) : [...prev, f])}
+                          />
+                          <span>{f}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">Ağırlıq:</label>
+                <WeightInput value={integrationWeight} onChange={setIntegrationWeight} className="w-20 !px-2 !py-1 text-xs" />
+                <span className="text-xs text-muted-foreground">%</span>
+              </div>
             </div>
           )}
         </div>

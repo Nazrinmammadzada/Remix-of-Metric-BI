@@ -63,7 +63,7 @@ const ManagerBonusPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="Bonuslarım" />
+      <Header title="Bonuslar" />
       <main className="p-6 pb-24">
         {view !== "hub" && (
           <button onClick={() => setView("hub")} className="mb-4 inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-secondary">
@@ -72,7 +72,7 @@ const ManagerBonusPage = () => {
         )}
         {view === "hub" && (
           <>
-            <PageHero badge="Rəhbər Paneli" icon={Gift} title="Bonuslarım" subtitle="Şəxsi və tabeçilik bonuslarını izləyin." />
+            <PageHero badge="Rəhbər Paneli" icon={Gift} title="Bonuslar" subtitle="Şəxsi və tabeçilik bonuslarını izləyin." />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
               <HubCard icon={User} title="Öz bonuslarım" subtitle="Sizin fərdi performansınıza görə hesablanmış bonuslar." count={own.length} gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40" onClick={() => setView("own")} />
               <HubCard icon={Network} title="Tabeçiliyimdəkilərin bonusları" subtitle="Tabeliyinizdəki əməkdaşların bonusları." count={sub.length} gradient="from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-400/40" onClick={() => setView("sub")} />
