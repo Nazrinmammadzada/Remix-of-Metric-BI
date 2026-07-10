@@ -12,12 +12,15 @@ export interface ApprovalItem {
   kpiCardId: string;            // SharedKpiCard.id
   kpiName: string;
   matrixId: string;
-  approverIds: string[];        // employee ids that must act
+  approverIds: string[];        // current step approvers (active)
   decisions: Record<string, { decision: ApprovalDecision; note?: string; at?: string }>;
   status: ApprovalDecision;     // aggregate: approved when all approvers approve; rejected on first rejection
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  // Sequential-flow chain: list of approver id arrays, one per matrix step.
+  stepsChain?: string[][];
+  currentStep?: number;
 }
 
 const KEY = "kpi_approval_queue_v2";
