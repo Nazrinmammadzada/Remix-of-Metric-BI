@@ -60,7 +60,7 @@ export default function SharedKpiPanel({ title = "Sizə aid KPI kartları", empt
             const owner = getEnrichedEmployee(card.ownerId);
             const myExecution: ExecutionStatus =
               meId && card.execution[meId] ? card.execution[meId] : "baslanmayib";
-            const canExecute = meId && card.assigneeIds.includes(meId) && card.status === "aktiv";
+            const canExecute = !readOnlyStatus && meId && card.assigneeIds.includes(meId) && card.status === "aktiv";
             return (
               <li key={card.id} className="px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
