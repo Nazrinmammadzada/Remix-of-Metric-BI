@@ -694,8 +694,11 @@ const SettingsPage = () => {
             <NotificationSettingsTab />
           </div>
         )}
+          </>
+        )}
 
       </main>
+
 
       {/* Create/Edit Target Type Dialog */}
       <Dialog open={showCreateTarget} onOpenChange={setShowCreateTarget}>
