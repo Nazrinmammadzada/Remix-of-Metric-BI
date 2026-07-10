@@ -467,6 +467,20 @@ interface Props {
   onComplete: (draft: CreateKpiWizardDraft) => void;
 }
 
+function Field({ label, required, children, span = "col-span-12 md:col-span-6" }: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+  span?: string;
+}) {
+  return (
+    <div className={span}>
+      <label className="text-sm font-medium text-foreground">{label}{required && <span className="text-destructive"> *</span>}</label>
+      <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+
 import { useAuth as useWizardAuth } from "@/contexts/AuthContext";
 
 export default function CreateKpiWizard({ open, onOpenChange, initial, onComplete }: Props) {
@@ -837,16 +851,6 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
     );
     close();
   };
-
-
-  // ====== UI ======
-  const Field = ({ label, required, children, span = "col-span-12 md:col-span-6" }:
-    { label: string; required?: boolean; children: React.ReactNode; span?: string }) => (
-    <div className={span}>
-      <label className="text-sm font-medium text-foreground">{label}{required && <span className="text-destructive"> *</span>}</label>
-      <div className="mt-1">{children}</div>
-    </div>
-  );
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); else onOpenChange(true); }}>
