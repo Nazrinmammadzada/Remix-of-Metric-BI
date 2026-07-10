@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { AdvancedFilter, evaluateAdvFilter, type AdvFilterState } from "./AdvancedFilter";
 
 export type FilterType = "text" | "number" | "date" | "select" | "none";
 
@@ -132,6 +133,9 @@ export function DataTable<T>({
   );
   const [openSearch, setOpenSearch] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
+  const [advFilter, setAdvFilter] = useState<AdvFilterState>(
+    () => loadPersist<AdvFilterState>("adv", { logic: "AND", rows: [] })
+  );
   const [page, setPage] = useState(1);
   const [dragCol, setDragCol] = useState<string | null>(null);
 
@@ -141,7 +145,8 @@ export function DataTable<T>({
   useEffect(() => persist("widths", colWidths), [colWidths]);
   useEffect(() => persist("order", colOrder), [colOrder]);
   useEffect(() => persist("visible", visibleCols), [visibleCols]);
-  useEffect(() => { setPage(1); }, [filters, rowsPerPage, rows.length]);
+  useEffect(() => persist("adv", advFilter), [advFilter]);
+  useEffect(() => { setPage(1); }, [filters, advFilter, rowsPerPage, rows.length]);
 
   const colByKey = useMemo(() => Object.fromEntries(columns.map(c => [c.key, c])), [columns]);
   const orderedVisible = colOrder
@@ -196,12 +201,17 @@ export function DataTable<T>({
     });
   }, [rows, filters, columns]);
 
+  const advFilteredRows = useMemo(
+    () => evaluateAdvFilter(filteredRows, columns, advFilter),
+    [filteredRows, columns, advFilter]
+  );
+
   // pagination
-  const totalRows = filteredRows.length;
+  const totalRows = advFilteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const safePage = Math.min(page, totalPages);
   const startIdx = (safePage - 1) * rowsPerPage;
-  const pagedRows = filteredRows.slice(startIdx, startIdx + rowsPerPage);
+  const pagedRows = advFilteredRows.slice(startIdx, startIdx + rowsPerPage);
 
   // resize
   const startResize = (key: string, e: React.MouseEvent) => {
@@ -345,6 +355,7 @@ export function DataTable<T>({
                 </div>
               </PopoverContent>
             </Popover>
+            <AdvancedFilter columns={columns} value={advFilter} onChange={setAdvFilter} />
             {toolbarLeft}
           </div>
           {toolbarRight}
