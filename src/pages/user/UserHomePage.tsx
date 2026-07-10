@@ -61,11 +61,28 @@ const UserHomePage = () => {
 
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <FancyCard title="Performans Dinamikası" subtitle="Son 6 ay" className="lg:col-span-2">
+          <FancyCard
+            title="Performans Dinamikası"
+            subtitle={PERIOD_LABEL[chartPeriod]}
+            className="lg:col-span-2"
+            action={
+              <div className="inline-flex bg-secondary rounded-lg p-0.5">
+                {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setChartPeriod(p)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${chartPeriod === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {PERIOD_LABEL[p]}
+                  </button>
+                ))}
+              </div>
+            }
+          >
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                 <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
