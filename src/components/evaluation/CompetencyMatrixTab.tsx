@@ -730,47 +730,45 @@ const CompetencyMatrixTab = () => {
         </div>
       </div>
 
-      {/* Full-width: Cavab variantları və ballar */}
-      {selected ? (
-        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <h3 className="font-semibold text-foreground">Cavab variantları və ballar — {selected.name}</h3>
-            <Button size="sm" variant="outline" onClick={() => setAnswersEditOpen(true)} className="gap-1">
-              <Pencil className="w-3.5 h-3.5" /> Redaktə et
-            </Button>
-          </div>
-          <div className="p-4">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-3 py-2 text-left">Cavab variantı</th>
-                  <th className="px-3 py-2 text-left w-24">Bal</th>
-                  <th className="px-3 py-2 text-left w-32">Faiz</th>
-                  <th className="px-3 py-2 text-left w-20">Rəng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selected.answers.map(a => {
-                  const maxScore = Math.max(...selected.answers.map(x => x.score), 1);
-                  const pct = Math.round((a.score / maxScore) * 100);
-                  return (
-                    <tr key={a.id} className="border-t border-border">
-                      <td className="px-3 py-2">{a.label}</td>
-                      <td className="px-3 py-2">{a.score}</td>
-                      <td className="px-3 py-2">{pct}%</td>
-                      <td className="px-3 py-2"><span className={`inline-block w-3 h-3 rounded-full ${scoreColor(pct)}`} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      {/* Full-width: Cavab variantları və ballar (Global — bütün matrislər üçün ortaq) */}
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <h3 className="font-semibold text-foreground">Cavab variantları və ballar</h3>
+          <span className="text-xs text-muted-foreground">Bütün matrislər üçün ortaq</span>
         </div>
-      ) : (
-        <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
-          Cavab variantlarını görmək üçün cədvəldən matris seçin
+        <div className="p-4">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs text-muted-foreground uppercase">
+              <tr>
+                <th className="px-3 py-2 text-left">Cavab variantı</th>
+                <th className="px-3 py-2 text-left w-24">Bal</th>
+                <th className="px-3 py-2 text-left w-32">Faiz</th>
+                <th className="px-3 py-2 text-left w-20">Rəng</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { label: "Tam razıyam", score: 10 },
+                { label: "Razıyam", score: 8 },
+                { label: "Qismən razıyam", score: 6 },
+                { label: "Razı deyiləm", score: 4 },
+                { label: "Heç razı deyiləm", score: 0 },
+              ].map(a => {
+                const pct = Math.round((a.score / 10) * 100);
+                return (
+                  <tr key={a.label} className="border-t border-border">
+                    <td className="px-3 py-2">{a.label}</td>
+                    <td className="px-3 py-2">{a.score}</td>
+                    <td className="px-3 py-2">{pct}%</td>
+                    <td className="px-3 py-2"><span className={`inline-block w-3 h-3 rounded-full ${scoreColor(pct)}`} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+
 
 
       {/* Modals */}
