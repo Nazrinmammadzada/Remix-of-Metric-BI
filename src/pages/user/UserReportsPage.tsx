@@ -116,7 +116,7 @@ const UserReportsPage = () => {
 
             {activeTab === "mine" && <MyReport userName={user?.name || ""} />}
             {activeTab === "team" && <TeamReport teams={myTeams} />}
-            {activeTab === "shared" && <SharedReport items={mySharedKpis} />}
+            
           </>
         )}
       </main>
