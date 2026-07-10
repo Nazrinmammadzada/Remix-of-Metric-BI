@@ -65,7 +65,7 @@ const UserHomePage = () => {
             title="Performans Dinamikası"
             subtitle={PERIOD_LABEL[chartPeriod]}
             className="lg:col-span-2"
-            action={
+            right={
               <div className="inline-flex bg-secondary rounded-lg p-0.5">
                 {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map(p => (
                   <button
