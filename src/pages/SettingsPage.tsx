@@ -553,9 +553,27 @@ const SettingsPage = () => {
 
   const tabs = ["1. Məlumat Cədvəli", "2. Rol və Səlahiyyətlər", "3. Bildiriş sazlamaları"];
   const tabCards = [
-    { title: "Məlumat Cədvəli", desc: "Sistem üzrə istifadə olunan bütün dropdown kataloqlarını idarə edin.", icon: "🗂️" },
-    { title: "Rol və Səlahiyyətlər", desc: "İstifadəçi rollarını, modul icazələrini və təyinatları idarə edin.", icon: "🛡️" },
-    { title: "Bildiriş sazlamaları", desc: "Bildiriş kanalları, alıcılar və şablonları konfiqurasiya edin.", icon: "🔔" },
+    {
+      title: "Məlumat Cədvəli",
+      desc: "Sistem üzrə istifadə olunan bütün dropdown kataloqlarını idarə edin.",
+      icon: Database,
+      gradient: "from-sky-500/15 via-cyan-500/10 to-transparent",
+      iconBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    },
+    {
+      title: "Rol və Səlahiyyətlər",
+      desc: "İstifadəçi rollarını, modul icazələrini və təyinatları idarə edin.",
+      icon: Shield,
+      gradient: "from-violet-500/15 via-fuchsia-500/10 to-transparent",
+      iconBg: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+    },
+    {
+      title: "Bildiriş sazlamaları",
+      desc: "Bildiriş kanalları, alıcılar və şablonları konfiqurasiya edin.",
+      icon: Bell,
+      gradient: "from-amber-500/15 via-orange-500/10 to-transparent",
+      iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    },
   ];
   const [openCard, setOpenCard] = useState<number | null>(null);
 
@@ -571,18 +589,21 @@ const SettingsPage = () => {
         />
 
         {openCard === null ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {tabCards.map((c, i) => (
               <button
                 key={i}
                 onClick={() => { setOpenCard(i); setTab(i); }}
-                className="text-left bg-card rounded-xl border border-border p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all group"
+                className={`group relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br ${c.gradient} bg-card p-8 text-left hover:shadow-xl transition-all hover:-translate-y-1 min-h-[260px] flex flex-col`}
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl mb-4 group-hover:bg-primary/20 transition-colors">
-                  {c.icon}
+                <div className="flex items-start justify-between mb-6">
+                  <div className={`w-20 h-20 rounded-2xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+                    <c.icon className="w-10 h-10" />
+                  </div>
+                  <ArrowUpRight className="w-6 h-6 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                 </div>
-                <h3 className="text-base font-semibold text-foreground mb-1">{c.title}</h3>
-                <p className="text-sm text-muted-foreground">{c.desc}</p>
+                <h3 className="font-semibold text-xl text-foreground mb-2">{c.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{c.desc}</p>
               </button>
             ))}
           </div>
