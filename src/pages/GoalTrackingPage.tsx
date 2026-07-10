@@ -174,17 +174,29 @@ const GoalTrackingPage = () => {
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border ${meta.cls}`}>
                                 <Icon className="w-3 h-3" /> {meta.label}
                               </span>
-                              <span className="text-[11px] text-muted-foreground">Hədəf: {s.target} {a.unit}</span>
                             </div>
-                            <div className="mt-2 h-2 rounded-full bg-secondary overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  status === "completed" ? "bg-emerald-500" :
-                                  status === "overdue" ? "bg-red-500" :
-                                  status === "pending" ? "bg-amber-500" : "bg-blue-500"
-                                }`}
-                                style={{ width: `${progress}%` }}
-                              />
+                          </div>
+                          <div className="w-[260px] shrink-0">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    status === "completed" ? "bg-emerald-500" :
+                                    status === "overdue" ? "bg-red-500" :
+                                    status === "pending" ? "bg-amber-500" : "bg-blue-500"
+                                  }`}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-primary w-9 text-right">{progress}%</span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                              <span className="inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                Hədəf: <span className="text-foreground font-medium">{s.target} {a.unit}</span>
+                              </span>
+                              <span className="text-border">|</span>
+                              <span>Cari: <span className="text-foreground font-medium">{Math.round((Number(s.target) || 0) * progress / 100)} {a.unit}</span></span>
                             </div>
                           </div>
                           <Button size="sm" onClick={() => notify(s, a.cardName)} className="gap-1.5 shrink-0">
