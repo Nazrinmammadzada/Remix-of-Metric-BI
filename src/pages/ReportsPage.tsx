@@ -313,7 +313,7 @@ const ReportsPage = () => {
                   className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${filterValues.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                 >
                   <span className={selectedTargets.length > 0 ? "text-foreground" : "text-muted-foreground"}>
-                    {selectedTargets.length > 0 ? `${selectedTargets.length} hədəf seçildi` : "Hədəf seçin"}
+                    {selectedTargets.length > 0 ? `${selectedTargets.length} hədəf seçilib` : "Hədəf seçin"}
                   </span>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </div>
