@@ -1,14 +1,13 @@
-// User Reports — 3 tabs: Mənim Hesabatım / Komanda Hesabatı / Müştərək
+// User Reports — 2 tabs: Mənim Hesabatım / Komanda Hesabatı
 // RBAC:
 //  - "Mənim Hesabatım": only if user is in any individual KPI assignment
 //  - "Komanda Hesabatı": only if user is a member of a team
-//  - "Müştərək": only if there's at least one shared KPI across multiple teams
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTeams, type Team } from "@/lib/teamsStore";
 import {
-  User as UserIcon, Users as UsersIcon, Share2, TrendingUp, Target, Award, Activity,
+  User as UserIcon, Users as UsersIcon, TrendingUp, Target, Award, Activity,
   ArrowUpRight, ArrowDownRight, Sparkles,
 } from "lucide-react";
 import {
@@ -17,31 +16,16 @@ import {
   RadarChart, Radar, PolarGrid, PolarRadiusAxis, Legend, PieChart, Pie, Cell,
 } from "recharts";
 
-type TabKey = "mine" | "team" | "shared";
+type TabKey = "mine" | "team";
+type PeriodKey = "monthly" | "quarterly" | "yearly";
+const PERIOD_LABEL: Record<PeriodKey, string> = { monthly: "Aylıq", quarterly: "Rüblük", yearly: "İllik" };
 
 // --- Mock individual KPI assignments (which users appear on individual KPIs) ---
 const individualKpiAssignees = ["Samir Həsənov", "Leyla Məmmədova", "Rəşad Əliyev", "Günel Əlizadə"];
 
-// --- Mock shared KPIs (single KPI assigned to multiple teams) ---
-const sharedKpis: { name: string; teams: string[]; teamProgress: Record<string, number>; target: string }[] = [
-  {
-    name: "Müştəri Məmnuniyyət İndeksi",
-    teams: ["Elite Satış Komandası", "Regional Satış Komandası"],
-    teamProgress: { "Elite Satış Komandası": 88, "Regional Satış Komandası": 74 },
-    target: "85%",
-  },
-  {
-    name: "Çapraz Satış Performansı",
-    teams: ["Elite Satış Komandası", "İpoteka Satış Komandası"],
-    teamProgress: { "Elite Satış Komandası": 71, "İpoteka Satış Komandası": 65 },
-    target: "70%",
-  },
-];
-
 const TAB_DEFS: { key: TabKey; label: string; icon: any; gradient: string }[] = [
   { key: "mine", label: "Mənim Hesabatım", icon: UserIcon, gradient: "from-primary to-primary/60" },
   { key: "team", label: "Komanda Hesabatı", icon: UsersIcon, gradient: "from-emerald-500 to-emerald-400" },
-  { key: "shared", label: "Müştərək", icon: Share2, gradient: "from-violet-500 to-fuchsia-500" },
 ];
 
 const UserReportsPage = () => {
@@ -62,16 +46,10 @@ const UserReportsPage = () => {
   );
   const showMine = !!user && individualKpiAssignees.includes(user.name);
   const showTeam = myTeams.length > 0 && hasPermission("reporting");
-  const mySharedKpis = useMemo(
-    () => sharedKpis.filter(sk => sk.teams.some(t => myTeams.some(mt => mt.name === t))),
-    [myTeams]
-  );
-  const showShared = mySharedKpis.length > 0;
 
   const visibleTabs = TAB_DEFS.filter(t =>
     (t.key === "mine" && showMine) ||
-    (t.key === "team" && showTeam) ||
-    (t.key === "shared" && showShared)
+    (t.key === "team" && showTeam)
   );
 
   // Auto-pick first available tab
