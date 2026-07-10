@@ -133,6 +133,9 @@ export function DataTable<T>({
   );
   const [openSearch, setOpenSearch] = useState<Record<string, boolean>>({});
   const [filters, setFilters] = useState<Record<string, FilterValue>>({});
+  const [advFilter, setAdvFilter] = useState<AdvFilterState>(
+    () => loadPersist<AdvFilterState>("adv", { logic: "AND", rows: [] })
+  );
   const [page, setPage] = useState(1);
   const [dragCol, setDragCol] = useState<string | null>(null);
 
