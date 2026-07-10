@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Header from "@/components/layout/Header";
-import { Search, Plus, Pencil, Trash2, Check, X, Users, Calculator, ChevronDown, AlertTriangle, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Check, X, Users, Calculator, ChevronDown, AlertTriangle, Calendar as CalendarIcon, Sparkles, Database, Shield, Bell, ArrowUpRight } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
