@@ -290,6 +290,8 @@ const ReportsPage = () => {
                   onChange={setFilterValuesBulk}
                   placeholder={`${FILTER_LABELS[filterType]} seçin`}
                   searchPlaceholder="Axtar..."
+                  hideTags
+                  countLabel={(n) => `${n} ${FILTER_LABELS[filterType].toLowerCase()} seçilib`}
                 />
               ) : (
                 <SearchableSelect
