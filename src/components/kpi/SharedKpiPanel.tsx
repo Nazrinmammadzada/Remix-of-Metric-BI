@@ -27,9 +27,11 @@ interface Props {
   title?: string;
   emptyText?: string;
   onlyAssignedToMe?: boolean;
+  /** İstifadəçi status seçim dropdown-u dəyişə bilməsin — yalnız baxış */
+  readOnlyStatus?: boolean;
 }
 
-export default function SharedKpiPanel({ title = "Sizə aid KPI kartları", emptyText = "Sizə təyin olunmuş aktiv KPI yoxdur.", onlyAssignedToMe }: Props) {
+export default function SharedKpiPanel({ title = "Sizə aid KPI kartları", emptyText = "Sizə təyin olunmuş aktiv KPI yoxdur.", onlyAssignedToMe, readOnlyStatus }: Props) {
   const { user } = useAuth();
   const all = useSharedKpiCards();
   const meId = getCurrentEmployeeId(user);
