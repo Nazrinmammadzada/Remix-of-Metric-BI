@@ -201,6 +201,11 @@ export function DataTable<T>({
     });
   }, [rows, filters, columns]);
 
+  const advFilteredRows = useMemo(
+    () => evaluateAdvFilter(filteredRows, columns, advFilter),
+    [filteredRows, columns, advFilter]
+  );
+
   // pagination
   const totalRows = filteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
