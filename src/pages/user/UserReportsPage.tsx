@@ -137,8 +137,6 @@ const EmptyState = () => (
 // TAB 1 — MƏNİM HESABATIM
 // ============================================================
 const MyReport = ({ userName }: { userName: string }) => {
-  const [period, setPeriod] = useState<PeriodKey>("monthly");
-  // Personal mock data — reflects user's individual KPI progress
   const summary = {
     overall: 86,
     completed: 7,
@@ -146,19 +144,8 @@ const MyReport = ({ userName }: { userName: string }) => {
     rank: 3,
   };
 
-  const trendByPeriod: Record<PeriodKey, { name: string; value: number }[]> = {
-    monthly: [
-      { name: "Yan", value: 62 }, { name: "Fev", value: 68 }, { name: "Mar", value: 71 },
-      { name: "Apr", value: 75 }, { name: "May", value: 80 }, { name: "İyn", value: 86 },
-    ],
-    quarterly: [
-      { name: "Q1", value: 68 }, { name: "Q2", value: 80 }, { name: "Q3", value: 82 }, { name: "Q4", value: 86 },
-    ],
-    yearly: [
-      { name: "2022", value: 58 }, { name: "2023", value: 66 }, { name: "2024", value: 74 }, { name: "2025", value: 81 }, { name: "2026", value: 86 },
-    ],
-  };
-  const trend = trendByPeriod[period];
+  const [trendPeriod, setTrendPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const trend = useMemo(() => buildDemoSeries(trendPeriod, 78), [trendPeriod]);
 
   const radar = [
     { skill: "Satış", value: 92 }, { skill: "Müştəri", value: 78 },
@@ -170,22 +157,6 @@ const MyReport = ({ userName }: { userName: string }) => {
 
   return (
     <div className="space-y-6">
-      {/* Period filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Dövr:</span>
-        <div className="inline-flex bg-secondary rounded-lg p-0.5">
-          {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {PERIOD_LABEL[p]}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Top stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={Target} label="Ümumi Performans" value={`${summary.overall}%`} delta={+6} accent="primary" />
@@ -212,9 +183,10 @@ const MyReport = ({ userName }: { userName: string }) => {
         </ChartCard>
 
         {/* Period trend */}
-        <ChartCard title={`${PERIOD_LABEL[period]} İrəliləyiş`} subtitle={period === "monthly" ? "Son 6 ay" : period === "quarterly" ? "Son 4 rüb" : "Son 5 il"} className="lg:col-span-2">
+        <ChartCard title="İrəliləyiş" subtitle="Seçilmiş dövr üzrə" className="lg:col-span-2" right={<PeriodPicker value={trendPeriod} onChange={setTrendPeriod} />}>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={trend}>
+
               <defs>
                 <linearGradient id="myGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
