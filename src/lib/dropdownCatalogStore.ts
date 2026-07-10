@@ -43,7 +43,7 @@ export interface DropdownCatalog {
   rows?: CatalogRow[];
 }
 
-const KEY = "kpi_dropdown_catalogs_v5";
+const KEY = "kpi_dropdown_catalogs_v6";
 
 const SEED: DropdownCatalog[] = [
   // Hədəf Tipləri (strukturlaşdırılmış)
