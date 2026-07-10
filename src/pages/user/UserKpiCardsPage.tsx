@@ -660,15 +660,7 @@ const KpiDrawer = ({ kpi, tab, setTab, scope, onClose }: {
     setDraft("");
   };
 
-  // Ümumi statistika (komanda/struktur üçün ad-soyad göstərmədən)
-  const memberStats = useMemo(() => {
-    const total = kpi.members.length;
-    const done = kpi.members.filter(m => m.status === "completed").length;
-    const risk = kpi.members.filter(m => m.status === "at_risk").length;
-    const late = kpi.members.filter(m => m.status === "delayed").length;
-    const active = total - done - risk - late;
-    return { total, done, risk, late, active };
-  }, [kpi]);
+  const memberStats = memberStatsData;
 
   return (
     <aside className="fixed top-0 right-0 h-screen w-full sm:w-[640px] bg-card border-l border-border shadow-2xl z-40 flex flex-col animate-in slide-in-from-right duration-300">
