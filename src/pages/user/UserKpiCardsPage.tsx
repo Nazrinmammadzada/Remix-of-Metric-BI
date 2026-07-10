@@ -279,15 +279,12 @@ const UserKpiCardsPage = () => {
               <button className="flex items-center gap-2 px-4 py-2 text-sm border border-border rounded-lg bg-card hover:bg-secondary transition-colors">
                 <Download className="w-4 h-4" /> Export
               </button>
-              <button onClick={() => { setShowCreate(true); setCreateStep(1); }} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-primary to-primary/70 text-primary-foreground shadow-md hover:shadow-lg transition-all">
-                <Plus className="w-4 h-4" /> Yeni KPI
-              </button>
             </div>
           }
         />
 
         <div className="mb-6">
-          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe />
+          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe readOnlyStatus />
         </div>
 
 
