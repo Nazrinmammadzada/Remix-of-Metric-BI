@@ -2047,6 +2047,12 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
   const [personEvs, setPersonEvs] = useState<WizardEvaluatorRef[]>(
     initialTab === "person" ? target.evaluators : []
   );
+  const [personSearch, setPersonSearch] = useState("");
+  const filteredEmployeeOptions = useMemo(() => {
+    const q = personSearch.trim().toLowerCase();
+    if (!q) return employeeOptions;
+    return employeeOptions.filter(o => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+  }, [personSearch, employeeOptions]);
   const teams = useMemo(() => getTeams(), []);
   const [teamName, setTeamName] = useState<string>(
     initialTab === "team" ? (target.evaluators[0]?.name.replace("[Komanda] ", "").split(" — ")[0] || "") : ""
