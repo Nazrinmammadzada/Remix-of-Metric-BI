@@ -563,16 +563,25 @@ const SettingsPage = () => {
           title="Sazlamalar"
           subtitle="Sistem konfiqurasiyası, rollar və şifrələri idarə edin"
         />
-        <div className="flex gap-1 border-b border-border mb-6">
+        <div className="bg-card rounded-xl border border-border p-1.5 mb-6 inline-flex gap-1 shadow-sm">
           {tabs.map((t, i) => (
-            <button key={i} onClick={() => setTab(i)} className={`px-4 py-2 text-sm font-medium ${tab === i ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{t}</button>
+            <button
+              key={i}
+              onClick={() => setTab(i)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === i ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-secondary"}`}
+            >
+              {t}
+            </button>
           ))}
         </div>
 
-        {/* Tab 1: Məlumat Cədvəli — Standart dropdown kataloqları */}
+        {/* Tab 1: Məlumat Cədvəli */}
         {tab === 0 && (
-          <DropdownCatalogsTab />
+          <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+            <DropdownCatalogsTab />
+          </div>
         )}
+
 
 
         {/* Tab 2: Rol və Səlahiyyətlər */}
