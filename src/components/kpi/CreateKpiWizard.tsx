@@ -2378,8 +2378,17 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                       </button>
                     </div>
                   </div>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <input
+                      value={structMemberSearch}
+                      onChange={e => setStructMemberSearch(e.target.value)}
+                      placeholder="Əməkdaş axtar..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded bg-background"
+                    />
+                  </div>
                   <div className="border border-border rounded-lg divide-y max-h-60 overflow-y-auto">
-                    {structMembers.map(m => {
+                    {filteredStructMembers.map(m => {
                       const sel = structMemberEvs.find(p => p.name === m.name);
                       return (
                         <div key={m.name} className="flex items-center gap-2 p-2">
@@ -2394,8 +2403,8 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
                         </div>
                       );
                     })}
-                    {structMembers.length === 0 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">Bu strukturda aktiv əməkdaş yoxdur</div>
+                    {filteredStructMembers.length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">Əməkdaş tapılmadı</div>
                     )}
                   </div>
                   {structMemberEvs.length > 1 && (
