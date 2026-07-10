@@ -103,7 +103,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
           </div>
         </div>
       )}
-      {selected.length > 0 && (
+      {!hideTags && selected.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {selected.map((s) => (
             <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
