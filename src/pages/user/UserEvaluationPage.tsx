@@ -76,26 +76,8 @@ const UserEvaluationPage = () => {
         </TabsContent>
 
         <TabsContent value="kpi" className="mt-5 space-y-4">
-          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                <Target className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-foreground">Nümunə: Hədəf tipi "Səriştə" seçildikdə</h3>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Əgər KPI kartında hədəf tipi kimi <b>“Səriştə”</b> seçilibsə, User hesabında proses belə işləyir:
-                </p>
-                <ol className="mt-2 space-y-1 text-xs text-foreground/90 list-decimal list-inside">
-                  <li>Sistem hədəfin nəticəsini avtomatik olaraq <b>Səriştə üzrə qiymətləndirmə</b> (360°) modulundan çəkir.</li>
-                  <li>Sizə həmin səriştə üzrə təyin olunmuş qiymətləndiricilərin verdiyi ortalama bal hesablanır (məs. 5 həmkardan orta 4.2 / 5).</li>
-                  <li>Bu bal həmin KPI-nın <b>faktiki nəticəsi</b> kimi Hədəf üzrə qiymətləndirmə cədvəlinə əks olunur.</li>
-                  <li>Nəticə avtomatik olaraq zonalara bölünür: 4.5+ Yaşıl, 3.5–4.4 Sarı, 3.5 aşağı Qırmızı.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
           <KpiEvaluationSection assigneeId={MOCK_USER_ID} />
+
         </TabsContent>
       </Tabs>
     </div>

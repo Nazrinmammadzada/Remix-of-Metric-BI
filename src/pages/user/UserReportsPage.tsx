@@ -15,10 +15,10 @@ import {
   RadialBarChart, RadialBar, PolarAngleAxis, BarChart, Bar, LineChart, Line,
   RadarChart, Radar, PolarGrid, PolarRadiusAxis, Legend, PieChart, Pie, Cell,
 } from "recharts";
+import PeriodPicker, { currentPeriod, buildDemoSeries, type PeriodValue } from "@/components/common/PeriodPicker";
 
 type TabKey = "mine" | "team";
-type PeriodKey = "monthly" | "quarterly" | "yearly";
-const PERIOD_LABEL: Record<PeriodKey, string> = { monthly: "Aylıq", quarterly: "Rüblük", yearly: "İllik" };
+
 
 // --- Mock individual KPI assignments (which users appear on individual KPIs) ---
 const individualKpiAssignees = ["Samir Həsənov", "Leyla Məmmədova", "Rəşad Əliyev", "Günel Əlizadə"];
@@ -137,8 +137,6 @@ const EmptyState = () => (
 // TAB 1 — MƏNİM HESABATIM
 // ============================================================
 const MyReport = ({ userName }: { userName: string }) => {
-  const [period, setPeriod] = useState<PeriodKey>("monthly");
-  // Personal mock data — reflects user's individual KPI progress
   const summary = {
     overall: 86,
     completed: 7,
@@ -146,19 +144,8 @@ const MyReport = ({ userName }: { userName: string }) => {
     rank: 3,
   };
 
-  const trendByPeriod: Record<PeriodKey, { name: string; value: number }[]> = {
-    monthly: [
-      { name: "Yan", value: 62 }, { name: "Fev", value: 68 }, { name: "Mar", value: 71 },
-      { name: "Apr", value: 75 }, { name: "May", value: 80 }, { name: "İyn", value: 86 },
-    ],
-    quarterly: [
-      { name: "Q1", value: 68 }, { name: "Q2", value: 80 }, { name: "Q3", value: 82 }, { name: "Q4", value: 86 },
-    ],
-    yearly: [
-      { name: "2022", value: 58 }, { name: "2023", value: 66 }, { name: "2024", value: 74 }, { name: "2025", value: 81 }, { name: "2026", value: 86 },
-    ],
-  };
-  const trend = trendByPeriod[period];
+  const [trendPeriod, setTrendPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const trend = useMemo(() => buildDemoSeries(trendPeriod, 78), [trendPeriod]);
 
   const radar = [
     { skill: "Satış", value: 92 }, { skill: "Müştəri", value: 78 },
@@ -170,22 +157,6 @@ const MyReport = ({ userName }: { userName: string }) => {
 
   return (
     <div className="space-y-6">
-      {/* Period filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Dövr:</span>
-        <div className="inline-flex bg-secondary rounded-lg p-0.5">
-          {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {PERIOD_LABEL[p]}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Top stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={Target} label="Ümumi Performans" value={`${summary.overall}%`} delta={+6} accent="primary" />
@@ -212,9 +183,10 @@ const MyReport = ({ userName }: { userName: string }) => {
         </ChartCard>
 
         {/* Period trend */}
-        <ChartCard title={`${PERIOD_LABEL[period]} İrəliləyiş`} subtitle={period === "monthly" ? "Son 6 ay" : period === "quarterly" ? "Son 4 rüb" : "Son 5 il"} className="lg:col-span-2">
+        <ChartCard title="İrəliləyiş" subtitle="Seçilmiş dövr üzrə" className="lg:col-span-2" right={<PeriodPicker value={trendPeriod} onChange={setTrendPeriod} />}>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={trend}>
+
               <defs>
                 <linearGradient id="myGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
@@ -295,10 +267,10 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
     { name: "Qırmızı Zona", value: teamData.filter(t => t.performance < 50).length, color: "hsl(0, 78%, 60%)" },
   ];
 
-  const trend = [
-    { name: "Yan", group: 68 }, { name: "Fev", group: 72 }, { name: "Mar", group: 75 },
-    { name: "Apr", group: 78 }, { name: "May", group: 82 }, { name: "İyn", group: avg },
-  ];
+  const [barPeriod, setBarPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const [donutPeriod, setDonutPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const [trendPeriod, setTrendPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const trend = useMemo(() => buildDemoSeries(trendPeriod, avg || 72).map(d => ({ name: d.name, group: d.value })), [trendPeriod, avg]);
 
   return (
     <div className="space-y-6">
@@ -311,7 +283,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar — per team performance (anonymized: shows team only, no member names) */}
-        <ChartCard title="Qrup Performansı" subtitle="Adlar göstərilmir — yalnız qrup ümumi göstəricisi" className="lg:col-span-2">
+        <ChartCard title="Qrup Performansı" subtitle="Adlar göstərilmir — yalnız qrup ümumi göstəricisi" className="lg:col-span-2" right={<PeriodPicker value={barPeriod} onChange={setBarPeriod} />}>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={teamData}>
               <defs>
@@ -330,7 +302,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
         </ChartCard>
 
         {/* Donut — zone distribution */}
-        <ChartCard title="Zona Bölgüsü" subtitle="Komandaların performans zonaları">
+        <ChartCard title="Zona Bölgüsü" subtitle="Komandaların performans zonaları" right={<PeriodPicker value={donutPeriod} onChange={setDonutPeriod} />}>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={distribution} dataKey="value" innerRadius={60} outerRadius={95} paddingAngle={4}>
@@ -343,7 +315,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
         </ChartCard>
 
         {/* Group trend */}
-        <ChartCard title="Qrup İrəliləyişi" subtitle="Aylar üzrə birgə performans" className="lg:col-span-3">
+        <ChartCard title="Qrup İrəliləyişi" subtitle="Seçilmiş dövr üzrə birgə performans" className="lg:col-span-3" right={<PeriodPicker value={trendPeriod} onChange={setTrendPeriod} />}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trend}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -358,6 +330,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
     </div>
   );
 };
+
 
 
 // ============================================================
@@ -397,15 +370,19 @@ const StatCard = ({
 };
 
 const ChartCard = ({
-  title, subtitle, children, className = "",
-}: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) => (
+  title, subtitle, children, className = "", right,
+}: { title: string; subtitle?: string; children: React.ReactNode; className?: string; right?: React.ReactNode }) => (
   <div className={`rounded-2xl border border-border bg-card p-5 shadow-sm ${className}`}>
-    <div className="mb-3">
-      <h3 className="font-semibold text-foreground">{title}</h3>
-      {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+      </div>
+      {right && <div className="shrink-0">{right}</div>}
     </div>
     {children}
   </div>
 );
+
 
 export default UserReportsPage;
