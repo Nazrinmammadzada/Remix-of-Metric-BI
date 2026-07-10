@@ -166,6 +166,9 @@ export const REMOVED_CATALOG_IDS = new Set<string>([
   "kpi_lifecycle_periods",
   "kpi_zones",
   "integration_systems",
+  "approver_roles",
+  "notification_channels",
+  "kpi_card_types",
 ]);
 
 const load = (): DropdownCatalog[] => {
