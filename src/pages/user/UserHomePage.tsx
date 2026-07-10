@@ -27,10 +27,14 @@ const myKpis = [
   { name: "İnnovasiya İndeksi", target: "80%", current: "72%", progress: 65, zone: "yellow", status: "pending" },
 ];
 
+const PERIOD_LABEL: Record<PeriodKey, string> = { monthly: "Aylıq", quarterly: "Rüblük", yearly: "İllik" };
+
 const UserHomePage = () => {
   const { user } = useAuth();
   const zoneBg: Record<string, string> = { green: "bg-zone-green-bg text-zone-green-text", yellow: "bg-zone-yellow-bg text-zone-yellow-text", red: "bg-zone-red-bg text-zone-red-text" };
   const avg = Math.round(myKpis.reduce((s, k) => s + k.progress, 0) / myKpis.length);
+  const [chartPeriod, setChartPeriod] = useState<PeriodKey>("monthly");
+  const chartData = useMemo(() => CHART_DATA[chartPeriod], [chartPeriod]);
 
   return (
     <div className="min-h-screen">
