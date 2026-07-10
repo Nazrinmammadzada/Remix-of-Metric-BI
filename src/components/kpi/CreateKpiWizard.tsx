@@ -2124,9 +2124,15 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
     toast.success(`Təsadüfi seçildi: ${picked.join(", ")}`);
   };
 
-  const [integration, setIntegration] = useState<string>(
-    initialTab === "integration" ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "") || "") : ""
-  );
+  const initialIntegrationName = initialTab === "integration"
+    ? (target.evaluators[0]?.name.replace("[İnteqrasiya] ", "").split(" · ")[0] || "")
+    : "";
+  const [integration, setIntegration] = useState<string>(initialIntegrationName);
+  const [integrationSearch, setIntegrationSearch] = useState("");
+  const [integrationFields, setIntegrationFields] = useState<string[]>([]);
+  const [integrationWeight, setIntegrationWeight] = useState<number>(100);
+  const currentIntegrationSystem = INTEGRATION_SYSTEMS.find(s => s.name === integration);
+  const filteredIntegrationSystems = INTEGRATION_SYSTEMS.filter(s => s.name.toLowerCase().includes(integrationSearch.toLowerCase()));
 
   const save = () => {
     if (tab === "person") {
