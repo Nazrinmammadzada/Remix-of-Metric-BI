@@ -207,11 +207,11 @@ export function DataTable<T>({
   );
 
   // pagination
-  const totalRows = filteredRows.length;
+  const totalRows = advFilteredRows.length;
   const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
   const safePage = Math.min(page, totalPages);
   const startIdx = (safePage - 1) * rowsPerPage;
-  const pagedRows = filteredRows.slice(startIdx, startIdx + rowsPerPage);
+  const pagedRows = advFilteredRows.slice(startIdx, startIdx + rowsPerPage);
 
   // resize
   const startResize = (key: string, e: React.MouseEvent) => {
