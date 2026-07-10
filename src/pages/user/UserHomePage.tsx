@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Target, CheckCircle, Clock, Sparkles } from "lucide-react";
@@ -6,10 +7,19 @@ import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { AIChatSection } from "@/components/ai/AIChatSection";
 import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
 
-const chartData = [
-  { month: "Yan", value: 72 }, { month: "Fev", value: 76 }, { month: "Mar", value: 80 },
-  { month: "Apr", value: 82 }, { month: "May", value: 84 }, { month: "İyn", value: 86 },
-];
+type PeriodKey = "monthly" | "quarterly" | "yearly";
+const CHART_DATA: Record<PeriodKey, { name: string; value: number }[]> = {
+  monthly: [
+    { name: "Yan", value: 72 }, { name: "Fev", value: 76 }, { name: "Mar", value: 80 },
+    { name: "Apr", value: 82 }, { name: "May", value: 84 }, { name: "İyn", value: 86 },
+  ],
+  quarterly: [
+    { name: "Q1", value: 76 }, { name: "Q2", value: 84 }, { name: "Q3", value: 81 }, { name: "Q4", value: 88 },
+  ],
+  yearly: [
+    { name: "2022", value: 68 }, { name: "2023", value: 74 }, { name: "2024", value: 79 }, { name: "2025", value: 84 }, { name: "2026", value: 86 },
+  ],
+};
 
 const myKpis = [
   { name: "Aylıq Satış Hədəfi", target: "5M AZN", current: "4.2M AZN", progress: 84, zone: "green", status: "approved" },
