@@ -61,7 +61,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
     <div className="relative mt-1" ref={ref}>
       <div onClick={() => setOpen(!open)} className="w-full min-h-[38px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
         <span className={selected.length ? "text-foreground" : "text-muted-foreground"}>
-          {selected.length ? `${selected.length} seçildi` : placeholder}
+          {selected.length ? (countLabel ? countLabel(selected.length) : `${selected.length} seçildi`) : placeholder}
         </span>
         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </div>
