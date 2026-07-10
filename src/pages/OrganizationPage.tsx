@@ -1256,7 +1256,7 @@ const EmployeesTab = () => {
       lastName: form.lastName.trim(),
       fatherName: form.fatherName.trim() || undefined,
       fin: form.fin.trim(),
-      phone: formatPhone(form.phone),
+      phone: "",
       email: form.email.trim(),
     });
     toast.success("Əməkdaş yaradıldı");
