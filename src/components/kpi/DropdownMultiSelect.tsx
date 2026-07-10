@@ -8,9 +8,13 @@ interface Props {
   onChange?: (next: string[]) => void;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Bağlı vəziyyətdə seçilmiş tag-ları göstərmə (yalnız say göstərilir). */
+  hideTags?: boolean;
+  /** Bağlı vəziyyətdə göstərilən mətni formatlamaq üçün funksiya (məs: "17 vəzifə seçilib"). */
+  countLabel?: (count: number) => string;
 }
 
-const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholder = "Seçin", searchPlaceholder = "Axtar..." }: Props) => {
+const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholder = "Seçin", searchPlaceholder = "Axtar...", hideTags = false, countLabel }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
