@@ -2063,10 +2063,12 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
       ? target.evaluators : []
   );
   const [randomCount, setRandomCount] = useState<number>(1);
+  const [teamMemberSearch, setTeamMemberSearch] = useState("");
   const selectedTeam = teams.find(t => t.name === teamName) || null;
   const teamMembers: { name: string }[] = selectedTeam
     ? [{ name: selectedTeam.leader }, ...selectedTeam.members.map(m => ({ name: m.name }))]
     : [];
+  const filteredTeamMembers = teamMembers.filter(m => m.name.toLowerCase().includes(teamMemberSearch.toLowerCase()));
   const filteredTeams = teams.filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()));
   const toggleTeamMember = (name: string) => {
     setTeamMemberEvs(prev => prev.find(p => p.name === name)
