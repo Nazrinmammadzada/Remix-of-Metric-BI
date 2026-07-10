@@ -558,9 +558,11 @@ const DropdownCatalogsTab = () => {
                     </button>
                   </>
                 )}
-                <button onClick={openAddDialog} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Plus className="w-4 h-4" /> {addLabel()}
-                </button>
+                {active.id !== "evaluator_types" && (
+                  <button onClick={openAddDialog} className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Plus className="w-4 h-4" /> {addLabel()}
+                  </button>
+                )}
               </div>
             </div>
 

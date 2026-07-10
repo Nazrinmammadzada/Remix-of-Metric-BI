@@ -290,6 +290,8 @@ const ReportsPage = () => {
                   onChange={setFilterValuesBulk}
                   placeholder={`${FILTER_LABELS[filterType]} seçin`}
                   searchPlaceholder="Axtar..."
+                  hideTags
+                  countLabel={(n) => `${n} ${FILTER_LABELS[filterType].toLowerCase()} seçilib`}
                 />
               ) : (
                 <SearchableSelect
@@ -311,7 +313,7 @@ const ReportsPage = () => {
                   className={`w-full min-h-[42px] px-3 py-2 text-sm border border-border rounded-lg bg-background flex items-center justify-between ${filterValues.length > 0 ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
                 >
                   <span className={selectedTargets.length > 0 ? "text-foreground" : "text-muted-foreground"}>
-                    {selectedTargets.length > 0 ? `${selectedTargets.length} hədəf seçildi` : "Hədəf seçin"}
+                    {selectedTargets.length > 0 ? `${selectedTargets.length} hədəf seçilib` : "Hədəf seçin"}
                   </span>
                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 </div>
@@ -346,16 +348,6 @@ const ReportsPage = () => {
                   </div>
                 )}
               </div>
-              {selectedTargets.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedTargets.slice(0, 4).map(t => (
-                    <span key={t} className="text-xs bg-secondary text-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      {t}<X className="w-3 h-3 cursor-pointer" onClick={() => toggleTarget(t)} />
-                    </span>
-                  ))}
-                  {selectedTargets.length > 4 && <span className="text-xs text-muted-foreground">+{selectedTargets.length - 4}</span>}
-                </div>
-              )}
             </div>
           </div>
 

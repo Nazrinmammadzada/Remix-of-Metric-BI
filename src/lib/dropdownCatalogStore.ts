@@ -154,21 +154,37 @@ const syncValues = (cat: DropdownCatalog): DropdownCatalog => {
   return cat;
 };
 
+// Bu kataloqlar Məlumat Cədvəli tabından tam çıxarılıb (istifadəçi tələbi).
+// Fallback dəyərləri hər zaman kodda `useCatalogValues(id, fallback)` vasitəsilə təmin edilir.
+export const REMOVED_CATALOG_IDS = new Set<string>([
+  "kpi_types",
+  "kpi_kinds",
+  "sub_kpis",
+  "kpi_periods",
+  "kpi_categories",
+  "calc_units",
+  "kpi_lifecycle_periods",
+  "kpi_zones",
+  "integration_systems",
+]);
+
 const load = (): DropdownCatalog[] => {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed: DropdownCatalog[] = JSON.parse(raw);
-      // Çatışmayan sistem kataloqlarını əlavə et (migration üçün)
-      const ids = new Set(parsed.map(c => c.id));
-      const missing = SEED.filter(s => !ids.has(s.id));
-      const merged = missing.length === 0 ? parsed : [...parsed, ...missing];
+      const cleaned = parsed.filter(c => !REMOVED_CATALOG_IDS.has(c.id));
+      const ids = new Set(cleaned.map(c => c.id));
+      const missing = SEED.filter(s => !ids.has(s.id) && !REMOVED_CATALOG_IDS.has(s.id));
+      const merged = missing.length === 0 ? cleaned : [...cleaned, ...missing];
       const synced = merged.map(syncValues);
-      if (missing.length > 0) localStorage.setItem(KEY, JSON.stringify(synced));
+      if (missing.length > 0 || cleaned.length !== parsed.length) {
+        localStorage.setItem(KEY, JSON.stringify(synced));
+      }
       return synced;
     }
   } catch {}
-  const seeded = SEED.map(syncValues);
+  const seeded = SEED.filter(s => !REMOVED_CATALOG_IDS.has(s.id)).map(syncValues);
   localStorage.setItem(KEY, JSON.stringify(seeded));
   return seeded;
 };

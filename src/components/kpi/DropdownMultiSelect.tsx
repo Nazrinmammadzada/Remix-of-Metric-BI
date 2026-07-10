@@ -8,9 +8,13 @@ interface Props {
   onChange?: (next: string[]) => void;
   placeholder?: string;
   searchPlaceholder?: string;
+  /** Bağlı vəziyyətdə seçilmiş tag-ları göstərmə (yalnız say göstərilir). */
+  hideTags?: boolean;
+  /** Bağlı vəziyyətdə göstərilən mətni formatlamaq üçün funksiya (məs: "17 vəzifə seçilib"). */
+  countLabel?: (count: number) => string;
 }
 
-const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholder = "Seçin", searchPlaceholder = "Axtar..." }: Props) => {
+const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholder = "Seçin", searchPlaceholder = "Axtar...", hideTags = false, countLabel }: Props) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -57,7 +61,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
     <div className="relative mt-1" ref={ref}>
       <div onClick={() => setOpen(!open)} className="w-full min-h-[38px] px-3 py-2 text-sm border border-border rounded-lg bg-background cursor-pointer flex items-center justify-between">
         <span className={selected.length ? "text-foreground" : "text-muted-foreground"}>
-          {selected.length ? `${selected.length} seçildi` : placeholder}
+          {selected.length ? (countLabel ? countLabel(selected.length) : `${selected.length} seçildi`) : placeholder}
         </span>
         <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
       </div>
@@ -99,7 +103,7 @@ const DropdownMultiSelect = ({ options, selected, onToggle, onChange, placeholde
           </div>
         </div>
       )}
-      {selected.length > 0 && (
+      {!hideTags && selected.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {selected.map((s) => (
             <span key={s} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
