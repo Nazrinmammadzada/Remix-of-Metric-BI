@@ -1,14 +1,13 @@
-// User Reports — 3 tabs: Mənim Hesabatım / Komanda Hesabatı / Müştərək
+// User Reports — 2 tabs: Mənim Hesabatım / Komanda Hesabatı
 // RBAC:
 //  - "Mənim Hesabatım": only if user is in any individual KPI assignment
 //  - "Komanda Hesabatı": only if user is a member of a team
-//  - "Müştərək": only if there's at least one shared KPI across multiple teams
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTeams, type Team } from "@/lib/teamsStore";
 import {
-  User as UserIcon, Users as UsersIcon, Share2, TrendingUp, Target, Award, Activity,
+  User as UserIcon, Users as UsersIcon, TrendingUp, Target, Award, Activity,
   ArrowUpRight, ArrowDownRight, Sparkles,
 } from "lucide-react";
 import {
@@ -17,31 +16,16 @@ import {
   RadarChart, Radar, PolarGrid, PolarRadiusAxis, Legend, PieChart, Pie, Cell,
 } from "recharts";
 
-type TabKey = "mine" | "team" | "shared";
+type TabKey = "mine" | "team";
+type PeriodKey = "monthly" | "quarterly" | "yearly";
+const PERIOD_LABEL: Record<PeriodKey, string> = { monthly: "Aylıq", quarterly: "Rüblük", yearly: "İllik" };
 
 // --- Mock individual KPI assignments (which users appear on individual KPIs) ---
 const individualKpiAssignees = ["Samir Həsənov", "Leyla Məmmədova", "Rəşad Əliyev", "Günel Əlizadə"];
 
-// --- Mock shared KPIs (single KPI assigned to multiple teams) ---
-const sharedKpis: { name: string; teams: string[]; teamProgress: Record<string, number>; target: string }[] = [
-  {
-    name: "Müştəri Məmnuniyyət İndeksi",
-    teams: ["Elite Satış Komandası", "Regional Satış Komandası"],
-    teamProgress: { "Elite Satış Komandası": 88, "Regional Satış Komandası": 74 },
-    target: "85%",
-  },
-  {
-    name: "Çapraz Satış Performansı",
-    teams: ["Elite Satış Komandası", "İpoteka Satış Komandası"],
-    teamProgress: { "Elite Satış Komandası": 71, "İpoteka Satış Komandası": 65 },
-    target: "70%",
-  },
-];
-
 const TAB_DEFS: { key: TabKey; label: string; icon: any; gradient: string }[] = [
   { key: "mine", label: "Mənim Hesabatım", icon: UserIcon, gradient: "from-primary to-primary/60" },
   { key: "team", label: "Komanda Hesabatı", icon: UsersIcon, gradient: "from-emerald-500 to-emerald-400" },
-  { key: "shared", label: "Müştərək", icon: Share2, gradient: "from-violet-500 to-fuchsia-500" },
 ];
 
 const UserReportsPage = () => {
@@ -62,16 +46,10 @@ const UserReportsPage = () => {
   );
   const showMine = !!user && individualKpiAssignees.includes(user.name);
   const showTeam = myTeams.length > 0 && hasPermission("reporting");
-  const mySharedKpis = useMemo(
-    () => sharedKpis.filter(sk => sk.teams.some(t => myTeams.some(mt => mt.name === t))),
-    [myTeams]
-  );
-  const showShared = mySharedKpis.length > 0;
 
   const visibleTabs = TAB_DEFS.filter(t =>
     (t.key === "mine" && showMine) ||
-    (t.key === "team" && showTeam) ||
-    (t.key === "shared" && showShared)
+    (t.key === "team" && showTeam)
   );
 
   // Auto-pick first available tab
@@ -138,7 +116,7 @@ const UserReportsPage = () => {
 
             {activeTab === "mine" && <MyReport userName={user?.name || ""} />}
             {activeTab === "team" && <TeamReport teams={myTeams} />}
-            {activeTab === "shared" && <SharedReport items={mySharedKpis} />}
+            
           </>
         )}
       </main>
@@ -159,6 +137,7 @@ const EmptyState = () => (
 // TAB 1 — MƏNİM HESABATIM
 // ============================================================
 const MyReport = ({ userName }: { userName: string }) => {
+  const [period, setPeriod] = useState<PeriodKey>("monthly");
   // Personal mock data — reflects user's individual KPI progress
   const summary = {
     overall: 86,
@@ -167,10 +146,19 @@ const MyReport = ({ userName }: { userName: string }) => {
     rank: 3,
   };
 
-  const monthly = [
-    { name: "Yan", value: 62 }, { name: "Fev", value: 68 }, { name: "Mar", value: 71 },
-    { name: "Apr", value: 75 }, { name: "May", value: 80 }, { name: "İyn", value: 86 },
-  ];
+  const trendByPeriod: Record<PeriodKey, { name: string; value: number }[]> = {
+    monthly: [
+      { name: "Yan", value: 62 }, { name: "Fev", value: 68 }, { name: "Mar", value: 71 },
+      { name: "Apr", value: 75 }, { name: "May", value: 80 }, { name: "İyn", value: 86 },
+    ],
+    quarterly: [
+      { name: "Q1", value: 68 }, { name: "Q2", value: 80 }, { name: "Q3", value: 82 }, { name: "Q4", value: 86 },
+    ],
+    yearly: [
+      { name: "2022", value: 58 }, { name: "2023", value: 66 }, { name: "2024", value: 74 }, { name: "2025", value: 81 }, { name: "2026", value: 86 },
+    ],
+  };
+  const trend = trendByPeriod[period];
 
   const radar = [
     { skill: "Satış", value: 92 }, { skill: "Müştəri", value: 78 },
@@ -182,6 +170,22 @@ const MyReport = ({ userName }: { userName: string }) => {
 
   return (
     <div className="space-y-6">
+      {/* Period filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Dövr:</span>
+        <div className="inline-flex bg-secondary rounded-lg p-0.5">
+          {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {PERIOD_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Top stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={Target} label="Ümumi Performans" value={`${summary.overall}%`} delta={+6} accent="primary" />
@@ -207,10 +211,10 @@ const MyReport = ({ userName }: { userName: string }) => {
           <div className="h-32" />
         </ChartCard>
 
-        {/* Monthly area */}
-        <ChartCard title="Aylıq İrəliləyiş" subtitle="Son 6 ay" className="lg:col-span-2">
+        {/* Period trend */}
+        <ChartCard title={`${PERIOD_LABEL[period]} İrəliləyiş`} subtitle={period === "monthly" ? "Son 6 ay" : period === "quarterly" ? "Son 4 rüb" : "Son 5 il"} className="lg:col-span-2">
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={monthly}>
+            <AreaChart data={trend}>
               <defs>
                 <linearGradient id="myGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
@@ -355,97 +359,6 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
   );
 };
 
-// ============================================================
-// TAB 3 — MÜŞTƏRƏK
-// ============================================================
-const SharedReport = ({ items }: { items: typeof sharedKpis }) => {
-  const compareData = items.map(k => {
-    const row: Record<string, any> = { name: k.name };
-    k.teams.forEach(t => { row[t] = k.teamProgress[t]; });
-    return row;
-  });
-
-  // Collect unique team list across shared KPIs
-  const allTeams = Array.from(new Set(items.flatMap(i => i.teams)));
-  const palette = ["hsl(265, 70%, 55%)", "hsl(330, 70%, 55%)", "hsl(192, 80%, 48%)", "hsl(38, 92%, 55%)"];
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard icon={Share2} label="Müştərək KPI" value={items.length} accent="violet" />
-        <StatCard icon={UsersIcon} label="İştirakçı qrup" value={allTeams.length} accent="primary" />
-        <StatCard
-          icon={TrendingUp}
-          label="Orta nəticə"
-          value={`${Math.round(items.reduce((s, k) => s + Object.values(k.teamProgress).reduce((a, b) => a + b, 0) / k.teams.length, 0) / items.length)}%`}
-          delta={+5}
-          accent="emerald"
-        />
-      </div>
-
-      {/* Side-by-side comparison bars */}
-      <ChartCard
-        title="Qruplar arası müqayisə"
-        subtitle="Eyni KPI-da hər qrupun göstəricisi"
-      >
-        <ResponsiveContainer width="100%" height={340}>
-          <BarChart data={compareData} barGap={8}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            {allTeams.map((t, i) => (
-              <Bar key={t} dataKey={t} fill={palette[i % palette.length]} radius={[8, 8, 0, 0]} />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartCard>
-
-      {/* Per-shared-KPI breakdown cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {items.map(kpi => {
-          const values = Object.entries(kpi.teamProgress).map(([team, value]) => ({ team, value }));
-          const best = values.reduce((a, b) => (b.value > a.value ? b : a));
-          return (
-            <div key={kpi.name} className="rounded-2xl border border-border bg-gradient-to-br from-card via-card to-violet-500/5 p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-violet-500 font-semibold mb-1">
-                    <Share2 className="w-3 h-3" /> Müştərək KPI
-                  </div>
-                  <h3 className="font-bold text-foreground">{kpi.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Hədəf: {kpi.target}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] text-muted-foreground">Lider qrup</div>
-                  <div className="text-xs font-semibold text-foreground">{best.team.split(" ")[0]}</div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {values.map((v, i) => (
-                  <div key={v.team}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-foreground">{v.team}</span>
-                      <span className="font-semibold text-foreground">{v.value}%</span>
-                    </div>
-                    <div className="h-2.5 rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${v.value}%`, background: palette[i % palette.length] }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
 // ============================================================
 // Reusable bits

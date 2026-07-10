@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Target, CheckCircle, Clock, Sparkles } from "lucide-react";
@@ -6,10 +7,19 @@ import { PageHero, FancyStatCard, FancyCard } from "@/components/ui/page-hero";
 import { AIChatSection } from "@/components/ai/AIChatSection";
 import SharedKpiPanel from "@/components/kpi/SharedKpiPanel";
 
-const chartData = [
-  { month: "Yan", value: 72 }, { month: "Fev", value: 76 }, { month: "Mar", value: 80 },
-  { month: "Apr", value: 82 }, { month: "May", value: 84 }, { month: "İyn", value: 86 },
-];
+type PeriodKey = "monthly" | "quarterly" | "yearly";
+const CHART_DATA: Record<PeriodKey, { name: string; value: number }[]> = {
+  monthly: [
+    { name: "Yan", value: 72 }, { name: "Fev", value: 76 }, { name: "Mar", value: 80 },
+    { name: "Apr", value: 82 }, { name: "May", value: 84 }, { name: "İyn", value: 86 },
+  ],
+  quarterly: [
+    { name: "Q1", value: 76 }, { name: "Q2", value: 84 }, { name: "Q3", value: 81 }, { name: "Q4", value: 88 },
+  ],
+  yearly: [
+    { name: "2022", value: 68 }, { name: "2023", value: 74 }, { name: "2024", value: 79 }, { name: "2025", value: 84 }, { name: "2026", value: 86 },
+  ],
+};
 
 const myKpis = [
   { name: "Aylıq Satış Hədəfi", target: "5M AZN", current: "4.2M AZN", progress: 84, zone: "green", status: "approved" },
@@ -17,10 +27,14 @@ const myKpis = [
   { name: "İnnovasiya İndeksi", target: "80%", current: "72%", progress: 65, zone: "yellow", status: "pending" },
 ];
 
+const PERIOD_LABEL: Record<PeriodKey, string> = { monthly: "Aylıq", quarterly: "Rüblük", yearly: "İllik" };
+
 const UserHomePage = () => {
   const { user } = useAuth();
   const zoneBg: Record<string, string> = { green: "bg-zone-green-bg text-zone-green-text", yellow: "bg-zone-yellow-bg text-zone-yellow-text", red: "bg-zone-red-bg text-zone-red-text" };
   const avg = Math.round(myKpis.reduce((s, k) => s + k.progress, 0) / myKpis.length);
+  const [chartPeriod, setChartPeriod] = useState<PeriodKey>("monthly");
+  const chartData = useMemo(() => CHART_DATA[chartPeriod], [chartPeriod]);
 
   return (
     <div className="min-h-screen">
@@ -42,16 +56,33 @@ const UserHomePage = () => {
         </div>
 
         <div className="mb-6">
-          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe />
+          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe readOnlyStatus />
         </div>
 
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <FancyCard title="Performans Dinamikası" subtitle="Son 6 ay" className="lg:col-span-2">
+          <FancyCard
+            title="Performans Dinamikası"
+            subtitle={PERIOD_LABEL[chartPeriod]}
+            className="lg:col-span-2"
+            right={
+              <div className="inline-flex bg-secondary rounded-lg p-0.5">
+                {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setChartPeriod(p)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${chartPeriod === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {PERIOD_LABEL[p]}
+                  </button>
+                ))}
+              </div>
+            }
+          >
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
                 <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                 <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
