@@ -2172,8 +2172,11 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
     } else if (tab === "self") {
       onSave([{ id: crypto.randomUUID(), name: "[Özü]", weight: 100 }]);
     } else {
-      if (!integration) { toast.error("İnteqrasiya mənbəyi seçin"); return; }
-      onSave([{ id: crypto.randomUUID(), name: `[İnteqrasiya] ${integration}`, weight: 100 }]);
+      if (!integration) { toast.error("İnteqrasiya sistemi seçin"); return; }
+      const label = integrationFields.length > 0
+        ? `[İnteqrasiya] ${integration} · ${integrationFields.join(", ")}`
+        : `[İnteqrasiya] ${integration}`;
+      onSave([{ id: crypto.randomUUID(), name: label, weight: integrationWeight || 100 }]);
     }
   };
 
