@@ -348,16 +348,6 @@ const ReportsPage = () => {
                   </div>
                 )}
               </div>
-              {selectedTargets.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedTargets.slice(0, 4).map(t => (
-                    <span key={t} className="text-xs bg-secondary text-foreground px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                      {t}<X className="w-3 h-3 cursor-pointer" onClick={() => toggleTarget(t)} />
-                    </span>
-                  ))}
-                  {selectedTargets.length > 4 && <span className="text-xs text-muted-foreground">+{selectedTargets.length - 4}</span>}
-                </div>
-              )}
             </div>
           </div>
 
