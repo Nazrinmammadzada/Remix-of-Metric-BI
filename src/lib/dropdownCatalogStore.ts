@@ -144,6 +144,16 @@ const SEED: DropdownCatalog[] = [
   { id: "scoring_systems", name: "Qiymətləndirmə Bal Sistemi", system: true, values: [
     "1-3 Bal Sistemi", "1-5 Bal Sistemi", "1-10 Bal Sistemi", "Faiz (0-100)",
   ]},
+  { id: "approver_roles", name: "Təsdiqləyici Vəzifələri", system: true, values: [
+    "Departament Rəhbəri", "Şöbə Müdiri", "Departament Direktoru", "Komanda Lideri",
+    "HR Direktoru", "CFO", "CEO", "Kurator",
+  ]},
+  { id: "kpi_card_types", name: "KPI Kartı Tipləri", system: true, values: [
+    "Absolut Hədəf", "Faiz Hədəfi", "Trend Hədəfi", "Benchmark", "Say Hədəfi",
+  ]},
+  { id: "notification_channels", name: "Bildiriş Kanalları", system: true, values: [
+    "Email", "SMS", "Telegram", "App-daxili",
+  ]},
 ];
 
 // Strukturlaşdırılmış kataloqlarda values array-ı rows.name-dən avtomatik sinxronlaşdırılır
