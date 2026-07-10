@@ -145,7 +145,8 @@ export function DataTable<T>({
   useEffect(() => persist("widths", colWidths), [colWidths]);
   useEffect(() => persist("order", colOrder), [colOrder]);
   useEffect(() => persist("visible", visibleCols), [visibleCols]);
-  useEffect(() => { setPage(1); }, [filters, rowsPerPage, rows.length]);
+  useEffect(() => persist("adv", advFilter), [advFilter]);
+  useEffect(() => { setPage(1); }, [filters, advFilter, rowsPerPage, rows.length]);
 
   const colByKey = useMemo(() => Object.fromEntries(columns.map(c => [c.key, c])), [columns]);
   const orderedVisible = colOrder
