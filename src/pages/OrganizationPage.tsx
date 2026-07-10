@@ -1453,9 +1453,6 @@ const EmployeesTab = () => {
               onChange={v => setForm(p => ({ ...p, fatherName: sanitizeName(v).slice(0, 50) }))} />
             <ValidatedField label="FİN" value={form.fin} mono error={createErrors.fin}
               onChange={v => setForm(p => ({ ...p, fin: sanitizeFin(v) }))} />
-            <ValidatedField label="Telefon nömrəsi" value={form.phone} error={createErrors.phone}
-              placeholder="+994 50 123 45 67"
-              onChange={v => setForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
               <ValidatedField label="Email" value={form.email} error={createErrors.email}
                 onChange={v => setForm(p => ({ ...p, email: v.trim() }))} />
