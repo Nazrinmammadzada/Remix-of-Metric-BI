@@ -267,10 +267,10 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
     { name: "Qırmızı Zona", value: teamData.filter(t => t.performance < 50).length, color: "hsl(0, 78%, 60%)" },
   ];
 
-  const trend = [
-    { name: "Yan", group: 68 }, { name: "Fev", group: 72 }, { name: "Mar", group: 75 },
-    { name: "Apr", group: 78 }, { name: "May", group: 82 }, { name: "İyn", group: avg },
-  ];
+  const [barPeriod, setBarPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const [donutPeriod, setDonutPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const [trendPeriod, setTrendPeriod] = useState<PeriodValue>(() => currentPeriod("year"));
+  const trend = useMemo(() => buildDemoSeries(trendPeriod, avg || 72).map(d => ({ name: d.name, group: d.value })), [trendPeriod, avg]);
 
   return (
     <div className="space-y-6">
@@ -283,7 +283,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar — per team performance (anonymized: shows team only, no member names) */}
-        <ChartCard title="Qrup Performansı" subtitle="Adlar göstərilmir — yalnız qrup ümumi göstəricisi" className="lg:col-span-2">
+        <ChartCard title="Qrup Performansı" subtitle="Adlar göstərilmir — yalnız qrup ümumi göstəricisi" className="lg:col-span-2" right={<PeriodPicker value={barPeriod} onChange={setBarPeriod} />}>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={teamData}>
               <defs>
@@ -302,7 +302,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
         </ChartCard>
 
         {/* Donut — zone distribution */}
-        <ChartCard title="Zona Bölgüsü" subtitle="Komandaların performans zonaları">
+        <ChartCard title="Zona Bölgüsü" subtitle="Komandaların performans zonaları" right={<PeriodPicker value={donutPeriod} onChange={setDonutPeriod} />}>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={distribution} dataKey="value" innerRadius={60} outerRadius={95} paddingAngle={4}>
@@ -315,7 +315,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
         </ChartCard>
 
         {/* Group trend */}
-        <ChartCard title="Qrup İrəliləyişi" subtitle="Aylar üzrə birgə performans" className="lg:col-span-3">
+        <ChartCard title="Qrup İrəliləyişi" subtitle="Seçilmiş dövr üzrə birgə performans" className="lg:col-span-3" right={<PeriodPicker value={trendPeriod} onChange={setTrendPeriod} />}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trend}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -330,6 +330,7 @@ const TeamReport = ({ teams }: { teams: Team[] }) => {
     </div>
   );
 };
+
 
 
 // ============================================================
