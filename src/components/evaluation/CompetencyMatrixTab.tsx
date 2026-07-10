@@ -733,8 +733,13 @@ const CompetencyMatrixTab = () => {
       {/* Full-width: Cavab variantları və ballar (Global — bütün matrislər üçün ortaq) */}
       <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h3 className="font-semibold text-foreground">Cavab variantları və ballar</h3>
-          <span className="text-xs text-muted-foreground">Bütün matrislər üçün ortaq</span>
+          <div className="flex items-center gap-3">
+            <h3 className="font-semibold text-foreground">Cavab variantları və ballar</h3>
+            <span className="text-xs text-muted-foreground">Bütün matrislər üçün ortaq</span>
+          </div>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setAnswersEditOpen(true)}>
+            <Pencil className="w-3.5 h-3.5" /> Redaktə et
+          </Button>
         </div>
         <div className="p-4">
           <table className="w-full text-sm">
