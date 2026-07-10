@@ -552,6 +552,12 @@ const SettingsPage = () => {
   const filteredRoleUsers = allUsers.filter(u => u.name.toLowerCase().includes(roleUserSearch.toLowerCase()) || u.role.toLowerCase().includes(roleUserSearch.toLowerCase()));
 
   const tabs = ["1. Məlumat Cədvəli", "2. Rol və Səlahiyyətlər", "3. Bildiriş sazlamaları"];
+  const tabCards = [
+    { title: "Məlumat Cədvəli", desc: "Sistem üzrə istifadə olunan bütün dropdown kataloqlarını idarə edin.", icon: "🗂️" },
+    { title: "Rol və Səlahiyyətlər", desc: "İstifadəçi rollarını, modul icazələrini və təyinatları idarə edin.", icon: "🛡️" },
+    { title: "Bildiriş sazlamaları", desc: "Bildiriş kanalları, alıcılar və şablonları konfiqurasiya edin.", icon: "🔔" },
+  ];
+  const [openCard, setOpenCard] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen">
@@ -563,17 +569,35 @@ const SettingsPage = () => {
           title="Sazlamalar"
           subtitle="Sistem konfiqurasiyası, rollar və şifrələri idarə edin"
         />
-        <div className="bg-card rounded-xl border border-border p-1.5 mb-6 inline-flex gap-1 shadow-sm">
-          {tabs.map((t, i) => (
-            <button
-              key={i}
-              onClick={() => setTab(i)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${tab === i ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-secondary"}`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+
+        {openCard === null ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {tabCards.map((c, i) => (
+              <button
+                key={i}
+                onClick={() => { setOpenCard(i); setTab(i); }}
+                className="text-left bg-card rounded-xl border border-border p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl mb-4 group-hover:bg-primary/20 transition-colors">
+                  {c.icon}
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-1">{c.title}</h3>
+                <p className="text-sm text-muted-foreground">{c.desc}</p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="mb-4 flex items-center gap-3">
+              <button
+                onClick={() => setOpenCard(null)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary transition-colors"
+              >
+                ← Geri
+              </button>
+              <h2 className="text-lg font-semibold text-foreground">{tabCards[openCard].title}</h2>
+            </div>
+
 
         {/* Tab 1: Məlumat Cədvəli */}
         {tab === 0 && (
@@ -670,8 +694,11 @@ const SettingsPage = () => {
             <NotificationSettingsTab />
           </div>
         )}
+          </>
+        )}
 
       </main>
+
 
       {/* Create/Edit Target Type Dialog */}
       <Dialog open={showCreateTarget} onOpenChange={setShowCreateTarget}>
