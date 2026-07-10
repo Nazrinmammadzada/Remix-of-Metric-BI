@@ -1236,7 +1236,6 @@ const EmployeesTab = () => {
     lastName: validateName(form.lastName, "Soyad"),
     fatherName: validateName(form.fatherName, "Ata adı"),
     fin: validateFin(form.fin) || (finsExcluding().includes(form.fin) ? "Bu FİN artıq sistemdə mövcuddur." : null),
-    phone: validatePhone(form.phone),
     email: validateEmail(form.email, emailsExcluding()),
   }), [form, employees]);
   const createValid = Object.values(createErrors).every(v => !v);
