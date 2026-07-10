@@ -15,10 +15,10 @@ import {
   RadialBarChart, RadialBar, PolarAngleAxis, BarChart, Bar, LineChart, Line,
   RadarChart, Radar, PolarGrid, PolarRadiusAxis, Legend, PieChart, Pie, Cell,
 } from "recharts";
+import PeriodPicker, { currentPeriod, buildDemoSeries, type PeriodValue } from "@/components/common/PeriodPicker";
 
 type TabKey = "mine" | "team";
-type PeriodKey = "monthly" | "quarterly" | "yearly";
-const PERIOD_LABEL: Record<PeriodKey, string> = { monthly: "Aylıq", quarterly: "Rüblük", yearly: "İllik" };
+
 
 // --- Mock individual KPI assignments (which users appear on individual KPIs) ---
 const individualKpiAssignees = ["Samir Həsənov", "Leyla Məmmədova", "Rəşad Əliyev", "Günel Əlizadə"];
