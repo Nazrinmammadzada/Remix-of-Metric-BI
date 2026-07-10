@@ -369,15 +369,19 @@ const StatCard = ({
 };
 
 const ChartCard = ({
-  title, subtitle, children, className = "",
-}: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) => (
+  title, subtitle, children, className = "", right,
+}: { title: string; subtitle?: string; children: React.ReactNode; className?: string; right?: React.ReactNode }) => (
   <div className={`rounded-2xl border border-border bg-card p-5 shadow-sm ${className}`}>
-    <div className="mb-3">
-      <h3 className="font-semibold text-foreground">{title}</h3>
-      {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div>
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+      </div>
+      {right && <div className="shrink-0">{right}</div>}
     </div>
     {children}
   </div>
 );
+
 
 export default UserReportsPage;
