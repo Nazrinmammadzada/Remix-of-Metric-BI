@@ -42,7 +42,7 @@ const UserHomePage = () => {
         </div>
 
         <div className="mb-6">
-          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe />
+          <SharedKpiPanel title="Sizə təyin olunmuş KPI kartları" onlyAssignedToMe readOnlyStatus />
         </div>
 
 
