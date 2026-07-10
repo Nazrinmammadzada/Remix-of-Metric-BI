@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { AdvancedFilter, evaluateAdvFilter, type AdvFilterState } from "./AdvancedFilter";
 
 export type FilterType = "text" | "number" | "date" | "select" | "none";
 
