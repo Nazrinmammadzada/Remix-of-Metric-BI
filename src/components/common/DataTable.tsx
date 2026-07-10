@@ -355,6 +355,7 @@ export function DataTable<T>({
                 </div>
               </PopoverContent>
             </Popover>
+            <AdvancedFilter columns={columns} value={advFilter} onChange={setAdvFilter} />
             {toolbarLeft}
           </div>
           {toolbarRight}
