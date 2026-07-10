@@ -2104,11 +2104,13 @@ function EvaluatorPickerDialog({ target, employeeOptions, onClose, onSave }: {
       ? target.evaluators : []
   );
   const [structRandomCount, setStructRandomCount] = useState<number>(1);
+  const [structMemberSearch, setStructMemberSearch] = useState("");
   const structMembers: { name: string }[] = structPath
     ? allEmployees
         .filter(e => (e.structurePath || "").startsWith(structPath))
         .map(e => ({ name: `${e.firstName} ${e.lastName}` }))
     : [];
+  const filteredStructMembers = structMembers.filter(m => m.name.toLowerCase().includes(structMemberSearch.toLowerCase()));
   const filteredStructures = structureList.filter(s => s.label.toLowerCase().includes(structSearch.toLowerCase()));
   const toggleStructMember = (name: string) => {
     setStructMemberEvs(prev => prev.find(p => p.name === name)
