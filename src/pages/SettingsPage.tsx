@@ -666,7 +666,9 @@ const SettingsPage = () => {
 
         {/* Tab 3: Bildiriş sazlamaları */}
         {tab === 2 && (
-          <NotificationSettingsTab />
+          <div className="bg-card rounded-xl border border-border p-5 shadow-sm">
+            <NotificationSettingsTab />
+          </div>
         )}
 
       </main>
