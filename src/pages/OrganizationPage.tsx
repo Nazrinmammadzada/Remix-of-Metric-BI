@@ -1236,7 +1236,6 @@ const EmployeesTab = () => {
     lastName: validateName(form.lastName, "Soyad"),
     fatherName: validateName(form.fatherName, "Ata adı"),
     fin: validateFin(form.fin) || (finsExcluding().includes(form.fin) ? "Bu FİN artıq sistemdə mövcuddur." : null),
-    phone: validatePhone(form.phone),
     email: validateEmail(form.email, emailsExcluding()),
   }), [form, employees]);
   const createValid = Object.values(createErrors).every(v => !v);
@@ -1257,7 +1256,7 @@ const EmployeesTab = () => {
       lastName: form.lastName.trim(),
       fatherName: form.fatherName.trim() || undefined,
       fin: form.fin.trim(),
-      phone: formatPhone(form.phone),
+      phone: "",
       email: form.email.trim(),
     });
     toast.success("Əməkdaş yaradıldı");
@@ -1454,9 +1453,6 @@ const EmployeesTab = () => {
               onChange={v => setForm(p => ({ ...p, fatherName: sanitizeName(v).slice(0, 50) }))} />
             <ValidatedField label="FİN" value={form.fin} mono error={createErrors.fin}
               onChange={v => setForm(p => ({ ...p, fin: sanitizeFin(v) }))} />
-            <ValidatedField label="Telefon nömrəsi" value={form.phone} error={createErrors.phone}
-              placeholder="+994 50 123 45 67"
-              onChange={v => setForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
               <ValidatedField label="Email" value={form.email} error={createErrors.email}
                 onChange={v => setForm(p => ({ ...p, email: v.trim() }))} />
