@@ -631,40 +631,10 @@ const CompetencyMatrixTab = () => {
   return (
     <div className="space-y-5">
       {/* Header row */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Səriştə Matrisi (Competency Matrix)</h2>
-          <p className="text-sm text-muted-foreground mt-1">Davranış və kompetensiyaların qiymətləndirilməsi üçün matrisləri yaradın və idarə edin.</p>
-        </div>
+      <div className="flex items-start justify-end gap-4 flex-wrap">
         <Button onClick={() => setCreateOpen(true)} className="gap-2">
           <Plus className="w-4 h-4" /> Yeni matris yarat
         </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: Grid3x3, iconClass: "text-blue-600 bg-blue-500/10", label: "Cəmi matris", value: list.length, sub: `${totalMatrices} aktiv matris` },
-          { icon: Briefcase, iconClass: "text-emerald-600 bg-emerald-500/10", label: "Vəzifələr", value: totalPositions, sub: "Matris təyin edilmiş vəzifələr" },
-          { icon: HelpCircle, iconClass: "text-violet-600 bg-violet-500/10", label: "Suallar", value: totalQuestions, sub: "Bütün matrislər üzrə suallar" },
-          { icon: TargetIcon, iconClass: "text-orange-600 bg-orange-500/10", label: "İstifadə olunan KPI-lar", value: totalKpis, sub: "KPI kartlarında istifadə olunur" },
-        ].map((s, i) => {
-          const Icon = s.icon;
-          return (
-            <div key={i} className="rounded-2xl border border-border bg-card shadow-sm p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{s.value}</p>
-                </div>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.iconClass}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">{s.sub}</p>
-            </div>
-          );
-        })}
       </div>
 
       {/* Full-width: Səriştə matrislərinin siyahısı */}
