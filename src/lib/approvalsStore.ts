@@ -134,26 +134,31 @@ export const enqueueApproval = (input: {
   matrixId: string;
   approverIds: string[];
   createdBy: string;
+  stepsChain?: string[][];
 }): ApprovalItem => {
   const list = load();
   // dedupe: if a pending request exists for this card, return existing
   const existing = list.find(a => a.kpiCardId === input.kpiCardId && a.status === "pending");
   if (existing) return existing;
+  const chain = input.stepsChain && input.stepsChain.length > 0 ? input.stepsChain : [input.approverIds];
+  const firstStep = chain[0];
   const item: ApprovalItem = {
     id: crypto.randomUUID(),
     kpiCardId: input.kpiCardId,
     kpiName: input.kpiName,
     matrixId: input.matrixId,
-    approverIds: input.approverIds,
-    decisions: Object.fromEntries(input.approverIds.map(a => [a, { decision: "pending" as const }])),
+    approverIds: firstStep,
+    decisions: Object.fromEntries(firstStep.map(a => [a, { decision: "pending" as const }])),
     status: "pending",
     createdBy: input.createdBy,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    stepsChain: chain,
+    currentStep: 0,
   };
   list.unshift(item);
   save(list);
-  input.approverIds.forEach(approverId => {
+  firstStep.forEach(approverId => {
     pushNotification({
       toEmployeeId: approverId,
       type: "approval_request",
@@ -182,9 +187,36 @@ export const decideApproval = (
 
   const allApproved = item.approverIds.every(id => item.decisions[id]?.decision === "approved");
   const anyRejected = item.approverIds.some(id => item.decisions[id]?.decision === "rejected");
-  if (anyRejected) item.status = "rejected";
-  else if (allApproved) item.status = "approved";
-  else item.status = "pending";
+
+  if (anyRejected) {
+    item.status = "rejected";
+  } else if (allApproved) {
+    const chain = item.stepsChain || [item.approverIds];
+    const cur = item.currentStep ?? 0;
+    if (cur + 1 < chain.length) {
+      // Advance to next step
+      const nextStep = chain[cur + 1];
+      item.currentStep = cur + 1;
+      item.approverIds = nextStep;
+      nextStep.forEach(id => {
+        if (!item.decisions[id]) item.decisions[id] = { decision: "pending" };
+      });
+      item.status = "pending";
+      nextStep.forEach(nextApprover => {
+        pushNotification({
+          toEmployeeId: nextApprover,
+          type: "approval_request",
+          title: `Təsdiq tələbi: ${item.kpiName}`,
+          body: "Sistem Təsdiqləri modulunda kart sizi gözləyir.",
+          link: "/manager/sistem-tesdiq",
+        });
+      });
+    } else {
+      item.status = "approved";
+    }
+  } else {
+    item.status = "pending";
+  }
 
   item.updatedAt = new Date().toISOString();
   list[idx] = item;
