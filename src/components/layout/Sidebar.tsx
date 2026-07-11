@@ -114,12 +114,12 @@ const Sidebar = () => {
               className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold text-sidebar-fg/80 hover:bg-sidebar-hover"
             >
               <span className="inline-flex items-center gap-2">
-                <UserCog className="w-3.5 h-3.5" /> Admin
+                <UserCog className="w-3.5 h-3.5" /> {t("sidebar.section_admin")}
               </span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${adminOpen ? "" : "-rotate-90"}`} />
             </button>
           ) : (
-            <div className="mx-auto my-2 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title="Admin">
+            <div className="mx-auto my-2 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title={t("sidebar.section_admin")}>
               <UserCog className="w-3.5 h-3.5 text-sidebar-fg/70" />
             </div>
           )}
