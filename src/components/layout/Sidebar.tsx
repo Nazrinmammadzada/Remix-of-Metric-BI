@@ -100,7 +100,7 @@ const Sidebar = () => {
 
         <button
           onClick={toggle}
-          aria-label={collapsed ? "Sidebar aç" : "Sidebar bağla"}
+          aria-label={collapsed ? t("common.sidebar_open") : t("common.sidebar_close")}
           className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-card border border-border shadow-md flex items-center justify-center hover:bg-secondary transition-colors z-10"
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5 text-foreground" /> : <ChevronLeft className="w-3.5 h-3.5 text-foreground" />}
