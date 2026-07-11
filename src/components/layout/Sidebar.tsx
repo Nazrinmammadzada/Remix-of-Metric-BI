@@ -93,7 +93,7 @@ const Sidebar = () => {
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-sidebar-fg tracking-wide truncate">Metric BI</h1>
-              <p className="text-[11px] text-sidebar-fg/60 truncate">HR Panel</p>
+              <p className="text-[11px] text-sidebar-fg/60 truncate">{t("sidebar.panel_hr")}</p>
             </div>
           )}
         </div>
