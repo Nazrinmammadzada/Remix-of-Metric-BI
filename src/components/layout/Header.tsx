@@ -96,7 +96,8 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
       ? "bg-gradient-to-r from-[hsl(268_75%_55%/0.12)] via-card/85 to-[hsl(268_75%_55%/0.12)] border-[hsl(268_75%_55%/0.35)]"
       : "bg-gradient-to-r from-success/10 via-card/85 to-success/10 border-success/30";
   const accentBar = isHR ? "bg-primary" : isManager ? "bg-[hsl(268_75%_55%)]" : "bg-success";
-  const roleLabel = isHR ? "HR Panel" : isManager ? "Rəhbər Paneli" : "İstifadəçi Paneli";
+  const roleLabel = isHR ? t("header.panel_hr") : isManager ? t("header.panel_manager") : t("header.panel_user");
+  const roleName = isHR ? t("header.role_hr") : isManager ? t("header.role_manager") : t("header.role_user");
   const roleChip = isHR
     ? "bg-primary/15 text-primary"
     : isManager
