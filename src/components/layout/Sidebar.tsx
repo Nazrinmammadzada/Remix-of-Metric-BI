@@ -170,7 +170,7 @@ const Sidebar = () => {
           )}
           {!collapsed && (
             <div className="mt-2 pt-2 border-t border-sidebar-fg/10 text-center">
-              <p className="text-[10px] text-sidebar-fg/40">© Blink-bi.az bütün hüquqları qorunur</p>
+              <p className="text-[10px] text-sidebar-fg/40">{t("common.copyright")}</p>
             </div>
           )}
         </div>
