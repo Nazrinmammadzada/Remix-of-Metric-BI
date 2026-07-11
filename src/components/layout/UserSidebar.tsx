@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, LayoutGrid, ClipboardCheck, BarChart3, Users, Settings, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
@@ -7,19 +8,20 @@ import { useAppSidebar } from "@/contexts/SidebarContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const allNavItems = [
-  { path: "/user", label: "Əsas Səhifə", icon: Home, permissions: ["home"] },
-  { path: "/user/kpi-kartlari", label: "KPI İzlənməsi", icon: LayoutGrid, permissions: ["kpi_own", "kpi_team"] },
-  { path: "/user/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck, permissions: ["approvals"] },
-  { path: "/user/hesabat", label: "Hesabat", icon: BarChart3, permissions: ["reporting"] },
-  { path: "/user/komandalar", label: "Mənim Komandam", icon: Users, permissions: ["teams", "teams_compare"] },
-  { path: "/user/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardList, permissions: ["home"] },
-  { path: "/user/ayarlar", label: "Ayarlar", icon: Settings, permissions: ["home"] },
+  { path: "/user", labelKey: "nav.home", icon: Home, permissions: ["home"] },
+  { path: "/user/kpi-kartlari", labelKey: "nav.kpi_tracking", icon: LayoutGrid, permissions: ["kpi_own", "kpi_team"] },
+  { path: "/user/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck, permissions: ["approvals"] },
+  { path: "/user/hesabat", labelKey: "nav.report", icon: BarChart3, permissions: ["reporting"] },
+  { path: "/user/komandalar", labelKey: "nav.my_team_alt", icon: Users, permissions: ["teams", "teams_compare"] },
+  { path: "/user/qiymetlendirme", labelKey: "nav.evaluation", icon: ClipboardList, permissions: ["home"] },
+  { path: "/user/ayarlar", labelKey: "nav.settings_alt", icon: Settings, permissions: ["home"] },
 ];
 
 const UserSidebar = () => {
   const location = useLocation();
   const { user, hasPermission } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
+  const { t } = useTranslation();
 
   const navItems = allNavItems.filter(item => item.permissions.some(p => hasPermission(p)));
 
