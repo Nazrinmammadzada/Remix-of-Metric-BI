@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/layout/Header";
 import { PageHero, FancyCard } from "@/components/ui/page-hero";
 import {
@@ -53,6 +54,7 @@ if (!localStorage.getItem("__org_emp_order_fixed")) {
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab: "struktur" | "emekdaslar" | "kataloq" | null =
     searchParams.get("tab") === "struktur" ? "struktur"
@@ -102,7 +104,7 @@ const OrganizationPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!/^image\/(png|jpe?g|svg\+xml)$/.test(file.type)) {
-      toast.error("Yalnız PNG, JPG və ya SVG formatlı şəkillər qəbul olunur");
+      toast.error(t("org.logo_error_format"));
       return;
     }
     const reader = new FileReader();
@@ -110,7 +112,7 @@ const OrganizationPage = () => {
       const url = reader.result as string;
       localStorage.setItem(ORG_LOGO_KEY, url);
       setOrgLogo(url);
-      toast.success(orgLogo ? "Logo dəyişdirildi" : "Logo əlavə edildi");
+      toast.success(orgLogo ? t("org.logo_toast_changed") : t("org.logo_toast_added"));
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -118,13 +120,13 @@ const OrganizationPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="Təşkilat" />
+      <Header title={t("org.page_title")} />
       <main className="p-6 pb-24">
         <PageHero
-          badge="Təşkilat"
+          badge={t("org.hero_badge")}
           icon={Building2}
-          title="Təşkilat"
-          subtitle="Strukturlar, vəzifələr və əməkdaşlar"
+          title={t("org.page_title")}
+          subtitle={t("org.hero_subtitle")}
           left={
             <div className="flex items-center gap-2 pl-2">
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
@@ -132,17 +134,17 @@ const OrganizationPage = () => {
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="group relative h-16 w-16 rounded-xl border border-border bg-card overflow-hidden flex items-center justify-center shadow-sm"
-                  title="Logo dəyiş"
+                  title={t("org.logo_change")}
                 >
-                  <img src={orgLogo} alt="Təşkilat logosu" className="max-h-14 max-w-14 object-contain" />
-                  <span className="absolute inset-0 bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">Dəyiş</span>
+                  <img src={orgLogo} alt={t("org.logo_alt")} className="max-h-14 max-w-14 object-contain" />
+                  <span className="absolute inset-0 bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">{t("org.logo_change_short")}</span>
                 </button>
               ) : (
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="inline-flex items-center gap-1.5 px-3 h-12 text-xs rounded-xl border border-dashed border-border bg-background hover:bg-secondary/40 text-muted-foreground"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Logo əlavə et
+                  <Plus className="w-3.5 h-3.5" /> {t("org.logo_add")}
                 </button>
               )}
             </div>
@@ -159,7 +161,7 @@ const OrganizationPage = () => {
                 onClick={() => setTab(null)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" /> Geri
+                <ChevronLeft className="w-4 h-4" /> {t("org.back")}
               </button>
               <TabToolbar total={stats.total} active={stats.active} />
             </div>
@@ -171,22 +173,25 @@ const OrganizationPage = () => {
   );
 };
 
-const TabToolbar = ({ total, active }: { total: number; active: number }) => (
-  <div className="flex items-center gap-2 flex-wrap">
-    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
-      <Download className="w-4 h-4 rotate-180" /> Excel import
-    </button>
-    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
-      <img src={chrLogo} alt="" className="w-4 h-4 rounded" /> CHR import
-    </button>
-    <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
-      <img src={chrLogo} alt="" className="w-4 h-4 rounded" /> CHR export
-    </button>
-    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-muted-foreground">
-      <Users className="w-4 h-4" /> <span className="font-medium text-foreground">{total} əməkdaş</span> · {active} aktiv
+const TabToolbar = ({ total, active }: { total: number; active: number }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
+        <Download className="w-4 h-4 rotate-180" /> {t("org.excel_import")}
+      </button>
+      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
+        <img src={chrLogo} alt="" className="w-4 h-4 rounded" /> {t("org.chr_import")}
+      </button>
+      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 transition-colors">
+        <img src={chrLogo} alt="" className="w-4 h-4 rounded" /> {t("org.chr_export")}
+      </button>
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-muted-foreground">
+        <Users className="w-4 h-4" /> <span className="font-medium text-foreground">{t("org.employees_count", { count: total })}</span> · {t("org.active_suffix", { count: active })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ====================================================
 // Module entry cards — Komandalar & Əməkhaqqı bazası
@@ -194,6 +199,7 @@ const TabToolbar = ({ total, active }: { total: number; active: number }) => (
 type OrgTab = "struktur" | "emekdaslar" | "kataloq";
 const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab | null; onSelectTab: (t: OrgTab) => void }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const cards: Array<{
     title: string;
     desc: string;
@@ -204,40 +210,40 @@ const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab | null; onS
     path?: string;
   }> = [
     {
-      title: "Struktur",
-      desc: "Təşkilati strukturu və vəzifələri qurun",
+      title: t("org.card_structure"),
+      desc: t("org.card_structure_desc"),
       icon: Network,
       gradient: "from-indigo-500/15 via-violet-500/10 to-transparent",
       iconBg: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
       tab: "struktur",
     },
     {
-      title: "Əməkdaşlar siyahısı",
-      desc: "Əməkdaşları əlavə edin və idarə edin",
+      title: t("org.card_employees"),
+      desc: t("org.card_employees_desc"),
       icon: UserCircle2,
       gradient: "from-amber-500/15 via-orange-500/10 to-transparent",
       iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
       tab: "emekdaslar",
     },
     {
-      title: "Struktur kataloqu",
-      desc: "Struktur tipləri və vəzifə kataloqu",
+      title: t("org.card_catalog"),
+      desc: t("org.card_catalog_desc"),
       icon: Folder,
       gradient: "from-fuchsia-500/15 via-pink-500/10 to-transparent",
       iconBg: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400",
       tab: "kataloq",
     },
     {
-      title: "Komandalar",
-      desc: "Komanda strukturlarını və üzvlərini idarə edin",
+      title: t("org.card_teams"),
+      desc: t("org.card_teams_desc"),
       icon: Users,
       path: "/komandalar",
       gradient: "from-blue-500/15 via-sky-500/10 to-transparent",
       iconBg: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
     },
     {
-      title: "Əməkhaqqı bazası",
-      desc: "Əməkdaşların əməkhaqqı məlumatlarını idarə edin",
+      title: t("org.card_salary"),
+      desc: t("org.card_salary_desc"),
       icon: Wallet,
       path: "/emekhaqqi-bazasi",
       gradient: "from-emerald-500/15 via-teal-500/10 to-transparent",
