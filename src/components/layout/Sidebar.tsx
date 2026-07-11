@@ -138,12 +138,12 @@ const Sidebar = () => {
                   className="mt-4 w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold text-sidebar-fg/80 hover:bg-sidebar-hover"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Crown className="w-3.5 h-3.5" /> Rəhbər
+                    <Crown className="w-3.5 h-3.5" /> {t("sidebar.section_manager")}
                   </span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${managerOpen ? "" : "-rotate-90"}`} />
                 </button>
               ) : (
-                <div className="mx-auto mt-3 mb-1 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title="Rəhbər">
+                <div className="mx-auto mt-3 mb-1 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title={t("sidebar.section_manager")}>
                   <Crown className="w-3.5 h-3.5 text-sidebar-fg/70" />
                 </div>
               )}
