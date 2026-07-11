@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator,
   ShieldCheck, Building2, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge,
@@ -12,39 +13,40 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppSidebar } from "@/contexts/SidebarContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type NavItem = { path: string; label: string; icon: any; perm?: string };
+type NavItem = { path: string; labelKey: string; icon: any; perm?: string };
 
 const ADMIN_ITEMS: NavItem[] = [
-  { path: "/hr", label: "Əsas Səhifə", icon: Home, perm: "home" },
-  { path: "/teskilati-struktur", label: "Təşkilat", icon: Building2, perm: "organization" },
-  { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid, perm: "kpi" },
-  { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target, perm: "goal_tracking" },
-  { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow, perm: "kpi_lifecycle" },
-  { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge, perm: "kpi_scores" },
-  { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardCheck, perm: "evaluation" },
-  { path: "/cascading", label: "Cascading", icon: GitBranch, perm: "cascading" },
-  { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck, perm: "matrix" },
-  { path: "/hesabat", label: "Hesabatlar", icon: BarChart3, perm: "reporting" },
-  { path: "/whistleblower", label: "Anonim Bildiriş", icon: Shield, perm: "whistleblower" },
-  { path: "/hesablama-dusturlari", label: "Hesablama Düsturları", icon: Calculator, perm: "formulas" },
-  { path: "/bonus", label: "Bonuslar", icon: DollarSign, perm: "bonus" },
-  { path: "/inteqrasiyalar", label: "İnteqrasiyalar", icon: Link2, perm: "integrations" },
-  { path: "/ayarlar", label: "Sazlamalar", icon: Settings, perm: "settings" },
+  { path: "/hr", labelKey: "nav.home", icon: Home, perm: "home" },
+  { path: "/teskilati-struktur", labelKey: "nav.organization", icon: Building2, perm: "organization" },
+  { path: "/kpi-kartlari", labelKey: "nav.kpis", icon: LayoutGrid, perm: "kpi" },
+  { path: "/hedef-tayin-izleme", labelKey: "nav.goal_tracking", icon: Target, perm: "goal_tracking" },
+  { path: "/kpi-lifecycle", labelKey: "nav.kpi_lifecycle", icon: Workflow, perm: "kpi_lifecycle" },
+  { path: "/kpi-qiymetleri", labelKey: "nav.kpi_results", icon: Gauge, perm: "kpi_scores" },
+  { path: "/qiymetlendirme", labelKey: "nav.evaluation", icon: ClipboardCheck, perm: "evaluation" },
+  { path: "/cascading", labelKey: "nav.cascading", icon: GitBranch, perm: "cascading" },
+  { path: "/tesdiqleme-matrisi", labelKey: "nav.approval_matrix", icon: ShieldCheck, perm: "matrix" },
+  { path: "/hesabat", labelKey: "nav.reports", icon: BarChart3, perm: "reporting" },
+  { path: "/whistleblower", labelKey: "nav.whistleblower", icon: Shield, perm: "whistleblower" },
+  { path: "/hesablama-dusturlari", labelKey: "nav.formulas", icon: Calculator, perm: "formulas" },
+  { path: "/bonus", labelKey: "nav.bonuses", icon: DollarSign, perm: "bonus" },
+  { path: "/inteqrasiyalar", labelKey: "nav.integrations", icon: Link2, perm: "integrations" },
+  { path: "/ayarlar", labelKey: "nav.settings", icon: Settings, perm: "settings" },
 ];
 
 const MANAGER_ITEMS: NavItem[] = [
-  { path: "/hr/rehber/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
-  { path: "/hr/rehber/mesul-kartlar", label: "Məsul olduğum kartlar", icon: LayoutGrid },
-  { path: "/hr/rehber/komandam", label: "Komandam", icon: Users },
-  { path: "/hr/rehber/kpi-izleme", label: "KPI İzlənməsi", icon: Activity },
-  { path: "/hr/rehber/neticelerim", label: "Nəticələrim", icon: Trophy },
-  { path: "/hr/rehber/bonuslarim", label: "Bonuslarım", icon: Gift },
+  { path: "/hr/rehber/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck },
+  { path: "/hr/rehber/mesul-kartlar", labelKey: "nav.responsible_cards", icon: LayoutGrid },
+  { path: "/hr/rehber/komandam", labelKey: "nav.my_team", icon: Users },
+  { path: "/hr/rehber/kpi-izleme", labelKey: "nav.kpi_tracking", icon: Activity },
+  { path: "/hr/rehber/neticelerim", labelKey: "nav.my_results", icon: Trophy },
+  { path: "/hr/rehber/bonuslarim", labelKey: "nav.my_bonuses", icon: Gift },
 ];
 
 const Sidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
+  const { t } = useTranslation();
   const [adminOpen, setAdminOpen] = useState(true);
   const [managerOpen, setManagerOpen] = useState(true);
 
