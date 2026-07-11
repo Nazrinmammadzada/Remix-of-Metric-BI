@@ -219,8 +219,8 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
               {user?.avatar || "A"}
             </div>
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-foreground leading-tight">{user?.name || "İstifadəçi"}</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">{isHR ? "HR Menecer" : isManager ? "Rəhbər" : "İstifadəçi"}</p>
+              <p className="text-sm font-medium text-foreground leading-tight">{user?.name || t("header.default_user")}</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">{roleName}</p>
             </div>
           </button>
           {showProfile && user && (
@@ -233,7 +233,7 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-foreground truncate">{user.name}</p>
                     <span className={`inline-block mt-0.5 px-2 py-0.5 text-[10px] font-medium rounded-full ${roleChip}`}>
-                      {isHR ? "HR Menecer" : isManager ? "Rəhbər" : "İstifadəçi"}
+                      {roleName}
                     </span>
                   </div>
                 </div>
@@ -249,12 +249,12 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
                   <UsersIcon className="w-3.5 h-3.5" /><span>{user.team}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  <p className="mb-1">İcazələr: <span className="text-foreground font-medium">{user.permissions.length}</span></p>
+                  <p className="mb-1">{t("header.permissions")}: <span className="text-foreground font-medium">{user.permissions.length}</span></p>
                 </div>
               </div>
               <div className="border-t border-border p-1">
                 <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
-                  <LogOut className="w-4 h-4" /> Çıxış
+                  <LogOut className="w-4 h-4" /> {t("common.logout")}
                 </button>
               </div>
             </div>
