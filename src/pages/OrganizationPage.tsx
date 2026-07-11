@@ -199,6 +199,7 @@ const TabToolbar = ({ total, active }: { total: number; active: number }) => {
 type OrgTab = "struktur" | "emekdaslar" | "kataloq";
 const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab | null; onSelectTab: (t: OrgTab) => void }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const cards: Array<{
     title: string;
     desc: string;
@@ -209,40 +210,40 @@ const ModuleCards = ({ activeTab, onSelectTab }: { activeTab: OrgTab | null; onS
     path?: string;
   }> = [
     {
-      title: "Struktur",
-      desc: "Təşkilati strukturu və vəzifələri qurun",
+      title: t("org.card_structure"),
+      desc: t("org.card_structure_desc"),
       icon: Network,
       gradient: "from-indigo-500/15 via-violet-500/10 to-transparent",
       iconBg: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
       tab: "struktur",
     },
     {
-      title: "Əməkdaşlar siyahısı",
-      desc: "Əməkdaşları əlavə edin və idarə edin",
+      title: t("org.card_employees"),
+      desc: t("org.card_employees_desc"),
       icon: UserCircle2,
       gradient: "from-amber-500/15 via-orange-500/10 to-transparent",
       iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
       tab: "emekdaslar",
     },
     {
-      title: "Struktur kataloqu",
-      desc: "Struktur tipləri və vəzifə kataloqu",
+      title: t("org.card_catalog"),
+      desc: t("org.card_catalog_desc"),
       icon: Folder,
       gradient: "from-fuchsia-500/15 via-pink-500/10 to-transparent",
       iconBg: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400",
       tab: "kataloq",
     },
     {
-      title: "Komandalar",
-      desc: "Komanda strukturlarını və üzvlərini idarə edin",
+      title: t("org.card_teams"),
+      desc: t("org.card_teams_desc"),
       icon: Users,
       path: "/komandalar",
       gradient: "from-blue-500/15 via-sky-500/10 to-transparent",
       iconBg: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
     },
     {
-      title: "Əməkhaqqı bazası",
-      desc: "Əməkdaşların əməkhaqqı məlumatlarını idarə edin",
+      title: t("org.card_salary"),
+      desc: t("org.card_salary_desc"),
       icon: Wallet,
       path: "/emekhaqqi-bazasi",
       gradient: "from-emerald-500/15 via-teal-500/10 to-transparent",
