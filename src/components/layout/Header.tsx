@@ -118,7 +118,7 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
         <div className="relative hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
-            placeholder="KPI axtar..."
+            placeholder={t("common.search_kpi")}
             className="pl-9 pr-4 py-2 text-sm bg-secondary/70 hover:bg-secondary rounded-lg border border-transparent focus:border-ring outline-none w-56 transition-all"
           />
         </div>
@@ -126,16 +126,16 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
           <button
             onClick={() => navigate(isManager ? "/manager/whistleblower" : "/user/whistleblower")}
             className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-[hsl(268_75%_55%/0.12)] hover:bg-[hsl(268_75%_55%/0.2)] text-[hsl(268_75%_55%)] transition-colors"
-            title="Anonim Bildiriş"
+            title={t("common.anonymous_report")}
           >
             <Shield className="w-4 h-4" />
-            <span className="text-xs font-semibold hidden md:inline">Anonim Bildiriş</span>
+            <span className="text-xs font-semibold hidden md:inline">{t("common.anonymous_report")}</span>
           </button>
         )}
         <button
           onClick={() => setDark(d => !d)}
           className="w-9 h-9 rounded-lg bg-secondary/70 hover:bg-secondary flex items-center justify-center transition-colors"
-          title={dark ? "Light mode" : "Dark mode"}
+          title={dark ? t("common.light_mode") : t("common.dark_mode")}
         >
         {dark ? <Sun className="w-4 h-4 text-warning" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
         </button>
@@ -145,7 +145,7 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
           <button
             onClick={() => { setShowLang(s => !s); setShowNotif(false); setShowProfile(false); }}
             className="flex items-center gap-1.5 h-9 px-2.5 rounded-lg bg-secondary/70 hover:bg-secondary transition-colors"
-            title="Dil"
+            title={t("common.language")}
           >
             <Globe className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs font-semibold text-foreground">{lang}</span>
@@ -177,12 +177,12 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
           {showNotif && (
             <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden">
               <div className="p-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-semibold text-foreground">Bildirişlər</h3>
-                <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">{unreadCount} yeni</span>
+                <h3 className="font-semibold text-foreground">{t("header.notifications")}</h3>
+                <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">{t("header.notifications_new", { count: unreadCount })}</span>
               </div>
               <div className="max-h-96 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Bildiriş yoxdur</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">{t("header.notifications_empty")}</p>
                 ) : notifications.map(n => (
                   <div
                     key={n.id}
@@ -205,7 +205,7 @@ const Header = ({ title, showVersion = true }: HeaderProps) => {
                 <button
                   onClick={() => meId && markAllRead(meId)}
                   className="w-full text-center text-xs text-primary hover:underline py-1"
-                >Hamısını oxunmuş et</button>
+                >{t("header.mark_all_read")}</button>
               </div>
 
             </div>
