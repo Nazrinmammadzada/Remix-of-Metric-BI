@@ -25,21 +25,20 @@ interface Notification {
 const Header = ({ title, showVersion = true }: HeaderProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"));
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showLang, setShowLang] = useState(false);
-  const [lang, setLang] = useState<"AZ" | "ENG" | "RU">(() => {
-    const saved = localStorage.getItem("kpi_lang") as any;
-    return saved && saved !== "UZ" ? saved : "AZ";
-  });
+  const lang = CODE_TO_UI[(i18n.language?.split("-")[0] as SupportedLang) || "az"] ?? "AZ";
+  const setLang = (l: "AZ" | "ENG" | "RU") => {
+    i18n.changeLanguage(UI_TO_CODE[l]);
+    // Keep legacy key in sync for anywhere it's still read.
+    try { localStorage.setItem("kpi_lang", l); } catch { /* noop */ }
+  };
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    localStorage.setItem("kpi_lang", lang);
-  }, [lang]);
 
   const now = new Date();
   const dateStr = `${now.getFullYear()} M${String(now.getMonth() + 1).padStart(2, '0')} ${now.getDate()}, ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()]}`;
