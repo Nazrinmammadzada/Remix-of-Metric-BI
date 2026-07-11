@@ -34,14 +34,14 @@ const UserSidebar = () => {
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-sidebar-fg tracking-wide truncate">Metric BI</h1>
-              <p className="text-[11px] text-sidebar-fg/60 truncate">User Panel</p>
+              <p className="text-[11px] text-sidebar-fg/60 truncate">{t("sidebar.panel_user")}</p>
             </div>
           )}
         </div>
 
         <button
           onClick={toggle}
-          aria-label={collapsed ? "Sidebar aç" : "Sidebar bağla"}
+          aria-label={collapsed ? t("common.sidebar_open") : t("common.sidebar_close")}
           className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-card border border-border shadow-md flex items-center justify-center hover:bg-secondary transition-colors z-10"
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5 text-foreground" /> : <ChevronLeft className="w-3.5 h-3.5 text-foreground" />}
@@ -50,6 +50,7 @@ const UserSidebar = () => {
         <nav className={`flex-1 ${collapsed ? "px-2" : "px-3"} mt-4 space-y-1 overflow-y-auto scrollbar-hide`}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const label = t(item.labelKey);
             const link = (
               <Link
                 key={item.path}
@@ -62,13 +63,13 @@ const UserSidebar = () => {
               >
                 {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground rounded-r-full" />}
                 <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate">{label}</span>}
               </Link>
             );
             return collapsed ? (
               <Tooltip key={item.path}>
                 <TooltipTrigger asChild>{link}</TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
+                <TooltipContent side="right">{label}</TooltipContent>
               </Tooltip>
             ) : link;
           })}
