@@ -104,7 +104,7 @@ const OrganizationPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!/^image\/(png|jpe?g|svg\+xml)$/.test(file.type)) {
-      toast.error("Yalnız PNG, JPG və ya SVG formatlı şəkillər qəbul olunur");
+      toast.error(t("org.logo_error_format"));
       return;
     }
     const reader = new FileReader();
@@ -112,7 +112,7 @@ const OrganizationPage = () => {
       const url = reader.result as string;
       localStorage.setItem(ORG_LOGO_KEY, url);
       setOrgLogo(url);
-      toast.success(orgLogo ? "Logo dəyişdirildi" : "Logo əlavə edildi");
+      toast.success(orgLogo ? t("org.logo_toast_changed") : t("org.logo_toast_added"));
     };
     reader.readAsDataURL(file);
     e.target.value = "";
