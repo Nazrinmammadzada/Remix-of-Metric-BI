@@ -120,13 +120,13 @@ const OrganizationPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="Təşkilat" />
+      <Header title={t("org.page_title")} />
       <main className="p-6 pb-24">
         <PageHero
-          badge="Təşkilat"
+          badge={t("org.hero_badge")}
           icon={Building2}
-          title="Təşkilat"
-          subtitle="Strukturlar, vəzifələr və əməkdaşlar"
+          title={t("org.page_title")}
+          subtitle={t("org.hero_subtitle")}
           left={
             <div className="flex items-center gap-2 pl-2">
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml" className="hidden" onChange={handleLogoUpload} />
@@ -134,17 +134,17 @@ const OrganizationPage = () => {
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="group relative h-16 w-16 rounded-xl border border-border bg-card overflow-hidden flex items-center justify-center shadow-sm"
-                  title="Logo dəyiş"
+                  title={t("org.logo_change")}
                 >
-                  <img src={orgLogo} alt="Təşkilat logosu" className="max-h-14 max-w-14 object-contain" />
-                  <span className="absolute inset-0 bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">Dəyiş</span>
+                  <img src={orgLogo} alt={t("org.logo_alt")} className="max-h-14 max-w-14 object-contain" />
+                  <span className="absolute inset-0 bg-black/50 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">{t("org.logo_change_short")}</span>
                 </button>
               ) : (
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="inline-flex items-center gap-1.5 px-3 h-12 text-xs rounded-xl border border-dashed border-border bg-background hover:bg-secondary/40 text-muted-foreground"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Logo əlavə et
+                  <Plus className="w-3.5 h-3.5" /> {t("org.logo_add")}
                 </button>
               )}
             </div>
@@ -161,7 +161,7 @@ const OrganizationPage = () => {
                 onClick={() => setTab(null)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-card hover:bg-secondary/40 text-foreground transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" /> Geri
+                <ChevronLeft className="w-4 h-4" /> {t("org.back")}
               </button>
               <TabToolbar total={stats.total} active={stats.active} />
             </div>
