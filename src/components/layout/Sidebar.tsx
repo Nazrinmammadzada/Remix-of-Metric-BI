@@ -55,6 +55,7 @@ const Sidebar = () => {
 
   const renderItem = (item: NavItem) => {
     const isActive = location.pathname === item.path;
+    const label = t(item.labelKey);
     const link = (
       <Link
         key={item.path}
@@ -67,13 +68,13 @@ const Sidebar = () => {
       >
         {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground rounded-r-full" />}
         <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span className="truncate">{label}</span>}
       </Link>
     );
     return collapsed ? (
       <Tooltip key={item.path}>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side="right">{item.label}</TooltipContent>
+        <TooltipContent side="right">{label}</TooltipContent>
       </Tooltip>
     ) : link;
   };
