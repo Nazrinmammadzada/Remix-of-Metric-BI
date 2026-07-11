@@ -54,6 +54,7 @@ if (!localStorage.getItem("__org_emp_order_fixed")) {
 const ORG_LOGO_KEY = "kpi_org_logo_v1";
 
 const OrganizationPage = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab: "struktur" | "emekdaslar" | "kataloq" | null =
     searchParams.get("tab") === "struktur" ? "struktur"
