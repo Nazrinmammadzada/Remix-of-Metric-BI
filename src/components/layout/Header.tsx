@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useNotificationsFor, markAllRead } from "@/lib/notificationsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
+import { useTranslation } from "react-i18next";
+import { UI_TO_CODE, CODE_TO_UI, type SupportedLang } from "@/i18n";
 
 interface HeaderProps {
   title: string;
