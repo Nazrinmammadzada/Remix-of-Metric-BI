@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, LayoutGrid, ClipboardCheck, BarChart3, Users, Settings, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
@@ -7,19 +8,20 @@ import { useAppSidebar } from "@/contexts/SidebarContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const allNavItems = [
-  { path: "/user", label: "Əsas Səhifə", icon: Home, permissions: ["home"] },
-  { path: "/user/kpi-kartlari", label: "KPI İzlənməsi", icon: LayoutGrid, permissions: ["kpi_own", "kpi_team"] },
-  { path: "/user/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck, permissions: ["approvals"] },
-  { path: "/user/hesabat", label: "Hesabat", icon: BarChart3, permissions: ["reporting"] },
-  { path: "/user/komandalar", label: "Mənim Komandam", icon: Users, permissions: ["teams", "teams_compare"] },
-  { path: "/user/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardList, permissions: ["home"] },
-  { path: "/user/ayarlar", label: "Ayarlar", icon: Settings, permissions: ["home"] },
+  { path: "/user", labelKey: "nav.home", icon: Home, permissions: ["home"] },
+  { path: "/user/kpi-kartlari", labelKey: "nav.kpi_tracking", icon: LayoutGrid, permissions: ["kpi_own", "kpi_team"] },
+  { path: "/user/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck, permissions: ["approvals"] },
+  { path: "/user/hesabat", labelKey: "nav.report", icon: BarChart3, permissions: ["reporting"] },
+  { path: "/user/komandalar", labelKey: "nav.my_team_alt", icon: Users, permissions: ["teams", "teams_compare"] },
+  { path: "/user/qiymetlendirme", labelKey: "nav.evaluation", icon: ClipboardList, permissions: ["home"] },
+  { path: "/user/ayarlar", labelKey: "nav.settings_alt", icon: Settings, permissions: ["home"] },
 ];
 
 const UserSidebar = () => {
   const location = useLocation();
   const { user, hasPermission } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
+  const { t } = useTranslation();
 
   const navItems = allNavItems.filter(item => item.permissions.some(p => hasPermission(p)));
 
@@ -32,14 +34,14 @@ const UserSidebar = () => {
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-sidebar-fg tracking-wide truncate">Metric BI</h1>
-              <p className="text-[11px] text-sidebar-fg/60 truncate">User Panel</p>
+              <p className="text-[11px] text-sidebar-fg/60 truncate">{t("sidebar.panel_user")}</p>
             </div>
           )}
         </div>
 
         <button
           onClick={toggle}
-          aria-label={collapsed ? "Sidebar aç" : "Sidebar bağla"}
+          aria-label={collapsed ? t("common.sidebar_open") : t("common.sidebar_close")}
           className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-card border border-border shadow-md flex items-center justify-center hover:bg-secondary transition-colors z-10"
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5 text-foreground" /> : <ChevronLeft className="w-3.5 h-3.5 text-foreground" />}
@@ -48,6 +50,7 @@ const UserSidebar = () => {
         <nav className={`flex-1 ${collapsed ? "px-2" : "px-3"} mt-4 space-y-1 overflow-y-auto scrollbar-hide`}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const label = t(item.labelKey);
             const link = (
               <Link
                 key={item.path}
@@ -60,13 +63,13 @@ const UserSidebar = () => {
               >
                 {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground rounded-r-full" />}
                 <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate">{label}</span>}
               </Link>
             );
             return collapsed ? (
               <Tooltip key={item.path}>
                 <TooltipTrigger asChild>{link}</TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
+                <TooltipContent side="right">{label}</TooltipContent>
               </Tooltip>
             ) : link;
           })}
@@ -86,7 +89,7 @@ const UserSidebar = () => {
           )}
           {!collapsed && (
             <div className="mt-2 pt-2 border-t border-sidebar-fg/10 text-center">
-              <p className="text-[10px] text-sidebar-fg/40">© Blink-bi.az bütün hüquqları qorunur</p>
+              <p className="text-[10px] text-sidebar-fg/40">{t("common.copyright")}</p>
             </div>
           )}
         </div>

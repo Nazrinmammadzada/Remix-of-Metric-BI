@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Home, LayoutGrid, BarChart3, Link2, Settings, ClipboardCheck, Calculator,
   ShieldCheck, Building2, Shield, ChevronLeft, ChevronRight, DollarSign, Gauge,
@@ -12,39 +13,40 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppSidebar } from "@/contexts/SidebarContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type NavItem = { path: string; label: string; icon: any; perm?: string };
+type NavItem = { path: string; labelKey: string; icon: any; perm?: string };
 
 const ADMIN_ITEMS: NavItem[] = [
-  { path: "/hr", label: "Əsas Səhifə", icon: Home, perm: "home" },
-  { path: "/teskilati-struktur", label: "Təşkilat", icon: Building2, perm: "organization" },
-  { path: "/kpi-kartlari", label: "KPİ-lar", icon: LayoutGrid, perm: "kpi" },
-  { path: "/hedef-tayin-izleme", label: "Hədəf təyinlərinin izlənilməsi", icon: Target, perm: "goal_tracking" },
-  { path: "/kpi-lifecycle", label: "KPI lifecycle izlənilmələri", icon: Workflow, perm: "kpi_lifecycle" },
-  { path: "/kpi-qiymetleri", label: "KPI Nəticələri", icon: Gauge, perm: "kpi_scores" },
-  { path: "/qiymetlendirme", label: "Qiymətləndirmə", icon: ClipboardCheck, perm: "evaluation" },
-  { path: "/cascading", label: "Cascading", icon: GitBranch, perm: "cascading" },
-  { path: "/tesdiqleme-matrisi", label: "Təsdiqləmə Matrisi", icon: ShieldCheck, perm: "matrix" },
-  { path: "/hesabat", label: "Hesabatlar", icon: BarChart3, perm: "reporting" },
-  { path: "/whistleblower", label: "Anonim Bildiriş", icon: Shield, perm: "whistleblower" },
-  { path: "/hesablama-dusturlari", label: "Hesablama Düsturları", icon: Calculator, perm: "formulas" },
-  { path: "/bonus", label: "Bonuslar", icon: DollarSign, perm: "bonus" },
-  { path: "/inteqrasiyalar", label: "İnteqrasiyalar", icon: Link2, perm: "integrations" },
-  { path: "/ayarlar", label: "Sazlamalar", icon: Settings, perm: "settings" },
+  { path: "/hr", labelKey: "nav.home", icon: Home, perm: "home" },
+  { path: "/teskilati-struktur", labelKey: "nav.organization", icon: Building2, perm: "organization" },
+  { path: "/kpi-kartlari", labelKey: "nav.kpis", icon: LayoutGrid, perm: "kpi" },
+  { path: "/hedef-tayin-izleme", labelKey: "nav.goal_tracking", icon: Target, perm: "goal_tracking" },
+  { path: "/kpi-lifecycle", labelKey: "nav.kpi_lifecycle", icon: Workflow, perm: "kpi_lifecycle" },
+  { path: "/kpi-qiymetleri", labelKey: "nav.kpi_results", icon: Gauge, perm: "kpi_scores" },
+  { path: "/qiymetlendirme", labelKey: "nav.evaluation", icon: ClipboardCheck, perm: "evaluation" },
+  { path: "/cascading", labelKey: "nav.cascading", icon: GitBranch, perm: "cascading" },
+  { path: "/tesdiqleme-matrisi", labelKey: "nav.approval_matrix", icon: ShieldCheck, perm: "matrix" },
+  { path: "/hesabat", labelKey: "nav.reports", icon: BarChart3, perm: "reporting" },
+  { path: "/whistleblower", labelKey: "nav.whistleblower", icon: Shield, perm: "whistleblower" },
+  { path: "/hesablama-dusturlari", labelKey: "nav.formulas", icon: Calculator, perm: "formulas" },
+  { path: "/bonus", labelKey: "nav.bonuses", icon: DollarSign, perm: "bonus" },
+  { path: "/inteqrasiyalar", labelKey: "nav.integrations", icon: Link2, perm: "integrations" },
+  { path: "/ayarlar", labelKey: "nav.settings", icon: Settings, perm: "settings" },
 ];
 
 const MANAGER_ITEMS: NavItem[] = [
-  { path: "/hr/rehber/sistem-tesdiq", label: "Sistem Təsdiqləri", icon: ClipboardCheck },
-  { path: "/hr/rehber/mesul-kartlar", label: "Məsul olduğum kartlar", icon: LayoutGrid },
-  { path: "/hr/rehber/komandam", label: "Komandam", icon: Users },
-  { path: "/hr/rehber/kpi-izleme", label: "KPI İzlənməsi", icon: Activity },
-  { path: "/hr/rehber/neticelerim", label: "Nəticələrim", icon: Trophy },
-  { path: "/hr/rehber/bonuslarim", label: "Bonuslarım", icon: Gift },
+  { path: "/hr/rehber/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck },
+  { path: "/hr/rehber/mesul-kartlar", labelKey: "nav.responsible_cards", icon: LayoutGrid },
+  { path: "/hr/rehber/komandam", labelKey: "nav.my_team", icon: Users },
+  { path: "/hr/rehber/kpi-izleme", labelKey: "nav.kpi_tracking", icon: Activity },
+  { path: "/hr/rehber/neticelerim", labelKey: "nav.my_results", icon: Trophy },
+  { path: "/hr/rehber/bonuslarim", labelKey: "nav.my_bonuses", icon: Gift },
 ];
 
 const Sidebar = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
+  const { t } = useTranslation();
   const [adminOpen, setAdminOpen] = useState(true);
   const [managerOpen, setManagerOpen] = useState(true);
 
@@ -53,6 +55,7 @@ const Sidebar = () => {
 
   const renderItem = (item: NavItem) => {
     const isActive = location.pathname === item.path;
+    const label = t(item.labelKey);
     const link = (
       <Link
         key={item.path}
@@ -65,13 +68,13 @@ const Sidebar = () => {
       >
         {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary-foreground rounded-r-full" />}
         <item.icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? '' : 'group-hover:scale-110'}`} />
-        {!collapsed && <span className="truncate">{item.label}</span>}
+        {!collapsed && <span className="truncate">{label}</span>}
       </Link>
     );
     return collapsed ? (
       <Tooltip key={item.path}>
         <TooltipTrigger asChild>{link}</TooltipTrigger>
-        <TooltipContent side="right">{item.label}</TooltipContent>
+        <TooltipContent side="right">{label}</TooltipContent>
       </Tooltip>
     ) : link;
   };
@@ -90,14 +93,14 @@ const Sidebar = () => {
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-sidebar-fg tracking-wide truncate">Metric BI</h1>
-              <p className="text-[11px] text-sidebar-fg/60 truncate">HR Panel</p>
+              <p className="text-[11px] text-sidebar-fg/60 truncate">{t("sidebar.panel_hr")}</p>
             </div>
           )}
         </div>
 
         <button
           onClick={toggle}
-          aria-label={collapsed ? "Sidebar aç" : "Sidebar bağla"}
+          aria-label={collapsed ? t("common.sidebar_open") : t("common.sidebar_close")}
           className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-card border border-border shadow-md flex items-center justify-center hover:bg-secondary transition-colors z-10"
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5 text-foreground" /> : <ChevronLeft className="w-3.5 h-3.5 text-foreground" />}
@@ -111,12 +114,12 @@ const Sidebar = () => {
               className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold text-sidebar-fg/80 hover:bg-sidebar-hover"
             >
               <span className="inline-flex items-center gap-2">
-                <UserCog className="w-3.5 h-3.5" /> Admin
+                <UserCog className="w-3.5 h-3.5" /> {t("sidebar.section_admin")}
               </span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${adminOpen ? "" : "-rotate-90"}`} />
             </button>
           ) : (
-            <div className="mx-auto my-2 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title="Admin">
+            <div className="mx-auto my-2 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title={t("sidebar.section_admin")}>
               <UserCog className="w-3.5 h-3.5 text-sidebar-fg/70" />
             </div>
           )}
@@ -135,12 +138,12 @@ const Sidebar = () => {
                   className="mt-4 w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold text-sidebar-fg/80 hover:bg-sidebar-hover"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Crown className="w-3.5 h-3.5" /> Rəhbər
+                    <Crown className="w-3.5 h-3.5" /> {t("sidebar.section_manager")}
                   </span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${managerOpen ? "" : "-rotate-90"}`} />
                 </button>
               ) : (
-                <div className="mx-auto mt-3 mb-1 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title="Rəhbər">
+                <div className="mx-auto mt-3 mb-1 w-6 h-6 rounded-md bg-sidebar-fg/10 flex items-center justify-center" title={t("sidebar.section_manager")}>
                   <Crown className="w-3.5 h-3.5 text-sidebar-fg/70" />
                 </div>
               )}
@@ -167,7 +170,7 @@ const Sidebar = () => {
           )}
           {!collapsed && (
             <div className="mt-2 pt-2 border-t border-sidebar-fg/10 text-center">
-              <p className="text-[10px] text-sidebar-fg/40">© Blink-bi.az bütün hüquqları qorunur</p>
+              <p className="text-[10px] text-sidebar-fg/40">{t("common.copyright")}</p>
             </div>
           )}
         </div>
