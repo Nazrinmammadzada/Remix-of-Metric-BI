@@ -159,7 +159,7 @@ const GoalTrackingPage = () => {
                       </Button>
                     </div>
                   </div>
-                  </div>
+
 
                   <div className="divide-y divide-border">
                     {a.slices.map(s => {
