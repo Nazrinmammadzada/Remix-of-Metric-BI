@@ -196,14 +196,14 @@ const GoalTrackingPage = () => {
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                               <span className="inline-flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                Hədəf: <span className="text-foreground font-medium">{s.target} {a.unit}</span>
+                                {t("goal_tracking.target")} <span className="text-foreground font-medium">{s.target} {a.unit}</span>
                               </span>
                               <span className="text-border">|</span>
-                              <span>Cari: <span className="text-foreground font-medium">{Math.round((Number(s.target) || 0) * progress / 100)} {a.unit}</span></span>
+                              <span>{t("goal_tracking.current")} <span className="text-foreground font-medium">{Math.round((Number(s.target) || 0) * progress / 100)} {a.unit}</span></span>
                             </div>
                           </div>
                           <Button size="sm" onClick={() => notify(s, a.cardName)} className="gap-1.5 shrink-0">
-                            <Bell className="w-3.5 h-3.5" /> Bildiriş
+                            <Bell className="w-3.5 h-3.5" /> {t("goal_tracking.notify")}
                           </Button>
                         </div>
                       );
