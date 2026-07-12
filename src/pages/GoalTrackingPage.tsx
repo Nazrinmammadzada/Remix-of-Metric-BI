@@ -31,6 +31,7 @@ const STATUS_META: Record<ExecStatus, { labelKey: string; cls: string; icon: typ
 };
 
 const GoalTrackingPage = () => {
+  const { t } = useTranslation();
   const baseAssignments = useCascadeAssignments();
   const cascadeNodes = useCascadeTree();
   const [search, setSearch] = useState("");
