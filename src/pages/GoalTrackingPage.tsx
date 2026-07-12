@@ -23,11 +23,11 @@ const statusFor = (id: string): { status: ExecStatus; progress: number } => {
   return { status, progress };
 };
 
-const STATUS_META: Record<ExecStatus, { label: string; cls: string; icon: typeof CheckCircle2 }> = {
-  completed:   { label: "Tamamlanıb",  cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", icon: CheckCircle2 },
-  in_progress: { label: "İcrada",      cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30", icon: Clock },
-  pending:     { label: "Gözləyir",    cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30", icon: Clock },
-  overdue:     { label: "Gecikib",     cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30", icon: AlertTriangle },
+const STATUS_META: Record<ExecStatus, { labelKey: string; cls: string; icon: typeof CheckCircle2 }> = {
+  completed:   { labelKey: "goal_tracking.status_completed",  cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", icon: CheckCircle2 },
+  in_progress: { labelKey: "goal_tracking.status_in_progress", cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30", icon: Clock },
+  pending:     { labelKey: "goal_tracking.status_pending",    cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30", icon: Clock },
+  overdue:     { labelKey: "goal_tracking.status_overdue",    cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30", icon: AlertTriangle },
 };
 
 const GoalTrackingPage = () => {
