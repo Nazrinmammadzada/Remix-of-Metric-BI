@@ -125,6 +125,16 @@ const az = {
     card_salary: "Əməkhaqqı bazası",
     card_salary_desc: "Əməkdaşların əməkhaqqı məlumatlarını idarə edin",
   },
+  kpi_hub: {
+    page_title: "KPİ-lar",
+    hero_badge: "KPİ İdarəetməsi",
+    hero_title: "KPİ-lar",
+    hero_subtitle: "KPİ-ları kartlar üzrə və ya əməkdaşlar üzrə nəzərdən keçirin",
+    card1_title: "Kartlar üzrə",
+    card1_desc: "KPİ-ları kart strukturuna görə qruplaşdırılmış göstər. Statuslarına görə cədvəl şəklində.",
+    card2_title: "Əməkdaşlar üzrə",
+    card2_desc: "KPİ-ları məsul əməkdaşlara görə qruplaşdırılmış kartlar şəklində göstər.",
+  },
 };
 export default az;
 export type Translation = typeof az;
