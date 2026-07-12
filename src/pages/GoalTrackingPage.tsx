@@ -97,22 +97,22 @@ const GoalTrackingPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="Hədəf təyinlərinin izlənilməsi" />
+      <Header title={t("goal_tracking.page_title")} />
       <main className="p-6 pb-24">
         <PageHero
-          badge="İzləmə"
+          badge={t("goal_tracking.hero_badge")}
           icon={Target}
-          title="Hədəf təyinlərinin izlənilməsi"
-          subtitle="Hər bir kart üzrə təyin olunmuş hədəflərin icra statusunu izləyin və əlaqədar şəxslərə bildiriş göndərin"
+          title={t("goal_tracking.hero_title")}
+          subtitle={t("goal_tracking.hero_subtitle")}
           right={
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs">
                 <span className="font-semibold text-foreground">{totals.total}</span>
-                <span className="text-muted-foreground">təyinat • </span>
+                <span className="text-muted-foreground">{t("goal_tracking.stats_assignments")} • </span>
                 <span className="font-semibold text-emerald-600">{totals.done}</span>
-                <span className="text-muted-foreground">tamam • </span>
+                <span className="text-muted-foreground">{t("goal_tracking.stats_done")} • </span>
                 <span className="font-semibold text-red-600">{totals.overdue}</span>
-                <span className="text-muted-foreground">gecikən</span>
+                <span className="text-muted-foreground">{t("goal_tracking.stats_overdue")}</span>
               </div>
             </div>
           }
@@ -122,7 +122,7 @@ const GoalTrackingPage = () => {
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Kart, hədəf və ya şəxs üzrə axtarış"
+              placeholder={t("goal_tracking.search_placeholder")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9"
@@ -133,7 +133,7 @@ const GoalTrackingPage = () => {
         {filtered.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-16 text-center text-muted-foreground">
             <Target className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
-            <p className="text-sm">İzləniləcək hədəf təyinatı tapılmadı.</p>
+            <p className="text-sm">{t("goal_tracking.empty")}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -146,18 +146,19 @@ const GoalTrackingPage = () => {
                       <div className="text-xs text-muted-foreground">{withKartSuffix(a.cardName)}</div>
                       <div className="font-semibold text-foreground truncate">{a.subKpiName}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
-                        Ümumi hədəf: <span className="font-medium text-foreground">{a.parentTarget} {a.unit}</span>
+                        {t("goal_tracking.total_target")} <span className="font-medium text-foreground">{a.parentTarget} {a.unit}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <div className="text-[11px] text-muted-foreground">Orta icra</div>
+                        <div className="text-[11px] text-muted-foreground">{t("goal_tracking.avg_progress")}</div>
                         <div className="text-lg font-bold text-foreground">{avg}%</div>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => notifyAll(a.cardName, a.slices)} className="gap-1.5">
-                        <Bell className="w-3.5 h-3.5" /> Hamısına bildiriş
+                        <Bell className="w-3.5 h-3.5" /> {t("goal_tracking.notify_all")}
                       </Button>
                     </div>
+                  </div>
                   </div>
 
                   <div className="divide-y divide-border">
