@@ -127,5 +127,15 @@ const en: Translation = {
     card_salary: "Salary database",
     card_salary_desc: "Manage employee salary information",
   },
+  kpi_hub: {
+    page_title: "KPIs",
+    hero_badge: "KPI Management",
+    hero_title: "KPIs",
+    hero_subtitle: "Review KPIs by cards or by employees",
+    card1_title: "By cards",
+    card1_desc: "Show KPIs grouped by card structure, in table form by status.",
+    card2_title: "By employees",
+    card2_desc: "Show KPIs as cards grouped by the responsible employees.",
+  },
 };
 export default en;
