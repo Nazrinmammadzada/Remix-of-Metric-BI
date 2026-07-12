@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Target, Bell, Search, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
@@ -22,14 +23,15 @@ const statusFor = (id: string): { status: ExecStatus; progress: number } => {
   return { status, progress };
 };
 
-const STATUS_META: Record<ExecStatus, { label: string; cls: string; icon: typeof CheckCircle2 }> = {
-  completed:   { label: "Tamamlanıb",  cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", icon: CheckCircle2 },
-  in_progress: { label: "İcrada",      cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30", icon: Clock },
-  pending:     { label: "Gözləyir",    cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30", icon: Clock },
-  overdue:     { label: "Gecikib",     cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30", icon: AlertTriangle },
+const STATUS_META: Record<ExecStatus, { labelKey: string; cls: string; icon: typeof CheckCircle2 }> = {
+  completed:   { labelKey: "goal_tracking.status_completed",  cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", icon: CheckCircle2 },
+  in_progress: { labelKey: "goal_tracking.status_in_progress", cls: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30", icon: Clock },
+  pending:     { labelKey: "goal_tracking.status_pending",    cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30", icon: Clock },
+  overdue:     { labelKey: "goal_tracking.status_overdue",    cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30", icon: AlertTriangle },
 };
 
 const GoalTrackingPage = () => {
+  const { t } = useTranslation();
   const baseAssignments = useCascadeAssignments();
   const cascadeNodes = useCascadeTree();
   const [search, setSearch] = useState("");
@@ -44,7 +46,7 @@ const GoalTrackingPage = () => {
         id: `tr-${r.id}`,
         entryId: r.id,
         cardName: r.cardName,
-        subKpiName: r.goalName || "Ana hədəf",
+        subKpiName: r.goalName || t("goal_tracking.main_goal_fallback"),
         parentTarget: String(r.limit),
         unit: r.unit,
         status: "submitted" as const,
@@ -82,35 +84,35 @@ const GoalTrackingPage = () => {
   }, [assignments]);
 
   const notify = (slice: CascadeSlice, cardName: string) => {
-    toast.success(`Notification ${slice.assigneeName} şəxsinə göndərildi`, {
-      description: `Kart: ${cardName} • Hədəf icrasını yeniləməyi xatırlatdıq`,
+    toast.success(t("goal_tracking.toast_notify_one", { name: slice.assigneeName }), {
+      description: t("goal_tracking.toast_notify_one_desc", { card: cardName }),
     });
   };
 
   const notifyAll = (cardName: string, slices: CascadeSlice[]) => {
-    toast.success(`${slices.length} şəxsə notification göndərildi`, {
-      description: `Kart: ${cardName}`,
+    toast.success(t("goal_tracking.toast_notify_many", { count: slices.length }), {
+      description: t("goal_tracking.toast_notify_many_desc", { card: cardName }),
     });
   };
 
   return (
     <div className="min-h-screen">
-      <Header title="Hədəf təyinlərinin izlənilməsi" />
+      <Header title={t("goal_tracking.page_title")} />
       <main className="p-6 pb-24">
         <PageHero
-          badge="İzləmə"
+          badge={t("goal_tracking.hero_badge")}
           icon={Target}
-          title="Hədəf təyinlərinin izlənilməsi"
-          subtitle="Hər bir kart üzrə təyin olunmuş hədəflərin icra statusunu izləyin və əlaqədar şəxslərə bildiriş göndərin"
+          title={t("goal_tracking.hero_title")}
+          subtitle={t("goal_tracking.hero_subtitle")}
           right={
             <div className="flex items-center gap-2 flex-wrap justify-end">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card border border-border text-xs">
                 <span className="font-semibold text-foreground">{totals.total}</span>
-                <span className="text-muted-foreground">təyinat • </span>
+                <span className="text-muted-foreground">{t("goal_tracking.stats_assignments")} • </span>
                 <span className="font-semibold text-emerald-600">{totals.done}</span>
-                <span className="text-muted-foreground">tamam • </span>
+                <span className="text-muted-foreground">{t("goal_tracking.stats_done")} • </span>
                 <span className="font-semibold text-red-600">{totals.overdue}</span>
-                <span className="text-muted-foreground">gecikən</span>
+                <span className="text-muted-foreground">{t("goal_tracking.stats_overdue")}</span>
               </div>
             </div>
           }
@@ -120,7 +122,7 @@ const GoalTrackingPage = () => {
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Kart, hədəf və ya şəxs üzrə axtarış"
+              placeholder={t("goal_tracking.search_placeholder")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9"
@@ -131,7 +133,7 @@ const GoalTrackingPage = () => {
         {filtered.length === 0 ? (
           <div className="bg-card rounded-2xl border border-border p-16 text-center text-muted-foreground">
             <Target className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
-            <p className="text-sm">İzləniləcək hədəf təyinatı tapılmadı.</p>
+            <p className="text-sm">{t("goal_tracking.empty")}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -144,19 +146,20 @@ const GoalTrackingPage = () => {
                       <div className="text-xs text-muted-foreground">{withKartSuffix(a.cardName)}</div>
                       <div className="font-semibold text-foreground truncate">{a.subKpiName}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
-                        Ümumi hədəf: <span className="font-medium text-foreground">{a.parentTarget} {a.unit}</span>
+                        {t("goal_tracking.total_target")} <span className="font-medium text-foreground">{a.parentTarget} {a.unit}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
-                        <div className="text-[11px] text-muted-foreground">Orta icra</div>
+                        <div className="text-[11px] text-muted-foreground">{t("goal_tracking.avg_progress")}</div>
                         <div className="text-lg font-bold text-foreground">{avg}%</div>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => notifyAll(a.cardName, a.slices)} className="gap-1.5">
-                        <Bell className="w-3.5 h-3.5" /> Hamısına bildiriş
+                        <Bell className="w-3.5 h-3.5" /> {t("goal_tracking.notify_all")}
                       </Button>
                     </div>
                   </div>
+
 
                   <div className="divide-y divide-border">
                     {a.slices.map(s => {
@@ -172,7 +175,7 @@ const GoalTrackingPage = () => {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-foreground text-sm truncate">{s.assigneeName}</span>
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border ${meta.cls}`}>
-                                <Icon className="w-3 h-3" /> {meta.label}
+                                <Icon className="w-3 h-3" /> {t(meta.labelKey)}
                               </span>
                             </div>
                           </div>
@@ -193,14 +196,14 @@ const GoalTrackingPage = () => {
                             <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
                               <span className="inline-flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                Hədəf: <span className="text-foreground font-medium">{s.target} {a.unit}</span>
+                                {t("goal_tracking.target")} <span className="text-foreground font-medium">{s.target} {a.unit}</span>
                               </span>
                               <span className="text-border">|</span>
-                              <span>Cari: <span className="text-foreground font-medium">{Math.round((Number(s.target) || 0) * progress / 100)} {a.unit}</span></span>
+                              <span>{t("goal_tracking.current")} <span className="text-foreground font-medium">{Math.round((Number(s.target) || 0) * progress / 100)} {a.unit}</span></span>
                             </div>
                           </div>
                           <Button size="sm" onClick={() => notify(s, a.cardName)} className="gap-1.5 shrink-0">
-                            <Bell className="w-3.5 h-3.5" /> Bildiriş
+                            <Bell className="w-3.5 h-3.5" /> {t("goal_tracking.notify")}
                           </Button>
                         </div>
                       );
