@@ -46,7 +46,7 @@ const GoalTrackingPage = () => {
         id: `tr-${r.id}`,
         entryId: r.id,
         cardName: r.cardName,
-        subKpiName: r.goalName || "Ana hədəf",
+        subKpiName: r.goalName || t("goal_tracking.main_goal_fallback"),
         parentTarget: String(r.limit),
         unit: r.unit,
         status: "submitted" as const,
