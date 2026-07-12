@@ -84,14 +84,14 @@ const GoalTrackingPage = () => {
   }, [assignments]);
 
   const notify = (slice: CascadeSlice, cardName: string) => {
-    toast.success(`Notification ${slice.assigneeName} şəxsinə göndərildi`, {
-      description: `Kart: ${cardName} • Hədəf icrasını yeniləməyi xatırlatdıq`,
+    toast.success(t("goal_tracking.toast_notify_one", { name: slice.assigneeName }), {
+      description: t("goal_tracking.toast_notify_one_desc", { card: cardName }),
     });
   };
 
   const notifyAll = (cardName: string, slices: CascadeSlice[]) => {
-    toast.success(`${slices.length} şəxsə notification göndərildi`, {
-      description: `Kart: ${cardName}`,
+    toast.success(t("goal_tracking.toast_notify_many", { count: slices.length }), {
+      description: t("goal_tracking.toast_notify_many_desc", { card: cardName }),
     });
   };
 
