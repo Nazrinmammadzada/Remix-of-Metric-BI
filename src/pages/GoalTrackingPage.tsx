@@ -175,7 +175,7 @@ const GoalTrackingPage = () => {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-foreground text-sm truncate">{s.assigneeName}</span>
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border ${meta.cls}`}>
-                                <Icon className="w-3 h-3" /> {meta.label}
+                                <Icon className="w-3 h-3" /> {t(meta.labelKey)}
                               </span>
                             </div>
                           </div>
