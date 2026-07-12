@@ -127,5 +127,15 @@ const ru: Translation = {
     card_salary: "База зарплат",
     card_salary_desc: "Управление данными о зарплатах сотрудников",
   },
+  kpi_hub: {
+    page_title: "KPI",
+    hero_badge: "Управление KPI",
+    hero_title: "KPI",
+    hero_subtitle: "Просматривайте KPI по карточкам или по сотрудникам",
+    card1_title: "По карточкам",
+    card1_desc: "Показать KPI, сгруппированные по структуре карточек, в виде таблицы по статусам.",
+    card2_title: "По сотрудникам",
+    card2_desc: "Показать KPI в виде карточек, сгруппированных по ответственным сотрудникам.",
+  },
 };
 export default ru;
