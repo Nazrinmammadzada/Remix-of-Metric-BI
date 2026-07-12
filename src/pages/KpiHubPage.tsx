@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import Header from "@/components/layout/Header";
 import { PageHero } from "@/components/ui/page-hero";
 import { Sparkles, LayoutGrid, Users, ArrowUpRight } from "lucide-react";
@@ -7,6 +8,7 @@ import KpiCardsPage from "./KpiCardsPage";
 type View = null | "kart1" | "kart2";
 
 const KpiHubPage = () => {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>(null);
 
   if (view === "kart1") {
@@ -19,16 +21,16 @@ const KpiHubPage = () => {
   const cards = [
     {
       key: "kart1" as const,
-      title: "Kartlar üzrə",
-      desc: "KPİ-ları kart strukturuna görə qruplaşdırılmış göstər. Statuslarına görə cədvəl şəklində.",
+      title: t("kpi_hub.card1_title"),
+      desc: t("kpi_hub.card1_desc"),
       icon: LayoutGrid,
       grad: "from-violet-500/15 via-fuchsia-500/10 to-transparent",
       iconBg: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
     },
     {
       key: "kart2" as const,
-      title: "Əməkdaşlar üzrə",
-      desc: "KPİ-ları məsul əməkdaşlara görə qruplaşdırılmış kartlar şəklində göstər.",
+      title: t("kpi_hub.card2_title"),
+      desc: t("kpi_hub.card2_desc"),
       icon: Users,
       grad: "from-amber-500/15 via-orange-500/10 to-transparent",
       iconBg: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
@@ -37,13 +39,13 @@ const KpiHubPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Header title="KPİ-lar" />
+      <Header title={t("kpi_hub.page_title")} />
       <main className="p-6 pb-24">
         <PageHero
-          badge="KPİ İdarəetməsi"
+          badge={t("kpi_hub.hero_badge")}
           icon={Sparkles}
-          title="KPİ-lar"
-          subtitle="KPİ-ları kartlar üzrə və ya əməkdaşlar üzrə nəzərdən keçirin"
+          title={t("kpi_hub.hero_title")}
+          subtitle={t("kpi_hub.hero_subtitle")}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {cards.map(c => (
