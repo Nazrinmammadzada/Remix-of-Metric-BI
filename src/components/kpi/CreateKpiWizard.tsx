@@ -1449,9 +1449,10 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 // =========================================================
 // Lifecycle stage sub-component
 // =========================================================
-function LifecycleStage({ title, start, end, onStart, onEnd }: {
+function LifecycleStage({ title, start, end, onStart, onEnd, disabled }: {
   title: string; start: string; end: string;
   onStart: (v: string) => void; onEnd: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid grid-cols-12 gap-2 items-end">
@@ -1460,11 +1461,11 @@ function LifecycleStage({ title, start, end, onStart, onEnd }: {
       </div>
       <div className="col-span-6 md:col-span-4">
         <label className="text-[11px] text-muted-foreground">Başlama tarixi</label>
-        <DatePickerField value={start} onChange={onStart} className="mt-0.5 px-2 py-1.5 rounded" />
+        <DatePickerField value={start} onChange={onStart} disabled={disabled} className="mt-0.5 px-2 py-1.5 rounded" />
       </div>
       <div className="col-span-6 md:col-span-4">
         <label className="text-[11px] text-muted-foreground">Bitmə tarixi</label>
-        <DatePickerField value={end} onChange={onEnd} className="mt-0.5 px-2 py-1.5 rounded" />
+        <DatePickerField value={end} onChange={onEnd} disabled={disabled} className="mt-0.5 px-2 py-1.5 rounded" />
       </div>
     </div>
   );
