@@ -1413,8 +1413,32 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         ))}
                       </select>
                       {selectedMatrix && (
-                        <div className="text-[11px] text-muted-foreground">
-                          Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
+                        <div className="mt-2 rounded-md border border-border bg-background overflow-hidden">
+                          <div className="px-2.5 py-1.5 bg-secondary/50 text-[11px] font-medium text-foreground">
+                            Təsdiqləyicilər ({selectedMatrix.steps.length} mərhələ)
+                          </div>
+                          <table className="w-full text-[11px]">
+                            <thead className="bg-secondary/30">
+                              <tr className="text-muted-foreground">
+                                <th className="text-left px-2 py-1 w-8">№</th>
+                                <th className="text-left px-2 py-1">Ad Soyad / Rol</th>
+                                <th className="text-left px-2 py-1">Vəzifə / Növ</th>
+                                <th className="text-left px-2 py-1">Mərhələ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedMatrix.steps.flatMap((s, si) =>
+                                (s.assignees.length ? s.assignees : [{ type: "role" as const, name: "—" }]).map((a, ai) => (
+                                  <tr key={`${si}-${ai}`} className="border-t border-border">
+                                    <td className="px-2 py-1 text-foreground font-medium">{si + 1}</td>
+                                    <td className="px-2 py-1 text-foreground">{formatAssignee(a)}</td>
+                                    <td className="px-2 py-1 text-muted-foreground">{a.type === "user" ? "Şəxs" : "Rol"}</td>
+                                    <td className="px-2 py-1 text-muted-foreground">{s.label}</td>
+                                  </tr>
+                                )),
+                              )}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
