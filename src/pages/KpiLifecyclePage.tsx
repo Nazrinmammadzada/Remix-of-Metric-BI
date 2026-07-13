@@ -18,7 +18,7 @@ import {
   updateLifecycleTemplate, toggleLifecycleTemplateActive,
   type LifecycleTemplate,
 } from "@/lib/lifecycleTemplatesStore";
-import { Power, Pencil, CalendarClock } from "lucide-react";
+import { Pencil, CalendarClock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 const KpiLifecyclePage = () => {
