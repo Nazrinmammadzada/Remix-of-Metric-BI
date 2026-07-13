@@ -20,6 +20,8 @@ import {
   type SalaryRecord, type SalaryPeriod, type Month,
 } from "@/lib/salaryStore";
 import { getUploads, addUpload, type SalaryUpload } from "@/lib/salaryUploadsStore";
+import { AdvancedFilter, evaluateAdvFilter, type AdvFilterState } from "@/components/common/AdvancedFilter";
+import type { DataTableColumn } from "@/components/common/DataTable";
 
 const YEARS = [2023, 2024, 2025, 2026];
 
@@ -77,6 +79,7 @@ const SalaryPage = () => {
   ]);
   const [page, setPage] = useState(1);
   const [dragCol, setDragCol] = useState<ColKey | null>(null);
+  const [advFilter, setAdvFilter] = useState<AdvFilterState>({ logic: "AND", rows: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -142,8 +145,15 @@ const SalaryPage = () => {
     return out;
   }, [records, employees, appliedYear, appliedMonth]);
 
+  const advCols = useMemo<DataTableColumn<AggRow>[]>(() => COLUMNS.map(c => ({
+    key: c.key,
+    label: c.label,
+    filterType: (["monthPay", "totalPaid", "avgMonthly", "pctCurrent", "pct12m"].includes(c.key) ? "number" : "text"),
+    accessor: (r) => getCellText(r, c.key),
+  })), [COLUMNS]);
+
   const filteredRows = useMemo(() => {
-    return rows.filter(row => {
+    const base = rows.filter(row => {
       for (const c of COLUMNS) {
         const q = (colSearch[c.key] || "").trim().toLowerCase();
         if (!q) continue;
@@ -152,7 +162,8 @@ const SalaryPage = () => {
       }
       return true;
     });
-  }, [rows, colSearch, COLUMNS]);
+    return evaluateAdvFilter(base, advCols, advFilter);
+  }, [rows, colSearch, COLUMNS, advCols, advFilter]);
 
   const handleDownload = () => {
     const cols = COLUMNS.filter(c => visibleCols[c.key]);
@@ -450,6 +461,7 @@ const SalaryPage = () => {
                   </div>
                 </PopoverContent>
               </Popover>
+              <AdvancedFilter columns={advCols} value={advFilter} onChange={setAdvFilter} />
             </div>
             <ExportMenu
               size="sm"

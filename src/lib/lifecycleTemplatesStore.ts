@@ -2,6 +2,16 @@
 import { useEffect, useState } from "react";
 import type { CardLifecycle, LifecycleStage, LifecycleReview } from "./kpiLifecycleStore";
 
+export interface StageOffset { startOffset: number; endOffset: number }
+export interface ReviewOffset extends StageOffset { id: string; period?: string }
+
+export interface LifecycleTemplateOffsets {
+  assignment?: StageOffset;
+  evaluation?: StageOffset;
+  bonus?: StageOffset;
+  reviews?: ReviewOffset[];
+}
+
 export interface LifecycleTemplateData {
   assignment?: LifecycleStage;
   evaluation?: LifecycleStage;
@@ -9,6 +19,8 @@ export interface LifecycleTemplateData {
   reviews: LifecycleReview[];
   /** Marker for dynamic date computation (e.g. "monthly-standard") */
   dynamic?: string;
+  /** Nisbi vaxt aralıqları — KPI başlanğıc tarixinə əsasən (gün). */
+  offsets?: LifecycleTemplateOffsets;
 }
 
 export interface LifecycleTemplate {
@@ -179,18 +191,68 @@ export const computeStandardMonthlyLifecycle = (
   };
 };
 
+const daysBetween = (baseISO: string, targetISO: string): number =>
+  Math.round((parseISO(targetISO).getTime() - parseISO(baseISO).getTime()) / 86400000);
+
 /**
- * Şablonu tətbiq edərək CardLifecycle datası qaytarır.
- * Dinamik şablonlar üçün createdAt tarixinə əsasən hesablama edilir.
+ * Lifecycle datasından KPI başlanğıc tarixinə (assignment.start) əsasən nisbi
+ * ofsetlər (gün) hesablayır. Base yoxdursa undefined qaytarır.
+ */
+export const buildTemplateOffsets = (
+  data: Pick<LifecycleTemplateData, "assignment" | "evaluation" | "bonus" | "reviews">,
+): LifecycleTemplateOffsets | undefined => {
+  const base = data.assignment?.start;
+  if (!base) return undefined;
+  const off = (s?: LifecycleStage): StageOffset | undefined =>
+    s?.start && s?.end
+      ? { startOffset: daysBetween(base, s.start), endOffset: daysBetween(base, s.end) }
+      : undefined;
+  return {
+    assignment: off(data.assignment),
+    evaluation: off(data.evaluation),
+    bonus: off(data.bonus),
+    reviews: (data.reviews || [])
+      .filter(r => r.start && r.end)
+      .map(r => ({
+        id: r.id,
+        period: r.period,
+        startOffset: daysBetween(base, r.start),
+        endOffset: daysBetween(base, r.end),
+      })),
+  };
+};
+
+/**
+ * Şablonu KPI başlanğıc tarixinə tətbiq edərək CardLifecycle datası qaytarır.
+ * — dynamic="monthly-standard" olsa, hesablama yolu ilə tarixlər tərtib olunur.
+ * — offsets sahəsi varsa, KPI startDate + offset günlərlə hər mərhələ hesablanır.
+ * — əks halda, şablonun orijinal (absolut) tarixləri istifadə olunur.
  */
 export const resolveTemplateLifecycle = (
   tpl: LifecycleTemplate,
-  createdAtISO: string,
+  startDateISO: string,
 ): Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt"> => {
   if (tpl.data.dynamic === "monthly-standard") {
-    return computeStandardMonthlyLifecycle(createdAtISO);
+    return computeStandardMonthlyLifecycle(startDateISO);
   }
-  const { dynamic: _d, ...rest } = tpl.data;
+  const off = tpl.data.offsets;
+  if (off && startDateISO) {
+    const base = parseISO(startDateISO);
+    const apply = (o: StageOffset | undefined, period: string) =>
+      o ? { period, start: toISO(addDays(base, o.startOffset)), end: toISO(addDays(base, o.endOffset)) } : undefined;
+    return {
+      assignment: apply(off.assignment, tpl.data.assignment?.period ?? "Aylıq"),
+      evaluation: apply(off.evaluation, tpl.data.evaluation?.period ?? "Aylıq"),
+      bonus: apply(off.bonus, tpl.data.bonus?.period ?? "Aylıq"),
+      reviews: (off.reviews || []).map(r => ({
+        id: r.id,
+        period: r.period || "Aylıq",
+        start: toISO(addDays(base, r.startOffset)),
+        end: toISO(addDays(base, r.endOffset)),
+      })),
+    };
+  }
+  const { dynamic: _d, offsets: _o, ...rest } = tpl.data;
   return rest;
 };
 

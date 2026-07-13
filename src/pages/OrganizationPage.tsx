@@ -1368,9 +1368,9 @@ const EmployeesTab = () => {
           const splitPath = (p?: string) => (p ? p.split(" › ") : []);
           const maxDepth = filtered.reduce((m, e) => Math.max(m, splitPath(e.structurePath).length), 0);
           const structHeaders = Array.from({ length: maxDepth }, (_, i) => {
-            if (i === 0) return "Departament";
-            if (i === 1) return "Şöbə";
-            return `Sub-struktur ${i + 1}`;
+            if (i === 0) return "Struktur";
+            if (i === 1) return "Sub-struktur";
+            return `Sub-struktur ${i}`;
           });
           const structCols: DataTableColumn<OrgEmployee>[] = structHeaders.map((h, i) => ({
             key: `struct_${i}`,
@@ -1500,9 +1500,6 @@ const EmployeesTab = () => {
                 className="w-full mt-1 px-3 py-2.5 text-sm border border-border rounded-lg bg-muted/40 font-mono cursor-not-allowed text-muted-foreground"
               />
             </div>
-            <ValidatedField label="Telefon nömrəsi" value={editForm.phone} error={editErrors.phone}
-              placeholder="+994 50 123 45 67"
-              onChange={v => setEditForm(p => ({ ...p, phone: formatPhone(v) }))} />
             <div className="col-span-2">
               <ValidatedField label="Email" value={editing?.email || ""} error={null}
                 disabled
