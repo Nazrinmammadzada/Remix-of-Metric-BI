@@ -8,7 +8,8 @@ import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getTeams, addTeam } from "@/lib/teamsStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
 import { getCompetencyMatrices } from "@/lib/competencyMatrixStore";
-import { getApprovalMatrices } from "@/lib/matrixStore";
+import { getApprovalMatrices, formatAssignee } from "@/lib/matrixStore";
+import { useLifecycleTemplates, resolveTemplateLifecycle } from "@/lib/lifecycleTemplatesStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
