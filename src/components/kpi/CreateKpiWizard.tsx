@@ -583,15 +583,15 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const lifecycleTemplates = useLifecycleTemplates();
   const [lifecycleTemplateId, setLifecycleTemplateId] = useState<string>("");
   useEffect(() => { if (!open) setLifecycleTemplateId(""); }, [open]);
-  const lifecycleFromTemplate = lifecycleTemplateId !== "" && lifecycleTemplateId !== "manual";
+  const lifecycleFromTemplate = lifecycleTemplateId !== "";
 
   const applyLifecycleTemplate = (tplId: string) => {
     setLifecycleTemplateId(tplId);
-    if (tplId === "" || tplId === "manual") return;
+    if (tplId === "") return;
     const tpl = lifecycleTemplates.find(t => t.id === tplId);
     if (!tpl) return;
-    const createdAt = draft.lifecycle.assignmentStart || new Date().toISOString().slice(0, 10);
-    const resolved = resolveTemplateLifecycle(tpl, createdAt);
+    const baseDate = draft.startDate || draft.lifecycle.assignmentStart || new Date().toISOString().slice(0, 10);
+    const resolved = resolveTemplateLifecycle(tpl, baseDate);
     const existingReviewers = draft.lifecycle.reviews;
     setDraft(p => ({
       ...p,
@@ -1187,8 +1187,7 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                     onChange={e => applyLifecycleTemplate(e.target.value)}
                     className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
                   >
-                    <option value="">— Şablon seçin —</option>
-                    <option value="manual">Manual (şablonsuz)</option>
+                    <option value="">— Şablon seçin (opsional) —</option>
                     {lifecycleTemplates.filter(t => t.active).map(t => (
                       <option key={t.id} value={t.id}>{t.name}{t.isSystem ? " (Sistem)" : ""}</option>
                     ))}

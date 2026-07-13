@@ -16,6 +16,7 @@ import { withKartSuffix } from "@/lib/utils";
 import {
   useLifecycleTemplates, addLifecycleTemplate, deleteLifecycleTemplate,
   updateLifecycleTemplate, toggleLifecycleTemplateActive,
+  buildTemplateOffsets, resolveTemplateLifecycle,
   type LifecycleTemplate,
 } from "@/lib/lifecycleTemplatesStore";
 import { Pencil, CalendarClock } from "lucide-react";
@@ -45,17 +46,21 @@ const KpiLifecyclePage = () => {
       toast.error("Şablon adı tələb olunur");
       return;
     }
+    const baseData = {
+      assignment: saveDialog.assignment,
+      evaluation: saveDialog.evaluation,
+      bonus: saveDialog.bonus,
+      reviews: saveDialog.reviews,
+    };
+    const offsets = buildTemplateOffsets(baseData);
     addLifecycleTemplate({
       name: tplName.trim(),
       description: tplDesc.trim() || undefined,
-      data: {
-        assignment: saveDialog.assignment,
-        evaluation: saveDialog.evaluation,
-        bonus: saveDialog.bonus,
-        reviews: saveDialog.reviews,
-      },
+      data: { ...baseData, offsets },
     });
-    toast.success("Şablon yadda saxlanıldı");
+    toast.success(offsets
+      ? "Şablon nisbi vaxt aralıqları ilə yadda saxlanıldı"
+      : "Şablon yadda saxlanıldı");
     setSaveDialog(null);
     setTplName("");
     setTplDesc("");
@@ -63,7 +68,9 @@ const KpiLifecyclePage = () => {
 
   const handleApplyTemplate = (tpl: LifecycleTemplate) => {
     if (!loadDialog) return;
-    setCardLifecycle(loadDialog.cardId, loadDialog.cardName, tpl.data);
+    const base = loadDialog.assignment?.start || new Date().toISOString().slice(0, 10);
+    const resolved = resolveTemplateLifecycle(tpl, base);
+    setCardLifecycle(loadDialog.cardId, loadDialog.cardName, resolved);
     toast.success(`"${tpl.name}" şablonu "${loadDialog.cardName}" üçün tətbiq edildi`);
     setLoadDialog(null);
   };

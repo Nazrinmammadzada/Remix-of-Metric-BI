@@ -1455,7 +1455,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         render: (card) => {
                           const st = getStatusFor(card.id);
                           return (
-                            <div className="flex items-center gap-1 justify-center">
+                            <div className="flex items-center gap-1 justify-start">
                               <button
                                 onClick={(e) => { e.stopPropagation(); openDetail(card); }}
                                 title="Bax"
