@@ -579,6 +579,47 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
     setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
 
+  // Lifecycle template picker
+  const lifecycleTemplates = useLifecycleTemplates();
+  const [lifecycleTemplateId, setLifecycleTemplateId] = useState<string>("");
+  useEffect(() => { if (!open) setLifecycleTemplateId(""); }, [open]);
+  const lifecycleFromTemplate = lifecycleTemplateId !== "" && lifecycleTemplateId !== "manual";
+
+  const applyLifecycleTemplate = (tplId: string) => {
+    setLifecycleTemplateId(tplId);
+    if (tplId === "" || tplId === "manual") return;
+    const tpl = lifecycleTemplates.find(t => t.id === tplId);
+    if (!tpl) return;
+    const createdAt = draft.lifecycle.assignmentStart || new Date().toISOString().slice(0, 10);
+    const resolved = resolveTemplateLifecycle(tpl, createdAt);
+    const existingReviewers = draft.lifecycle.reviews;
+    setDraft(p => ({
+      ...p,
+      lifecycle: {
+        ...p.lifecycle,
+        assignmentStart: resolved.assignment?.start || "",
+        assignmentEnd: resolved.assignment?.end || "",
+        assignmentDeadline: resolved.assignment?.start || "",
+        evaluationStart: resolved.evaluation?.start || "",
+        evaluationEnd: resolved.evaluation?.end || "",
+        bonusStart: resolved.bonus?.start || "",
+        bonusEnd: resolved.bonus?.end || "",
+        reviews: resolved.reviews.map((r, i) => {
+          const prior = existingReviewers[i];
+          return {
+            id: r.id || crypto.randomUUID(),
+            name: `Review ${i + 1}`,
+            start: r.start,
+            end: r.end,
+            reviewerName: prior?.reviewerName || "",
+            reviewerNames: prior?.reviewerNames || [],
+          };
+        }),
+      },
+    }));
+  };
+
+
   // ===== Frequency-driven date auto-fill =====
   const setFrequency = (f: string) => {
     setDraft(p => {
