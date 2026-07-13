@@ -1219,7 +1219,8 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-foreground">Review dövrləri</label>
-                    <button type="button" onClick={addReview} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground">
+                    <button type="button" onClick={addReview} disabled={lifecycleFromTemplate}
+                      className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground disabled:opacity-40">
                       <Plus className="w-3.5 h-3.5" /> Review əlavə et
                     </button>
                   </div>
@@ -1235,19 +1236,21 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                             <div className="col-span-12 md:col-span-4">
                               <label className="text-[11px] text-muted-foreground">Review #{i + 1} adı</label>
                               <input value={r.name} onChange={e => updReview(r.id, { name: e.target.value })}
-                                className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                                disabled={lifecycleFromTemplate}
+                                className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-70" />
                             </div>
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[11px] text-muted-foreground">Başlama</label>
-                              <DatePickerField value={r.start} onChange={(v) => updReview(r.id, { start: v })} className="mt-0.5 px-2 py-1.5 rounded" />
+                              <DatePickerField value={r.start} onChange={(v) => updReview(r.id, { start: v })} disabled={lifecycleFromTemplate} className="mt-0.5 px-2 py-1.5 rounded" />
                             </div>
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[11px] text-muted-foreground">Bitmə</label>
-                              <DatePickerField value={r.end} onChange={(v) => updReview(r.id, { end: v })} className="mt-0.5 px-2 py-1.5 rounded" />
+                              <DatePickerField value={r.end} onChange={(v) => updReview(r.id, { end: v })} disabled={lifecycleFromTemplate} className="mt-0.5 px-2 py-1.5 rounded" />
                             </div>
                             <div className="col-span-12 md:col-span-2">
                               <button type="button" onClick={() => removeReview(r.id)}
-                                className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
+                                disabled={lifecycleFromTemplate}
+                                className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10 disabled:opacity-40">
                                 Sil
                               </button>
                             </div>
