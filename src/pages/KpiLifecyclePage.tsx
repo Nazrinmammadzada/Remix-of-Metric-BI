@@ -341,6 +341,96 @@ const KpiLifecyclePage = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Şablon detalı */}
+        <Dialog open={!!detailTpl} onOpenChange={(o) => !o && setDetailTpl(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                {detailTpl?.name}
+                {detailTpl?.isSystem && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sistem</span>}
+              </DialogTitle>
+            </DialogHeader>
+            {detailTpl && (
+              <div className="space-y-3">
+                {detailTpl.description && <p className="text-xs text-muted-foreground">{detailTpl.description}</p>}
+                {detailTpl.data.dynamic === "monthly-standard" && (
+                  <div className="text-xs text-primary flex items-center gap-1.5 bg-primary/5 p-2 rounded border border-primary/20">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Bu şablonda tarixlər KPI-ın yaradıldığı tarixə əsasən avtomatik hesablanır.
+                  </div>
+                )}
+                {[
+                  { label: "KPI təyin olunması", s: detailTpl.data.assignment },
+                  { label: "KPI qiymətləndirilməsi", s: detailTpl.data.evaluation },
+                  { label: "Bonusun hesablanması", s: detailTpl.data.bonus },
+                ].map(({ label, s }) => (
+                  <div key={label} className="border border-border rounded-md p-2.5">
+                    <div className="text-sm font-medium text-foreground">{label}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Dövr: {s?.period ?? "—"} · Başlama: {s?.start || (detailTpl.data.dynamic ? "auto" : "—")} · Bitmə: {s?.end || (detailTpl.data.dynamic ? "auto" : "—")}
+                    </div>
+                  </div>
+                ))}
+                <div className="border border-border rounded-md p-2.5">
+                  <div className="text-sm font-medium text-foreground">KPI Review ({detailTpl.data.reviews.length})</div>
+                  {detailTpl.data.reviews.length === 0 ? (
+                    <div className="text-[11px] text-muted-foreground mt-0.5">Yoxdur</div>
+                  ) : detailTpl.data.reviews.map((r, i) => (
+                    <div key={r.id} className="text-[11px] text-muted-foreground mt-1">
+                      #{i + 1} · {r.period} · {r.start || (detailTpl.data.dynamic ? "auto" : "—")} → {r.end || (detailTpl.data.dynamic ? "auto" : "—")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailTpl(null)}>Bağla</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Şablon redaktəsi */}
+        <Dialog open={!!editTpl} onOpenChange={(o) => !o && setEditTpl(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Şablonu redaktə et</DialogTitle>
+            </DialogHeader>
+            {editTpl && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Şablon adı</label>
+                  <Input value={editName} onChange={e => setEditName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Təsvir</label>
+                  <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} />
+                </div>
+                {editTpl.isSystem && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Sistem şablonunda tarixlər avtomatik hesablanır, ona görə mərhələ tarixləri redaktə edilə bilməz. Yalnız ad və təsviri dəyişə bilərsiniz.
+                  </p>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditTpl(null)}>Ləğv et</Button>
+              <Button
+                onClick={() => {
+                  if (!editTpl) return;
+                  if (!editName.trim()) { toast.error("Ad tələb olunur"); return; }
+                  updateLifecycleTemplate(editTpl.id, { name: editName.trim(), description: editDesc.trim() || undefined });
+                  toast.success("Şablon yeniləndi");
+                  setEditTpl(null);
+                }}
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" /> Yadda saxla
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
