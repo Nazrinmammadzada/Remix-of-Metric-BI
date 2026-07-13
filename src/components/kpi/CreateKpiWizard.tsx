@@ -1179,18 +1179,42 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <h3 className="text-sm font-semibold text-foreground">KPI Lifecycle</h3>
                 </div>
 
+                {/* Şablondan seç */}
+                <div>
+                  <label className="text-xs font-medium text-foreground">Lifecycle şablonlarından seç</label>
+                  <select
+                    value={lifecycleTemplateId || ""}
+                    onChange={e => applyLifecycleTemplate(e.target.value)}
+                    className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                  >
+                    <option value="">— Şablon seçin —</option>
+                    <option value="manual">Manual (şablonsuz)</option>
+                    {lifecycleTemplates.filter(t => t.active).map(t => (
+                      <option key={t.id} value={t.id}>{t.name}{t.isSystem ? " (Sistem)" : ""}</option>
+                    ))}
+                  </select>
+                  {lifecycleFromTemplate && (
+                    <p className="text-[11px] text-primary mt-1">
+                      Şablon tətbiq olundu — tarixlər avtomatik dolduruldu və readonly-dir. Yalnız Review iştirakçıları seçilə bilər.
+                    </p>
+                  )}
+                </div>
+
                 <LifecycleStage title="KPI təyin olunması *"
                   start={draft.lifecycle.assignmentStart} end={draft.lifecycle.assignmentEnd}
                   onStart={v => updLifecycle({ assignmentStart: v, assignmentDeadline: v })}
-                  onEnd={v => updLifecycle({ assignmentEnd: v })} />
+                  onEnd={v => updLifecycle({ assignmentEnd: v })}
+                  disabled={lifecycleFromTemplate} />
                 <LifecycleStage title="KPI qiymətləndirilməsi *"
                   start={draft.lifecycle.evaluationStart} end={draft.lifecycle.evaluationEnd}
                   onStart={v => updLifecycle({ evaluationStart: v })}
-                  onEnd={v => updLifecycle({ evaluationEnd: v })} />
+                  onEnd={v => updLifecycle({ evaluationEnd: v })}
+                  disabled={lifecycleFromTemplate} />
                 <LifecycleStage title="Bonusun hesablanması *"
                   start={draft.lifecycle.bonusStart} end={draft.lifecycle.bonusEnd}
                   onStart={v => updLifecycle({ bonusStart: v })}
-                  onEnd={v => updLifecycle({ bonusEnd: v })} />
+                  onEnd={v => updLifecycle({ bonusEnd: v })}
+                  disabled={lifecycleFromTemplate} />
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
