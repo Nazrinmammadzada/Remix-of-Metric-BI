@@ -30,6 +30,10 @@ const KpiLifecyclePage = () => {
   const [loadDialog, setLoadDialog] = useState<CardLifecycle | null>(null);
   const [tplName, setTplName] = useState("");
   const [tplDesc, setTplDesc] = useState("");
+  const [detailTpl, setDetailTpl] = useState<LifecycleTemplate | null>(null);
+  const [editTpl, setEditTpl] = useState<LifecycleTemplate | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   const rows = useMemo(
     () => lifecycles.slice().sort((a, b) => a.cardName.localeCompare(b.cardName)),
