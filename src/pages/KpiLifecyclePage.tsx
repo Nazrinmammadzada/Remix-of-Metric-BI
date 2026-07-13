@@ -313,11 +313,11 @@ const KpiLifecyclePage = () => {
             <DialogHeader>
               <DialogTitle>Şablondan yüklə — {loadDialog ? withKartSuffix(loadDialog.cardName) : ""}</DialogTitle>
             </DialogHeader>
-            {templates.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">Hələ heç bir şablon yoxdur.</div>
+            {templates.filter(t => t.active).length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Hələ heç bir aktiv şablon yoxdur.</div>
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {templates.map(t => (
+                {templates.filter(t => t.active).map(t => (
                   <button
                     key={t.id}
                     onClick={() => handleApplyTemplate(t)}
@@ -326,6 +326,7 @@ const KpiLifecyclePage = () => {
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" />
                       <span className="font-medium text-sm text-foreground">{t.name}</span>
+                      {t.isSystem && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sistem</span>}
                     </div>
                     {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
                     <div className="mt-2 text-[11px] text-muted-foreground">
