@@ -8,7 +8,8 @@ import { getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getTeams, addTeam } from "@/lib/teamsStore";
 import { useCascadeMatrices } from "@/lib/cascadeMatrixStore";
 import { getCompetencyMatrices } from "@/lib/competencyMatrixStore";
-import { getApprovalMatrices } from "@/lib/matrixStore";
+import { getApprovalMatrices, formatAssignee } from "@/lib/matrixStore";
+import { useLifecycleTemplates, resolveTemplateLifecycle } from "@/lib/lifecycleTemplatesStore";
 import {
   ChevronLeft, ChevronRight, Sparkles, CalendarDays, Calendar as CalendarIcon, Users, User,
   ShieldCheck, Target as TargetIcon, Trash2, Plus, GitBranch, UserPlus,
@@ -578,6 +579,47 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
   const updLifecycle = (patch: Partial<CreateKpiWizardDraft["lifecycle"]>) =>
     setDraft(p => ({ ...p, lifecycle: { ...p.lifecycle, ...patch } }));
 
+  // Lifecycle template picker
+  const lifecycleTemplates = useLifecycleTemplates();
+  const [lifecycleTemplateId, setLifecycleTemplateId] = useState<string>("");
+  useEffect(() => { if (!open) setLifecycleTemplateId(""); }, [open]);
+  const lifecycleFromTemplate = lifecycleTemplateId !== "" && lifecycleTemplateId !== "manual";
+
+  const applyLifecycleTemplate = (tplId: string) => {
+    setLifecycleTemplateId(tplId);
+    if (tplId === "" || tplId === "manual") return;
+    const tpl = lifecycleTemplates.find(t => t.id === tplId);
+    if (!tpl) return;
+    const createdAt = draft.lifecycle.assignmentStart || new Date().toISOString().slice(0, 10);
+    const resolved = resolveTemplateLifecycle(tpl, createdAt);
+    const existingReviewers = draft.lifecycle.reviews;
+    setDraft(p => ({
+      ...p,
+      lifecycle: {
+        ...p.lifecycle,
+        assignmentStart: resolved.assignment?.start || "",
+        assignmentEnd: resolved.assignment?.end || "",
+        assignmentDeadline: resolved.assignment?.start || "",
+        evaluationStart: resolved.evaluation?.start || "",
+        evaluationEnd: resolved.evaluation?.end || "",
+        bonusStart: resolved.bonus?.start || "",
+        bonusEnd: resolved.bonus?.end || "",
+        reviews: resolved.reviews.map((r, i) => {
+          const prior = existingReviewers[i];
+          return {
+            id: r.id || crypto.randomUUID(),
+            name: `Review ${i + 1}`,
+            start: r.start,
+            end: r.end,
+            reviewerName: prior?.reviewerName || "",
+            reviewerNames: prior?.reviewerNames || [],
+          };
+        }),
+      },
+    }));
+  };
+
+
   // ===== Frequency-driven date auto-fill =====
   const setFrequency = (f: string) => {
     setDraft(p => {
@@ -1137,23 +1179,48 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                   <h3 className="text-sm font-semibold text-foreground">KPI Lifecycle</h3>
                 </div>
 
+                {/* Şablondan seç */}
+                <div>
+                  <label className="text-xs font-medium text-foreground">Lifecycle şablonlarından seç</label>
+                  <select
+                    value={lifecycleTemplateId || ""}
+                    onChange={e => applyLifecycleTemplate(e.target.value)}
+                    className="w-full mt-1 px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                  >
+                    <option value="">— Şablon seçin —</option>
+                    <option value="manual">Manual (şablonsuz)</option>
+                    {lifecycleTemplates.filter(t => t.active).map(t => (
+                      <option key={t.id} value={t.id}>{t.name}{t.isSystem ? " (Sistem)" : ""}</option>
+                    ))}
+                  </select>
+                  {lifecycleFromTemplate && (
+                    <p className="text-[11px] text-primary mt-1">
+                      Şablon tətbiq olundu — tarixlər avtomatik dolduruldu və readonly-dir. Yalnız Review iştirakçıları seçilə bilər.
+                    </p>
+                  )}
+                </div>
+
                 <LifecycleStage title="KPI təyin olunması *"
                   start={draft.lifecycle.assignmentStart} end={draft.lifecycle.assignmentEnd}
                   onStart={v => updLifecycle({ assignmentStart: v, assignmentDeadline: v })}
-                  onEnd={v => updLifecycle({ assignmentEnd: v })} />
+                  onEnd={v => updLifecycle({ assignmentEnd: v })}
+                  disabled={lifecycleFromTemplate} />
                 <LifecycleStage title="KPI qiymətləndirilməsi *"
                   start={draft.lifecycle.evaluationStart} end={draft.lifecycle.evaluationEnd}
                   onStart={v => updLifecycle({ evaluationStart: v })}
-                  onEnd={v => updLifecycle({ evaluationEnd: v })} />
+                  onEnd={v => updLifecycle({ evaluationEnd: v })}
+                  disabled={lifecycleFromTemplate} />
                 <LifecycleStage title="Bonusun hesablanması *"
                   start={draft.lifecycle.bonusStart} end={draft.lifecycle.bonusEnd}
                   onStart={v => updLifecycle({ bonusStart: v })}
-                  onEnd={v => updLifecycle({ bonusEnd: v })} />
+                  onEnd={v => updLifecycle({ bonusEnd: v })}
+                  disabled={lifecycleFromTemplate} />
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-foreground">Review dövrləri</label>
-                    <button type="button" onClick={addReview} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground">
+                    <button type="button" onClick={addReview} disabled={lifecycleFromTemplate}
+                      className="flex items-center gap-1 text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground disabled:opacity-40">
                       <Plus className="w-3.5 h-3.5" /> Review əlavə et
                     </button>
                   </div>
@@ -1169,19 +1236,21 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                             <div className="col-span-12 md:col-span-4">
                               <label className="text-[11px] text-muted-foreground">Review #{i + 1} adı</label>
                               <input value={r.name} onChange={e => updReview(r.id, { name: e.target.value })}
-                                className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background" />
+                                disabled={lifecycleFromTemplate}
+                                className="w-full mt-0.5 px-2.5 py-1.5 text-sm border border-border rounded bg-background disabled:opacity-70" />
                             </div>
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[11px] text-muted-foreground">Başlama</label>
-                              <DatePickerField value={r.start} onChange={(v) => updReview(r.id, { start: v })} className="mt-0.5 px-2 py-1.5 rounded" />
+                              <DatePickerField value={r.start} onChange={(v) => updReview(r.id, { start: v })} disabled={lifecycleFromTemplate} className="mt-0.5 px-2 py-1.5 rounded" />
                             </div>
                             <div className="col-span-6 md:col-span-3">
                               <label className="text-[11px] text-muted-foreground">Bitmə</label>
-                              <DatePickerField value={r.end} onChange={(v) => updReview(r.id, { end: v })} className="mt-0.5 px-2 py-1.5 rounded" />
+                              <DatePickerField value={r.end} onChange={(v) => updReview(r.id, { end: v })} disabled={lifecycleFromTemplate} className="mt-0.5 px-2 py-1.5 rounded" />
                             </div>
                             <div className="col-span-12 md:col-span-2">
                               <button type="button" onClick={() => removeReview(r.id)}
-                                className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10">
+                                disabled={lifecycleFromTemplate}
+                                className="w-full px-2 py-1.5 text-xs rounded border border-border text-destructive hover:bg-destructive/10 disabled:opacity-40">
                                 Sil
                               </button>
                             </div>
@@ -1344,8 +1413,32 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
                         ))}
                       </select>
                       {selectedMatrix && (
-                        <div className="text-[11px] text-muted-foreground">
-                          Addımlar: {selectedMatrix.steps.map(s => s.label).join(" → ")}
+                        <div className="mt-2 rounded-md border border-border bg-background overflow-hidden">
+                          <div className="px-2.5 py-1.5 bg-secondary/50 text-[11px] font-medium text-foreground">
+                            Təsdiqləyicilər ({selectedMatrix.steps.length} mərhələ)
+                          </div>
+                          <table className="w-full text-[11px]">
+                            <thead className="bg-secondary/30">
+                              <tr className="text-muted-foreground">
+                                <th className="text-left px-2 py-1 w-8">№</th>
+                                <th className="text-left px-2 py-1">Ad Soyad / Rol</th>
+                                <th className="text-left px-2 py-1">Vəzifə / Növ</th>
+                                <th className="text-left px-2 py-1">Mərhələ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedMatrix.steps.flatMap((s, si) =>
+                                (s.assignees.length ? s.assignees : [{ type: "role" as const, name: "—" }]).map((a, ai) => (
+                                  <tr key={`${si}-${ai}`} className="border-t border-border">
+                                    <td className="px-2 py-1 text-foreground font-medium">{si + 1}</td>
+                                    <td className="px-2 py-1 text-foreground">{formatAssignee(a)}</td>
+                                    <td className="px-2 py-1 text-muted-foreground">{a.type === "user" ? "Şəxs" : "Rol"}</td>
+                                    <td className="px-2 py-1 text-muted-foreground">{s.label}</td>
+                                  </tr>
+                                )),
+                              )}
+                            </tbody>
+                          </table>
                         </div>
                       )}
                     </div>
@@ -1407,9 +1500,10 @@ export default function CreateKpiWizard({ open, onOpenChange, initial, onComplet
 // =========================================================
 // Lifecycle stage sub-component
 // =========================================================
-function LifecycleStage({ title, start, end, onStart, onEnd }: {
+function LifecycleStage({ title, start, end, onStart, onEnd, disabled }: {
   title: string; start: string; end: string;
   onStart: (v: string) => void; onEnd: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid grid-cols-12 gap-2 items-end">
@@ -1418,11 +1512,11 @@ function LifecycleStage({ title, start, end, onStart, onEnd }: {
       </div>
       <div className="col-span-6 md:col-span-4">
         <label className="text-[11px] text-muted-foreground">Başlama tarixi</label>
-        <DatePickerField value={start} onChange={onStart} className="mt-0.5 px-2 py-1.5 rounded" />
+        <DatePickerField value={start} onChange={onStart} disabled={disabled} className="mt-0.5 px-2 py-1.5 rounded" />
       </div>
       <div className="col-span-6 md:col-span-4">
         <label className="text-[11px] text-muted-foreground">Bitmə tarixi</label>
-        <DatePickerField value={end} onChange={onEnd} className="mt-0.5 px-2 py-1.5 rounded" />
+        <DatePickerField value={end} onChange={onEnd} disabled={disabled} className="mt-0.5 px-2 py-1.5 rounded" />
       </div>
     </div>
   );

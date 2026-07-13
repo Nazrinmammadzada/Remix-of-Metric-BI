@@ -15,8 +15,11 @@ import { toast } from "sonner";
 import { withKartSuffix } from "@/lib/utils";
 import {
   useLifecycleTemplates, addLifecycleTemplate, deleteLifecycleTemplate,
+  updateLifecycleTemplate, toggleLifecycleTemplateActive,
   type LifecycleTemplate,
 } from "@/lib/lifecycleTemplatesStore";
+import { Pencil, CalendarClock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const KpiLifecyclePage = () => {
   const lifecycles = useKpiLifecycles();
@@ -27,6 +30,10 @@ const KpiLifecyclePage = () => {
   const [loadDialog, setLoadDialog] = useState<CardLifecycle | null>(null);
   const [tplName, setTplName] = useState("");
   const [tplDesc, setTplDesc] = useState("");
+  const [detailTpl, setDetailTpl] = useState<LifecycleTemplate | null>(null);
+  const [editTpl, setEditTpl] = useState<LifecycleTemplate | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   const rows = useMemo(
     () => lifecycles.slice().sort((a, b) => a.cardName.localeCompare(b.cardName)),
@@ -202,19 +209,40 @@ const KpiLifecyclePage = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {templates.map(t => (
-                    <div key={t.id} className="border border-border rounded-xl p-4 bg-card hover:border-primary/40 transition-colors">
+                    <div
+                      key={t.id}
+                      className={`border rounded-xl p-4 bg-card transition-colors ${t.active ? "border-border hover:border-primary/40" : "border-border/60 opacity-60"}`}
+                    >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setDetailTpl(t)}
+                          className="flex items-center gap-2 min-w-0 text-left flex-1 hover:text-primary"
+                        >
                           <FileText className="w-4 h-4 text-primary shrink-0" />
                           <span className="font-medium text-sm text-foreground truncate">{t.name}</span>
-                        </div>
-                        <button
-                          onClick={() => { deleteLifecycleTemplate(t.id); toast.success("Şablon silindi"); }}
-                          className="text-muted-foreground hover:text-destructive"
-                          title="Sil"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                          {t.isSystem && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Sistem</span>
+                          )}
                         </button>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => { setEditTpl(t); setEditName(t.name); setEditDesc(t.description || ""); }}
+                            className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
+                            title="Redaktə et"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          {!t.isSystem && (
+                            <button
+                              onClick={() => { deleteLifecycleTemplate(t.id); toast.success("Şablon silindi"); }}
+                              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                              title="Sil"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {t.description && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{t.description}</p>}
                       <div className="mt-3 text-[11px] text-muted-foreground space-y-0.5">
@@ -222,9 +250,27 @@ const KpiLifecyclePage = () => {
                         <div>Qiymətləndirmə: {t.data.evaluation?.period ?? "—"}</div>
                         <div>Bonus: {t.data.bonus?.period ?? "—"}</div>
                         <div>Review: {t.data.reviews.length} ədəd</div>
+                        {t.data.dynamic === "monthly-standard" && (
+                          <div className="flex items-center gap-1 text-primary mt-1">
+                            <CalendarClock className="w-3 h-3" />
+                            Tarixlər KPI yaradıldığı vaxta əsasən avtomatik hesablanır
+                          </div>
+                        )}
                       </div>
-                      <div className="mt-3 text-[10px] text-muted-foreground">
-                        {new Date(t.createdAt).toLocaleDateString()}
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(t.createdAt).toLocaleDateString()}
+                        </span>
+                        <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                          <Switch
+                            checked={t.active}
+                            onCheckedChange={() => {
+                              toggleLifecycleTemplateActive(t.id);
+                              toast.success(t.active ? "Şablon deaktiv edildi" : "Şablon aktivləşdirildi");
+                            }}
+                          />
+                          {t.active ? "Aktiv" : "Deaktiv"}
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -267,11 +313,11 @@ const KpiLifecyclePage = () => {
             <DialogHeader>
               <DialogTitle>Şablondan yüklə — {loadDialog ? withKartSuffix(loadDialog.cardName) : ""}</DialogTitle>
             </DialogHeader>
-            {templates.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">Hələ heç bir şablon yoxdur.</div>
+            {templates.filter(t => t.active).length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Hələ heç bir aktiv şablon yoxdur.</div>
             ) : (
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {templates.map(t => (
+                {templates.filter(t => t.active).map(t => (
                   <button
                     key={t.id}
                     onClick={() => handleApplyTemplate(t)}
@@ -280,6 +326,7 @@ const KpiLifecyclePage = () => {
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4 text-primary" />
                       <span className="font-medium text-sm text-foreground">{t.name}</span>
+                      {t.isSystem && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sistem</span>}
                     </div>
                     {t.description && <p className="text-xs text-muted-foreground mt-1">{t.description}</p>}
                     <div className="mt-2 text-[11px] text-muted-foreground">
@@ -291,6 +338,96 @@ const KpiLifecyclePage = () => {
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setLoadDialog(null)}>Bağla</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Şablon detalı */}
+        <Dialog open={!!detailTpl} onOpenChange={(o) => !o && setDetailTpl(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" />
+                {detailTpl?.name}
+                {detailTpl?.isSystem && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sistem</span>}
+              </DialogTitle>
+            </DialogHeader>
+            {detailTpl && (
+              <div className="space-y-3">
+                {detailTpl.description && <p className="text-xs text-muted-foreground">{detailTpl.description}</p>}
+                {detailTpl.data.dynamic === "monthly-standard" && (
+                  <div className="text-xs text-primary flex items-center gap-1.5 bg-primary/5 p-2 rounded border border-primary/20">
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    Bu şablonda tarixlər KPI-ın yaradıldığı tarixə əsasən avtomatik hesablanır.
+                  </div>
+                )}
+                {[
+                  { label: "KPI təyin olunması", s: detailTpl.data.assignment },
+                  { label: "KPI qiymətləndirilməsi", s: detailTpl.data.evaluation },
+                  { label: "Bonusun hesablanması", s: detailTpl.data.bonus },
+                ].map(({ label, s }) => (
+                  <div key={label} className="border border-border rounded-md p-2.5">
+                    <div className="text-sm font-medium text-foreground">{label}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Dövr: {s?.period ?? "—"} · Başlama: {s?.start || (detailTpl.data.dynamic ? "auto" : "—")} · Bitmə: {s?.end || (detailTpl.data.dynamic ? "auto" : "—")}
+                    </div>
+                  </div>
+                ))}
+                <div className="border border-border rounded-md p-2.5">
+                  <div className="text-sm font-medium text-foreground">KPI Review ({detailTpl.data.reviews.length})</div>
+                  {detailTpl.data.reviews.length === 0 ? (
+                    <div className="text-[11px] text-muted-foreground mt-0.5">Yoxdur</div>
+                  ) : detailTpl.data.reviews.map((r, i) => (
+                    <div key={r.id} className="text-[11px] text-muted-foreground mt-1">
+                      #{i + 1} · {r.period} · {r.start || (detailTpl.data.dynamic ? "auto" : "—")} → {r.end || (detailTpl.data.dynamic ? "auto" : "—")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDetailTpl(null)}>Bağla</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Şablon redaktəsi */}
+        <Dialog open={!!editTpl} onOpenChange={(o) => !o && setEditTpl(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Şablonu redaktə et</DialogTitle>
+            </DialogHeader>
+            {editTpl && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Şablon adı</label>
+                  <Input value={editName} onChange={e => setEditName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Təsvir</label>
+                  <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} />
+                </div>
+                {editTpl.isSystem && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Sistem şablonunda tarixlər avtomatik hesablanır, ona görə mərhələ tarixləri redaktə edilə bilməz. Yalnız ad və təsviri dəyişə bilərsiniz.
+                  </p>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditTpl(null)}>Ləğv et</Button>
+              <Button
+                onClick={() => {
+                  if (!editTpl) return;
+                  if (!editName.trim()) { toast.error("Ad tələb olunur"); return; }
+                  updateLifecycleTemplate(editTpl.id, { name: editName.trim(), description: editDesc.trim() || undefined });
+                  toast.success("Şablon yeniləndi");
+                  setEditTpl(null);
+                }}
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" /> Yadda saxla
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
