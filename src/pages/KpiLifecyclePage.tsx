@@ -355,39 +355,72 @@ const KpiLifecyclePage = () => {
                 {detailTpl?.isSystem && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sistem</span>}
               </DialogTitle>
             </DialogHeader>
-            {detailTpl && (
+            {detailTpl && (() => {
+              const isDynamic = detailTpl.data.dynamic === "monthly-standard";
+              const off = detailTpl.data.offsets;
+              const fmtOffsetStage = (o?: { startOffset: number; endOffset: number }) => {
+                if (!o) return null;
+                const dur = o.endOffset - o.startOffset;
+                return `Başlama: +${o.startOffset} gün · Bitmə: +${o.endOffset} gün · Müddət: ${dur} gün`;
+              };
+              const fmtAbsStage = (s?: { start?: string; end?: string }) => {
+                if (!s?.start || !s?.end) return null;
+                return `Başlama: ${s.start} · Bitmə: ${s.end}`;
+              };
+              const dynamicLine = (label: string) => {
+                if (label === "KPI təyin olunması") return "KPI başlanğıc tarixindən +0 gün, müddət ~2 gün (auto)";
+                if (label === "KPI qiymətləndirilməsi") return "Ayın sonundan 5 gün əvvəl başlayır, ~3 gün davam edir (auto)";
+                if (label === "Bonusun hesablanması") return "Qiymətləndirmədən sonra, ayın son gününədək (auto)";
+                return "";
+              };
+              const stages: { label: string; s: any; okey: "assignment" | "evaluation" | "bonus" }[] = [
+                { label: "KPI təyin olunması", s: detailTpl.data.assignment, okey: "assignment" },
+                { label: "KPI qiymətləndirilməsi", s: detailTpl.data.evaluation, okey: "evaluation" },
+                { label: "Bonusun hesablanması", s: detailTpl.data.bonus, okey: "bonus" },
+              ];
+              return (
               <div className="space-y-3">
                 {detailTpl.description && <p className="text-xs text-muted-foreground">{detailTpl.description}</p>}
-                {detailTpl.data.dynamic === "monthly-standard" && (
+                {isDynamic && (
                   <div className="text-xs text-primary flex items-center gap-1.5 bg-primary/5 p-2 rounded border border-primary/20">
                     <CalendarClock className="w-3.5 h-3.5" />
                     Bu şablonda tarixlər KPI-ın yaradıldığı tarixə əsasən avtomatik hesablanır.
                   </div>
                 )}
-                {[
-                  { label: "KPI təyin olunması", s: detailTpl.data.assignment },
-                  { label: "KPI qiymətləndirilməsi", s: detailTpl.data.evaluation },
-                  { label: "Bonusun hesablanması", s: detailTpl.data.bonus },
-                ].map(({ label, s }) => (
-                  <div key={label} className="border border-border rounded-md p-2.5">
-                    <div className="text-sm font-medium text-foreground">{label}</div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                      Dövr: {s?.period ?? "—"} · Başlama: {s?.start || (detailTpl.data.dynamic ? "auto" : "—")} · Bitmə: {s?.end || (detailTpl.data.dynamic ? "auto" : "—")}
+                {stages.map(({ label, s, okey }) => {
+                  const line = isDynamic
+                    ? dynamicLine(label)
+                    : (fmtOffsetStage(off?.[okey]) || fmtAbsStage(s) || "Təyin olunmayıb");
+                  return (
+                    <div key={label} className="border border-border rounded-md p-2.5">
+                      <div className="text-sm font-medium text-foreground">{label}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        Dövr: {s?.period ?? "—"} · {line}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="border border-border rounded-md p-2.5">
                   <div className="text-sm font-medium text-foreground">KPI Review ({detailTpl.data.reviews.length})</div>
                   {detailTpl.data.reviews.length === 0 ? (
                     <div className="text-[11px] text-muted-foreground mt-0.5">Yoxdur</div>
-                  ) : detailTpl.data.reviews.map((r, i) => (
-                    <div key={r.id} className="text-[11px] text-muted-foreground mt-1">
-                      #{i + 1} · {r.period} · {r.start || (detailTpl.data.dynamic ? "auto" : "—")} → {r.end || (detailTpl.data.dynamic ? "auto" : "—")}
-                    </div>
-                  ))}
+                  ) : detailTpl.data.reviews.map((r, i) => {
+                    const ro = off?.reviews?.find(x => x.id === r.id);
+                    const line = isDynamic
+                      ? "KPI yaradılmasından ~3 gün sonra başlayır, 5 gün davam edir (auto)"
+                      : (ro
+                          ? `Başlama: +${ro.startOffset} gün · Bitmə: +${ro.endOffset} gün · Müddət: ${ro.endOffset - ro.startOffset} gün`
+                          : (r.start && r.end ? `Başlama: ${r.start} · Bitmə: ${r.end}` : "Təyin olunmayıb"));
+                    return (
+                      <div key={r.id} className="text-[11px] text-muted-foreground mt-1">
+                        #{i + 1} · {r.period} · {line}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
+              );
+            })()}
             <DialogFooter>
               <Button variant="outline" onClick={() => setDetailTpl(null)}>Bağla</Button>
             </DialogFooter>
