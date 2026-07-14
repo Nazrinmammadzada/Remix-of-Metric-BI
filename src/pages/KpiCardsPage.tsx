@@ -3470,6 +3470,64 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           />
         );
       })()}
+
+      {/* HR — KPI silmə dialoqu */}
+      <Dialog open={!!deleteDialog} onOpenChange={(o) => !o && setDeleteDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              KPI kartını sil
+            </DialogTitle>
+          </DialogHeader>
+          {deleteDialog && (
+            <div className="space-y-4">
+              <p className="text-sm text-foreground">
+                <span className="font-medium">"{withKartSuffix(deleteDialog.card.name)}"</span> kartını silmək istədiyinizə əminsiniz?
+              </p>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Şərh (məcburi deyil)</label>
+                <textarea
+                  value={deleteComment}
+                  onChange={(e) => setDeleteComment(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Silinmə səbəbi..."
+                />
+              </div>
+              {deleteDialog.mode === "choice" && (
+                <p className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/30 rounded-md p-2">
+                  Bu KPI aktiv prosesdədir. Silinmə matrisindən təsdiq üçün sorğu göndərə və ya səlahiyyətiniz olduqda birbaşa silə bilərsiniz.
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setDeleteDialog(null)}
+                  className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary"
+                >
+                  Ləğv et
+                </button>
+                {deleteDialog.mode === "choice" && (
+                  <button
+                    onClick={() => sendDeletionRequest(deleteDialog.card, deleteComment)}
+                    className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 inline-flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Silinmə sorğusu göndər
+                  </button>
+                )}
+                <button
+                  onClick={() => performHardDelete(deleteDialog.card)}
+                  className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Sil
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
