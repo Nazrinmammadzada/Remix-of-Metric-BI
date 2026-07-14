@@ -1232,15 +1232,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   };
 
   const performHardDelete = async (card: KpiCard) => {
-    setKpiCards(prev => prev.filter(c => c.id !== card.id));
+    // Kart tam silinmir — statusu "Ləğv olundu" olur və siyahıda qalır.
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
       const mod = await import("@/lib/kpiCardStatusStore");
+      await mod.upsertStatus({ card_id: card.id, status: "legv_olundu" });
       const next = await mod.fetchAllStatuses();
       setStatusMap(next);
     } catch {}
-    toast.success("KPI kartı silindi");
+    toast.success("KPI kartı ləğv olundu");
     setDeleteDialog(null);
   };
 
