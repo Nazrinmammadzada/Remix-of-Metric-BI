@@ -476,6 +476,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle" | "reviewTrack">("general");
   const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
   const [deleteComment, setDeleteComment] = useState("");
+  const [matrixPicker, setMatrixPicker] = useState<{ card: KpiCard } | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [lifecycleDraft, setLifecycleDraft] = useState<Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">>(() => emptyLifecycleDraft());
@@ -3631,37 +3632,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   Ləğv et
                 </button>
                 {deleteDialog.mode === "choice" && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 inline-flex items-center gap-1.5"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        Silinmə sorğusu göndər
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72">
-                      <DropdownMenuLabel>Silinmə matrisini seçin</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {getDeletionMatrices().length === 0 && (
-                        <div className="px-2 py-3 text-xs text-muted-foreground">
-                          Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.
-                        </div>
-                      )}
-                      {getDeletionMatrices().map(m => (
-                        <DropdownMenuItem
-                          key={m.id}
-                          onClick={() => sendDeletionRequest(deleteDialog.card, deleteComment, m)}
-                          className="flex flex-col items-start gap-0.5 py-2"
-                        >
-                          <span className="text-sm font-medium">{m.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            Təsdiqləyici: {m.approver ? formatAssignee(m.approver) : "Təyin olunmayıb"}
-                          </span>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <button
+                    onClick={() => { setMatrixPicker({ card: deleteDialog.card }); }}
+                    className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 inline-flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Silinmə sorğusu göndər
+                  </button>
                 )}
                 <button
                   onClick={() => performHardDelete(deleteDialog.card)}
@@ -3669,6 +3646,55 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Sil
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Silinmə matrisi seçimi pop-upı */}
+      <Dialog open={!!matrixPicker} onOpenChange={(o) => !o && setMatrixPicker(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="w-5 h-5 text-amber-600" />
+              Silinmə matrisini seçin
+            </DialogTitle>
+          </DialogHeader>
+          {matrixPicker && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">"{withKartSuffix(matrixPicker.card.name)}"</span> kartının silinməsi üçün təsdiq axınını seçin.
+              </p>
+              <div className="space-y-2 max-h-[420px] overflow-y-auto">
+                {getDeletionMatrices().length === 0 && (
+                  <div className="text-sm text-muted-foreground bg-muted/40 rounded-md p-3 text-center">
+                    Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.
+                  </div>
+                )}
+                {getDeletionMatrices().map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      sendDeletionRequest(matrixPicker.card, deleteComment, m);
+                      setMatrixPicker(null);
+                    }}
+                    className="w-full text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition"
+                  >
+                    <div className="text-sm font-medium text-foreground">{m.name}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Təsdiqləyici: {m.approver ? formatAssignee(m.approver) : "Təyin olunmayıb"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setMatrixPicker(null)}
+                  className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary"
+                >
+                  Ləğv et
                 </button>
               </div>
             </div>
