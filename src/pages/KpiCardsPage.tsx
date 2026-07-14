@@ -2077,8 +2077,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       const extras = entries
                         .filter(e => e.subKpiName && !ownIds.has(e.subKpiId))
                         .map(e => ({ id: e.subKpiId, name: e.subKpiName, target: e.target, unit: e.unit, weight: 0, current: "", progress: undefined, evaluator: undefined as any, _fromSet: true, _assignee: e.assigneeName }));
-                      const merged = [...own.map(s => ({ ...s, _fromSet: false as boolean, _assignee: "" })), ...extras];
-                      if (merged.length === 0) return null;
+                      let merged = [...own.map(s => ({ ...s, _fromSet: false as boolean, _assignee: "" })), ...extras];
+                      if (merged.length === 0) {
+                        // Fallback: hər KPI-nin ən azı bir hədəfi görünsün
+                        merged = [{
+                          id: 1,
+                          name: selectedKpi.name,
+                          target: (selectedKpi as any).generalTarget || (selectedKpi as any).target || "—",
+                          unit: (selectedKpi as any).unit || "",
+                          weight: 100,
+                          current: (selectedKpi as any).current || "—",
+                          progress: selectedKpi.progress,
+                          evaluator: { type: "self", persons: [{ name: selectedKpi.responsible || "Məsul şəxs", weight: 100 }] } as any,
+                          _fromSet: false,
+                          _assignee: selectedKpi.responsible || "",
+                        }];
+                      }
                       return (
                       <div className="bg-card rounded-lg border border-border p-4">
                         <h4 className="font-semibold text-foreground mb-3">Hədəflər</h4>
