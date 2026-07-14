@@ -218,21 +218,18 @@ const KpiLifecyclePage = () => {
                   {templates.map(t => (
                     <div
                       key={t.id}
-                      className={`border rounded-xl p-4 bg-card transition-colors ${t.active ? "border-border hover:border-primary/40" : "border-border/60 opacity-60"}`}
+                      onClick={() => setDetailTpl(t)}
+                      className={`border rounded-xl p-4 bg-card transition-colors cursor-pointer flex flex-col h-[220px] ${t.active ? "border-border hover:border-primary/40" : "border-border/60 opacity-60"}`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setDetailTpl(t)}
-                          className="flex items-center gap-2 min-w-0 text-left flex-1 hover:text-primary"
-                        >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           <FileText className="w-4 h-4 text-primary shrink-0" />
                           <span className="font-medium text-sm text-foreground truncate">{t.name}</span>
                           {t.isSystem && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Sistem</span>
                           )}
-                        </button>
-                        <div className="flex items-center gap-1 shrink-0">
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => { setEditTpl(t); setEditName(t.name); setEditDesc(t.description || ""); }}
                             className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -251,24 +248,23 @@ const KpiLifecyclePage = () => {
                           )}
                         </div>
                       </div>
-                      {t.description && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{t.description}</p>}
-                      <div className="mt-3 text-[11px] text-muted-foreground space-y-0.5">
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2 min-h-[32px]">
+                        {t.description || "—"}
+                      </p>
+                      <div className="mt-3 text-[11px] text-muted-foreground space-y-0.5 flex-1">
                         <div>Təyinat: {t.data.assignment?.period ?? "—"}</div>
                         <div>Qiymətləndirmə: {t.data.evaluation?.period ?? "—"}</div>
                         <div>Bonus: {t.data.bonus?.period ?? "—"}</div>
                         <div>Review: {t.data.reviews.length} ədəd</div>
-                        {t.data.dynamic === "monthly-standard" && (
-                          <div className="flex items-center gap-1 text-primary mt-1">
-                            <CalendarClock className="w-3 h-3" />
-                            Tarixlər KPI yaradıldığı vaxta əsasən avtomatik hesablanır
-                          </div>
-                        )}
                       </div>
-                      <div className="mt-3 flex items-center justify-between">
+                      <div className="mt-2 flex items-center justify-between pt-2 border-t border-border/60">
                         <span className="text-[10px] text-muted-foreground">
                           {new Date(t.createdAt).toLocaleDateString()}
                         </span>
-                        <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                        <label
+                          className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Switch
                             checked={t.active}
                             onCheckedChange={() => {
