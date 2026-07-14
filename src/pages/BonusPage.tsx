@@ -323,7 +323,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
                   getData={() => ({
                     title: `Bonus Hesabatı${usedLabel ? ` — ${usedLabel}` : ""}`,
                     fileName: `bonus-${usedLabel || "hesabat"}`,
-                    headers: ["Əməkdaşın A.S.A.", "Departament", "Vəzifə", "İcra %", "Bonus (AZN)"],
+                    headers: ["Əməkdaşın A.S.A.", "Struktur", "Vəzifə", "İcra %", "Bonus (AZN)"],
                     rows: result.map(r => [
                       fullNameOf(r.employee),
                       r.employee.department, r.employee.position,
