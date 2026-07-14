@@ -477,6 +477,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
   const [deleteComment, setDeleteComment] = useState("");
   const [matrixPicker, setMatrixPicker] = useState<{ card: KpiCard } | null>(null);
+  const [selectedDeletionMatrix, setSelectedDeletionMatrix] = useState<DeletionMatrix | null>(null);
+  useEffect(() => { if (matrixPicker) setSelectedDeletionMatrix(null); }, [matrixPicker]);
+
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [lifecycleDraft, setLifecycleDraft] = useState<Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">>(() => emptyLifecycleDraft());
