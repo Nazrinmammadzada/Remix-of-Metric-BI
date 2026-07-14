@@ -477,6 +477,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
   const [deleteComment, setDeleteComment] = useState("");
   const [matrixPicker, setMatrixPicker] = useState<{ card: KpiCard } | null>(null);
+  const [selectedDeletionMatrix, setSelectedDeletionMatrix] = useState<DeletionMatrix | null>(null);
+  useEffect(() => { if (matrixPicker) setSelectedDeletionMatrix(null); }, [matrixPicker]);
+
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [lifecycleDraft, setLifecycleDraft] = useState<Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">>(() => emptyLifecycleDraft());
@@ -3673,28 +3676,44 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.
                   </div>
                 )}
-                {getDeletionMatrices().map(m => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      sendDeletionRequest(matrixPicker.card, deleteComment, m);
-                      setMatrixPicker(null);
-                    }}
-                    className="w-full text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition"
-                  >
-                    <div className="text-sm font-medium text-foreground">{m.name}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Təsdiqləyici: {m.approver ? formatAssignee(m.approver) : "Təyin olunmayıb"}
-                    </div>
-                  </button>
-                ))}
+                {getDeletionMatrices().map(m => {
+                  const selected = selectedDeletionMatrix?.id === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedDeletionMatrix(m)}
+                      className={[
+                        "w-full text-left p-3 rounded-lg border transition",
+                        selected
+                          ? "border-primary bg-primary/10 ring-1 ring-primary"
+                          : "border-border hover:border-primary hover:bg-primary/5",
+                      ].join(" ")}
+                    >
+                      <div className="text-sm font-medium text-foreground">{m.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Təsdiqləyici: {m.approver ? formatAssignee(m.approver) : "Təyin olunmayıb"}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   onClick={() => setMatrixPicker(null)}
                   className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary"
                 >
                   Ləğv et
+                </button>
+                <button
+                  disabled={!selectedDeletionMatrix}
+                  onClick={() => {
+                    if (!selectedDeletionMatrix || !matrixPicker) return;
+                    sendDeletionRequest(matrixPicker.card, deleteComment, selectedDeletionMatrix);
+                    setMatrixPicker(null);
+                  }}
+                  className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Təsdiq etmək
                 </button>
               </div>
             </div>
