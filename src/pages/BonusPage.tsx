@@ -360,7 +360,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
             <TableHeader>
               <TableRow>
                 <TableHead>Əməkdaşın A.S.A.</TableHead>
-                <TableHead>Departament</TableHead>
+                <TableHead>Struktur</TableHead>
                 <TableHead>Çatışmayan Hədəf</TableHead>
               </TableRow>
             </TableHeader>
