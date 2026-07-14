@@ -1225,14 +1225,26 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const resetFilters = () => { setFilterDepartment("Hamısı"); setFilterSubdivision("Hamısı"); setFilterGroup("Hamısı"); setFilterTeamId(null); setFilterStatus("Hamısı"); setSearchText(""); };
 
   const handleDeleteCard = (card: KpiCard) => {
-    // Unapproved → birbaşa silinir
-    if (card.approvalStatus === "pending") {
-      if (!confirm(`"${withKartSuffix(card.name)}" KPI-ı silinsin?`)) return;
-      setKpiCards(prev => prev.filter(c => c.id !== card.id));
-      toast.success("KPI silindi");
-      return;
-    }
-    // Approved → silinmə matrisi yoxlanılır
+    const st = statusMap[card.id]?.status;
+    const isDraftLike = st === "qaralama" || st === "natamam" || card.approvalStatus === "pending";
+    setDeleteComment("");
+    setDeleteDialog({ card, mode: isDraftLike ? "simple" : "choice" });
+  };
+
+  const performHardDelete = async (card: KpiCard) => {
+    setKpiCards(prev => prev.filter(c => c.id !== card.id));
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
+      const mod = await import("@/lib/kpiCardStatusStore");
+      const next = await mod.fetchAllStatuses();
+      setStatusMap(next);
+    } catch {}
+    toast.success("KPI kartı silindi");
+    setDeleteDialog(null);
+  };
+
+  const sendDeletionRequest = (card: KpiCard, comment: string) => {
     const matrix = getDeletionMatrix();
     if (!matrix || !matrix.approver) {
       toast.error("Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.", { duration: 5000 });
@@ -1241,10 +1253,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     addDeletionRequest({
       kpiId: card.id,
       kpiName: card.name,
-      requestedBy: user?.name || "Naməlum",
+      requestedBy: user?.name || "HR",
     });
-    toast(`Bu KPI təsdiq edilmişdir. Silinmə üçün ${matrix.approver.name} təsdiqləməlidir. Sorğu göndərildi.`, { duration: 6000, icon: "ℹ️" });
+    toast.success(`Silinmə sorğusu göndərildi (${matrix.approver.name} təsdiqləyəcək).`);
+    setDeleteDialog(null);
   };
+
 
   // "Other" (təyin edən başqasıdır) hədəf-ların çəkisi sonra təyin ediləcək — toplamaya daxil etmirik.
   const totalSubWeight = newKpi.subKpis.filter(sk => sk.assignerMode !== "other").reduce((s, sk) => s + sk.weight, 0);
