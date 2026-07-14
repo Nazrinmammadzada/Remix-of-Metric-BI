@@ -3631,13 +3631,37 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   Ləğv et
                 </button>
                 {deleteDialog.mode === "choice" && (
-                  <button
-                    onClick={() => sendDeletionRequest(deleteDialog.card, deleteComment)}
-                    className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 inline-flex items-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    Silinmə sorğusu göndər
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 inline-flex items-center gap-1.5"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Silinmə sorğusu göndər
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-72">
+                      <DropdownMenuLabel>Silinmə matrisini seçin</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {getDeletionMatrices().length === 0 && (
+                        <div className="px-2 py-3 text-xs text-muted-foreground">
+                          Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.
+                        </div>
+                      )}
+                      {getDeletionMatrices().map(m => (
+                        <DropdownMenuItem
+                          key={m.id}
+                          onClick={() => sendDeletionRequest(deleteDialog.card, deleteComment, m)}
+                          className="flex flex-col items-start gap-0.5 py-2"
+                        >
+                          <span className="text-sm font-medium">{m.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Təsdiqləyici: {m.approver ? formatAssignee(m.approver) : "Təyin olunmayıb"}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
                 <button
                   onClick={() => performHardDelete(deleteDialog.card)}
