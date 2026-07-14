@@ -2007,6 +2007,56 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     });
                 return <LifecycleView lifecycle={lc} />;
               })()}
+              {detailTab === "reviewTrack" && (() => {
+                const lc = getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
+                  startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
+                });
+                const reviews = lc?.reviews || [];
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                return (
+                  <div className="bg-card rounded-lg border border-border p-4">
+                    <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-primary" /> Review Tarixçəsi
+                    </h4>
+                    {reviews.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic text-center py-8">
+                        Bu KPI üçün hələ review təyin olunmayıb.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {reviews.map((r, i) => {
+                          const end = r.end ? new Date(r.end) : null;
+                          const start = r.start ? new Date(r.start) : null;
+                          const status = end && today > end ? "completed" : start && today < start ? "pending" : "in_progress";
+                          const badge = status === "completed" ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                            : status === "in_progress" ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                            : "bg-slate-500/15 text-slate-600 border-slate-500/30";
+                          const label = status === "completed" ? "Keçirildi" : status === "in_progress" ? "Davam edir" : "Planlaşdırılıb";
+                          const reviewer = (selectedKpi.team && selectedKpi.team[0]?.name) || selectedKpi.responsible || "—";
+                          return (
+                            <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                                #{i + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-semibold text-foreground">Review #{i + 1} · {r.period}</p>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge}`}>{label}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                                  <span>Başlama: {r.start || "—"}</span>
+                                  <span>Bitmə: {r.end || "—"}</span>
+                                  <span>Məsul: {reviewer}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               {isExtraTab(detailTab) && <KpiExtraTabContent kpi={selectedKpi} tab={detailTab} />}
 
               {detailTab === "general" && (
