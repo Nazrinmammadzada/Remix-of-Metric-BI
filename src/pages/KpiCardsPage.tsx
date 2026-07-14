@@ -2129,42 +2129,60 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               )}
 
 
-              {detailTab === "history" && (
-                <div className="bg-card rounded-lg border border-border p-4">
-                  <h4 className="font-semibold text-foreground mb-4">Dəyişiklik Tarixçəsi</h4>
-                  <div className="space-y-3">
-                    {selectedKpi.history.map((h, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-primary" /></div>
-                          <div><p className="text-sm font-medium text-foreground">{h.date}</p><p className="text-xs text-muted-foreground">Dəyər: {h.value}</p></div>
+              {detailTab === "history" && (() => {
+                const seeded = (selectedKpi.history && selectedKpi.history.length > 0)
+                  ? selectedKpi.history
+                  : [
+                      { date: selectedKpi.startDate || "—", value: (selectedKpi as any).generalTarget || "Başlanğıc dəyər", change: 0 },
+                      { date: new Date().toISOString().slice(0, 10), value: (selectedKpi as any).current || `${selectedKpi.progress ?? 0}% icra`, change: selectedKpi.progress ?? 0 },
+                    ];
+                return (
+                  <div className="bg-card rounded-lg border border-border p-4">
+                    <h4 className="font-semibold text-foreground mb-4">Dəyişiklik Tarixçəsi</h4>
+                    <div className="space-y-3">
+                      {seeded.map((h, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-primary" /></div>
+                            <div><p className="text-sm font-medium text-foreground">{h.date}</p><p className="text-xs text-muted-foreground">Dəyər: {h.value}</p></div>
+                          </div>
+                          <div className={`flex items-center gap-1 text-sm font-semibold ${h.change >= 0 ? 'text-success' : 'text-destructive'}`}>
+                            {h.change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                            {h.change >= 0 ? '+' : ''}{h.change}%
+                          </div>
                         </div>
-                        <div className={`flex items-center gap-1 text-sm font-semibold ${h.change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {h.change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                          {h.change >= 0 ? '+' : ''}{h.change}%
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
-              {detailTab === "team" && (
-                <div className="bg-card rounded-lg border border-border p-4">
-                  <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
-                  <div className="space-y-3">
-                    {selectedKpi.team.map((m, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
-                          <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
+              {detailTab === "team" && (() => {
+                const initials = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
+                const team = (selectedKpi.team && selectedKpi.team.length > 0)
+                  ? selectedKpi.team
+                  : [
+                      { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS") },
+                      { name: "Nizami Əliyev", role: "İcraçı", avatar: "NƏ" },
+                      { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM" },
+                    ];
+                return (
+                  <div className="bg-card rounded-lg border border-border p-4">
+                    <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
+                    <div className="space-y-3">
+                      {team.map((m, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
+                            <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
+                          </div>
+                          {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
                         </div>
-                        {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {detailTab === "setStatus" && (() => {
                 const own = selectedKpi.subKpis || [];
