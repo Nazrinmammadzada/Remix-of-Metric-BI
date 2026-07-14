@@ -25,7 +25,7 @@ import BscScorecardTab from "@/components/kpi/BscScorecardTab";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
-import { LayoutGrid, List, Briefcase, Copy, Eye } from "lucide-react";
+import { LayoutGrid, List, Briefcase, Copy, Eye, Send } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
 import { getLimitsFor, getEntriesForCard, addPendingEntry, suggestLimitsFromTarget, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
