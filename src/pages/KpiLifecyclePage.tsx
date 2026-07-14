@@ -218,21 +218,18 @@ const KpiLifecyclePage = () => {
                   {templates.map(t => (
                     <div
                       key={t.id}
-                      className={`border rounded-xl p-4 bg-card transition-colors ${t.active ? "border-border hover:border-primary/40" : "border-border/60 opacity-60"}`}
+                      onClick={() => setDetailTpl(t)}
+                      className={`border rounded-xl p-4 bg-card transition-colors cursor-pointer flex flex-col h-[220px] ${t.active ? "border-border hover:border-primary/40" : "border-border/60 opacity-60"}`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setDetailTpl(t)}
-                          className="flex items-center gap-2 min-w-0 text-left flex-1 hover:text-primary"
-                        >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
                           <FileText className="w-4 h-4 text-primary shrink-0" />
                           <span className="font-medium text-sm text-foreground truncate">{t.name}</span>
                           {t.isSystem && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">Sistem</span>
                           )}
-                        </button>
-                        <div className="flex items-center gap-1 shrink-0">
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => { setEditTpl(t); setEditName(t.name); setEditDesc(t.description || ""); }}
                             className="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
@@ -251,24 +248,23 @@ const KpiLifecyclePage = () => {
                           )}
                         </div>
                       </div>
-                      {t.description && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{t.description}</p>}
-                      <div className="mt-3 text-[11px] text-muted-foreground space-y-0.5">
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2 min-h-[32px]">
+                        {t.description || "—"}
+                      </p>
+                      <div className="mt-3 text-[11px] text-muted-foreground space-y-0.5 flex-1">
                         <div>Təyinat: {t.data.assignment?.period ?? "—"}</div>
                         <div>Qiymətləndirmə: {t.data.evaluation?.period ?? "—"}</div>
                         <div>Bonus: {t.data.bonus?.period ?? "—"}</div>
                         <div>Review: {t.data.reviews.length} ədəd</div>
-                        {t.data.dynamic === "monthly-standard" && (
-                          <div className="flex items-center gap-1 text-primary mt-1">
-                            <CalendarClock className="w-3 h-3" />
-                            Tarixlər KPI yaradıldığı vaxta əsasən avtomatik hesablanır
-                          </div>
-                        )}
                       </div>
-                      <div className="mt-3 flex items-center justify-between">
+                      <div className="mt-2 flex items-center justify-between pt-2 border-t border-border/60">
                         <span className="text-[10px] text-muted-foreground">
                           {new Date(t.createdAt).toLocaleDateString()}
                         </span>
-                        <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                        <label
+                          className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Switch
                             checked={t.active}
                             onCheckedChange={() => {
@@ -359,39 +355,72 @@ const KpiLifecyclePage = () => {
                 {detailTpl?.isSystem && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sistem</span>}
               </DialogTitle>
             </DialogHeader>
-            {detailTpl && (
+            {detailTpl && (() => {
+              const isDynamic = detailTpl.data.dynamic === "monthly-standard";
+              const off = detailTpl.data.offsets;
+              const fmtOffsetStage = (o?: { startOffset: number; endOffset: number }) => {
+                if (!o) return null;
+                const dur = o.endOffset - o.startOffset;
+                return `Başlama: +${o.startOffset} gün · Bitmə: +${o.endOffset} gün · Müddət: ${dur} gün`;
+              };
+              const fmtAbsStage = (s?: { start?: string; end?: string }) => {
+                if (!s?.start || !s?.end) return null;
+                return `Başlama: ${s.start} · Bitmə: ${s.end}`;
+              };
+              const dynamicLine = (label: string) => {
+                if (label === "KPI təyin olunması") return "KPI başlanğıc tarixindən +0 gün, müddət ~2 gün (auto)";
+                if (label === "KPI qiymətləndirilməsi") return "Ayın sonundan 5 gün əvvəl başlayır, ~3 gün davam edir (auto)";
+                if (label === "Bonusun hesablanması") return "Qiymətləndirmədən sonra, ayın son gününədək (auto)";
+                return "";
+              };
+              const stages: { label: string; s: any; okey: "assignment" | "evaluation" | "bonus" }[] = [
+                { label: "KPI təyin olunması", s: detailTpl.data.assignment, okey: "assignment" },
+                { label: "KPI qiymətləndirilməsi", s: detailTpl.data.evaluation, okey: "evaluation" },
+                { label: "Bonusun hesablanması", s: detailTpl.data.bonus, okey: "bonus" },
+              ];
+              return (
               <div className="space-y-3">
                 {detailTpl.description && <p className="text-xs text-muted-foreground">{detailTpl.description}</p>}
-                {detailTpl.data.dynamic === "monthly-standard" && (
+                {isDynamic && (
                   <div className="text-xs text-primary flex items-center gap-1.5 bg-primary/5 p-2 rounded border border-primary/20">
                     <CalendarClock className="w-3.5 h-3.5" />
                     Bu şablonda tarixlər KPI-ın yaradıldığı tarixə əsasən avtomatik hesablanır.
                   </div>
                 )}
-                {[
-                  { label: "KPI təyin olunması", s: detailTpl.data.assignment },
-                  { label: "KPI qiymətləndirilməsi", s: detailTpl.data.evaluation },
-                  { label: "Bonusun hesablanması", s: detailTpl.data.bonus },
-                ].map(({ label, s }) => (
-                  <div key={label} className="border border-border rounded-md p-2.5">
-                    <div className="text-sm font-medium text-foreground">{label}</div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                      Dövr: {s?.period ?? "—"} · Başlama: {s?.start || (detailTpl.data.dynamic ? "auto" : "—")} · Bitmə: {s?.end || (detailTpl.data.dynamic ? "auto" : "—")}
+                {stages.map(({ label, s, okey }) => {
+                  const line = isDynamic
+                    ? dynamicLine(label)
+                    : (fmtOffsetStage(off?.[okey]) || fmtAbsStage(s) || "Təyin olunmayıb");
+                  return (
+                    <div key={label} className="border border-border rounded-md p-2.5">
+                      <div className="text-sm font-medium text-foreground">{label}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        Dövr: {s?.period ?? "—"} · {line}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div className="border border-border rounded-md p-2.5">
                   <div className="text-sm font-medium text-foreground">KPI Review ({detailTpl.data.reviews.length})</div>
                   {detailTpl.data.reviews.length === 0 ? (
                     <div className="text-[11px] text-muted-foreground mt-0.5">Yoxdur</div>
-                  ) : detailTpl.data.reviews.map((r, i) => (
-                    <div key={r.id} className="text-[11px] text-muted-foreground mt-1">
-                      #{i + 1} · {r.period} · {r.start || (detailTpl.data.dynamic ? "auto" : "—")} → {r.end || (detailTpl.data.dynamic ? "auto" : "—")}
-                    </div>
-                  ))}
+                  ) : detailTpl.data.reviews.map((r, i) => {
+                    const ro = off?.reviews?.find(x => x.id === r.id);
+                    const line = isDynamic
+                      ? "KPI yaradılmasından ~3 gün sonra başlayır, 5 gün davam edir (auto)"
+                      : (ro
+                          ? `Başlama: +${ro.startOffset} gün · Bitmə: +${ro.endOffset} gün · Müddət: ${ro.endOffset - ro.startOffset} gün`
+                          : (r.start && r.end ? `Başlama: ${r.start} · Bitmə: ${r.end}` : "Təyin olunmayıb"));
+                    return (
+                      <div key={r.id} className="text-[11px] text-muted-foreground mt-1">
+                        #{i + 1} · {r.period} · {line}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
+              );
+            })()}
             <DialogFooter>
               <Button variant="outline" onClick={() => setDetailTpl(null)}>Bağla</Button>
             </DialogFooter>

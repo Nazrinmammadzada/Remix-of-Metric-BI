@@ -418,8 +418,8 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
                 getData={() => ({
                   title: `KPI Qiymətləri ${resolvedPeriod?.label || ""}`,
                   fileName: `kpi-qiymetleri-${resolvedPeriod?.label || "hesabat"}`,
-                  headers: ["Əməkdaşın A.S.A.", "KPI Kartının Adı", "Dövr", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
-                  rows: rows.map(r => [[r.fullName, r.fatherName].filter(Boolean).join(" "), withKartSuffix(r.cardName), r.periodLabel, r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
+                  headers: ["Əməkdaşın A.S.A.", "KPI Kartının Adı", "Başlama tarixi", "Bitmə tarixi", "Qiymət (Bal)"],
+                  rows: rows.map(r => [[r.fullName, r.fatherName].filter(Boolean).join(" "), withKartSuffix(r.cardName), r.startDate, r.endDate, `${r.score.toFixed(2)} / 5`]),
                 })}
               />
             </div>
@@ -427,7 +427,6 @@ const KpiScoresPage = ({ employeesOverride, hideChrome, heroTitle, heroSubtitle 
           columns={[
             { key: "name", label: "Əməkdaşın A.S.A.", filterType: "text", accessor: (r) => [r.fullName, r.fatherName].filter(Boolean).join(" "), render: (r) => <span className="font-medium text-foreground">{[r.fullName, r.fatherName].filter(Boolean).join(" ")}</span> },
             { key: "card", label: "KPI Kartının Adı", filterType: "text", accessor: (r) => withKartSuffix(r.cardName), render: (r) => <span>{withKartSuffix(r.cardName)}</span> },
-            { key: "period", label: "Dövr", filterType: "text", accessor: (r) => r.periodLabel, render: (r) => <span className="text-muted-foreground">{r.periodLabel}</span> },
             { key: "start", label: "Başlama Tarixi", filterType: "text", accessor: (r) => r.startDate, render: (r) => <span className="text-muted-foreground">{r.startDate}</span> },
             { key: "end", label: "Bitmə Tarixi", filterType: "text", accessor: (r) => r.endDate, render: (r) => <span className="text-muted-foreground">{r.endDate}</span> },
             { key: "score", label: "Qiymət (Bal)", filterType: "number", accessor: (r) => r.score, render: (r) => (

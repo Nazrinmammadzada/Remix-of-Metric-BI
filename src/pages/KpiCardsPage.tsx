@@ -25,7 +25,7 @@ import BscScorecardTab from "@/components/kpi/BscScorecardTab";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 import { getFormulas } from "@/lib/formulasStore";
 import ExportMenu from "@/components/common/ExportMenu";
-import { LayoutGrid, List, Briefcase, Copy, Eye } from "lucide-react";
+import { LayoutGrid, List, Briefcase, Copy, Eye, Send } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
 import { getLimitsFor, getEntriesForCard, addPendingEntry, suggestLimitsFromTarget, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
@@ -472,7 +472,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     return () => window.removeEventListener("kpi:deleted", onDeleted);
   }, []);
   const [selectedKpi, setSelectedKpi] = useState<KpiCard | null>(null);
-  const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle">("general");
+  const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle" | "reviewTrack">("general");
+  const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
+  const [deleteComment, setDeleteComment] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [createStep, setCreateStep] = useState(1);
   const [lifecycleDraft, setLifecycleDraft] = useState<Omit<CardLifecycle, "cardId" | "cardName" | "updatedAt">>(() => emptyLifecycleDraft());
@@ -1223,14 +1225,26 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const resetFilters = () => { setFilterDepartment("Hamısı"); setFilterSubdivision("Hamısı"); setFilterGroup("Hamısı"); setFilterTeamId(null); setFilterStatus("Hamısı"); setSearchText(""); };
 
   const handleDeleteCard = (card: KpiCard) => {
-    // Unapproved → birbaşa silinir
-    if (card.approvalStatus === "pending") {
-      if (!confirm(`"${withKartSuffix(card.name)}" KPI-ı silinsin?`)) return;
-      setKpiCards(prev => prev.filter(c => c.id !== card.id));
-      toast.success("KPI silindi");
-      return;
-    }
-    // Approved → silinmə matrisi yoxlanılır
+    const st = statusMap[card.id]?.status;
+    const isDraftLike = st === "qaralama" || st === "natamam" || card.approvalStatus === "pending";
+    setDeleteComment("");
+    setDeleteDialog({ card, mode: isDraftLike ? "simple" : "choice" });
+  };
+
+  const performHardDelete = async (card: KpiCard) => {
+    setKpiCards(prev => prev.filter(c => c.id !== card.id));
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
+      const mod = await import("@/lib/kpiCardStatusStore");
+      const next = await mod.fetchAllStatuses();
+      setStatusMap(next);
+    } catch {}
+    toast.success("KPI kartı silindi");
+    setDeleteDialog(null);
+  };
+
+  const sendDeletionRequest = (card: KpiCard, comment: string) => {
     const matrix = getDeletionMatrix();
     if (!matrix || !matrix.approver) {
       toast.error("Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.", { duration: 5000 });
@@ -1239,10 +1253,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     addDeletionRequest({
       kpiId: card.id,
       kpiName: card.name,
-      requestedBy: user?.name || "Naməlum",
+      requestedBy: user?.name || "HR",
     });
-    toast(`Bu KPI təsdiq edilmişdir. Silinmə üçün ${matrix.approver.name} təsdiqləməlidir. Sorğu göndərildi.`, { duration: 6000, icon: "ℹ️" });
+    toast.success(`Silinmə sorğusu göndərildi (${matrix.approver.name} təsdiqləyəcək).`);
+    setDeleteDialog(null);
   };
+
 
   // "Other" (təyin edən başqasıdır) hədəf-ların çəkisi sonra təyin ediləcək — toplamaya daxil etmirik.
   const totalSubWeight = newKpi.subKpis.filter(sk => sk.assignerMode !== "other").reduce((s, sk) => s + sk.weight, 0);
@@ -1534,27 +1550,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              {st.status === "natamam" && (
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (!confirm(`"${withKartSuffix(card.name)}" kartını silmək istədiyinizə əminsiniz?`)) return;
-                                    setKpiCards(prev => prev.filter(c => c.id !== card.id));
-                                    try {
-                                      const { supabase } = await import("@/integrations/supabase/client");
-                                      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
-                                      const mod = await import("@/lib/kpiCardStatusStore");
-                                      const next = await mod.fetchAllStatuses();
-                                      setStatusMap(next);
-                                    } catch {}
-                                    toast.success("Kart silindi");
-                                  }}
-                                  title="Sil"
-                                  className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
+                                title="Sil"
+                                className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           );
                         }
@@ -1985,7 +1987,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               <div className="flex gap-2 border-b border-border overflow-x-auto">
                 {(() => {
                   const hasMatrix = !!selectedKpi.matrixId;
-                  const allTabs = [["general", "Ümumi"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["history", "Tarixçə"], ["team", "KPI Üzvləri"], ["comments", "Şərhlər"], ["status", "Təsdiqləmə Zənciri"], ["setStatus", "Set Statusu"]] as const;
+                  const allTabs = [["general", "Ümumi"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["reviewTrack", "Review İzləmə"], ["history", "Tarixçə"], ["team", "KPI Üzvləri"], ["comments", "Şərhlər"], ["status", "Təsdiqləmə Zənciri"], ["setStatus", "Set Statusu"]] as const;
                   const tabs = allTabs.filter(([k]) => k !== "status" || hasMatrix);
                   return tabs.map(([key, label]) => (
                     <button key={key} onClick={() => setDetailTab(key as any)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
@@ -2004,6 +2006,56 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
                     });
                 return <LifecycleView lifecycle={lc} />;
+              })()}
+              {detailTab === "reviewTrack" && (() => {
+                const lc = getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
+                  startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
+                });
+                const reviews = lc?.reviews || [];
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                return (
+                  <div className="bg-card rounded-lg border border-border p-4">
+                    <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-primary" /> Review Tarixçəsi
+                    </h4>
+                    {reviews.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic text-center py-8">
+                        Bu KPI üçün hələ review təyin olunmayıb.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {reviews.map((r, i) => {
+                          const end = r.end ? new Date(r.end) : null;
+                          const start = r.start ? new Date(r.start) : null;
+                          const status = end && today > end ? "completed" : start && today < start ? "pending" : "in_progress";
+                          const badge = status === "completed" ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                            : status === "in_progress" ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                            : "bg-slate-500/15 text-slate-600 border-slate-500/30";
+                          const label = status === "completed" ? "Keçirildi" : status === "in_progress" ? "Davam edir" : "Planlaşdırılıb";
+                          const reviewer = (selectedKpi.team && selectedKpi.team[0]?.name) || selectedKpi.responsible || "—";
+                          return (
+                            <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                                #{i + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-semibold text-foreground">Review #{i + 1} · {r.period}</p>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge}`}>{label}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                                  <span>Başlama: {r.start || "—"}</span>
+                                  <span>Bitmə: {r.end || "—"}</span>
+                                  <span>Məsul: {reviewer}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
               })()}
               {isExtraTab(detailTab) && <KpiExtraTabContent kpi={selectedKpi} tab={detailTab} />}
 
@@ -3468,6 +3520,64 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           />
         );
       })()}
+
+      {/* HR — KPI silmə dialoqu */}
+      <Dialog open={!!deleteDialog} onOpenChange={(o) => !o && setDeleteDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              KPI kartını sil
+            </DialogTitle>
+          </DialogHeader>
+          {deleteDialog && (
+            <div className="space-y-4">
+              <p className="text-sm text-foreground">
+                <span className="font-medium">"{withKartSuffix(deleteDialog.card.name)}"</span> kartını silmək istədiyinizə əminsiniz?
+              </p>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Şərh (məcburi deyil)</label>
+                <textarea
+                  value={deleteComment}
+                  onChange={(e) => setDeleteComment(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Silinmə səbəbi..."
+                />
+              </div>
+              {deleteDialog.mode === "choice" && (
+                <p className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/30 rounded-md p-2">
+                  Bu KPI aktiv prosesdədir. Silinmə matrisindən təsdiq üçün sorğu göndərə və ya səlahiyyətiniz olduqda birbaşa silə bilərsiniz.
+                </p>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setDeleteDialog(null)}
+                  className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary"
+                >
+                  Ləğv et
+                </button>
+                {deleteDialog.mode === "choice" && (
+                  <button
+                    onClick={() => sendDeletionRequest(deleteDialog.card, deleteComment)}
+                    className="px-4 py-2 text-sm rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 inline-flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Silinmə sorğusu göndər
+                  </button>
+                )}
+                <button
+                  onClick={() => performHardDelete(deleteDialog.card)}
+                  className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Sil
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

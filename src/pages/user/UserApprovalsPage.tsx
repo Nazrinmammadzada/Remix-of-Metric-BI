@@ -276,29 +276,6 @@ const UserApprovalsPage = () => {
           icon={Sparkles}
           title="Sistem Təsdiqləri"
           subtitle="KPI təsdiqləmə zənciri və sorğuların idarə edilməsi"
-          right={
-            <div className="relative">
-              <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 rounded-lg bg-card border border-border hover:bg-secondary transition-colors">
-                <Bell className="w-5 h-5 text-foreground" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-bold">{unreadCount}</span>}
-              </button>
-              {showNotifications && (
-                <div className="absolute right-0 top-12 w-80 bg-card border border-border rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
-                  <div className="p-3 border-b border-border flex items-center justify-between">
-                    <h4 className="font-semibold text-foreground text-sm">Bildirişlər</h4>
-                    <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))} className="text-xs text-primary">Hamısını oxunmuş et</button>
-                  </div>
-                  {notifications.length === 0 ? <p className="p-4 text-sm text-muted-foreground text-center">Bildiriş yoxdur</p> :
-                    notifications.slice().reverse().map(n => (
-                      <div key={n.id} className={`p-3 border-b border-border last:border-0 text-sm ${!n.read ? 'bg-primary/5' : ''}`}>
-                        <p className="text-foreground">{n.message}</p><p className="text-xs text-muted-foreground mt-1">{n.date}</p>
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-            </div>
-          }
         />
 
         <div className="grid grid-cols-3 gap-6">
