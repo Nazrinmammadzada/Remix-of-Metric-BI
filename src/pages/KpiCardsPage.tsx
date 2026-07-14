@@ -1244,10 +1244,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     setDeleteDialog(null);
   };
 
-  const sendDeletionRequest = (card: KpiCard, comment: string) => {
-    const matrix = getDeletionMatrix();
-    if (!matrix || !matrix.approver) {
-      toast.error("Silinmə matrisi yoxdur. Təsdiqləmə Matrisi modulundan yaradın.", { duration: 5000 });
+  const sendDeletionRequest = (card: KpiCard, comment: string, matrix: DeletionMatrix) => {
+    if (!matrix.approver) {
+      toast.error("Seçilmiş matrisdə təsdiqləyici təyin olunmayıb.");
       return;
     }
     addDeletionRequest({
@@ -1255,7 +1254,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       kpiName: card.name,
       requestedBy: user?.name || "HR",
     });
-    toast.success(`Silinmə sorğusu göndərildi (${matrix.approver.name} təsdiqləyəcək).`);
+    toast.success(`Silinmə sorğusu göndərildi — "${matrix.name}" (${matrix.approver.name}).`);
     setDeleteDialog(null);
   };
 
