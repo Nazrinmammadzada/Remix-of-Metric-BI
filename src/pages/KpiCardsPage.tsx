@@ -2047,6 +2047,48 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <span>Bitmə: {r.end || "—"}</span>
                                   <span>Məsul: {reviewer}</span>
                                 </div>
+                                {(() => {
+                                  // Review-a aid şərhlər — kart-səviyyəli şərh store-undan default-la seed
+                                  const key = `kpi_review_comments_v1::${selectedKpi.id}::${r.id}`;
+                                  let comments: { author: string; date: string; text: string }[] = [];
+                                  try {
+                                    const raw = localStorage.getItem(key);
+                                    if (raw) comments = JSON.parse(raw);
+                                  } catch {}
+                                  if (comments.length === 0) {
+                                    comments = status === "completed"
+                                      ? [
+                                          { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
+                                          { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                        ]
+                                      : status === "in_progress"
+                                      ? [
+                                          { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
+                                        ]
+                                      : [
+                                          { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
+                                        ];
+                                  }
+                                  return (
+                                    <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
+                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
+                                      {comments.map((c, ci) => (
+                                        <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/60 border border-border/50">
+                                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                            {(c.author || "?")[0]}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
+                                              {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                            </div>
+                                            <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
                           );
