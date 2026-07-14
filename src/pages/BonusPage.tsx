@@ -323,7 +323,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
                   getData={() => ({
                     title: `Bonus Hesabatı${usedLabel ? ` — ${usedLabel}` : ""}`,
                     fileName: `bonus-${usedLabel || "hesabat"}`,
-                    headers: ["Əməkdaşın A.S.A.", "Departament", "Vəzifə", "İcra %", "Bonus (AZN)"],
+                    headers: ["Əməkdaşın A.S.A.", "Struktur", "Vəzifə", "İcra %", "Bonus (AZN)"],
                     rows: result.map(r => [
                       fullNameOf(r.employee),
                       r.employee.department, r.employee.position,
@@ -360,7 +360,7 @@ const BonusPage = ({ employeesOverride, hideChrome, hideCalcButton, heroTitle, h
             <TableHeader>
               <TableRow>
                 <TableHead>Əməkdaşın A.S.A.</TableHead>
-                <TableHead>Departament</TableHead>
+                <TableHead>Struktur</TableHead>
                 <TableHead>Çatışmayan Hədəf</TableHead>
               </TableRow>
             </TableHeader>
@@ -483,7 +483,7 @@ const BonusResultTable = ({ result, setDetailEmp }: { result: CalcRow[] | null; 
           accessor: (r) => fullNameOf(r.employee),
           render: (r) => <span className="font-medium">{fullNameOf(r.employee)}</span>,
         },
-        { key: "dep", label: "Departament", filterType: "select", selectOptions: departments, accessor: (r) => r.employee.department },
+        { key: "dep", label: "Struktur", filterType: "select", selectOptions: departments, accessor: (r) => r.employee.department },
         { key: "pos", label: "Vəzifə", filterType: "select", selectOptions: positions, accessor: (r) => r.employee.position },
         {
           key: "bonus", label: "Bonus", align: "right", filterType: "number",

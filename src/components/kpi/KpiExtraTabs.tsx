@@ -45,7 +45,16 @@ const saveStore = (s: Store) => {
 const loadFor = (cardId?: number): CommentItem[] => {
   const store = loadStore();
   const key = String(cardId ?? "default");
-  return store[key] ?? [];
+  if (store[key] && store[key].length > 0) return store[key];
+  // Seed default comments — heç bir tab boş qalmasın
+  const today = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const fmt = (d: Date) => `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const y = new Date(today); y.setDate(y.getDate() - 3);
+  return [
+    { id: 1, author: "HR Admin", date: fmt(today), text: "KPI kartı yaradıldı və icraya buraxıldı. Aylıq review-lar üzrə cavabdehlərə xatırlatma göndərilib." },
+    { id: 2, author: "Rəhbər", date: fmt(y), text: "Hədəflər və çəkilər təsdiqlənib. Nəticələr Balanced Scorecard tabında izlənilir." },
+  ];
 };
 
 function Comments({ cardId }: { cardId?: number }) {

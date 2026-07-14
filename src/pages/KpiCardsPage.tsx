@@ -1232,15 +1232,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   };
 
   const performHardDelete = async (card: KpiCard) => {
-    setKpiCards(prev => prev.filter(c => c.id !== card.id));
+    // Kart tam silinmir — statusu "Ləğv olundu" olur və siyahıda qalır.
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
       const mod = await import("@/lib/kpiCardStatusStore");
+      await mod.upsertStatus({ card_id: card.id, status: "legv_olundu" });
       const next = await mod.fetchAllStatuses();
       setStatusMap(next);
     } catch {}
-    toast.success("KPI kartı silindi");
+    toast.success("KPI kartı ləğv olundu");
     setDeleteDialog(null);
   };
 
@@ -2048,6 +2047,48 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <span>Bitmə: {r.end || "—"}</span>
                                   <span>Məsul: {reviewer}</span>
                                 </div>
+                                {(() => {
+                                  // Review-a aid şərhlər — kart-səviyyəli şərh store-undan default-la seed
+                                  const key = `kpi_review_comments_v1::${selectedKpi.id}::${r.id}`;
+                                  let comments: { author: string; date: string; text: string }[] = [];
+                                  try {
+                                    const raw = localStorage.getItem(key);
+                                    if (raw) comments = JSON.parse(raw);
+                                  } catch {}
+                                  if (comments.length === 0) {
+                                    comments = status === "completed"
+                                      ? [
+                                          { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
+                                          { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                        ]
+                                      : status === "in_progress"
+                                      ? [
+                                          { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
+                                        ]
+                                      : [
+                                          { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
+                                        ];
+                                  }
+                                  return (
+                                    <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
+                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
+                                      {comments.map((c, ci) => (
+                                        <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/60 border border-border/50">
+                                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                            {(c.author || "?")[0]}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
+                                              {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                            </div>
+                                            <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
                           );
@@ -2078,8 +2119,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       const extras = entries
                         .filter(e => e.subKpiName && !ownIds.has(e.subKpiId))
                         .map(e => ({ id: e.subKpiId, name: e.subKpiName, target: e.target, unit: e.unit, weight: 0, current: "", progress: undefined, evaluator: undefined as any, _fromSet: true, _assignee: e.assigneeName }));
-                      const merged = [...own.map(s => ({ ...s, _fromSet: false as boolean, _assignee: "" })), ...extras];
-                      if (merged.length === 0) return null;
+                      let merged = [...own.map(s => ({ ...s, _fromSet: false as boolean, _assignee: "" })), ...extras];
+                      if (merged.length === 0) {
+                        // Fallback: hər KPI-nin ən azı bir hədəfi görünsün
+                        merged = [{
+                          id: 1,
+                          name: selectedKpi.name,
+                          target: (selectedKpi as any).generalTarget || (selectedKpi as any).target || "—",
+                          unit: (selectedKpi as any).unit || "",
+                          weight: 100,
+                          current: (selectedKpi as any).current || "—",
+                          progress: selectedKpi.progress,
+                          evaluator: { type: "self", persons: [{ name: selectedKpi.responsible || "Məsul şəxs", weight: 100 }] } as any,
+                          _fromSet: false,
+                          _assignee: selectedKpi.responsible || "",
+                        }];
+                      }
                       return (
                       <div className="bg-card rounded-lg border border-border p-4">
                         <h4 className="font-semibold text-foreground mb-3">Hədəflər</h4>
@@ -2116,42 +2171,60 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               )}
 
 
-              {detailTab === "history" && (
-                <div className="bg-card rounded-lg border border-border p-4">
-                  <h4 className="font-semibold text-foreground mb-4">Dəyişiklik Tarixçəsi</h4>
-                  <div className="space-y-3">
-                    {selectedKpi.history.map((h, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-primary" /></div>
-                          <div><p className="text-sm font-medium text-foreground">{h.date}</p><p className="text-xs text-muted-foreground">Dəyər: {h.value}</p></div>
+              {detailTab === "history" && (() => {
+                const seeded = (selectedKpi.history && selectedKpi.history.length > 0)
+                  ? selectedKpi.history
+                  : [
+                      { date: selectedKpi.startDate || "—", value: (selectedKpi as any).generalTarget || "Başlanğıc dəyər", change: 0 },
+                      { date: new Date().toISOString().slice(0, 10), value: (selectedKpi as any).current || `${selectedKpi.progress ?? 0}% icra`, change: selectedKpi.progress ?? 0 },
+                    ];
+                return (
+                  <div className="bg-card rounded-lg border border-border p-4">
+                    <h4 className="font-semibold text-foreground mb-4">Dəyişiklik Tarixçəsi</h4>
+                    <div className="space-y-3">
+                      {seeded.map((h, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-primary" /></div>
+                            <div><p className="text-sm font-medium text-foreground">{h.date}</p><p className="text-xs text-muted-foreground">Dəyər: {h.value}</p></div>
+                          </div>
+                          <div className={`flex items-center gap-1 text-sm font-semibold ${h.change >= 0 ? 'text-success' : 'text-destructive'}`}>
+                            {h.change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                            {h.change >= 0 ? '+' : ''}{h.change}%
+                          </div>
                         </div>
-                        <div className={`flex items-center gap-1 text-sm font-semibold ${h.change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                          {h.change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                          {h.change >= 0 ? '+' : ''}{h.change}%
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
-              {detailTab === "team" && (
-                <div className="bg-card rounded-lg border border-border p-4">
-                  <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
-                  <div className="space-y-3">
-                    {selectedKpi.team.map((m, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
-                          <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
+              {detailTab === "team" && (() => {
+                const initials = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
+                const team = (selectedKpi.team && selectedKpi.team.length > 0)
+                  ? selectedKpi.team
+                  : [
+                      { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS") },
+                      { name: "Nizami Əliyev", role: "İcraçı", avatar: "NƏ" },
+                      { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM" },
+                    ];
+                return (
+                  <div className="bg-card rounded-lg border border-border p-4">
+                    <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
+                    <div className="space-y-3">
+                      {team.map((m, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
+                            <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
+                          </div>
+                          {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
                         </div>
-                        {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {detailTab === "setStatus" && (() => {
                 const own = selectedKpi.subKpis || [];
