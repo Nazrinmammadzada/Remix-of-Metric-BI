@@ -1550,27 +1550,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              {st.status === "natamam" && (
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (!confirm(`"${withKartSuffix(card.name)}" kartını silmək istədiyinizə əminsiniz?`)) return;
-                                    setKpiCards(prev => prev.filter(c => c.id !== card.id));
-                                    try {
-                                      const { supabase } = await import("@/integrations/supabase/client");
-                                      await supabase.from("kpi_card_status").delete().eq("card_id", card.id);
-                                      const mod = await import("@/lib/kpiCardStatusStore");
-                                      const next = await mod.fetchAllStatuses();
-                                      setStatusMap(next);
-                                    } catch {}
-                                    toast.success("Kart silindi");
-                                  }}
-                                  title="Sil"
-                                  className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
+                                title="Sil"
+                                className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           );
                         }
