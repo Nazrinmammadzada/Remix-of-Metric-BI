@@ -2241,34 +2241,53 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || selectedKpi.responsible || "—", isSet: false as const })),
                   ...extras,
                 ];
-                // Fallback: hər kartın minimum 1 hədəfi olmalıdır — sintez et
                 if (merged.length === 0) {
                   merged = [{ id: 1, name: selectedKpi.name, assignee: selectedKpi.responsible || "—", isSet: false as const }];
                 }
                 const cardStatus = getStatusFor(selectedKpi.id).status;
                 const isActive = cardStatus === "aktiv";
                 const isDraft = cardStatus === "natamam";
+
+                // Look up positions for assignees
+                const emps = getEmployees();
+                const norm = (s: string) => s.trim().toLowerCase();
+                const posOf = (name: string) => {
+                  if (!name || name === "—") return "";
+                  const found = emps.find((e: any) => {
+                    const full1 = norm(`${e.firstName} ${e.lastName}`);
+                    const full2 = norm(`${e.lastName} ${e.firstName}`);
+                    return full1 === norm(name) || full2 === norm(name);
+                  });
+                  return (found as any)?.positionName || "";
+                };
+
                 return (
                   <div className="bg-card rounded-lg border border-border p-4">
-                    <h4 className="font-semibold text-foreground mb-4">Hədəf Set Statusu</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold text-foreground mb-4">Təyin Statusu</h4>
+                    <div className="space-y-3">
                       {merged.map((h, idx) => {
-                        // Status per row derives from KPI card status:
-                        //  aktiv → Tamamlanıb (yaşıl), natamam → Natamam (bozu), digərləri → Set edilib/Gözləyir seed məntiqi
-                        const badge = isActive
+                        const done = isActive || (!isDraft && h.isSet);
+                        const badge = done
                           ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Tamamlanıb" }
                           : isDraft
                           ? { cls: "bg-muted text-muted-foreground border-border", icon: <Clock className="w-3 h-3" />, text: "Natamam" }
-                          : h.isSet
-                          ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Set edilib" }
                           : { cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: <Clock className="w-3 h-3" />, text: "Gözləyir" };
+                        const cardCls = done
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 border-l-4 border-emerald-500 border border-emerald-500/20"
+                          : isDraft
+                          ? "bg-muted/40 border-l-4 border-muted-foreground/30 border border-border"
+                          : "bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-500 border border-amber-500/20";
+                        const position = posOf(h.assignee || "");
                         return (
-                          <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
+                          <div key={idx} className={`flex items-center justify-between p-4 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ${cardCls}`}>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{h.name}</p>
-                              <p className="text-xs text-muted-foreground">Təyin edən: {h.assignee || "—"}</p>
+                              <p className="text-base font-bold text-foreground mt-1">
+                                {h.assignee || "—"}
+                                {position && <span className="text-xs font-normal text-muted-foreground ml-1">({position})</span>}
+                              </p>
                             </div>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
+                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
                           </div>
                         );
                       })}
