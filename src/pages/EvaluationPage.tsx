@@ -423,21 +423,27 @@ const ManualAssignmentDialog = ({ onCreated }: { onCreated: () => void }) => {
           </div>
         )}
 
-        {/* STEP 3: per-reviewee criteria + scale */}
-        {step === 3 && (
+        {/* STEP 3: per-reviewee criteria (auto from competency matrix) + scale */}
+        {step === 3 && (() => {
+          const activeMatrices = getCompetencyMatrices().filter(m => m.status === "aktiv");
+          const matrixFor = (position: string) =>
+            activeMatrices.find(m => m.positions.some(p => p.toLowerCase() === (position || "").toLowerCase()));
+          return (
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             <p className="text-sm text-muted-foreground">
-              Hər əməkdaş üçün <span className="font-semibold text-foreground">vəzifəsinə uyğun</span> meyarları və bal sistemini seçin.
+              Meyarlar hər əməkdaşın vəzifəsinə uyğun <span className="font-semibold text-foreground">Səriştə Matrisindən</span> avtomatik gətirilir.
             </p>
-            {allCriteria.length === 0 && (
-              <div className="p-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-xl">
-                Meyarlar kataloqu boşdur. Əvvəlcə "Meyarlar kataloqu" tabından meyar əlavə edin.
-              </div>
-            )}
             {revieweeIds.map(rid => {
               const emp = mockEmployees.find(e => e.id === rid);
               if (!emp) return null;
-              const selectedForEmp = criteriaByReviewee[rid] || [];
+              const matrix = matrixFor(emp.position);
+              const empCriteria = matrix ? matrix.questions.map(q => q.text) : [];
+              // Auto-sync into state so submit passes
+              const stored = criteriaByReviewee[rid] || [];
+              if (matrix && (stored.length !== empCriteria.length || !empCriteria.every(c => stored.includes(c)))) {
+                setTimeout(() => setCriteriaByReviewee(prev => ({ ...prev, [rid]: empCriteria })), 0);
+              }
+              const selectedForEmp = empCriteria;
               const activeScale = getScaleById(scaleByReviewee[rid]) || defaultScale;
               return (
                 <div key={rid} className="rounded-xl border border-border bg-card overflow-hidden">
@@ -486,24 +492,38 @@ const ManualAssignmentDialog = ({ onCreated }: { onCreated: () => void }) => {
                     </Popover>
                   </div>
 
-                  {allCriteria.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3">
-                      {allCriteria.map(c => {
-                        const checked = selectedForEmp.includes(c);
-                        return (
-                          <label key={c} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${checked ? "border-primary bg-primary/10" : "border-border hover:bg-muted/40"}`}>
-                            <Checkbox checked={checked} onCheckedChange={() => toggleCriterionFor(rid, c)} />
+                  {matrix ? (
+                    <div className="p-3">
+                      <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+                        <Target className="w-3.5 h-3.5 text-primary" />
+                        Səriştə matrisi: <span className="font-medium text-foreground">{matrix.name}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {empCriteria.map(c => (
+                          <div key={c} className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/40 bg-primary/5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
                             <span className="text-sm text-foreground">{c}</span>
-                          </label>
-                        );
-                      })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="m-3 p-3 rounded-lg border border-amber-400/60 bg-amber-50 dark:bg-amber-500/10 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <p className="font-semibold text-amber-800 dark:text-amber-300">Aktiv səriştə matrisi tapılmadı</p>
+                        <p className="text-amber-700/90 dark:text-amber-300/80 mt-0.5">
+                          "{emp.position}" vəzifəsi üçün aktiv Səriştə Matrisi mövcud deyil. Zəhmət olmasa Səriştə Matrisi bölməsində uyğun matris yaradın.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-        )}
+          );
+        })()}
 
         <DialogFooter className="flex !justify-between">
           <Button variant="outline" onClick={() => setStep(s => Math.max(1, s - 1) as 1 | 2 | 3)} disabled={step === 1} className="gap-1">
