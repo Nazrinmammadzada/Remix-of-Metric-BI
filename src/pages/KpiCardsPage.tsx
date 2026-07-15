@@ -1604,16 +1604,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   <div className="flex items-center justify-end">
                     <div className="inline-flex items-center rounded-lg border border-border bg-card p-1 shadow-sm">
                       <button
-                        onClick={() => setKart2SubView("structure")}
-                        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
-                      >
-                        Struktur üzrə
-                      </button>
-                      <button
                         onClick={() => setKart2SubView("employees")}
                         className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "employees" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
                       >
                         Əməkdaşlar üzrə
+                      </button>
+                      <button
+                        onClick={() => setKart2SubView("structure")}
+                        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+                      >
+                        Struktur üzrə
                       </button>
                     </div>
                   </div>
