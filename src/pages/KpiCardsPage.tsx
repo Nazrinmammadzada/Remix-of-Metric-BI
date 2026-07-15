@@ -6,7 +6,7 @@ const hashStrLocal = (s: string): number => {
   return h;
 };
 import Header from "@/components/layout/Header";
-import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, User, Clock, ArrowUp, ArrowDown, GripVertical, Check, Hourglass, CheckCircle2, Trash2, Info, ChevronDown, Pencil, ShieldCheck, AlertTriangle, Sparkles, UserCheck, Shuffle, UserCog, UserPlus, Sliders } from "lucide-react";
+import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, User, Clock, ArrowUp, ArrowDown, GripVertical, Check, Hourglass, CheckCircle2, Trash2, Info, ChevronDown, ChevronUp, Pencil, ShieldCheck, AlertTriangle, Sparkles, UserCheck, Shuffle, UserCog, UserPlus, Sliders, ShoppingCart, Store, Monitor, BarChart3 } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -474,6 +474,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   }, []);
   const [selectedKpi, setSelectedKpi] = useState<KpiCard | null>(null);
   const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle" | "reviewTrack">("general");
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
   const [deleteComment, setDeleteComment] = useState("");
   const [matrixPicker, setMatrixPicker] = useState<{ card: KpiCard } | null>(null);
@@ -537,7 +538,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
-  const [kart2SubView, setKart2SubView] = useState<"structure" | "employees">("structure");
+  const [kart2SubView, setKart2SubView] = useState<"structure" | "employees">("employees");
 
 
   // === Yeni KPI Sehrbazı (4 addımlı) ===
@@ -1604,16 +1605,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   <div className="flex items-center justify-end">
                     <div className="inline-flex items-center rounded-lg border border-border bg-card p-1 shadow-sm">
                       <button
-                        onClick={() => setKart2SubView("structure")}
-                        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
-                      >
-                        Struktur üzrə
-                      </button>
-                      <button
                         onClick={() => setKart2SubView("employees")}
                         className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "employees" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
                       >
                         Əməkdaşlar üzrə
+                      </button>
+                      <button
+                        onClick={() => setKart2SubView("structure")}
+                        className={`px-4 py-1.5 text-sm rounded-md transition-colors ${kart2SubView === "structure" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+                      >
+                        Struktur üzrə
                       </button>
                     </div>
                   </div>
@@ -1990,7 +1991,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               <div className="flex gap-2 border-b border-border overflow-x-auto">
                 {(() => {
                   const hasMatrix = !!selectedKpi.matrixId;
-                  const allTabs = [["general", "Ümumi"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["reviewTrack", "Review İzləmə"], ["history", "Tarixçə"], ["team", "KPI Üzvləri"], ["comments", "Şərhlər"], ["status", "Təsdiqləmə Zənciri"], ["setStatus", "Set Statusu"]] as const;
+                  const allTabs = [["general", "Ümumi"], ["bsc", "Balanced Scorecard"], ["lifecycle", "Lifecycle"], ["reviewTrack", "Review İzləmə"], ["history", "Performans Dinamikası"], ["team", "KPI Üzvləri"], ["comments", "Şərhlər"], ["status", "Təsdiqləmə Matrisi"], ["setStatus", "Təyin Statusu"]] as const;
                   const tabs = allTabs.filter(([k]) => k !== "status" || hasMatrix);
                   return tabs.map(([key, label]) => (
                     <button key={key} onClick={() => setDetailTab(key as any)} className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}>{label}</button>
@@ -2064,32 +2065,59 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                       ? [
                                           { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
                                           { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                          { author: "Rəhbər", date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
+                                          { author: reviewer, date: r.end || "", text: "Növbəti dövr üçün fokus sahələri müəyyənləşdirildi və komanda ilə paylaşıldı." },
+                                          { author: "Əməkdaş", date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
                                         ]
                                       : status === "in_progress"
                                       ? [
                                           { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
+                                          { author: "HR", date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
                                         ]
                                       : [
                                           { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
                                         ];
                                   }
+                                  const isExpanded = expandedReviews.has(r.id);
+                                  const showAll = isExpanded || comments.length <= 3;
+                                  const visible = showAll ? comments : comments.slice(0, 3);
+                                  const hiddenCount = comments.length - 3;
+                                  const toggle = () => setExpandedReviews(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                                    return next;
+                                  });
                                   return (
-                                    <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
-                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
-                                      {comments.map((c, ci) => (
-                                        <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/60 border border-border/50">
-                                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
-                                            {(c.author || "?")[0]}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
-                                              {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                    <div className="mt-3 pt-3 border-t border-border/60">
+                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide mb-2">Review şərhləri</p>
+                                      <div className="rounded-lg border border-border/60 bg-background/40 overflow-hidden">
+                                        <div className="p-2 space-y-2 transition-all duration-[250ms] ease-out">
+                                          {visible.map((c, ci) => (
+                                            <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/80 border border-border/50">
+                                              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                                {(c.author || "?")[0]}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                  <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
+                                                  {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                                </div>
+                                                <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
+                                              </div>
                                             </div>
-                                            <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
-                                          </div>
+                                          ))}
                                         </div>
-                                      ))}
+                                        {comments.length > 3 && (
+                                          <button
+                                            type="button"
+                                            onClick={toggle}
+                                            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-[13px] font-medium text-primary bg-[#F8FAFC] hover:bg-[#F1F5F9] dark:bg-secondary/60 dark:hover:bg-secondary transition-colors cursor-pointer"
+                                          >
+                                            {isExpanded ? "Daha az göstər" : `${hiddenCount} daha çox şərh var`}
+                                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })()}
@@ -2140,32 +2168,68 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         }];
                       }
                       return (
-                      <div className="bg-card rounded-lg border border-border p-4">
-                        <h4 className="font-semibold text-foreground mb-3">Hədəflər</h4>
-                        <div className="space-y-2">
-                          {merged.map(sk => (
-                            <div key={sk.id} className="p-2 rounded-lg bg-secondary">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span className="font-medium text-foreground flex items-center gap-2">
-                                  {sk.name}
-                                  {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
-                                </span>
-                                {sk.weight ? <span className="text-xs text-muted-foreground">Çəki: {sk.weight}%</span> : null}
-                              </div>
-                               <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                 <span>Dəyər: {sk.target}{sk.unit ? ` (${sk.unit})` : ""}</span>
-                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium">
-                                   Cari vəziyyət: {sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}
-                                 </span>
-                                 <span>{sk._fromSet ? `Təyin edici: ${sk._assignee}` : ""}</span>
-                               </div>
-                              {sk.evaluator?.type && (
-                                <div className="text-[11px] text-muted-foreground mt-1">
-                                  Qiymətləndirici ({sk.evaluator.type}): {sk.evaluator.type === "self" ? "Özü" : sk.evaluator.type === "integration" ? `${sk.evaluator.integrationName} (${sk.evaluator.integrationWeight ?? 100}%)` : sk.evaluator.persons.map((p: any) => `${p.name} ${p.weight}%`).join(", ")}
+                      <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                            <Target className="w-5 h-5" />
+                          </div>
+                          <h4 className="font-semibold text-foreground text-base">Hədəflər</h4>
+                        </div>
+                        <div className="rounded-xl border border-border overflow-hidden">
+                          <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
+                            <div className="col-span-4">Hədəf</div>
+                            <div className="col-span-4">Cari vəziyyət</div>
+                            <div className="col-span-2">Hədəf dəyər</div>
+                            <div className="col-span-2 text-right">Çəki</div>
+                          </div>
+                          <div className="divide-y divide-border">
+                            {merged.map((sk, i) => {
+                              const parseNum = (v: any) => {
+                                if (v === null || v === undefined) return NaN;
+                                const s = String(v).replace(/[^\d.,-]/g, "").replace(",", ".");
+                                const n = parseFloat(s);
+                                return isNaN(n) ? NaN : n;
+                              };
+                              const cur = parseNum(sk.current);
+                              const tgt = parseNum(sk.target);
+                              const pct = !isNaN(cur) && !isNaN(tgt) && tgt !== 0
+                                ? Math.min(100, Math.round((cur / tgt) * 100))
+                                : (typeof sk.progress === "number" ? sk.progress : 0);
+                              const icons = [ShoppingCart, Store, Monitor, BarChart3, Target];
+                              const Icon = icons[i % icons.length];
+                              return (
+                                <div key={sk.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
+                                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                      <Icon className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
+                                        {sk.name}
+                                        {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground truncate">Dəyər: {sk.target}{sk.unit ? ` ${sk.unit}` : ""}</p>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-4">
+                                    <p className="text-sm font-bold text-primary tabular-nums">{sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
+                                    <div className="mt-1.5 flex items-center gap-2">
+                                      <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                      </div>
+                                      <span className="text-[11px] font-semibold text-primary tabular-nums">{pct}%</span>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-2 text-sm font-medium text-foreground tabular-nums">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
+                                  <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums border-l border-border pl-2">{sk.weight ? `${sk.weight}%` : "—"}</div>
                                 </div>
-                              )}
-                            </div>
-                          ))}
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-start gap-2 rounded-lg bg-secondary/40 border border-border px-3 py-2">
+                          <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                          <p className="text-xs text-muted-foreground">Faiz göstəricisi cari vəziyyətin hədəf dəyərə nisbətini göstərir.</p>
                         </div>
                       </div>
                       );
@@ -2176,28 +2240,75 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
 
               {detailTab === "history" && (() => {
-                const seeded = (selectedKpi.history && selectedKpi.history.length > 0)
-                  ? selectedKpi.history
-                  : [
-                      { date: selectedKpi.startDate || "—", value: (selectedKpi as any).generalTarget || "Başlanğıc dəyər", change: 0 },
-                      { date: new Date().toISOString().slice(0, 10), value: (selectedKpi as any).current || `${selectedKpi.progress ?? 0}% icra`, change: selectedKpi.progress ?? 0 },
-                    ];
+                // Build a monthly performance-dynamics timeline. Use provided history when present,
+                // otherwise synthesize the last 4 months relative to today so the tab is never empty.
+                const AZ_MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
+                type Row = { title: string; value: string; delta: number; isCurrent: boolean };
+                let rows: Row[] = [];
+                if (selectedKpi.history && selectedKpi.history.length > 0) {
+                  const hist = [...selectedKpi.history];
+                  rows = hist.map((h, i) => ({
+                    title: h.date || "—",
+                    value: String(h.value ?? "—"),
+                    delta: Number(h.change) || 0,
+                    isCurrent: i === hist.length - 1,
+                  })).reverse();
+                } else {
+                  const now = new Date();
+                  const base = Number((selectedKpi as any).progress) || 40;
+                  const deltas = [8, 5, -2, 12];
+                  const values = [base, base - 8, base - 3, base - 15].map(v => Math.max(0, v));
+                  for (let i = 0; i < 4; i++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    rows.push({
+                      title: `${AZ_MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+                      value: `${values[i]}% icra`,
+                      delta: deltas[i],
+                      isCurrent: i === 0,
+                    });
+                  }
+                }
                 return (
-                  <div className="bg-card rounded-lg border border-border p-4">
-                    <h4 className="font-semibold text-foreground mb-4">Dəyişiklik Tarixçəsi</h4>
+                  <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Clock className="w-5 h-5 text-primary" />
+                      <h4 className="font-semibold text-foreground text-base">Dəyişiklik Tarixçəsi</h4>
+                    </div>
                     <div className="space-y-3">
-                      {seeded.map((h, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><Calendar className="w-4 h-4 text-primary" /></div>
-                            <div><p className="text-sm font-medium text-foreground">{h.date}</p><p className="text-xs text-muted-foreground">Dəyər: {h.value}</p></div>
+                      {rows.map((r, i) => {
+                        const up = r.delta >= 0;
+                        const chip = up
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                          : "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400";
+                        const rowCls = r.isCurrent
+                          ? "bg-amber-50 dark:bg-amber-500/10 border border-amber-200/70 dark:border-amber-500/30 border-l-4 border-l-amber-400"
+                          : "bg-secondary/40 border border-border";
+                        const iconWrap = r.isCurrent
+                          ? "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                          : "bg-muted text-muted-foreground";
+                        return (
+                          <div key={i} className={`flex items-center justify-between gap-3 p-4 rounded-xl ${rowCls}`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconWrap}`}>
+                                <Calendar className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-semibold text-foreground">{r.title}</p>
+                                  {r.isCurrent && (
+                                    <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Cari ay</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">Dəyər: {r.value}</p>
+                              </div>
+                            </div>
+                            <div className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold ${chip}`}>
+                              {up ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                              {up ? "+" : ""}{r.delta}%
+                            </div>
                           </div>
-                          <div className={`flex items-center gap-1 text-sm font-semibold ${h.change >= 0 ? 'text-success' : 'text-destructive'}`}>
-                            {h.change >= 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                            {h.change >= 0 ? '+' : ''}{h.change}%
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -2241,34 +2352,53 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || selectedKpi.responsible || "—", isSet: false as const })),
                   ...extras,
                 ];
-                // Fallback: hər kartın minimum 1 hədəfi olmalıdır — sintez et
                 if (merged.length === 0) {
                   merged = [{ id: 1, name: selectedKpi.name, assignee: selectedKpi.responsible || "—", isSet: false as const }];
                 }
                 const cardStatus = getStatusFor(selectedKpi.id).status;
                 const isActive = cardStatus === "aktiv";
                 const isDraft = cardStatus === "natamam";
+
+                // Look up positions for assignees
+                const emps = getEmployees();
+                const norm = (s: string) => s.trim().toLowerCase();
+                const posOf = (name: string) => {
+                  if (!name || name === "—") return "";
+                  const found = emps.find((e: any) => {
+                    const full1 = norm(`${e.firstName} ${e.lastName}`);
+                    const full2 = norm(`${e.lastName} ${e.firstName}`);
+                    return full1 === norm(name) || full2 === norm(name);
+                  });
+                  return (found as any)?.positionName || "";
+                };
+
                 return (
                   <div className="bg-card rounded-lg border border-border p-4">
-                    <h4 className="font-semibold text-foreground mb-4">Hədəf Set Statusu</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold text-foreground mb-4">Təyin Statusu</h4>
+                    <div className="space-y-3">
                       {merged.map((h, idx) => {
-                        // Status per row derives from KPI card status:
-                        //  aktiv → Tamamlanıb (yaşıl), natamam → Natamam (bozu), digərləri → Set edilib/Gözləyir seed məntiqi
-                        const badge = isActive
+                        const done = isActive || (!isDraft && h.isSet);
+                        const badge = done
                           ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Tamamlanıb" }
                           : isDraft
                           ? { cls: "bg-muted text-muted-foreground border-border", icon: <Clock className="w-3 h-3" />, text: "Natamam" }
-                          : h.isSet
-                          ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Set edilib" }
                           : { cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: <Clock className="w-3 h-3" />, text: "Gözləyir" };
+                        const cardCls = done
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 border-l-4 border-emerald-500 border border-emerald-500/20"
+                          : isDraft
+                          ? "bg-muted/40 border-l-4 border-muted-foreground/30 border border-border"
+                          : "bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-500 border border-amber-500/20";
+                        const position = posOf(h.assignee || "");
                         return (
-                          <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-secondary">
+                          <div key={idx} className={`flex items-center justify-between p-4 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ${cardCls}`}>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{h.name}</p>
-                              <p className="text-xs text-muted-foreground">Təyin edən: {h.assignee || "—"}</p>
+                              <p className="text-base font-bold text-foreground mt-1">
+                                {h.assignee || "—"}
+                                {position && <span className="text-xs font-normal text-muted-foreground ml-1">({position})</span>}
+                              </p>
                             </div>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
+                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
                           </div>
                         );
                       })}
@@ -2311,7 +2441,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Progress</p><p className="text-lg font-bold text-foreground mt-1">{completedSteps}/{totalSteps}</p></div>
                     </div>
                     <div className="bg-card rounded-lg border border-border p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-4">Təsdiqləmə Zənciri</h4>
+                      <h4 className="font-semibold text-foreground text-sm mb-4">Təsdiqləmə Matrisi</h4>
                       <div className="space-y-3">
                         {chain.map((step, i) => (
                           <div key={i} className="flex items-center gap-3">
