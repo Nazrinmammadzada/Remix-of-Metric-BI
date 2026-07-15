@@ -250,7 +250,7 @@ export function AdvancedFilter<T>({ columns, value, onChange }: AdvancedFilterPr
               <div key={row.id} className="flex flex-wrap items-start gap-2 p-2 rounded-lg border border-border bg-secondary/20">
                 {idx > 0 && (
                   <div className="text-[10px] font-semibold text-primary px-1.5 py-0.5 rounded bg-primary/10 self-center">
-                    {draft.logic}
+                    AND
                   </div>
                 )}
                 {/* Column */}
