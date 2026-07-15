@@ -1536,7 +1536,7 @@ const EvaluationPage = () => {
           {section === "teyinat" && <AssignmentsTab />}
           {section === "status" && <StatusTab />}
           {section === "seriste" && <CompetencyMatrixTab />}
-          {section === "kataloq" && <CriteriaTab />}
+          
           {section === "parametr" && <SettingsTab />}
         </div>
       )}
