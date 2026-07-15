@@ -195,7 +195,7 @@ export function AdvancedFilter<T>({ columns, value, onChange }: AdvancedFilterPr
 
   const apply = () => {
     onChange({
-      ...draft,
+      logic: "AND",
       rows: draft.rows.filter(r => {
         if (NO_VALUE_OPS.includes(r.operator)) return true;
         if (TWO_VALUE_OPS.includes(r.operator)) return !!r.value && !!r.value2;
