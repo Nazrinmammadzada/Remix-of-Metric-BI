@@ -138,10 +138,7 @@ export function evaluateAdvFilter<T>(
     }
   };
 
-  return rows.filter(row => {
-    if (state.logic === "AND") return state.rows.every(r => check(row, r));
-    return state.rows.some(r => check(row, r));
-  });
+  return rows.filter(row => state.rows.every(r => check(row, r)));
 }
 
 interface AdvancedFilterProps<T> {
