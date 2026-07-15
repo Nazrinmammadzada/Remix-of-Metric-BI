@@ -230,18 +230,6 @@ export function AdvancedFilter<T>({ columns, value, onChange }: AdvancedFilterPr
             <Filter className="w-4 h-4 text-primary" />
             <div className="font-semibold text-sm">Ətraflı Filter</div>
           </div>
-          <div className="flex items-center gap-1 rounded-md border border-border p-0.5 text-xs">
-            {(["AND", "OR"] as const).map(l => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setDraft(d => ({ ...d, logic: l }))}
-                className={`px-2 py-1 rounded transition ${draft.logic === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
-              >
-                {l === "AND" ? "AND (və)" : "OR (və ya)"}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-3 space-y-2">
