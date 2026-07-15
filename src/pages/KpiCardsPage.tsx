@@ -1691,25 +1691,30 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               const frozenCards = filteredCards.filter(c => c.frozen);
 
               const renderCard = (card: KpiCard) => {
-                const locked = card.approvalStatus === "approved";
+                const cardSt = getStatusFor(card.id).status;
+                const canEdit = cardSt === "qaralama" || cardSt === "natamam";
+                const canDelete = cardSt !== "imtina";
                 return (
                   <div key={card.id} onClick={() => openDetail(card)} className={`bg-card rounded-xl p-5 border-2 border-border cursor-pointer hover:shadow-md hover:border-primary/40 transition-shadow relative group ${card.frozen ? "opacity-70" : ""}`}>
-                    <button
-                      disabled={locked}
-                      onClick={(e) => { e.stopPropagation(); if (locked) return; openWizardForEdit(card.id); }}
-                      title={locked ? "Təsdiqlənmiş KPI-ı redaktə etmək mümkün deyil" : "Redaktə et"}
-                      className={`absolute top-3 right-11 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10 ${locked ? "cursor-not-allowed opacity-30 group-hover:opacity-40" : "hover:bg-secondary"}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                        title="Redaktə et"
+                        className="absolute top-3 right-11 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 hover:bg-secondary flex items-center justify-center transition-opacity z-10"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    )}
 
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
-                      title={card.approvalStatus === "approved" ? "Silmək üçün təsdiqləmə matrisindən təsdiq tələb olunur" : "Sil"}
-                      className="absolute top-3 right-3 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 hover:bg-destructive/10 flex items-center justify-center transition-opacity z-10"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
+                        title="Sil"
+                        className="absolute top-3 right-3 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 hover:bg-destructive/10 flex items-center justify-center transition-opacity z-10"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                         {card.approvalStatus === "approved" ? <CheckCircle2 className="w-5 h-5 text-zone-green-text" /> : <Hourglass className="w-5 h-5 text-zone-yellow-text" />}
