@@ -475,6 +475,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [selectedKpi, setSelectedKpi] = useState<KpiCard | null>(null);
   const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle" | "reviewTrack">("general");
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [reviewCommentFilters, setReviewCommentFilters] = useState<Record<string, { author: string; date: string }>>({});
   const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
   const [deleteComment, setDeleteComment] = useState("");
   const [matrixPicker, setMatrixPicker] = useState<{ card: KpiCard } | null>(null);
