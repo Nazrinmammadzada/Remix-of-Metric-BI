@@ -138,10 +138,7 @@ export function evaluateAdvFilter<T>(
     }
   };
 
-  return rows.filter(row => {
-    if (state.logic === "AND") return state.rows.every(r => check(row, r));
-    return state.rows.some(r => check(row, r));
-  });
+  return rows.filter(row => state.rows.every(r => check(row, r)));
 }
 
 interface AdvancedFilterProps<T> {
@@ -195,7 +192,7 @@ export function AdvancedFilter<T>({ columns, value, onChange }: AdvancedFilterPr
 
   const apply = () => {
     onChange({
-      ...draft,
+      logic: "AND",
       rows: draft.rows.filter(r => {
         if (NO_VALUE_OPS.includes(r.operator)) return true;
         if (TWO_VALUE_OPS.includes(r.operator)) return !!r.value && !!r.value2;
@@ -230,18 +227,6 @@ export function AdvancedFilter<T>({ columns, value, onChange }: AdvancedFilterPr
             <Filter className="w-4 h-4 text-primary" />
             <div className="font-semibold text-sm">Ətraflı Filter</div>
           </div>
-          <div className="flex items-center gap-1 rounded-md border border-border p-0.5 text-xs">
-            {(["AND", "OR"] as const).map(l => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setDraft(d => ({ ...d, logic: l }))}
-                className={`px-2 py-1 rounded transition ${draft.logic === l ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary/60"}`}
-              >
-                {l === "AND" ? "AND (və)" : "OR (və ya)"}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-3 space-y-2">
@@ -265,7 +250,7 @@ export function AdvancedFilter<T>({ columns, value, onChange }: AdvancedFilterPr
               <div key={row.id} className="flex flex-wrap items-start gap-2 p-2 rounded-lg border border-border bg-secondary/20">
                 {idx > 0 && (
                   <div className="text-[10px] font-semibold text-primary px-1.5 py-0.5 rounded bg-primary/10 self-center">
-                    {draft.logic}
+                    AND
                   </div>
                 )}
                 {/* Column */}

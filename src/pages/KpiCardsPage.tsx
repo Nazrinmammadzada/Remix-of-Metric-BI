@@ -475,6 +475,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [selectedKpi, setSelectedKpi] = useState<KpiCard | null>(null);
   const [detailTab, setDetailTab] = useState<"general" | "bsc" | "history" | "team" | "comments" | "status" | "setStatus" | "lifecycle" | "reviewTrack">("general");
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [reviewCommentFilters, setReviewCommentFilters] = useState<Record<string, { author: string; date: string }>>({});
   const [deleteDialog, setDeleteDialog] = useState<{ card: KpiCard; mode: "simple" | "choice" } | null>(null);
   const [deleteComment, setDeleteComment] = useState("");
   const [matrixPicker, setMatrixPicker] = useState<{ card: KpiCard } | null>(null);
@@ -1483,7 +1484,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
-                              {st.status !== "aktiv" && (
+                              {(st.status === "qaralama" || st.status === "natamam") && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
                                   title="Redaktə et"
@@ -1554,13 +1555,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
-                                title="Sil"
-                                className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {st.status !== "imtina" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
+                                  title="Sil"
+                                  className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           );
                         }
@@ -1625,63 +1628,83 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       onOpenEmployee={(name) => setEmployeeDrilldown(name)}
                     />
                   ) : (
-                    <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[720px]">
-                          <thead className="bg-secondary/40 text-muted-foreground">
-                            <tr className="text-left">
-                              <th className="px-4 py-3 font-medium">Əməkdaşın A.S.A.</th>
-                              <th className="px-4 py-3 font-medium">Vəzifə</th>
-                              <th className="px-4 py-3 font-medium text-center w-40">KPI kartlarının sayı</th>
-                              <th className="px-4 py-3 font-medium w-56">Ortalama Progress</th>
-                              <th className="px-4 py-3 font-medium text-right w-56">Əməliyyat</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rows.length === 0 ? (
-                              <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Əməkdaş tapılmadı.</td></tr>
-                            ) : rows.map(r => (
-                              <tr key={r.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
-                                <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                                      {r.name.split(" ").map(x => x[0]).join("").slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <span className="font-medium text-foreground truncate">{r.name}</span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-2.5 text-xs text-muted-foreground truncate">{r.position}</td>
-                                <td className="px-4 py-2.5 text-center">
-                                  <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                                    {r.count}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
-                                      <div
-                                        className={`h-full transition-all duration-500 ${r.avg >= 90 ? "bg-emerald-500" : r.avg >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
-                                        style={{ width: `${Math.min(r.avg, 100)}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-xs tabular-nums font-medium w-9 text-right">{r.avg}%</span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-2.5 text-right">
-                                  <button
-                                    onClick={() => setEmployeeDrilldown(r.name)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    Kartlara detallı bax
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                    <DataTable
+                      rows={rows}
+                      rowKey={(r) => r.id}
+                      storageKey="kpi_cards_employees_view"
+                      showRowNumbers
+                      emptyMessage="Əməkdaş tapılmadı."
+                      columns={[
+                        {
+                          key: "name",
+                          label: "Əməkdaşın A.S.A.",
+                          filterType: "text",
+                          accessor: (r) => r.name,
+                          render: (r) => (
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                                {r.name.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className="font-medium text-foreground truncate">{r.name}</span>
+                            </div>
+                          ),
+                        },
+                        {
+                          key: "position",
+                          label: "Vəzifə",
+                          filterType: "text",
+                          accessor: (r) => r.position,
+                          render: (r) => <span className="text-xs text-muted-foreground truncate">{r.position}</span>,
+                        },
+                        {
+                          key: "count",
+                          label: "KPI kartlarının sayı",
+                          filterType: "number",
+                          align: "center",
+                          width: 160,
+                          accessor: (r) => r.count,
+                          render: (r) => (
+                            <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                              {r.count}
+                            </span>
+                          ),
+                        },
+                        {
+                          key: "avg",
+                          label: "Ortalama Progress",
+                          filterType: "number",
+                          width: 220,
+                          accessor: (r) => r.avg,
+                          render: (r) => (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-500 ${r.avg >= 90 ? "bg-emerald-500" : r.avg >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
+                                  style={{ width: `${Math.min(r.avg, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-xs tabular-nums font-medium w-9 text-right">{r.avg}%</span>
+                            </div>
+                          ),
+                        },
+                        {
+                          key: "ops",
+                          label: "Əməliyyat",
+                          filterType: "none",
+                          align: "right",
+                          width: 200,
+                          render: (r) => (
+                            <button
+                              onClick={() => setEmployeeDrilldown(r.name)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Kartlara detallı bax
+                            </button>
+                          ),
+                        },
+                      ]}
+                    />
                   )}
                 </div>
               );
@@ -1691,25 +1714,30 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               const frozenCards = filteredCards.filter(c => c.frozen);
 
               const renderCard = (card: KpiCard) => {
-                const locked = card.approvalStatus === "approved";
+                const cardSt = getStatusFor(card.id).status;
+                const canEdit = cardSt === "qaralama" || cardSt === "natamam";
+                const canDelete = cardSt !== "imtina";
                 return (
                   <div key={card.id} onClick={() => openDetail(card)} className={`bg-card rounded-xl p-5 border-2 border-border cursor-pointer hover:shadow-md hover:border-primary/40 transition-shadow relative group ${card.frozen ? "opacity-70" : ""}`}>
-                    <button
-                      disabled={locked}
-                      onClick={(e) => { e.stopPropagation(); if (locked) return; openWizardForEdit(card.id); }}
-                      title={locked ? "Təsdiqlənmiş KPI-ı redaktə etmək mümkün deyil" : "Redaktə et"}
-                      className={`absolute top-3 right-11 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity z-10 ${locked ? "cursor-not-allowed opacity-30 group-hover:opacity-40" : "hover:bg-secondary"}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                        title="Redaktə et"
+                        className="absolute top-3 right-11 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 hover:bg-secondary flex items-center justify-center transition-opacity z-10"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
+                    )}
 
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
-                      title={card.approvalStatus === "approved" ? "Silmək üçün təsdiqləmə matrisindən təsdiq tələb olunur" : "Sil"}
-                      className="absolute top-3 right-3 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 hover:bg-destructive/10 flex items-center justify-center transition-opacity z-10"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
+                        title="Sil"
+                        className="absolute top-3 right-3 w-7 h-7 rounded-md bg-card border border-border opacity-0 group-hover:opacity-100 hover:bg-destructive/10 flex items-center justify-center transition-opacity z-10"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                      </button>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                         {card.approvalStatus === "approved" ? <CheckCircle2 className="w-5 h-5 text-zone-green-text" /> : <Hourglass className="w-5 h-5 text-zone-yellow-text" />}
@@ -1978,12 +2006,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <div className="text-xs font-semibold text-rose-700 dark:text-rose-400">İmtina səbəbi</div>
                       <div className="text-sm text-foreground mt-0.5">{reason}</div>
                     </div>
-                    <button
-                      onClick={() => { const id = selectedKpi.id; setSelectedKpi(null); openWizardForEdit(id); }}
-                      className="px-3 py-1.5 text-xs rounded border border-rose-500/40 bg-white dark:bg-background hover:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-medium inline-flex items-center gap-1 shrink-0"
-                    >
-                      <Pencil className="w-3.5 h-3.5" /> Redaktə et
-                    </button>
                   </div>
                 );
               })()}
@@ -2078,20 +2100,61 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                           { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
                                         ];
                                   }
+                                  const filter = reviewCommentFilters[r.id] || { author: "", date: "" };
+                                  const availableAuthors = Array.from(new Set(comments.map(c => c.author).filter(Boolean)));
+                                  const filteredComments = comments.filter(c => {
+                                    if (filter.author && c.author !== filter.author) return false;
+                                    if (filter.date && !(c.date || "").includes(filter.date)) return false;
+                                    return true;
+                                  });
                                   const isExpanded = expandedReviews.has(r.id);
-                                  const showAll = isExpanded || comments.length <= 3;
-                                  const visible = showAll ? comments : comments.slice(0, 3);
-                                  const hiddenCount = comments.length - 3;
+                                  const showAll = isExpanded || filteredComments.length <= 3;
+                                  const visible = showAll ? filteredComments : filteredComments.slice(0, 3);
+                                  const hiddenCount = filteredComments.length - 3;
                                   const toggle = () => setExpandedReviews(prev => {
                                     const next = new Set(prev);
                                     if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
                                     return next;
                                   });
+                                  const setFilter = (patch: Partial<{ author: string; date: string }>) =>
+                                    setReviewCommentFilters(prev => ({ ...prev, [r.id]: { ...filter, ...patch } }));
                                   return (
                                     <div className="mt-3 pt-3 border-t border-border/60">
-                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide mb-2">Review şərhləri</p>
+                                      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
+                                        <div className="flex items-center gap-1.5">
+                                          <select
+                                            value={filter.author}
+                                            onChange={(e) => setFilter({ author: e.target.value })}
+                                            className="text-[11px] px-2 py-1 rounded border border-border bg-background text-foreground"
+                                          >
+                                            <option value="">Bütün müəlliflər</option>
+                                            {availableAuthors.map(a => <option key={a} value={a}>{a}</option>)}
+                                          </select>
+                                          <input
+                                            type="date"
+                                            value={filter.date}
+                                            onChange={(e) => setFilter({ date: e.target.value })}
+                                            className="text-[11px] px-2 py-1 rounded border border-border bg-background text-foreground"
+                                          />
+                                          {(filter.author || filter.date) && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setFilter({ author: "", date: "" })}
+                                              className="text-[11px] px-2 py-1 rounded border border-border bg-background text-muted-foreground hover:text-foreground"
+                                            >
+                                              Sıfırla
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
                                       <div className="rounded-lg border border-border/60 bg-background/40 overflow-hidden">
                                         <div className="p-2 space-y-2 transition-all duration-[250ms] ease-out">
+                                          {visible.length === 0 && (
+                                            <div className="text-center text-[11px] text-muted-foreground py-4">
+                                              Filtrə uyğun şərh tapılmadı.
+                                            </div>
+                                          )}
                                           {visible.map((c, ci) => (
                                             <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/80 border border-border/50">
                                               <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
@@ -2107,7 +2170,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                             </div>
                                           ))}
                                         </div>
-                                        {comments.length > 3 && (
+                                        {filteredComments.length > 3 && (
                                           <button
                                             type="button"
                                             onClick={toggle}
