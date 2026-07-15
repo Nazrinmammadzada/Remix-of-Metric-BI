@@ -2065,32 +2065,59 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                       ? [
                                           { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
                                           { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                          { author: "Rəhbər", date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
+                                          { author: reviewer, date: r.end || "", text: "Növbəti dövr üçün fokus sahələri müəyyənləşdirildi və komanda ilə paylaşıldı." },
+                                          { author: "Əməkdaş", date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
                                         ]
                                       : status === "in_progress"
                                       ? [
                                           { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
+                                          { author: "HR", date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
                                         ]
                                       : [
                                           { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
                                         ];
                                   }
+                                  const isExpanded = expandedReviews.has(r.id);
+                                  const showAll = isExpanded || comments.length <= 3;
+                                  const visible = showAll ? comments : comments.slice(0, 3);
+                                  const hiddenCount = comments.length - 3;
+                                  const toggle = () => setExpandedReviews(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                                    return next;
+                                  });
                                   return (
-                                    <div className="mt-3 pt-3 border-t border-border/60 space-y-2">
-                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
-                                      {comments.map((c, ci) => (
-                                        <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/60 border border-border/50">
-                                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
-                                            {(c.author || "?")[0]}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
-                                              {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                    <div className="mt-3 pt-3 border-t border-border/60">
+                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide mb-2">Review şərhləri</p>
+                                      <div className="rounded-lg border border-border/60 bg-background/40 overflow-hidden">
+                                        <div className="p-2 space-y-2 transition-all duration-[250ms] ease-out">
+                                          {visible.map((c, ci) => (
+                                            <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/80 border border-border/50">
+                                              <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                                {(c.author || "?")[0]}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                  <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
+                                                  {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                                </div>
+                                                <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
+                                              </div>
                                             </div>
-                                            <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
-                                          </div>
+                                          ))}
                                         </div>
-                                      ))}
+                                        {comments.length > 3 && (
+                                          <button
+                                            type="button"
+                                            onClick={toggle}
+                                            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-[13px] font-medium text-primary bg-[#F8FAFC] hover:bg-[#F1F5F9] dark:bg-secondary/60 dark:hover:bg-secondary transition-colors cursor-pointer"
+                                          >
+                                            {isExpanded ? "Daha az göstər" : `${hiddenCount} daha çox şərh var`}
+                                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })()}
