@@ -2100,20 +2100,61 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                           { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
                                         ];
                                   }
+                                  const filter = reviewCommentFilters[r.id] || { author: "", date: "" };
+                                  const availableAuthors = Array.from(new Set(comments.map(c => c.author).filter(Boolean)));
+                                  const filteredComments = comments.filter(c => {
+                                    if (filter.author && c.author !== filter.author) return false;
+                                    if (filter.date && !(c.date || "").includes(filter.date)) return false;
+                                    return true;
+                                  });
                                   const isExpanded = expandedReviews.has(r.id);
-                                  const showAll = isExpanded || comments.length <= 3;
-                                  const visible = showAll ? comments : comments.slice(0, 3);
-                                  const hiddenCount = comments.length - 3;
+                                  const showAll = isExpanded || filteredComments.length <= 3;
+                                  const visible = showAll ? filteredComments : filteredComments.slice(0, 3);
+                                  const hiddenCount = filteredComments.length - 3;
                                   const toggle = () => setExpandedReviews(prev => {
                                     const next = new Set(prev);
                                     if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
                                     return next;
                                   });
+                                  const setFilter = (patch: Partial<{ author: string; date: string }>) =>
+                                    setReviewCommentFilters(prev => ({ ...prev, [r.id]: { ...filter, ...patch } }));
                                   return (
                                     <div className="mt-3 pt-3 border-t border-border/60">
-                                      <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide mb-2">Review şərhləri</p>
+                                      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                                        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
+                                        <div className="flex items-center gap-1.5">
+                                          <select
+                                            value={filter.author}
+                                            onChange={(e) => setFilter({ author: e.target.value })}
+                                            className="text-[11px] px-2 py-1 rounded border border-border bg-background text-foreground"
+                                          >
+                                            <option value="">Bütün müəlliflər</option>
+                                            {availableAuthors.map(a => <option key={a} value={a}>{a}</option>)}
+                                          </select>
+                                          <input
+                                            type="date"
+                                            value={filter.date}
+                                            onChange={(e) => setFilter({ date: e.target.value })}
+                                            className="text-[11px] px-2 py-1 rounded border border-border bg-background text-foreground"
+                                          />
+                                          {(filter.author || filter.date) && (
+                                            <button
+                                              type="button"
+                                              onClick={() => setFilter({ author: "", date: "" })}
+                                              className="text-[11px] px-2 py-1 rounded border border-border bg-background text-muted-foreground hover:text-foreground"
+                                            >
+                                              Sıfırla
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
                                       <div className="rounded-lg border border-border/60 bg-background/40 overflow-hidden">
                                         <div className="p-2 space-y-2 transition-all duration-[250ms] ease-out">
+                                          {visible.length === 0 && (
+                                            <div className="text-center text-[11px] text-muted-foreground py-4">
+                                              Filtrə uyğun şərh tapılmadı.
+                                            </div>
+                                          )}
                                           {visible.map((c, ci) => (
                                             <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/80 border border-border/50">
                                               <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
@@ -2129,7 +2170,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                             </div>
                                           ))}
                                         </div>
-                                        {comments.length > 3 && (
+                                        {filteredComments.length > 3 && (
                                           <button
                                             type="button"
                                             onClick={toggle}
