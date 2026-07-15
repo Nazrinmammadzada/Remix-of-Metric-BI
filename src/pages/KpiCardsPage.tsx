@@ -1627,63 +1627,83 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       onOpenEmployee={(name) => setEmployeeDrilldown(name)}
                     />
                   ) : (
-                    <div className="bg-card border border-border rounded-2xl overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[720px]">
-                          <thead className="bg-secondary/40 text-muted-foreground">
-                            <tr className="text-left">
-                              <th className="px-4 py-3 font-medium">Əməkdaşın A.S.A.</th>
-                              <th className="px-4 py-3 font-medium">Vəzifə</th>
-                              <th className="px-4 py-3 font-medium text-center w-40">KPI kartlarının sayı</th>
-                              <th className="px-4 py-3 font-medium w-56">Ortalama Progress</th>
-                              <th className="px-4 py-3 font-medium text-right w-56">Əməliyyat</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {rows.length === 0 ? (
-                              <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">Əməkdaş tapılmadı.</td></tr>
-                            ) : rows.map(r => (
-                              <tr key={r.id} className="border-t border-border hover:bg-secondary/20 transition-colors">
-                                <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
-                                      {r.name.split(" ").map(x => x[0]).join("").slice(0, 2).toUpperCase()}
-                                    </div>
-                                    <span className="font-medium text-foreground truncate">{r.name}</span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-2.5 text-xs text-muted-foreground truncate">{r.position}</td>
-                                <td className="px-4 py-2.5 text-center">
-                                  <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                                    {r.count}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
-                                      <div
-                                        className={`h-full transition-all duration-500 ${r.avg >= 90 ? "bg-emerald-500" : r.avg >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
-                                        style={{ width: `${Math.min(r.avg, 100)}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-xs tabular-nums font-medium w-9 text-right">{r.avg}%</span>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-2.5 text-right">
-                                  <button
-                                    onClick={() => setEmployeeDrilldown(r.name)}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    Kartlara detallı bax
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                    <DataTable
+                      rows={rows}
+                      rowKey={(r) => r.id}
+                      storageKey="kpi_cards_employees_view"
+                      showRowNumbers
+                      emptyMessage="Əməkdaş tapılmadı."
+                      columns={[
+                        {
+                          key: "name",
+                          label: "Əməkdaşın A.S.A.",
+                          filterType: "text",
+                          accessor: (r) => r.name,
+                          render: (r) => (
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                                {r.name.split(" ").map((x: string) => x[0]).join("").slice(0, 2).toUpperCase()}
+                              </div>
+                              <span className="font-medium text-foreground truncate">{r.name}</span>
+                            </div>
+                          ),
+                        },
+                        {
+                          key: "position",
+                          label: "Vəzifə",
+                          filterType: "text",
+                          accessor: (r) => r.position,
+                          render: (r) => <span className="text-xs text-muted-foreground truncate">{r.position}</span>,
+                        },
+                        {
+                          key: "count",
+                          label: "KPI kartlarının sayı",
+                          filterType: "number",
+                          align: "center",
+                          width: 160,
+                          accessor: (r) => r.count,
+                          render: (r) => (
+                            <span className="inline-flex items-center justify-center min-w-[36px] px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                              {r.count}
+                            </span>
+                          ),
+                        },
+                        {
+                          key: "avg",
+                          label: "Ortalama Progress",
+                          filterType: "number",
+                          width: 220,
+                          accessor: (r) => r.avg,
+                          render: (r) => (
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-500 ${r.avg >= 90 ? "bg-emerald-500" : r.avg >= 75 ? "bg-amber-500" : "bg-rose-500"}`}
+                                  style={{ width: `${Math.min(r.avg, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-xs tabular-nums font-medium w-9 text-right">{r.avg}%</span>
+                            </div>
+                          ),
+                        },
+                        {
+                          key: "ops",
+                          label: "Əməliyyat",
+                          filterType: "none",
+                          align: "right",
+                          width: 200,
+                          render: (r) => (
+                            <button
+                              onClick={() => setEmployeeDrilldown(r.name)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Kartlara detallı bax
+                            </button>
+                          ),
+                        },
+                      ]}
+                    />
                   )}
                 </div>
               );
