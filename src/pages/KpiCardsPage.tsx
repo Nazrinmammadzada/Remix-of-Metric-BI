@@ -537,7 +537,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [kartView, setKartView] = useState<"kart1" | "kart2">(forcedKartView ?? "kart1");
   useEffect(() => { if (forcedKartView) setKartView(forcedKartView); }, [forcedKartView]);
-  const [kart2SubView, setKart2SubView] = useState<"structure" | "employees">("structure");
+  const [kart2SubView, setKart2SubView] = useState<"structure" | "employees">("employees");
 
 
   // === Yeni KPI Sehrbazı (4 addımlı) ===
