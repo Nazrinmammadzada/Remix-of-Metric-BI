@@ -35,6 +35,8 @@ import { getManualAssignments, addManualAssignment, removeManualAssignment, getU
 import { addSurvey } from "@/lib/evaluationSurveyStore";
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
 import CompetencyMatrixTab from "@/components/evaluation/CompetencyMatrixTab";
+import { getCompetencyMatrices } from "@/lib/competencyMatrixStore";
+import { AlertTriangle } from "lucide-react";
 
 // =============== Survey Dialog (HR sends evaluation request to employees) ===============
 const SurveyDialog = () => {
