@@ -1554,13 +1554,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               )}
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
-                                title="Sil"
-                                className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {st.status !== "imtina" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteCard(card); }}
+                                  title="Sil"
+                                  className="p-1.5 rounded border border-rose-500/30 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           );
                         }
