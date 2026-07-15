@@ -1985,12 +1985,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <div className="text-xs font-semibold text-rose-700 dark:text-rose-400">İmtina səbəbi</div>
                       <div className="text-sm text-foreground mt-0.5">{reason}</div>
                     </div>
-                    <button
-                      onClick={() => { const id = selectedKpi.id; setSelectedKpi(null); openWizardForEdit(id); }}
-                      className="px-3 py-1.5 text-xs rounded border border-rose-500/40 bg-white dark:bg-background hover:bg-rose-500/10 text-rose-700 dark:text-rose-400 font-medium inline-flex items-center gap-1 shrink-0"
-                    >
-                      <Pencil className="w-3.5 h-3.5" /> Redaktə et
-                    </button>
                   </div>
                 );
               })()}
