@@ -1483,7 +1483,7 @@ const EvaluationPage = () => {
       <PageHero
         badge="HR · Qiymətləndirmə"
         title="Qiymətləndirmə"
-        subtitle="Qiymətləndirənləri təyin edin, meyarlar kataloqunu idarə edin və statusu izləyin."
+        subtitle="Qiymətləndirənləri təyin edin, səriştə matrislərini idarə edin və statusu izləyin."
         icon={ClipboardList}
         right={
           section === "teyinat" ? (
