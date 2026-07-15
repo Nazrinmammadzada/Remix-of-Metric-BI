@@ -2311,7 +2311,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                       <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Progress</p><p className="text-lg font-bold text-foreground mt-1">{completedSteps}/{totalSteps}</p></div>
                     </div>
                     <div className="bg-card rounded-lg border border-border p-4">
-                      <h4 className="font-semibold text-foreground text-sm mb-4">Təsdiqləmə Zənciri</h4>
+                      <h4 className="font-semibold text-foreground text-sm mb-4">Təsdiqləmə Matrisi</h4>
                       <div className="space-y-3">
                         {chain.map((step, i) => (
                           <div key={i} className="flex items-center gap-3">
