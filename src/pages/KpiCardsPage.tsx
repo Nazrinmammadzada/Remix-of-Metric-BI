@@ -1483,7 +1483,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
-                              {st.status !== "aktiv" && (
+                              {(st.status === "qaralama" || st.status === "natamam") && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
                                   title="Redaktə et"
