@@ -2140,32 +2140,68 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                         }];
                       }
                       return (
-                      <div className="bg-card rounded-lg border border-border p-4">
-                        <h4 className="font-semibold text-foreground mb-3">Hədəflər</h4>
-                        <div className="space-y-2">
-                          {merged.map(sk => (
-                            <div key={sk.id} className="p-2 rounded-lg bg-secondary">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span className="font-medium text-foreground flex items-center gap-2">
-                                  {sk.name}
-                                  {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
-                                </span>
-                                {sk.weight ? <span className="text-xs text-muted-foreground">Çəki: {sk.weight}%</span> : null}
-                              </div>
-                               <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                 <span>Dəyər: {sk.target}{sk.unit ? ` (${sk.unit})` : ""}</span>
-                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[11px] font-medium">
-                                   Cari vəziyyət: {sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}
-                                 </span>
-                                 <span>{sk._fromSet ? `Təyin edici: ${sk._assignee}` : ""}</span>
-                               </div>
-                              {sk.evaluator?.type && (
-                                <div className="text-[11px] text-muted-foreground mt-1">
-                                  Qiymətləndirici ({sk.evaluator.type}): {sk.evaluator.type === "self" ? "Özü" : sk.evaluator.type === "integration" ? `${sk.evaluator.integrationName} (${sk.evaluator.integrationWeight ?? 100}%)` : sk.evaluator.persons.map((p: any) => `${p.name} ${p.weight}%`).join(", ")}
+                      <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                            <Target className="w-5 h-5" />
+                          </div>
+                          <h4 className="font-semibold text-foreground text-base">Hədəflər</h4>
+                        </div>
+                        <div className="rounded-xl border border-border overflow-hidden">
+                          <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
+                            <div className="col-span-4">Hədəf</div>
+                            <div className="col-span-4">Cari vəziyyət</div>
+                            <div className="col-span-2">Hədəf dəyər</div>
+                            <div className="col-span-2 text-right">Çəki</div>
+                          </div>
+                          <div className="divide-y divide-border">
+                            {merged.map((sk, i) => {
+                              const parseNum = (v: any) => {
+                                if (v === null || v === undefined) return NaN;
+                                const s = String(v).replace(/[^\d.,-]/g, "").replace(",", ".");
+                                const n = parseFloat(s);
+                                return isNaN(n) ? NaN : n;
+                              };
+                              const cur = parseNum(sk.current);
+                              const tgt = parseNum(sk.target);
+                              const pct = !isNaN(cur) && !isNaN(tgt) && tgt !== 0
+                                ? Math.min(100, Math.round((cur / tgt) * 100))
+                                : (typeof sk.progress === "number" ? sk.progress : 0);
+                              const icons = [ShoppingCart, Store, Monitor, BarChart3, Target];
+                              const Icon = icons[i % icons.length];
+                              return (
+                                <div key={sk.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
+                                  <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                      <Icon className="w-5 h-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
+                                        {sk.name}
+                                        {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground truncate">Dəyər: {sk.target}{sk.unit ? ` ${sk.unit}` : ""}</p>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-4">
+                                    <p className="text-sm font-bold text-primary tabular-nums">{sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
+                                    <div className="mt-1.5 flex items-center gap-2">
+                                      <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                      </div>
+                                      <span className="text-[11px] font-semibold text-primary tabular-nums">{pct}%</span>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-2 text-sm font-medium text-foreground tabular-nums">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
+                                  <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums border-l border-border pl-2">{sk.weight ? `${sk.weight}%` : "—"}</div>
                                 </div>
-                              )}
-                            </div>
-                          ))}
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-start gap-2 rounded-lg bg-secondary/40 border border-border px-3 py-2">
+                          <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                          <p className="text-xs text-muted-foreground">Faiz göstəricisi cari vəziyyətin hədəf dəyərə nisbətini göstərir.</p>
                         </div>
                       </div>
                       );
