@@ -541,6 +541,10 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
         </button>
       </div>
 
+      {!tabsFilter && (
+        <KpiDetailView kpi={kpiToKpiCard(kpi)} compact />
+      )}
+      {tabsFilter && (
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="p-5">
           {/* Title */}
