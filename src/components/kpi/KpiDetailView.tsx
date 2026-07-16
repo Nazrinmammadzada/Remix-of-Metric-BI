@@ -331,10 +331,10 @@ const KpiDetailView = ({
                       <h4 className="font-semibold text-foreground text-base">Hədəflər</h4>
                     </div>
                     <div className="rounded-xl border border-border overflow-hidden">
-                      <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
-                        <div className="col-span-4">Hədəf</div>
-                        <div className="col-span-4">Cari vəziyyət</div>
-                        <div className="col-span-2">Hədəf dəyər</div>
+                      <div className="grid grid-cols-12 gap-3 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
+                        <div className="col-span-5">Hədəf</div>
+                        <div className="col-span-3">Cari vəziyyət</div>
+                        <div className="col-span-2 text-right">Hədəf dəyər</div>
                         <div className="col-span-2 text-right">Çəki</div>
                       </div>
                       <div className="divide-y divide-border">
@@ -352,30 +352,30 @@ const KpiDetailView = ({
                             : (typeof sk.progress === "number" ? sk.progress : 0);
                           const icons = [ShoppingCart, Store, Monitor, BarChart3, Target];
                           const Icon = icons[i % icons.length];
+                          const hasCurrent = sk.current && String(sk.current).trim() !== "";
                           return (
-                            <div key={sk.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
-                              <div className="col-span-4 flex items-center gap-3 min-w-0">
+                            <div key={sk.id} className="grid grid-cols-12 gap-3 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
+                              <div className="col-span-5 flex items-center gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                   <Icon className="w-5 h-5" />
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
-                                    {sk.name}
-                                    {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
+                                    <span className="truncate">{sk.name}</span>
+                                    {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">KPI Set</span>}
                                   </p>
-                                  <p className="text-xs text-muted-foreground truncate">Dəyər: {sk.target}{sk.unit ? ` ${sk.unit}` : ""}</p>
                                 </div>
                               </div>
-                              <div className="col-span-4">
-                                <p className="text-sm font-bold text-primary tabular-nums">{sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
-                                <div className="mt-1.5 flex items-center gap-2">
-                                  <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-                                  </div>
-                                  <span className="text-[11px] font-semibold text-primary tabular-nums">{pct}%</span>
+                              <div className="col-span-3 min-w-0">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <p className="text-sm font-bold text-primary tabular-nums truncate">{hasCurrent ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
+                                  <span className="text-[11px] font-semibold text-primary tabular-nums shrink-0">{pct}%</span>
+                                </div>
+                                <div className="mt-1.5 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
                                 </div>
                               </div>
-                              <div className="col-span-2 text-sm font-medium text-foreground tabular-nums">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
+                              <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums truncate">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
                               <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums border-l border-border pl-2">{sk.weight ? `${sk.weight}%` : "—"}</div>
                             </div>
                           );
