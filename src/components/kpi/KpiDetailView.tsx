@@ -175,21 +175,24 @@ const KpiDetailView = ({
                               if (raw) comments = JSON.parse(raw);
                             } catch {}
                             if (comments.length === 0) {
+                              const emp1 = "Aynur Məmmədova";
+                              const emp2 = "Nizami Əliyev";
+                              const emp3 = "Rəşad Quliyev";
                               comments = status === "completed"
                                 ? [
                                     { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
-                                    { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
-                                    { author: "Rəhbər", date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
+                                    { author: emp1, date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                    { author: emp2, date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
                                     { author: reviewer, date: r.end || "", text: "Növbəti dövr üçün fokus sahələri müəyyənləşdirildi və komanda ilə paylaşıldı." },
-                                    { author: "Əməkdaş", date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
+                                    { author: emp3, date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
                                   ]
                                 : status === "in_progress"
                                 ? [
                                     { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
-                                    { author: "HR", date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
+                                    { author: emp1, date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
                                   ]
                                 : [
-                                    { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
+                                    { author: emp2, date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
                                   ];
                             }
                             const filter = reviewCommentFilters[r.id] || { author: "", date: "" };
