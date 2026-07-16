@@ -17,6 +17,8 @@ import { useKpiLifecycles, type CardLifecycle, type LifecycleReview } from "@/li
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import KpiScoresPage from "@/pages/KpiScoresPage";
+import KpiDetailView from "@/components/kpi/KpiDetailView";
+import type { KpiCard as KpiCardShape } from "@/lib/kpiCardTypes";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Activity, User, Users, Network, ChevronLeft, ChevronRight, ChevronDown, Search, Bell, Check, X, Clock,
@@ -459,6 +461,37 @@ const StatCard = ({ icon: Icon, label, value, tone }: { icon: any; label: string
 // ============================================================
 // DRAWER — no backdrop, right-side, ~440px
 // ============================================================
+const initialsOf = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
+const kpiToKpiCard = (k: Kpi): KpiCardShape => ({
+  id: (hashStr(k.id) % 100000) + 1,
+  name: k.name,
+  icon: null,
+  zone: "green",
+  target: String(k.target),
+  current: String(k.actual),
+  unit: k.unit,
+  progress: pctOf(k),
+  minTarget: 0,
+  responsible: k.responsible.name,
+  period: k.period,
+  type: k.type,
+  formula: "",
+  generalTarget: `${fmt(k.target)} ${k.unit}`,
+  department: "",
+  group: "",
+  subdivision: "",
+  startDate: k.createdAt,
+  endDate: k.deadline,
+  frequency: k.type,
+  team: [{ name: k.responsible.name, role: k.responsible.role, avatar: initialsOf(k.responsible.name) }],
+  history: [],
+  description: k.description,
+  weight: k.weight,
+  approvalStatus: "approved",
+  subKpis: [],
+  matrixId: null,
+});
+
 const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFilter }: {
   kpi: Kpi | null; tab: DrawerTab; setTab: (t: DrawerTab) => void; onClose: () => void;
   onOpenTarget?: (t: CardTarget) => void;
@@ -508,6 +541,10 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
         </button>
       </div>
 
+      {!tabsFilter && (
+        <KpiDetailView kpi={kpiToKpiCard(kpi)} compact />
+      )}
+      {tabsFilter && (
       <div className="flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="p-5">
           {/* Title */}
@@ -860,6 +897,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
           })()}
         </div>
       </div>
+      )}
     </aside>
   );
 };
