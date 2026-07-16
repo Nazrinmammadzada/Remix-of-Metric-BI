@@ -1,0 +1,623 @@
+// Shared KPI card detail view — 9 tabs identical to the main "KPI Kartları" popup.
+// Used by:
+//  - src/pages/KpiCardsPage.tsx (main HR view)
+//  - src/pages/manager/ManagerKpiTrackingPage.tsx (KPI izlənməsi drawer)
+// The visual container (Dialog / Drawer) is provided by the caller — this component
+// renders only the tab strip and the tab content.
+
+import { useState } from "react";
+import {
+  Target, Clock, ArrowUp, ArrowDown, CheckCircle, AlertTriangle, Calendar,
+  ChevronDown, ChevronUp, Info, ShoppingCart, Store, Monitor, BarChart3,
+} from "lucide-react";
+import type { KpiCard } from "@/lib/kpiCardTypes";
+import type { KpiCardStatusRow, KpiCardStatus } from "@/lib/kpiCardStatusStore";
+import KpiExtraTabContent, { isExtraTab } from "./KpiExtraTabs";
+import BscScorecardTab from "./BscScorecardTab";
+import LifecycleView from "./LifecycleView";
+import { getLifecycle, getLifecycleWithFallback } from "@/lib/kpiLifecycleStore";
+import { getEntriesForCard } from "@/lib/kpiSetStore";
+import { getApprovalMatrices, formatAssignee } from "@/lib/matrixStore";
+import { getEmployees } from "@/lib/orgStore";
+import { withKartSuffix } from "@/lib/utils";
+
+export type KpiDetailTab =
+  | "general" | "bsc" | "lifecycle" | "reviewTrack"
+  | "history" | "team" | "comments" | "status" | "setStatus";
+
+export const KPI_DETAIL_TABS: [KpiDetailTab, string][] = [
+  ["general", "Ümumi"],
+  ["bsc", "Balanced Scorecard"],
+  ["lifecycle", "Lifecycle"],
+  ["reviewTrack", "Review İzləmə"],
+  ["history", "Performans Dinamikası"],
+  ["team", "KPI Üzvləri"],
+  ["comments", "Şərhlər"],
+  ["status", "Təsdiqləmə Matrisi"],
+  ["setStatus", "Təyin Statusu"],
+];
+
+export interface KpiDetailViewProps {
+  kpi: KpiCard;
+  /** Initial active tab. */
+  initialTab?: KpiDetailTab;
+  /** Optional: card status lookup — used for Lifecycle/Təyin Statusu logic and reject banner. */
+  getStatusFor?: (id: number) => KpiCardStatusRow;
+  /** Optional: bulk vs personal assignment label. */
+  getAssignKindFor?: (id: number) => "Fərdi" | "Toplu";
+  /** Optional: wizard drafts (bulk selection breakdown for the "Ümumi" tab). */
+  cardDrafts?: Record<number, any>;
+  /** Compact mode → smaller paddings for narrow drawer containers. */
+  compact?: boolean;
+}
+
+const defaultStatus = (cardId: number): KpiCardStatusRow => ({
+  card_id: cardId,
+  status: "aktiv" as KpiCardStatus,
+  use_matrix: false,
+  submitted_for_approval: false,
+  rejected_by: null,
+  rejected_at: null,
+  assignees: [],
+  updated_at: new Date().toISOString(),
+});
+
+const KpiDetailView = ({
+  kpi: selectedKpi,
+  initialTab = "general",
+  getStatusFor = defaultStatus,
+  getAssignKindFor = () => "Fərdi",
+  cardDrafts = {},
+  compact = false,
+}: KpiDetailViewProps) => {
+  const [detailTab, setDetailTab] = useState<KpiDetailTab>(initialTab);
+  const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [reviewCommentFilters, setReviewCommentFilters] =
+    useState<Record<string, { author: string; date: string }>>({});
+
+  const hasMatrix = !!selectedKpi.matrixId;
+  const tabs = KPI_DETAIL_TABS.filter(([k]) => k !== "status" || hasMatrix);
+
+  const st = getStatusFor(selectedKpi.id);
+  const rejectBanner = st.status === "imtina" ? (
+    <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 flex items-start gap-3">
+      <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-semibold text-rose-700 dark:text-rose-400">İmtina səbəbi</div>
+        <div className="text-sm text-foreground mt-0.5">
+          {(st as any).rejection_reason || `${st.rejected_by || "Təsdiq mərhələsi"} tərəfindən imtina edildi`}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const px = compact ? "px-4" : "px-6";
+  const pb = compact ? "pb-4" : "pb-6";
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div className={`${px} pt-4 space-y-4 shrink-0`}>
+        {rejectBanner}
+        <div className="flex gap-2 border-b border-border overflow-x-auto">
+          {tabs.map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setDetailTab(key)}
+              className={`px-3 py-2 text-sm font-medium whitespace-nowrap ${
+                detailTab === key ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`flex-1 min-h-0 overflow-y-auto ${px} ${pb} pt-4 space-y-4`}>
+        {detailTab === "bsc" && <BscScorecardTab kpi={selectedKpi as any} />}
+
+        {detailTab === "lifecycle" && (() => {
+          const status = getStatusFor(selectedKpi.id).status;
+          const lc = status === "qaralama"
+            ? (getLifecycle(selectedKpi.id) || null)
+            : getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
+                startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
+              });
+          return <LifecycleView lifecycle={lc} />;
+        })()}
+
+        {detailTab === "reviewTrack" && (() => {
+          const lc = getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
+            startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
+          });
+          const reviews = lc?.reviews || [];
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          return (
+            <div className="bg-card rounded-lg border border-border p-4">
+              <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" /> Review Tarixçəsi
+              </h4>
+              {reviews.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic text-center py-8">
+                  Bu KPI üçün hələ review təyin olunmayıb.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {reviews.map((r, i) => {
+                    const end = r.end ? new Date(r.end) : null;
+                    const start = r.start ? new Date(r.start) : null;
+                    const status = end && today > end ? "completed" : start && today < start ? "pending" : "in_progress";
+                    const badge = status === "completed" ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                      : status === "in_progress" ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                      : "bg-slate-500/15 text-slate-600 border-slate-500/30";
+                    const label = status === "completed" ? "Keçirildi" : status === "in_progress" ? "Davam edir" : "Planlaşdırılıb";
+                    const reviewer = (selectedKpi.team && selectedKpi.team[0]?.name) || selectedKpi.responsible || "—";
+                    return (
+                      <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
+                          #{i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-foreground">Review #{i + 1} · {r.period}</p>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge}`}>{label}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
+                            <span>Başlama: {r.start || "—"}</span>
+                            <span>Bitmə: {r.end || "—"}</span>
+                            <span>Məsul: {reviewer}</span>
+                          </div>
+                          {(() => {
+                            const key = `kpi_review_comments_v1::${selectedKpi.id}::${r.id}`;
+                            let comments: { author: string; date: string; text: string }[] = [];
+                            try {
+                              const raw = localStorage.getItem(key);
+                              if (raw) comments = JSON.parse(raw);
+                            } catch {}
+                            if (comments.length === 0) {
+                              comments = status === "completed"
+                                ? [
+                                    { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
+                                    { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                    { author: "Rəhbər", date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
+                                    { author: reviewer, date: r.end || "", text: "Növbəti dövr üçün fokus sahələri müəyyənləşdirildi və komanda ilə paylaşıldı." },
+                                    { author: "Əməkdaş", date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
+                                  ]
+                                : status === "in_progress"
+                                ? [
+                                    { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
+                                    { author: "HR", date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
+                                  ]
+                                : [
+                                    { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
+                                  ];
+                            }
+                            const filter = reviewCommentFilters[r.id] || { author: "", date: "" };
+                            const availableAuthors = Array.from(new Set(comments.map(c => c.author).filter(Boolean)));
+                            const filteredComments = comments.filter(c => {
+                              if (filter.author && c.author !== filter.author) return false;
+                              if (filter.date && !(c.date || "").includes(filter.date)) return false;
+                              return true;
+                            });
+                            const isExpanded = expandedReviews.has(r.id);
+                            const showAll = isExpanded || filteredComments.length <= 3;
+                            const visible = showAll ? filteredComments : filteredComments.slice(0, 3);
+                            const hiddenCount = filteredComments.length - 3;
+                            const toggle = () => setExpandedReviews(prev => {
+                              const next = new Set(prev);
+                              if (next.has(r.id)) next.delete(r.id); else next.add(r.id);
+                              return next;
+                            });
+                            const setFilter = (patch: Partial<{ author: string; date: string }>) =>
+                              setReviewCommentFilters(prev => ({ ...prev, [r.id]: { ...filter, ...patch } }));
+                            return (
+                              <div className="mt-3 pt-3 border-t border-border/60">
+                                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                                  <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Review şərhləri</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <select
+                                      value={filter.author}
+                                      onChange={(e) => setFilter({ author: e.target.value })}
+                                      className="text-[11px] px-2 py-1 rounded border border-border bg-background text-foreground"
+                                    >
+                                      <option value="">Bütün müəlliflər</option>
+                                      {availableAuthors.map(a => <option key={a} value={a}>{a}</option>)}
+                                    </select>
+                                    <input
+                                      type="date"
+                                      value={filter.date}
+                                      onChange={(e) => setFilter({ date: e.target.value })}
+                                      className="text-[11px] px-2 py-1 rounded border border-border bg-background text-foreground"
+                                    />
+                                    {(filter.author || filter.date) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setFilter({ author: "", date: "" })}
+                                        className="text-[11px] px-2 py-1 rounded border border-border bg-background text-muted-foreground hover:text-foreground"
+                                      >
+                                        Sıfırla
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="rounded-lg border border-border/60 bg-background/40 overflow-hidden">
+                                  <div className="p-2 space-y-2 transition-all duration-[250ms] ease-out">
+                                    {visible.length === 0 && (
+                                      <div className="text-center text-[11px] text-muted-foreground py-4">
+                                        Filtrə uyğun şərh tapılmadı.
+                                      </div>
+                                    )}
+                                    {visible.map((c, ci) => (
+                                      <div key={ci} className="flex items-start gap-2 p-2 rounded-md bg-background/80 border border-border/50">
+                                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
+                                          {(c.author || "?")[0]}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center justify-between gap-2">
+                                            <p className="text-[11px] font-semibold text-foreground">{c.author}</p>
+                                            {c.date && <p className="text-[10px] text-muted-foreground">{c.date}</p>}
+                                          </div>
+                                          <p className="text-xs text-foreground/90 mt-0.5">{c.text}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {filteredComments.length > 3 && (
+                                    <button
+                                      type="button"
+                                      onClick={toggle}
+                                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-[13px] font-medium text-primary bg-[#F8FAFC] hover:bg-[#F1F5F9] dark:bg-secondary/60 dark:hover:bg-secondary transition-colors cursor-pointer"
+                                    >
+                                      {isExpanded ? "Daha az göstər" : `${hiddenCount} daha çox şərh var`}
+                                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {isExtraTab(detailTab) && <KpiExtraTabContent kpi={selectedKpi as any} tab={detailTab as any} />}
+
+        {detailTab === "general" && (
+          <>
+            <div className={compact ? "space-y-4" : "grid grid-cols-2 gap-4"}>
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h4 className="font-semibold text-foreground mb-3">Əsas Məlumatlar</h4>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Məsul Şəxs:</span><span className="font-medium">{selectedKpi.responsible}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Təyinat:</span><span className="font-medium">{getAssignKindFor(selectedKpi.id)}{(() => { const d = cardDrafts[selectedKpi.id]; if (!d || d.mode !== "bulk") return ""; const bs = d.bulkSelections; const parts: string[] = []; if (bs.teams?.length) parts.push(`Komandalar: ${bs.teams.join(", ")}`); if (bs.positions?.length) parts.push(`Vəzifələr: ${bs.positions.join(", ")}`); if (bs.structures?.length) parts.push(`Strukturlar: ${bs.structures.length}`); if (bs.persons?.length) parts.push(`Şəxslər: ${bs.persons.join(", ")}`); return parts.length ? ` — ${parts.join(" · ")}` : ""; })()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Başlama:</span><span className="font-medium">{selectedKpi.startDate}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Bitmə:</span><span className="font-medium">{selectedKpi.endDate}</span></div>
+                </div>
+              </div>
+              {(() => {
+                const own = selectedKpi.subKpis || [];
+                const entries = selectedKpi.id ? getEntriesForCard(selectedKpi.id) : [];
+                const ownIds = new Set(own.map(s => s.id));
+                const extras = entries
+                  .filter((e: any) => e.subKpiName && !ownIds.has(e.subKpiId))
+                  .map((e: any) => ({ id: e.subKpiId, name: e.subKpiName, target: e.target, unit: e.unit, weight: 0, current: "", progress: undefined, evaluator: undefined as any, _fromSet: true, _assignee: e.assigneeName }));
+                let merged: any[] = [...own.map(s => ({ ...s, _fromSet: false as boolean, _assignee: "" })), ...extras];
+                if (merged.length === 0) {
+                  merged = [{
+                    id: 1,
+                    name: selectedKpi.name,
+                    target: (selectedKpi as any).generalTarget || (selectedKpi as any).target || "—",
+                    unit: (selectedKpi as any).unit || "",
+                    weight: 100,
+                    current: (selectedKpi as any).current || "—",
+                    progress: selectedKpi.progress,
+                    evaluator: { type: "self", persons: [{ name: selectedKpi.responsible || "Məsul şəxs", weight: 100 }] } as any,
+                    _fromSet: false,
+                    _assignee: selectedKpi.responsible || "",
+                  }];
+                }
+                return (
+                  <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <h4 className="font-semibold text-foreground text-base">Hədəflər</h4>
+                    </div>
+                    <div className="rounded-xl border border-border overflow-hidden">
+                      <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
+                        <div className="col-span-4">Hədəf</div>
+                        <div className="col-span-4">Cari vəziyyət</div>
+                        <div className="col-span-2">Hədəf dəyər</div>
+                        <div className="col-span-2 text-right">Çəki</div>
+                      </div>
+                      <div className="divide-y divide-border">
+                        {merged.map((sk, i) => {
+                          const parseNum = (v: any) => {
+                            if (v === null || v === undefined) return NaN;
+                            const s = String(v).replace(/[^\d.,-]/g, "").replace(",", ".");
+                            const n = parseFloat(s);
+                            return isNaN(n) ? NaN : n;
+                          };
+                          const cur = parseNum(sk.current);
+                          const tgt = parseNum(sk.target);
+                          const pct = !isNaN(cur) && !isNaN(tgt) && tgt !== 0
+                            ? Math.min(100, Math.round((cur / tgt) * 100))
+                            : (typeof sk.progress === "number" ? sk.progress : 0);
+                          const icons = [ShoppingCart, Store, Monitor, BarChart3, Target];
+                          const Icon = icons[i % icons.length];
+                          return (
+                            <div key={sk.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
+                              <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                  <Icon className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
+                                    {sk.name}
+                                    {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">Dəyər: {sk.target}{sk.unit ? ` ${sk.unit}` : ""}</p>
+                                </div>
+                              </div>
+                              <div className="col-span-4">
+                                <p className="text-sm font-bold text-primary tabular-nums">{sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
+                                <div className="mt-1.5 flex items-center gap-2">
+                                  <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className="text-[11px] font-semibold text-primary tabular-nums">{pct}%</span>
+                                </div>
+                              </div>
+                              <div className="col-span-2 text-sm font-medium text-foreground tabular-nums">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
+                              <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums border-l border-border pl-2">{sk.weight ? `${sk.weight}%` : "—"}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-start gap-2 rounded-lg bg-secondary/40 border border-border px-3 py-2">
+                      <Info className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                      <p className="text-xs text-muted-foreground">Faiz göstəricisi cari vəziyyətin hədəf dəyərə nisbətini göstərir.</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </>
+        )}
+
+        {detailTab === "history" && (() => {
+          const AZ_MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
+          type Row = { title: string; value: string; delta: number; isCurrent: boolean };
+          let rows: Row[] = [];
+          if (selectedKpi.history && selectedKpi.history.length > 0) {
+            const hist = [...selectedKpi.history];
+            rows = hist.map((h, i) => ({
+              title: h.date || "—",
+              value: String(h.value ?? "—"),
+              delta: Number(h.change) || 0,
+              isCurrent: i === hist.length - 1,
+            })).reverse();
+          } else {
+            const now = new Date();
+            const base = Number((selectedKpi as any).progress) || 40;
+            const deltas = [8, 5, -2, 12];
+            const values = [base, base - 8, base - 3, base - 15].map(v => Math.max(0, v));
+            for (let i = 0; i < 4; i++) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              rows.push({
+                title: `${AZ_MONTHS[d.getMonth()]} ${d.getFullYear()}`,
+                value: `${values[i]}% icra`,
+                delta: deltas[i],
+                isCurrent: i === 0,
+              });
+            }
+          }
+          return (
+            <div className="bg-card rounded-2xl border border-border p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-5 h-5 text-primary" />
+                <h4 className="font-semibold text-foreground text-base">Dəyişiklik Tarixçəsi</h4>
+              </div>
+              <div className="space-y-3">
+                {rows.map((r, i) => {
+                  const up = r.delta >= 0;
+                  const chip = up
+                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    : "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400";
+                  const rowCls = r.isCurrent
+                    ? "bg-amber-50 dark:bg-amber-500/10 border border-amber-200/70 dark:border-amber-500/30 border-l-4 border-l-amber-400"
+                    : "bg-secondary/40 border border-border";
+                  const iconWrap = r.isCurrent
+                    ? "bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                    : "bg-muted text-muted-foreground";
+                  return (
+                    <div key={i} className={`flex items-center justify-between gap-3 p-4 rounded-xl ${rowCls}`}>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconWrap}`}>
+                          <Calendar className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-foreground">{r.title}</p>
+                            {r.isCurrent && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Cari ay</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">Dəyər: {r.value}</p>
+                        </div>
+                      </div>
+                      <div className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold ${chip}`}>
+                        {up ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                        {up ? "+" : ""}{r.delta}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {detailTab === "team" && (() => {
+          const initials = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
+          const team = (selectedKpi.team && selectedKpi.team.length > 0)
+            ? selectedKpi.team
+            : [
+                { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS") },
+                { name: "Nizami Əliyev", role: "İcraçı", avatar: "NƏ" },
+                { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM" },
+              ];
+          return (
+            <div className="bg-card rounded-lg border border-border p-4">
+              <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
+              <div className="space-y-3">
+                {team.map((m, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
+                      <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
+                    </div>
+                    {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {detailTab === "setStatus" && (() => {
+          const own = selectedKpi.subKpis || [];
+          const entries = selectedKpi.id ? getEntriesForCard(selectedKpi.id) : [];
+          const ownIds = new Set(own.map(s => s.id));
+          const extras = entries
+            .filter((e: any) => e.subKpiName && !ownIds.has(e.subKpiId))
+            .map((e: any) => ({ id: e.subKpiId, name: e.subKpiName, assignee: e.assigneeName, isSet: true as const }));
+          let merged: any[] = [
+            ...own.map(s => ({ id: s.id, name: s.name, assignee: (s as any)?.evaluator?.persons?.[0]?.name || selectedKpi.responsible || "—", isSet: false as const })),
+            ...extras,
+          ];
+          if (merged.length === 0) {
+            merged = [{ id: 1, name: selectedKpi.name, assignee: selectedKpi.responsible || "—", isSet: false as const }];
+          }
+          const cardStatus = getStatusFor(selectedKpi.id).status;
+          const isActive = cardStatus === "aktiv";
+          const isDraft = cardStatus === "natamam";
+
+          const emps = getEmployees();
+          const norm = (s: string) => s.trim().toLowerCase();
+          const posOf = (name: string) => {
+            if (!name || name === "—") return "";
+            const found = emps.find((e: any) => {
+              const full1 = norm(`${e.firstName} ${e.lastName}`);
+              const full2 = norm(`${e.lastName} ${e.firstName}`);
+              return full1 === norm(name) || full2 === norm(name);
+            });
+            return (found as any)?.positionName || "";
+          };
+
+          return (
+            <div className="bg-card rounded-lg border border-border p-4">
+              <h4 className="font-semibold text-foreground mb-4">Təyin Statusu</h4>
+              <div className="space-y-3">
+                {merged.map((h, idx) => {
+                  const done = isActive || (!isDraft && h.isSet);
+                  const badge = done
+                    ? { cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30", icon: <CheckCircle className="w-3 h-3" />, text: "Tamamlanıb" }
+                    : isDraft
+                    ? { cls: "bg-muted text-muted-foreground border-border", icon: <Clock className="w-3 h-3" />, text: "Natamam" }
+                    : { cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", icon: <Clock className="w-3 h-3" />, text: "Gözləyir" };
+                  const cardCls = done
+                    ? "bg-emerald-50 dark:bg-emerald-500/10 border-l-4 border-emerald-500 border border-emerald-500/20"
+                    : isDraft
+                    ? "bg-muted/40 border-l-4 border-muted-foreground/30 border border-border"
+                    : "bg-amber-50 dark:bg-amber-500/10 border-l-4 border-amber-500 border border-amber-500/20";
+                  const position = posOf(h.assignee || "");
+                  return (
+                    <div key={idx} className={`flex items-center justify-between p-4 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ${cardCls}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{h.name}</p>
+                        <p className="text-base font-bold text-foreground mt-1">
+                          {h.assignee || "—"}
+                          {position && <span className="text-xs font-normal text-muted-foreground ml-1">({position})</span>}
+                        </p>
+                      </div>
+                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border inline-flex items-center gap-1 ${badge.cls}`}>{badge.icon} {badge.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {detailTab === "status" && (() => {
+          const matrixId = selectedKpi.matrixId || null;
+          const matrix = matrixId ? getApprovalMatrices().find(m => m.id === matrixId) : null;
+          if (!matrix) {
+            return (
+              <div className="bg-card rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                Bu KPI kartı üçün təsdiqləmə matrisi seçilməyib.
+              </div>
+            );
+          }
+          const isApproved = selectedKpi.approvalStatus === "approved";
+          const status = getStatusFor(selectedKpi.id).status;
+          const totalSteps = matrix.steps.length;
+          const chain = matrix.steps.map((s: any, i: number) => {
+            const people = s.assignees.map((a: any) => formatAssignee(a)).join(", ") || s.label;
+            let stStatus: "approved" | "pending" | "waiting" = "waiting";
+            if (isApproved || status === "aktiv" || status === "tamamlanib" || status === "qiymetlendirme") stStatus = "approved";
+            else if (status === "tesdiq_gozlenilir" && i === 0) stStatus = "pending";
+            return { role: s.label, person: people, status: stStatus };
+          });
+          const completedSteps = chain.filter(s => s.status === "approved").length;
+          const overallStatus = isApproved ? "Təsdiq edilib" : "Təsdiq gözləyir";
+          const statusColor = overallStatus === "Təsdiq edilib" ? "bg-zone-green-bg text-zone-green-text" : "bg-zone-yellow-bg text-zone-yellow-text";
+
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Matris</p><p className="text-sm font-semibold text-foreground mt-1">{matrix.name}</p></div>
+                <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Ümumi Status</p><span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${statusColor}`}>{overallStatus}</span></div>
+                <div className="bg-secondary rounded-lg p-3 text-center"><p className="text-xs text-muted-foreground">Progress</p><p className="text-lg font-bold text-foreground mt-1">{completedSteps}/{totalSteps}</p></div>
+              </div>
+              <div className="bg-card rounded-lg border border-border p-4">
+                <h4 className="font-semibold text-foreground text-sm mb-4">Təsdiqləmə Matrisi</h4>
+                <div className="space-y-3">
+                  {chain.map((step, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        step.status === "approved" ? "bg-zone-green-bg text-zone-green-text" : step.status === "pending" ? "bg-zone-yellow-bg text-zone-yellow-text" : "bg-muted text-muted-foreground"
+                      }`}>{step.status === "approved" ? <CheckCircle className="w-4 h-4" /> : i + 1}</div>
+                      <div className="flex-1"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-foreground">{step.role}</p><p className="text-xs text-muted-foreground">{step.person}</p></div>
+                        <div className="text-right">
+                          {step.status === "approved" && <span className="text-xs text-zone-green-text">✓ Təsdiqləndi</span>}
+                          {step.status === "pending" && <span className="text-xs text-zone-yellow-text">⏳ Gözləyir</span>}
+                          {step.status === "waiting" && <span className="text-xs text-muted-foreground">Növbədə</span>}
+                        </div>
+                      </div></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="w-full bg-secondary rounded-full h-2">
+                <div className="bg-success rounded-full h-2 transition-all" style={{ width: `${(completedSteps / totalSteps) * 100}%` }} />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{completedSteps} / {totalSteps} mərhələ tamamlandı</p>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+};
+
+export default KpiDetailView;
