@@ -471,24 +471,44 @@ const KpiDetailView = ({
 
         {detailTab === "team" && (() => {
           const initials = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
-          const team = (selectedKpi.team && selectedKpi.team.length > 0)
-            ? selectedKpi.team
-            : [
-                { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS") },
-                { name: "Nizami Əliyev", role: "İcraçı", avatar: "NƏ" },
-                { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM" },
-              ];
+          type Member = { name: string; role: string; avatar: string; kind: "leader" | "assigner" | "evaluator" };
+          const map = new Map<string, Member>();
+          const upsert = (name: string, kind: Member["kind"], role: string) => {
+            if (!name || name === "—") return;
+            const key = `${name}::${kind}`;
+            if (!map.has(key)) map.set(key, { name, role, avatar: initials(name), kind });
+          };
+          upsert(selectedKpi.responsible || "Məsul şəxs", "leader", "Lider / Məsul");
+          (selectedKpi.subKpis || []).forEach(sk => {
+            if ((sk as any).assigner) upsert((sk as any).assigner, "assigner", "Təyinedici");
+            const persons = (sk as any)?.evaluator?.persons || [];
+            persons.forEach((p: any) => upsert(p?.name, "evaluator", "Qiymətləndirici"));
+          });
+          let members = Array.from(map.values());
+          if (members.length <= 1) {
+            members = [
+              { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS"), kind: "leader" },
+              { name: "Nizami Əliyev", role: "Təyinedici", avatar: "NƏ", kind: "assigner" },
+              { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM", kind: "evaluator" },
+            ];
+          }
+          const badgeCls = (k: Member["kind"]) =>
+            k === "leader" ? "bg-zone-green-bg text-zone-green-text"
+            : k === "assigner" ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30"
+            : "bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30";
+          const badgeLbl = (k: Member["kind"]) =>
+            k === "leader" ? "Lider" : k === "assigner" ? "Təyinedici" : "Qiymətləndirici";
           return (
             <div className="bg-card rounded-lg border border-border p-4">
               <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
               <div className="space-y-3">
-                {team.map((m, i) => (
+                {members.map((m, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
                       <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
                     </div>
-                    {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeCls(m.kind)}`}>{badgeLbl(m.kind)}</span>
                   </div>
                 ))}
               </div>
