@@ -897,6 +897,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
           })()}
         </div>
       </div>
+      )}
     </aside>
   );
 };
