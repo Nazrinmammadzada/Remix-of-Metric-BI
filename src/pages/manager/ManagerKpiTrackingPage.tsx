@@ -461,6 +461,37 @@ const StatCard = ({ icon: Icon, label, value, tone }: { icon: any; label: string
 // ============================================================
 // DRAWER — no backdrop, right-side, ~440px
 // ============================================================
+const initialsOf = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
+const kpiToKpiCard = (k: Kpi): KpiCardShape => ({
+  id: (hashStr(k.id) % 100000) + 1,
+  name: k.name,
+  icon: null,
+  zone: "green",
+  target: String(k.target),
+  current: String(k.actual),
+  unit: k.unit,
+  progress: pctOf(k),
+  minTarget: 0,
+  responsible: k.responsible.name,
+  period: k.period,
+  type: k.type,
+  formula: "",
+  generalTarget: `${fmt(k.target)} ${k.unit}`,
+  department: "",
+  group: "",
+  subdivision: "",
+  startDate: k.createdAt,
+  endDate: k.deadline,
+  frequency: k.type,
+  team: [{ name: k.responsible.name, role: k.responsible.role, avatar: initialsOf(k.responsible.name) }],
+  history: [],
+  description: k.description,
+  weight: k.weight,
+  approvalStatus: "approved",
+  subKpis: [],
+  matrixId: null,
+});
+
 const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFilter }: {
   kpi: Kpi | null; tab: DrawerTab; setTab: (t: DrawerTab) => void; onClose: () => void;
   onOpenTarget?: (t: CardTarget) => void;
