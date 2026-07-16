@@ -1306,21 +1306,6 @@ const EmployeesTab = () => {
         <div />
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Axtar..."
-              className="pl-10 pr-3 py-2 text-sm border border-border rounded-lg bg-background w-64"
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters(s => !s)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-border bg-background ${showFilters ? 'ring-2 ring-primary/30' : ''}`}
-          >
-            <Filter className="w-4 h-4" /> Filter
-          </button>
           {/* CHR import moved to org-level action bar */}
           <button
             onClick={() => setShowCreate(true)}
