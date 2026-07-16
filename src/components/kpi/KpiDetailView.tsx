@@ -175,21 +175,24 @@ const KpiDetailView = ({
                               if (raw) comments = JSON.parse(raw);
                             } catch {}
                             if (comments.length === 0) {
+                              const emp1 = "Aynur Məmmədova";
+                              const emp2 = "Nizami Əliyev";
+                              const emp3 = "Rəşad Quliyev";
                               comments = status === "completed"
                                 ? [
                                     { author: reviewer, date: r.end || "", text: `Review #${i + 1} tamamlandı. Hədəflərin icrası ${selectedKpi.progress ?? 0}% səviyyəsindədir. Növbəti dövr üçün fokus saxlanılır.` },
-                                    { author: "HR", date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
-                                    { author: "Rəhbər", date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
+                                    { author: emp1, date: r.end || "", text: "Review qeydləri sistemə daxil edildi." },
+                                    { author: emp2, date: r.end || "", text: "Nəticələr planla uyğundur, davam etmək tövsiyə olunur." },
                                     { author: reviewer, date: r.end || "", text: "Növbəti dövr üçün fokus sahələri müəyyənləşdirildi və komanda ilə paylaşıldı." },
-                                    { author: "Əməkdaş", date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
+                                    { author: emp3, date: r.end || "", text: "Verilən rəy nəzərə alındı, tədbir planı hazırlanır." },
                                   ]
                                 : status === "in_progress"
                                 ? [
                                     { author: reviewer, date: r.start || "", text: `Review #${i + 1} davam edir — cari icra dinamikası müsbətdir.` },
-                                    { author: "HR", date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
+                                    { author: emp1, date: r.start || "", text: "Ara qeydlər sistemə daxil edildi, review davam etdirilir." },
                                   ]
                                 : [
-                                    { author: "Sistem", date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
+                                    { author: emp2, date: r.start || "", text: `Review #${i + 1} planlaşdırılıb — başlama tarixindən sonra qeydlər əlavə oluna bilər.` },
                                   ];
                             }
                             const filter = reviewCommentFilters[r.id] || { author: "", date: "" };
@@ -331,10 +334,10 @@ const KpiDetailView = ({
                       <h4 className="font-semibold text-foreground text-base">Hədəflər</h4>
                     </div>
                     <div className="rounded-xl border border-border overflow-hidden">
-                      <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
-                        <div className="col-span-4">Hədəf</div>
-                        <div className="col-span-4">Cari vəziyyət</div>
-                        <div className="col-span-2">Hədəf dəyər</div>
+                      <div className="grid grid-cols-12 gap-3 px-4 py-2.5 bg-secondary/40 text-xs font-medium text-muted-foreground">
+                        <div className="col-span-5">Hədəf</div>
+                        <div className="col-span-3">Cari vəziyyət</div>
+                        <div className="col-span-2 text-right">Hədəf dəyər</div>
                         <div className="col-span-2 text-right">Çəki</div>
                       </div>
                       <div className="divide-y divide-border">
@@ -352,30 +355,30 @@ const KpiDetailView = ({
                             : (typeof sk.progress === "number" ? sk.progress : 0);
                           const icons = [ShoppingCart, Store, Monitor, BarChart3, Target];
                           const Icon = icons[i % icons.length];
+                          const hasCurrent = sk.current && String(sk.current).trim() !== "";
                           return (
-                            <div key={sk.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
-                              <div className="col-span-4 flex items-center gap-3 min-w-0">
+                            <div key={sk.id} className="grid grid-cols-12 gap-3 px-4 py-4 items-center hover:bg-secondary/20 transition-colors">
+                              <div className="col-span-5 flex items-center gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                   <Icon className="w-5 h-5" />
                                 </div>
-                                <div className="min-w-0">
+                                <div className="min-w-0 flex-1">
                                   <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
-                                    {sk.name}
-                                    {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">KPI Set</span>}
+                                    <span className="truncate">{sk.name}</span>
+                                    {sk._fromSet && <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 shrink-0">KPI Set</span>}
                                   </p>
-                                  <p className="text-xs text-muted-foreground truncate">Dəyər: {sk.target}{sk.unit ? ` ${sk.unit}` : ""}</p>
                                 </div>
                               </div>
-                              <div className="col-span-4">
-                                <p className="text-sm font-bold text-primary tabular-nums">{sk.current && String(sk.current).trim() !== "" ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
-                                <div className="mt-1.5 flex items-center gap-2">
-                                  <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-                                  </div>
-                                  <span className="text-[11px] font-semibold text-primary tabular-nums">{pct}%</span>
+                              <div className="col-span-3 min-w-0">
+                                <div className="flex items-baseline justify-between gap-2">
+                                  <p className="text-sm font-bold text-primary tabular-nums truncate">{hasCurrent ? `${sk.current}${sk.unit ? ` ${sk.unit}` : ""}` : "—"}</p>
+                                  <span className="text-[11px] font-semibold text-primary tabular-nums shrink-0">{pct}%</span>
+                                </div>
+                                <div className="mt-1.5 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
                                 </div>
                               </div>
-                              <div className="col-span-2 text-sm font-medium text-foreground tabular-nums">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
+                              <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums truncate">{sk.target}{sk.unit ? ` ${sk.unit}` : ""}</div>
                               <div className="col-span-2 text-right text-sm font-medium text-foreground tabular-nums border-l border-border pl-2">{sk.weight ? `${sk.weight}%` : "—"}</div>
                             </div>
                           );
@@ -468,24 +471,44 @@ const KpiDetailView = ({
 
         {detailTab === "team" && (() => {
           const initials = (n: string) => n.split(" ").filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase() || "").join("");
-          const team = (selectedKpi.team && selectedKpi.team.length > 0)
-            ? selectedKpi.team
-            : [
-                { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS") },
-                { name: "Nizami Əliyev", role: "İcraçı", avatar: "NƏ" },
-                { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM" },
-              ];
+          type Member = { name: string; role: string; avatar: string; kind: "leader" | "assigner" | "evaluator" };
+          const map = new Map<string, Member>();
+          const upsert = (name: string, kind: Member["kind"], role: string) => {
+            if (!name || name === "—") return;
+            const key = `${name}::${kind}`;
+            if (!map.has(key)) map.set(key, { name, role, avatar: initials(name), kind });
+          };
+          upsert(selectedKpi.responsible || "Məsul şəxs", "leader", "Lider / Məsul");
+          (selectedKpi.subKpis || []).forEach(sk => {
+            if ((sk as any).assigner) upsert((sk as any).assigner, "assigner", "Təyinedici");
+            const persons = (sk as any)?.evaluator?.persons || [];
+            persons.forEach((p: any) => upsert(p?.name, "evaluator", "Qiymətləndirici"));
+          });
+          let members = Array.from(map.values());
+          if (members.length <= 1) {
+            members = [
+              { name: selectedKpi.responsible || "Məsul şəxs", role: "Lider / Məsul", avatar: initials(selectedKpi.responsible || "MS"), kind: "leader" },
+              { name: "Nizami Əliyev", role: "Təyinedici", avatar: "NƏ", kind: "assigner" },
+              { name: "Aynur Məmmədova", role: "Qiymətləndirici", avatar: "AM", kind: "evaluator" },
+            ];
+          }
+          const badgeCls = (k: Member["kind"]) =>
+            k === "leader" ? "bg-zone-green-bg text-zone-green-text"
+            : k === "assigner" ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30"
+            : "bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30";
+          const badgeLbl = (k: Member["kind"]) =>
+            k === "leader" ? "Lider" : k === "assigner" ? "Təyinedici" : "Qiymətləndirici";
           return (
             <div className="bg-card rounded-lg border border-border p-4">
               <h4 className="font-semibold text-foreground mb-4">KPI Üzvləri</h4>
               <div className="space-y-3">
-                {team.map((m, i) => (
+                {members.map((m, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold text-sm">{m.avatar}</div>
                       <div><p className="text-sm font-medium text-foreground">{m.name}</p><p className="text-xs text-muted-foreground">{m.role}</p></div>
                     </div>
-                    {i === 0 && <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-zone-green-bg text-zone-green-text">Lider</span>}
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badgeCls(m.kind)}`}>{badgeLbl(m.kind)}</span>
                   </div>
                 ))}
               </div>

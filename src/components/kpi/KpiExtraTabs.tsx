@@ -52,14 +52,16 @@ const loadFor = (cardId?: number): CommentItem[] => {
   const fmt = (d: Date) => `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const y = new Date(today); y.setDate(y.getDate() - 3);
   return [
-    { id: 1, author: "HR Admin", date: fmt(today), text: "KPI kartı yaradıldı və icraya buraxıldı. Aylıq review-lar üzrə cavabdehlərə xatırlatma göndərilib." },
-    { id: 2, author: "Rəhbər", date: fmt(y), text: "Hədəflər və çəkilər təsdiqlənib. Nəticələr Balanced Scorecard tabında izlənilir." },
+    { id: 1, author: "Aynur Məmmədova", date: fmt(today), text: "KPI kartı yaradıldı və icraya buraxıldı. Aylıq review-lar üzrə cavabdehlərə xatırlatma göndərilib." },
+    { id: 2, author: "Nizami Əliyev", date: fmt(y), text: "Hədəflər və çəkilər təsdiqlənib. Nəticələr Balanced Scorecard tabında izlənilir." },
   ];
 };
 
 function Comments({ cardId }: { cardId?: number }) {
   const [items, setItems] = useState<CommentItem[]>(() => loadFor(cardId));
   const [text, setText] = useState("");
+  const [filterAuthor, setFilterAuthor] = useState("");
+  const [filterDate, setFilterDate] = useState("");
 
   useEffect(() => {
     setItems(loadFor(cardId));
@@ -94,9 +96,16 @@ function Comments({ cardId }: { cardId?: number }) {
     setText("");
   };
 
+  const availableAuthors = Array.from(new Set(items.map(c => c.author).filter(Boolean)));
+  const filtered = items.filter(c => {
+    if (filterAuthor && c.author !== filterAuthor) return false;
+    if (filterDate && !(c.date || "").includes(filterDate.split("-").reverse().join("."))) return false;
+    return true;
+  });
+
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-foreground">Şərhlər və Qeydlər</h3>
+      <h3 className="font-semibold text-foreground">Şərhlər</h3>
       <div className="flex items-start gap-2">
         <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold shrink-0">A</div>
         <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()}
@@ -106,13 +115,39 @@ function Comments({ cardId }: { cardId?: number }) {
         </button>
       </div>
 
+      <div className="flex items-center gap-2 flex-wrap">
+        <select
+          value={filterAuthor}
+          onChange={(e) => setFilterAuthor(e.target.value)}
+          className="text-xs px-2 py-1.5 rounded border border-border bg-background text-foreground"
+        >
+          <option value="">Bütün müəlliflər</option>
+          {availableAuthors.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <input
+          type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="text-xs px-2 py-1.5 rounded border border-border bg-background text-foreground"
+        />
+        {(filterAuthor || filterDate) && (
+          <button
+            type="button"
+            onClick={() => { setFilterAuthor(""); setFilterDate(""); }}
+            className="text-xs px-2 py-1.5 rounded border border-border bg-background text-muted-foreground hover:text-foreground"
+          >
+            Sıfırla
+          </button>
+        )}
+      </div>
+
       <div className="space-y-3">
-        {items.length === 0 && (
+        {filtered.length === 0 && (
           <div className="text-center py-8 border border-dashed border-border rounded-lg text-sm text-muted-foreground">
-            Hələ heç bir şərh yoxdur.
+            {items.length === 0 ? "Hələ heç bir şərh yoxdur." : "Filtrə uyğun şərh tapılmadı."}
           </div>
         )}
-        {items.map((c) => (
+        {filtered.map((c) => (
           <div key={c.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card">
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${c.author === "Admin" ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"}`}>{c.author[0]}</div>
             <div className="flex-1 min-w-0">
