@@ -1,15 +1,45 @@
-// Bildiriş sazlamaları — hər bildiriş növü üçün kanallar, vaxt və alıcılar.
+// Bildiriş sazlamaları — hər bildiriş növü üçün kanallar, cədvəl və alıcılar.
 import { useEffect, useState } from "react";
 
-export type NotificationChannel = "in_app" | "email" | "sms";
-/** Alıcı: ya "role:<RoleName>" ya da "person:<Full Name>" ya da köhnə qısa açar (geriyə uyğun) */
+export type NotificationChannel = "in_app" | "email";
+
+/** Alıcı tokenləri: "person:<AdSoyad>", "position:<Ad>", "structure:<UnitId>",
+ *  "team:<TeamId>", "role:<RoleName>" və ya köhnə sistem açarları ("owner" və s.). */
 export type RecipientRole = string;
 
-export interface NotificationOffset {
-  /** Mərhələ tarixindən neçə gün əvvəl/sonra göndərilsin (mənfi = əvvəl) */
-  days: number;
-  /** Göndərmə vaxtı HH:MM (24h) */
-  time: string;
+export type FrequencyKind =
+  | "on_event"
+  | "on_date"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly"
+  | "custom";
+
+export type MonthlyMode = "dayOfMonth" | "weekOfMonth";
+export type WeekOfMonth = "first" | "second" | "third" | "fourth" | "last";
+export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7; // 1=Bazar ertəsi ... 7=Bazar
+export type CustomUnit = "day" | "week" | "month";
+
+export interface ScheduleConfig {
+  kind: FrequencyKind;
+  time?: string; // HH:MM
+  timezone?: string;
+  date?: string; // ISO yyyy-mm-dd
+  startDate?: string;
+  endDate?: string;
+  weekdays?: Weekday[];
+  monthlyMode?: MonthlyMode;
+  dayOfMonth?: number; // 1..31
+  weekOfMonth?: WeekOfMonth;
+  weekday?: Weekday;
+  quarter?: 1 | 2 | 3 | 4;
+  month?: number; // 1..12
+  day?: number; // 1..31 (for yearly/quarterly)
+  repeatEvery?: number;
+  customUnit?: CustomUnit;
+  cron?: string;
 }
 
 export interface NotificationSetting {
@@ -18,20 +48,27 @@ export interface NotificationSetting {
   description: string;
   enabled: boolean;
   channels: NotificationChannel[];
-  /** Tezlik: "once" — bir dəfə, "daily" — gündəlik, "weekly" — həftəlik, "on_event" — hadisə baş verdikdə */
-  frequency: "once" | "daily" | "weekly" | "on_event";
-  /** Xatırladıcılar — mərhələ tarixindən əvvəl/sonra (məs. -3, -1, 0) */
-  reminders: number[];
-  /** Göndərmə vaxtı (HH:MM) */
+  /** Geriyə uyğunluq üçün saxlanılır — cədvəl `schedule` sahəsindədir. */
+  frequency: FrequencyKind;
+  /** Köhnə sahə — cədvəl `schedule.time`-dan oxunur. */
   sendTime: string;
+  /** Yeni cədvəl konfiqurasiyası. */
+  schedule: ScheduleConfig;
   /** Alıcılar */
   recipients: RecipientRole[];
   /** Şablon mətn */
   template: string;
 }
 
-const KEY = "kpi_notification_settings_v1";
+const KEY = "kpi_notification_settings_v2";
+const LEGACY_KEY = "kpi_notification_settings_v1";
 const EVT = "notification-settings-updated";
+
+const DEFAULT_TZ = "Asia/Baku";
+
+const mkSchedule = (kind: FrequencyKind, time = "09:00"): ScheduleConfig => ({
+  kind, time, timezone: DEFAULT_TZ,
+});
 
 const SEED: NotificationSetting[] = [
   {
@@ -41,33 +78,33 @@ const SEED: NotificationSetting[] = [
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
-    reminders: [0],
     sendTime: "09:00",
-    recipients: ["owner", "manager"],
+    schedule: mkSchedule("on_event", "09:00"),
+    recipients: ["role:KPI sahibi", "role:Rəhbər"],
     template: "Sizə yeni KPI təyin olundu: {kpi_name}. Hədəf: {target}.",
   },
   {
     id: "kpi_evaluation",
     title: "KPI qiymətləndirmə",
-    description: "Qiymətləndirmə dövrü başlayanda və bitməsinə az qaldıqda xatırlatma.",
+    description: "Qiymətləndirmə dövrü başlayanda xatırlatma.",
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
-    reminders: [-3, -1, 0],
     sendTime: "10:00",
-    recipients: ["evaluator", "owner"],
+    schedule: mkSchedule("on_event", "10:00"),
+    recipients: ["role:Qiymətləndirici", "role:KPI sahibi"],
     template: "{kpi_name} üçün qiymətləndirmə dövrü {date} tarixində başlayır.",
   },
   {
     id: "kpi_deadline_approaching",
     title: "KPI deadline yaxınlaşır",
-    description: "KPI dövrünün bitməsinə az qaldıqda mövcud progress haqqında xəbərdarlıq.",
+    description: "KPI dövrünün bitməsinə az qaldıqda xəbərdarlıq.",
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "daily",
-    reminders: [-7, -3, -1],
     sendTime: "09:00",
-    recipients: ["owner", "manager"],
+    schedule: mkSchedule("daily", "09:00"),
+    recipients: ["role:KPI sahibi", "role:Rəhbər"],
     template: "{kpi_name} KPI-sının bitməsinə {days_left} gün qalıb. Cari icra: {progress}%.",
   },
   {
@@ -75,23 +112,23 @@ const SEED: NotificationSetting[] = [
     title: "KPI gecikmiş (overdue)",
     description: "KPI dövrü bitib, lakin nəticə daxil edilməyib.",
     enabled: true,
-    channels: ["in_app", "email", "sms"],
+    channels: ["in_app", "email"],
     frequency: "daily",
-    reminders: [1, 3, 7],
     sendTime: "09:00",
-    recipients: ["owner", "manager", "hr"],
+    schedule: mkSchedule("daily", "09:00"),
+    recipients: ["role:KPI sahibi", "role:Rəhbər", "role:HR"],
     template: "{kpi_name} KPI-sı {date} tarixində bitib, nəticə hələ daxil edilməyib.",
   },
   {
     id: "bonus_calculation",
     title: "Bonus hesablanması",
-    description: "Bonus hesablama dövrünün başlaması və tamamlanması haqqında bildiriş.",
+    description: "Bonus hesablama dövrünün başlaması haqqında bildiriş.",
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
-    reminders: [-2, 0],
     sendTime: "10:00",
-    recipients: ["owner", "manager", "hr"],
+    schedule: mkSchedule("on_event", "10:00"),
+    recipients: ["role:KPI sahibi", "role:Rəhbər", "role:HR"],
     template: "{period} dövrü üçün bonus hesablanması başlayır.",
   },
   {
@@ -101,9 +138,9 @@ const SEED: NotificationSetting[] = [
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
-    reminders: [-1, 0],
     sendTime: "09:00",
-    recipients: ["owner", "evaluator", "manager"],
+    schedule: mkSchedule("on_event", "09:00"),
+    recipients: ["role:KPI sahibi", "role:Qiymətləndirici", "role:Rəhbər"],
     template: "{kpi_name} üçün review iclası {date} tarixində keçiriləcək.",
   },
   {
@@ -113,21 +150,21 @@ const SEED: NotificationSetting[] = [
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
-    reminders: [0],
     sendTime: "09:00",
-    recipients: ["owner"],
+    schedule: mkSchedule("on_event", "09:00"),
+    recipients: ["role:KPI sahibi"],
     template: "Sizə yeni hədəf təyin olundu: {sub_kpi_name}.",
   },
   {
     id: "approval_pending",
     title: "Təsdiq gözləyən KPI",
-    description: "Matris əsasında təsdiq mərhələsində olan KPI haqqında təsdiqləyiciyə bildiriş.",
+    description: "Təsdiq mərhələsində olan KPI haqqında təsdiqləyiciyə bildiriş.",
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "daily",
-    reminders: [0, 2],
     sendTime: "09:00",
-    recipients: ["manager", "hr"],
+    schedule: mkSchedule("daily", "09:00"),
+    recipients: ["role:Rəhbər", "role:HR"],
     template: "Təsdiq gözləyən KPI mövcuddur: {kpi_name}.",
   },
   {
@@ -137,9 +174,9 @@ const SEED: NotificationSetting[] = [
     enabled: true,
     channels: ["in_app", "email"],
     frequency: "on_event",
-    reminders: [0],
     sendTime: "10:00",
-    recipients: ["owner"],
+    schedule: mkSchedule("on_event", "10:00"),
+    recipients: ["role:KPI sahibi"],
     template: "{kpi_name} üzrə qiymətləndirmə nəticəniz hazırdır: {score} bal.",
   },
   {
@@ -148,24 +185,53 @@ const SEED: NotificationSetting[] = [
     description: "Hər ayın sonunda ümumi performans icmalı.",
     enabled: false,
     channels: ["email"],
-    frequency: "weekly",
-    reminders: [0],
+    frequency: "monthly",
     sendTime: "08:00",
-    recipients: ["manager", "hr"],
+    schedule: { kind: "monthly", monthlyMode: "dayOfMonth", dayOfMonth: 1, time: "08:00", timezone: DEFAULT_TZ },
+    recipients: ["role:Rəhbər", "role:HR"],
     template: "{period} üzrə aylıq performans hesabatı hazırdır.",
   },
 ];
 
+const migrate = (raw: any): NotificationSetting => {
+  const channels: NotificationChannel[] = Array.isArray(raw.channels)
+    ? raw.channels.filter((c: string) => c === "in_app" || c === "email")
+    : ["in_app"];
+  if (channels.length === 0) channels.push("in_app");
+
+  let freq: FrequencyKind = raw.frequency ?? "on_event";
+  if (freq === "once") freq = "on_date";
+  if (!["on_event", "on_date", "daily", "weekly", "monthly", "quarterly", "yearly", "custom"].includes(freq)) {
+    freq = "on_event";
+  }
+  const time = raw.sendTime || raw.schedule?.time || "09:00";
+  const schedule: ScheduleConfig = raw.schedule && raw.schedule.kind
+    ? { timezone: DEFAULT_TZ, ...raw.schedule }
+    : mkSchedule(freq, time);
+
+  return {
+    id: raw.id,
+    title: raw.title,
+    description: raw.description ?? "",
+    enabled: raw.enabled !== false,
+    channels,
+    frequency: freq,
+    sendTime: time,
+    schedule,
+    recipients: Array.isArray(raw.recipients) ? raw.recipients : [],
+    template: raw.template ?? "",
+  };
+};
+
 const load = (): NotificationSetting[] => {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as NotificationSetting[];
-      // migration: missing seeds
-      const ids = new Set(parsed.map(p => p.id));
+      const parsed = JSON.parse(raw) as any[];
+      const migrated = parsed.map(migrate);
+      const ids = new Set(migrated.map(p => p.id));
       const missing = SEED.filter(s => !ids.has(s.id));
-      if (missing.length === 0) return parsed;
-      const next = [...parsed, ...missing];
+      const next = missing.length ? [...migrated, ...missing] : migrated;
       localStorage.setItem(KEY, JSON.stringify(next));
       return next;
     }
@@ -192,8 +258,8 @@ export const addNotificationSetting = (title: string, description: string): Noti
     enabled: true,
     channels: ["in_app"],
     frequency: "on_event",
-    reminders: [0],
     sendTime: "09:00",
+    schedule: mkSchedule("on_event", "09:00"),
     recipients: [],
     template: "",
   };
@@ -204,7 +270,6 @@ export const addNotificationSetting = (title: string, description: string): Noti
 export const deleteNotificationSetting = (id: string) => {
   persist(load().filter(n => n.id !== id));
 };
-
 
 export const useNotificationSettings = (): NotificationSetting[] => {
   const [list, setList] = useState<NotificationSetting[]>(() => load());
@@ -223,21 +288,25 @@ export const useNotificationSettings = (): NotificationSetting[] => {
 export const CHANNEL_LABELS: Record<NotificationChannel, string> = {
   in_app: "Sistem daxili",
   email: "Email",
-  sms: "SMS",
 };
 
-export const RECIPIENT_LABELS: Record<string, string> = {
+export const FREQUENCY_LABELS: Record<FrequencyKind, string> = {
+  on_event: "Hadisə baş verdikdə",
+  on_date: "Müəyyən tarixdə",
+  daily: "Gündəlik",
+  weekly: "Həftəlik",
+  monthly: "Aylıq",
+  quarterly: "Rüblük",
+  yearly: "İllik",
+  custom: "Xüsusi cədvəl",
+};
+
+/** Köhnə sistem alıcı açarları — geriyə uyğunluq üçün etiketlər. */
+export const LEGACY_RECIPIENT_LABELS: Record<string, string> = {
   owner: "KPI sahibi",
   evaluator: "Qiymətləndirici",
-  assigner: "Təyin edən",
+  assigner: "KPI təyin edən",
   manager: "Rəhbər",
   hr: "HR",
   team: "Komanda üzvləri",
-};
-
-export const FREQUENCY_LABELS: Record<NotificationSetting["frequency"], string> = {
-  once: "Bir dəfəlik",
-  daily: "Gündəlik",
-  weekly: "Həftəlik",
-  on_event: "Hadisə baş verdikdə",
 };
