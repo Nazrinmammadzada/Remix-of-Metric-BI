@@ -1569,7 +1569,10 @@ const CatalogTab = () => {
         icon={Building2}
         items={getStructureTypes()}
         onAdd={(v) => { const r = addStructureType(v); r.ok ? toast.success("Tip əlavə edildi") : toast.error("Bu tip artıq mövcuddur"); }}
-        onRemove={(v) => { removeStructureType(v); toast.success("Tip silindi"); }}
+        onRemove={(v) => {
+          if (isStructureTypeInUse(v)) { toast.error("Bu struktur tipi istifadə olunduğu üçün silinə bilməz."); return; }
+          removeStructureType(v); toast.success("Tip silindi");
+        }}
         placeholder="məs: Departament"
       />
       <CatalogList
@@ -1577,7 +1580,10 @@ const CatalogTab = () => {
         icon={Briefcase}
         items={getPositions()}
         onAdd={(v) => { const r = addPositionCatalog(v); r.ok ? toast.success("Vəzifə əlavə edildi") : toast.error("Bu vəzifə artıq mövcuddur"); }}
-        onRemove={(v) => { removePositionCatalog(v); toast.success("Vəzifə silindi"); }}
+        onRemove={(v) => {
+          if (isPositionInUse(v)) { toast.error("Bu vəzifə istifadə olunduğu üçün silinə bilməz."); return; }
+          removePositionCatalog(v); toast.success("Vəzifə silindi");
+        }}
         placeholder="məs: Backend Developer"
       />
     </div>
