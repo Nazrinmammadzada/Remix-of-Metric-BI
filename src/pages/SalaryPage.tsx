@@ -8,6 +8,7 @@ import { Wallet, Plus, Trash2, ChevronDown, ChevronUp, X, FileSpreadsheet, Filte
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchableSelect from "@/components/common/SearchableSelect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -945,14 +946,14 @@ const AddSalaryDialog = ({ open, onClose, employees }: AddSalaryDialogProps) => 
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium">Əməkdaşlar</label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger className="mt-1"><SelectValue placeholder="Əməkdaş seçin" /></SelectTrigger>
-              <SelectContent>
-                {employees.map(e => (
-                  <SelectItem key={e.id} value={String(e.id)}>{e.firstName} {e.lastName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="mt-1">
+              <SearchableSelect
+                value={employeeId}
+                onChange={setEmployeeId}
+                options={employees.map(e => ({ value: String(e.id), label: `${e.firstName} ${e.lastName}` }))}
+                placeholder="Əməkdaş seçin"
+              />
+            </div>
           </div>
 
           {periods.map((p, idx) => (
