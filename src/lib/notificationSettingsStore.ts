@@ -199,8 +199,9 @@ const migrate = (raw: any): NotificationSetting => {
     : ["in_app"];
   if (channels.length === 0) channels.push("in_app");
 
-  let freq: FrequencyKind = raw.frequency ?? "on_event";
-  if (freq === "once") freq = "on_date";
+  const rawFreq = String(raw.frequency ?? "on_event");
+  let freq: FrequencyKind = rawFreq as FrequencyKind;
+  if (rawFreq === "once") freq = "on_date";
   if (!["on_event", "on_date", "daily", "weekly", "monthly", "quarterly", "yearly", "custom"].includes(freq)) {
     freq = "on_event";
   }
