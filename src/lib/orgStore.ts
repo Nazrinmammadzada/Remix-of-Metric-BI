@@ -231,6 +231,34 @@ export const toggleEmployeeActive = (id: number) => {
   return next;
 };
 
+// ---------- Catalog usage checks (structure types & positions) ----------
+const collectStructureTypes = (list: OrgStructure[], out: Set<string>) => {
+  for (const n of list) {
+    if (n.type) out.add(n.type);
+    if (n.children.length) collectStructureTypes(n.children, out);
+  }
+};
+
+const collectPositionNames = (list: OrgStructure[], out: Set<string>) => {
+  for (const n of list) {
+    for (const p of n.positions) if (p.name) out.add(p.name);
+    if (n.children.length) collectPositionNames(n.children, out);
+  }
+};
+
+export const isStructureTypeInUse = (typeName: string): boolean => {
+  const set = new Set<string>();
+  collectStructureTypes(getStructures(), set);
+  return set.has(typeName);
+};
+
+export const isPositionInUse = (positionName: string): boolean => {
+  const set = new Set<string>();
+  collectPositionNames(getStructures(), set);
+  if (set.has(positionName)) return true;
+  return getEmployees().some(e => e.positionName === positionName);
+};
+
 // ---------- Structures (tree) ----------
 
 export const getStructures = (): OrgStructure[] => load(STORAGE_STRUCTURES, seedStructures);
