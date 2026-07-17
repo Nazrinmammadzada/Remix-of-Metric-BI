@@ -1063,8 +1063,8 @@ const PositionPicker = ({ value, onChange }: { value: string; onChange: (v: stri
 // Validation helpers
 // ==============================
 const NAME_LETTERS = "A-Za-zƏəĞğİıÖöŞşÜüÇçÂâ";
-const NAME_CHAR_RE = new RegExp(`[^${NAME_LETTERS} ]`, "g");
-const NAME_VALID_RE = new RegExp(`^[${NAME_LETTERS}]+(?: [${NAME_LETTERS}]+)*$`);
+const NAME_CHAR_RE = new RegExp(`[^${NAME_LETTERS} \\-]`, "g");
+const NAME_VALID_RE = new RegExp(`^[${NAME_LETTERS}\\-]+(?: [${NAME_LETTERS}\\-]+)*$`);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const sanitizeName = (v: string) => v.replace(NAME_CHAR_RE, "").replace(/\s{2,}/g, " ").replace(/^\s+/, "");
@@ -1073,15 +1073,16 @@ const validateName = (v: string, label: string): string | null => {
   if (!t) return `${label} daxil edin.`;
   if (t.length < 2) return `${label} minimum 2 simvol olmalıdır.`;
   if (t.length > 50) return `${label} maksimum 50 simvol olmalıdır.`;
-  if (!NAME_VALID_RE.test(t)) return `${label} yalnız hərflərdən ibarət olmalıdır.`;
+  if (!NAME_VALID_RE.test(t)) return `${label} yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır.`;
   return null;
 };
 
-const sanitizeFin = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+// FİN: yalnız rəqəmlər və ingilis əlifbasının böyük hərfləri (I və O istisna)
+const sanitizeFin = (v: string) => v.toUpperCase().replace(/[^A-HJ-NP-Z0-9]/g, "").slice(0, 7);
 const validateFin = (v: string): string | null => {
   if (!v) return "FİN daxil edin.";
   if (v.length !== 7) return "FİN 7 simvoldan ibarət olmalıdır.";
-  if (!/^[A-Z0-9]{7}$/.test(v)) return "FİN yalnız A-Z və 0-9 daxildir.";
+  if (!/^[A-HJ-NP-Z0-9]{7}$/.test(v)) return "FİN yalnız rəqəmlər və hərflərdən (I, O istisna) ibarət olmalıdır.";
   return null;
 };
 
