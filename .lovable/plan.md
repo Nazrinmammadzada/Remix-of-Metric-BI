@@ -1,62 +1,84 @@
+# Plan: Təşkilat validasiyaları və Bildiriş sazlamaları yenidən dizaynı
 
-Sorğu geniş və bir neçə moduldur — icra etməzdən əvvəl aşağıdakı planı təsdiqlə.
+## 1. Təşkilat modulu
 
-## 1) Lifecycle Şablonları — default "Standart Aylıq KPI Lifecycle"
+### 1.1 Əməkhaqqı bazası – əməkdaş seçin (dropdown-a axtarış)
+- `src/pages/OrganizationPage.tsx` — "Əməkhaqqı bazası" kartında yeni məlumat əlavə etmə dialoqunda `select` əvəzinə `SearchableSelect` (`src/components/common/SearchableSelect.tsx`) tətbiq et.
 
-`src/lib/lifecycleTemplatesStore.ts`:
-- Seed: sistem ilk yükləndikdə (əgər `kpi_lifecycle_templates_v1` boşdursa) 1 ədəd default şablon əlavə olunacaq:
-  - `id: "tpl-standard-monthly"`, `name: "Standart Aylıq KPI Lifecycle"`, `isSystem: true`, `active: true`.
-  - `data` sahələri xüsusi marker daşıyır: `dynamic: "monthly-standard"` — tarixlər KPI yaradılma tarixinə görə runtime hesablanır (aşağıya bax).
-- Yeni sahələr: `active: boolean` (deaktiv üçün), `isSystem?: boolean` (default şablonu silinməkdən qoruyur; yalnız redaktə/deaktiv olunur).
-- Yeni funksiyalar: `updateLifecycleTemplate(id, patch)`, `toggleLifecycleTemplateActive(id)`.
-- `deleteLifecycleTemplate` — `isSystem` şablonu silməyə imkan verməsin.
+### 1.2 Struktur kataloqu – istifadə olunan struktur tipi/vəzifə silinə bilməz
+- `src/lib/orgStore.ts` — köməkçi funksiyalar: `isStructureTypeInUse(typeName)` (units-də yoxla) və `isPositionInUse(positionName)` (employees & slots-da yoxla).
+- Struktur kataloqu kartında silmə əməliyyatında istifadəni yoxla və istifadə olunursa toast.error ilə `"Bu struktur tipi istifadə olunduğu üçün silinə bilməz."` / `"Bu vəzifə istifadə olunduğu üçün silinə bilməz."` göstər.
 
-**Dinamik tarix hesablaması** (`computeStandardMonthlyLifecycle(createdAtISO)`):
-- `KPI təyin olunması`: start = createdAt; end = createdAt + 2 gün.
-- `KPI Review`: start = təyinat.end + 1 gün; end = start + 5 gün.
-- `KPI qiymətləndirilməsi`: start = ayın sonu − 5 gün; end = ayın sonu − 2 gün.
-- `Bonusun hesablanması`: start = qiymətləndirmə.end + 1 gün; end = ayın son günü.
-Bu funksiya `Omit<CardLifecycle, "cardId"|"cardName"|"updatedAt">` qaytarır.
+### 1.3 Ad / Soyad / Ata adı validasiyası
+- Yeni əməkdaş dialoqunda `firstName`, `lastName`, `middleName`:
+  - `maxLength = 50`
+  - Regex: `^[A-Za-zƏəÇçĞğİıIiÖöŞşÜüÂâ\-\s]+$` (yalnız hərflər + defis + boşluq)
+  - Səhv daxil edilərsə inline error + submit blok:
+    - `"Ad yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
+    - `"Soyad yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
+    - `"Ata adı yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
 
-## 2) Şablon idarəetməsi UI (KpiLifecyclePage → Şablonlar tabı)
+### 1.4 FIN validasiyası
+- Regex: `^[0-9A-HJ-NP-Z]+$` (I, O istisna), uppercase-only
+- Səhv olarsa: `"FİN yalnız rəqəmlər və hərflərdən (I, O istisna) ibarət olmalıdır."`
 
-Hər kartda:
-- Klik → detal dialoqu (mərhələ adı, başlanğıc/bitmə, dövr) — mövcud `LifecycleView`-a bənzər.
-- "Redaktə et" düyməsi → ad/təsvir və (system olmayanlarda) mərhələ tarixləri redaktə edilir. Sistem şablonu üçün yalnız ad/təsvir redaktə + tarixlər readonly (çünki dinamikdir).
-- "Deaktiv/Aktivləşdir" toggle.
-- Sil düyməsi yalnız `!isSystem` olduqda görünür.
+## 2. Sazlamalar → Bildiriş sazlamaları (`NotificationSettingsTab.tsx`)
 
-Deaktiv şablonlar KPI yaradılışında dropdown-da görünməsin (yalnız `active === true`).
+### 2.1 Kanallardan SMS-i sil və Xatırladıcılar sahəsini tam sil
+- `CHANNEL_LABELS` və tip-dən `sms` çıxarılır (`notificationSettingsStore.ts`), mövcud seed-lərdə təmizlənir.
+- Formada `reminders` bloku və `remDraft` state-i silinir, `supportsReminders` istifadəsi silinir.
 
-## 3) KPI kartı yaradarkən "Lifecycle şablonundan seç"
+### 2.2 Alıcılar – tab-based multi-select
+Yeni komponent: `src/components/settings/NotificationRecipientsPicker.tsx`
 
-`src/components/kpi/CreateKpiWizard.tsx` — lifecycle addımında (mövcud `LifecycleWizardStep`-in üstündə):
-- Yeni sahə: **"Lifecycle şablonlarından seç"** dropdown (aktiv şablonlar + "Manual" seçimi).
-- Şablon seçildikdə:
-  - Standart Aylıq şablonu → `computeStandardMonthlyLifecycle(new Date())` çağrılır, bütün mərhələ tarixləri avtomatik doldurulur.
-  - Digər şablonlar → `template.data` olduğu kimi doldurulur.
-  - `LifecycleWizardStep` daxilində tarix və dövr sahələri **readonly** olur (yalnız Review iştirakçıları redaktə edilə bilər).
-- "Manual" seçildikdə mövcud davranış qalır.
+Tablar (Tabs komponenti şadcn):
+1. Şəxs — employees siyahısı (checkbox + search)
+2. Vəzifə — `getPositions()` (checkbox + search)
+3. Struktur — TreeView (`orgStore` units), parent toggle → bütün alt strukturlar
+4. Komanda — `teamsStore` siyahısı (checkbox + search)
+5. Sistem rolu — sabit rol siyahısı: KPI sahibi, Rəhbər, Qiymətləndirici, KPI təyin edən, HR, CEO (checkbox + search)
 
-`LifecycleWizardStep`-ə `readOnlyDates?: boolean` prop əlavə edilir; `StageFields` və `DateField`-də `disabled` state-ə düşür.
+Token sxemi (backward-compatible əlavə):
+- `person:<AdSoyad>`, `position:<Ad>`, `structure:<UnitId>`, `team:<TeamId>`, `role:<Ad>`
 
-## 4) Approval Matrix — 3-cü addımda təsdiqləyicilər siyahısı
+Altda "Seçilmiş alıcılar" bölməsi – bütün seçimlər chip kimi, hər biri × ilə silinə bilər; sağda "Hamısını təmizlə" linki. Tab dəyişəndə seçimlər qorunur (state parent-də saxlanılır). Real-time search. Scroll pozisiyası tab-a görə saxlanılır.
 
-`CreateKpiWizard.tsx` addım 3 (Təsdiqləmə matrisi seçimi):
-- Matris dropdown-un altında seçilmiş matrisin bütün approver-ləri cədvəl kimi göstərilir:
-  - Sütunlar: **№ (ardıcıllıq)**, **Ad Soyad**, **Vəzifə**, **Təsdiqləmə mərhələsi**.
-- `approvalsStore` / `matrixStore`-dan approver-lər real-time çıxarılır (matris dəyişəndə avtomatik yenilənir — `useMemo(..., [selectedMatrixId])`).
+Köhnə `RECIPIENT_LABELS` chip-ləri yeni pickerlə əvəz olunur.
 
-## 5) Qiymətləndirici seçimi — "Şəxs" tabında search
+### 2.3 Tezlik – dropdown + dinamik forma
+`NotificationSettingsTab.tsx`-də `frequency` bloku yenilənir. Yeni tip:
 
-`CreateKpiWizard.tsx` (Evaluator dialoq) — **Şəxs** tabında əməkdaş siyahısının üstündə `Input` (search) əlavə edilir; ad/vəzifə üzrə filter. (Plan §3 sırasındakı iş idi; həyata keçirilməmişsə tamamlanır.)
+```ts
+type Frequency =
+  | "on_event" | "on_date" | "daily" | "weekly"
+  | "monthly" | "quarterly" | "yearly" | "custom";
+```
+
+Dropdown seçimlərinə uyğun konfiqurasiya sahələri:
+- on_event: time + timezone
+- on_date: date + time + timezone
+- daily: startDate + endDate? + time + timezone
+- weekly: weekdays[] + time + timezone
+- monthly: mode (`dayOfMonth` | `weekOfMonth`) + gün/həftə + weekday + time + timezone
+- quarterly: quarter (I–IV) + month + day + time + timezone
+- yearly: month + day + time + timezone
+- custom: startDate + endDate + repeatEvery + unit (Gün/Həftə/Ay) + cron?
+
+Aşağıda "Cədvəl xülasəsi" — cari seçimlərdən hesablanan human-readable mətn.
+
+`NotificationSetting` tipi genişləndirilir (`schedule` obyektinə köçürülür). Köhnə `sendTime` və `frequency` migrate olunur. Mövcud `FREQUENCY_LABELS` yeni seçimlərlə əvəz olunur.
 
 ## Texniki qeydlər
-- Standart şablonun `data` sahəsi seed vaxtı hər mərhələ üçün placeholder saxlayır (`period: "Aylıq"`, boş tarixlər) + `meta.dynamic = "monthly-standard"` markeri; tətbiq zamanı `computeStandardMonthlyLifecycle` istifadə olunur.
-- Mövcud KPI-lara tətbiq edilmiş şablonlar toxunulmur; dəyişiklik yalnız yeni KPI yaradılışına təsir edir.
-- Typecheck ilə yoxlanılacaq.
+- Bütün UI Metric BI dizayn tokenləri (`bg-card`, `border-border`, `text-primary`, s.) ilə.
+- Yeni state-lər localStorage-a serialize olunur (mövcud `notificationSettingsStore` üzərində).
+- Migration: köhnə setting yüklənəndə çatışmayan `schedule` sahəsi `frequency`+`sendTime`-dən inşa edilir; `sms` kanalı avtomatik çıxarılır; `reminders` sahəsi silinir.
+- Tip yoxlaması `tsgo` ilə təsdiq edilir.
 
-## Aydınlaşdırma sualı
-İki kiçik məqamı təsdiqlə:
-1) Standart şablonun `data` markerini `meta.dynamic="monthly-standard"` sahəsi ilə saxlamağa razısan? (Şablon strukturuna yeni sahə əlavə edir.)
-2) "Manual" seçimi dropdown-da qalsın (istifadəçi şablonsuz da yarada bilsin) yoxsa şablon icbari olsun?
+## Fayllar
+- `src/pages/OrganizationPage.tsx` (dropdown search, validation, delete guard mesajları)
+- `src/lib/orgStore.ts` (`isStructureTypeInUse`, `isPositionInUse`)
+- `src/components/settings/DropdownCatalogsTab.tsx` (əgər struktur tipi/vəzifə silmə bu kartdadırsa – guard tətbiq)
+- `src/components/settings/NotificationSettingsTab.tsx` (recipients + frequency + kanal/xatırladıcı təmizliyi)
+- `src/components/settings/NotificationRecipientsPicker.tsx` (yeni)
+- `src/components/settings/NotificationSchedulePicker.tsx` (yeni)
+- `src/lib/notificationSettingsStore.ts` (tip genişlənməsi, migrasiya, SMS/reminders təmizliyi)
