@@ -13,11 +13,12 @@ import { toast } from "@/hooks/use-toast";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { useCascadeTree, type CascadeTreeNode } from "@/lib/cascadeTreeStore";
 import { useSharedKpiCards, type SharedKpiCard, type ExecutionStatus } from "@/lib/kpiCardStore";
-import { useKpiLifecycles, type CardLifecycle, type LifecycleReview } from "@/lib/kpiLifecycleStore";
+import { computeReviewStatus, setReviewOutcome, useKpiLifecycles, type CardLifecycle, type LifecycleReview, type ReviewComputedStatus } from "@/lib/kpiLifecycleStore";
 import CascadeDistributeDialog from "@/components/kpi/CascadeDistributeDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import KpiScoresPage from "@/pages/KpiScoresPage";
 import KpiDetailView from "@/components/kpi/KpiDetailView";
+import { REVIEW_STATUS_STYLES } from "@/components/kpi/LifecycleView";
 import type { KpiCard as KpiCardShape } from "@/lib/kpiCardTypes";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -495,7 +496,7 @@ const kpiToKpiCard = (k: Kpi): KpiCardShape => ({
 const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFilter }: {
   kpi: Kpi | null; tab: DrawerTab; setTab: (t: DrawerTab) => void; onClose: () => void;
   onOpenTarget?: (t: CardTarget) => void;
-  reviewMeta?: { reviewLabel: string; reviewStart: string; reviewNumber?: number; evaluator?: string; nextReview?: string };
+  reviewMeta?: { reviewLabel: string; reviewStart: string; reviewNumber?: number; evaluator?: string; nextReview?: string; reviewStatusLabel?: string; reviewStatusClass?: string; outcomeComment?: string };
   tabsFilter?: DrawerTab[];
 }) => {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
@@ -2087,12 +2088,11 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
                   </ol>
                 </div>
                 <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
-                  <MetaRow label="Qiymətləndiricinin qeydi" value="Yeni müştəri hədəfi üzrə bir qədər gecikmə var. Növbəti həftə əlavə plan hazırlansın." />
+                  <MetaRow label="Qiymətləndiricinin qeydi" value={reviewMeta?.outcomeComment || "Yeni müştəri hədəfi üzrə bir qədər gecikmə var. Növbəti həftə əlavə plan hazırlansın."} />
                   <MetaRow label="Əməkdaşın cavabı" value="Yeni kampaniyaya start verilib. Gələn həftə nəticələr yaxşılaşacaq." />
-                  <MetaRow label="Review qərarı" value={<Badge className="bg-sky-500/15 text-sky-700">Davam edir</Badge>} />
+                  <MetaRow label="Review qərarı" value={<Badge className={reviewMeta?.reviewStatusClass || "bg-sky-500/15 text-sky-700"}>{reviewMeta?.reviewStatusLabel || "İcrada"}</Badge>} />
                   <MetaRow label="Növbəti Review tarixi" value="22.06.2025" />
                 </div>
-                <div className="text-[10px] text-muted-foreground italic">Yalnız oxuma rejimi</div>
               </TabsContent>
 
               <TabsContent value="comments" className="mt-0">
@@ -2149,6 +2149,7 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
 type ReviewRow = {
   key: string;
   cardId: number;
+  reviewId: string;
   cardName: string;
   empId: number | null;
   empName: string;
@@ -2158,6 +2159,9 @@ type ReviewRow = {
   progress: number;
   reviewLabel: string;
   reviewStart: string;
+  reviewEnd: string;
+  reviewStatus: ReviewComputedStatus;
+  outcomeComment?: string;
   updatedAt: string;
   execution: ExecutionStatus | null;
 };
@@ -2207,6 +2211,7 @@ const useReviewRows = (): ReviewRow[] => {
       const active = lc.reviews.find(isActive)
         ?? [...lc.reviews].sort((a, b) => (a.start || "").localeCompare(b.start || ""))[0];
       if (!active) return;
+      const reviewStatus = computeReviewStatus(active);
 
       const sharedCard: SharedKpiCard | undefined = sharedCards.find(c => c.numericId === lc.cardId);
       const assigneeIds = sharedCard?.assigneeIds ?? [];
@@ -2217,6 +2222,7 @@ const useReviewRows = (): ReviewRow[] => {
         rows.push({
           key: `${lc.cardId}-none`,
           cardId: lc.cardId,
+          reviewId: active.id,
           cardName: lc.cardName,
           empId: null,
           empName: "—",
@@ -2226,6 +2232,9 @@ const useReviewRows = (): ReviewRow[] => {
           progress: pick(PROGRESSES, seed),
           reviewLabel: active.period || "Review",
           reviewStart: fmtDate(active.start),
+          reviewEnd: fmtDate(active.end),
+          reviewStatus,
+          outcomeComment: active.outcomeComment,
           updatedAt: (lc.updatedAt || "").slice(0, 10) ? fmtDate((lc.updatedAt || "").slice(0, 10)) : fmtDate(active.start),
           execution: exec,
         });
@@ -2243,6 +2252,7 @@ const useReviewRows = (): ReviewRow[] => {
         rows.push({
           key: `${lc.cardId}-${aid}`,
           cardId: lc.cardId,
+          reviewId: active.id,
           cardName: lc.cardName,
           empId: emp?.id ?? null,
           empName: emp ? `${emp.firstName} ${emp.lastName}` : String(aid),
@@ -2252,6 +2262,9 @@ const useReviewRows = (): ReviewRow[] => {
           progress,
           reviewLabel: active.period || "Review",
           reviewStart: fmtDate(active.start),
+          reviewEnd: fmtDate(active.end),
+          reviewStatus,
+          outcomeComment: active.outcomeComment,
           updatedAt: (lc.updatedAt || "").slice(0, 10) ? fmtDate((lc.updatedAt || "").slice(0, 10)) : fmtDate(active.start),
           execution: exec,
         });
@@ -2269,11 +2282,13 @@ const ReviewsCount = () => {
 
 const ReviewsView = () => {
   const rows = useReviewRows();
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
   const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("review");
-  const [viewMeta, setViewMeta] = useState<{ reviewLabel: string; reviewStart: string; evaluator?: string } | null>(null);
+  const [viewMeta, setViewMeta] = useState<{ reviewLabel: string; reviewStart: string; evaluator?: string; reviewStatusLabel?: string; reviewStatusClass?: string; outcomeComment?: string } | null>(null);
   const [targetDetail, setTargetDetail] = useState<{ cardId: string; cardName: string; target: CardTarget } | null>(null);
+  const [outcomeDialog, setOutcomeDialog] = useState<{ cardId: number; cardName: string; reviewId: string; status: "held" | "deferred"; comment: string; empName: string } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -2288,6 +2303,7 @@ const ReviewsView = () => {
   }, [rows, q]);
 
   const openKpi = (r: ReviewRow) => {
+    const reviewStyle = REVIEW_STATUS_STYLES[r.reviewStatus];
     const kpi: Kpi = {
       id: r.key,
       name: r.cardName,
@@ -2304,7 +2320,40 @@ const ReviewsView = () => {
     };
     setViewKpi(kpi);
     setViewKpiTab("review");
-    setViewMeta({ reviewLabel: r.reviewLabel, reviewStart: r.reviewStart, evaluator: r.position });
+    setViewMeta({
+      reviewLabel: r.reviewLabel,
+      reviewStart: r.reviewStart,
+      evaluator: r.position,
+      reviewStatusLabel: reviewStyle.badgeLabel,
+      reviewStatusClass: reviewStyle.badge,
+      outcomeComment: r.outcomeComment,
+    });
+  };
+
+  const openOutcome = (r: ReviewRow) => {
+    setOutcomeDialog({
+      cardId: r.cardId,
+      cardName: r.cardName,
+      reviewId: r.reviewId,
+      status: r.reviewStatus === "deferred" ? "deferred" : "held",
+      comment: r.outcomeComment || "",
+      empName: r.empName,
+    });
+  };
+
+  const saveOutcome = () => {
+    if (!outcomeDialog) return;
+    if (!outcomeDialog.comment.trim()) {
+      toast({ title: "Şərh məcburidir", variant: "destructive" });
+      return;
+    }
+    setReviewOutcome(outcomeDialog.cardId, outcomeDialog.cardName, undefined, outcomeDialog.reviewId, {
+      status: outcomeDialog.status,
+      comment: outcomeDialog.comment.trim(),
+      by: user?.name || "Rəhbər",
+    });
+    toast({ title: "Review statusu yeniləndi" });
+    setOutcomeDialog(null);
   };
 
   return (
@@ -2348,7 +2397,8 @@ const ReviewsView = () => {
                   </td>
                 </tr>
               ) : filtered.map(r => {
-                const exec = r.execution ? execLabel[r.execution] : { label: "—", cls: "bg-secondary text-secondary-foreground" };
+                const reviewStyle = REVIEW_STATUS_STYLES[r.reviewStatus];
+                const ReviewIcon = reviewStyle.badgeIcon;
                 return (
                   <tr key={r.key} className="hover:bg-secondary/30">
                     <td className="px-4 py-3 font-medium text-foreground">{withKartSuffix(r.cardName)}</td>
@@ -2361,18 +2411,32 @@ const ReviewsView = () => {
                         <span className="text-xs tabular-nums font-medium w-9 text-right">{r.progress}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3"><Badge className={exec.cls}>{exec.label}</Badge></td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-1">
+                        <Badge className={`${reviewStyle.badge} inline-flex items-center gap-1`}><ReviewIcon className="w-3 h-3" />{reviewStyle.badgeLabel}</Badge>
+                        {r.outcomeComment && (
+                          <div className="text-[11px] text-muted-foreground max-w-[220px] truncate" title={r.outcomeComment}>
+                            {r.reviewStatus === "deferred" ? "Səbəb" : "Şərh"}: {r.outcomeComment}
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{r.reviewStart}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.updatedAt}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => openKpi(r)}
-                        className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="Bax"
-                        title="Bax"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button size="sm" variant="outline" className="h-8 text-xs px-2" onClick={() => openOutcome(r)}>
+                          {r.outcomeComment ? "Statusu dəyiş" : "Status əlavə et"}
+                        </Button>
+                        <button
+                          onClick={() => openKpi(r)}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label="Bax"
+                          title="Bax"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -2392,6 +2456,54 @@ const ReviewsView = () => {
         onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
       />
       <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} tabsFilter={["review", "comments"]} />
+
+      <Dialog open={!!outcomeDialog} onOpenChange={(o) => !o && setOutcomeDialog(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Review statusu əlavə et</DialogTitle>
+          </DialogHeader>
+          {outcomeDialog && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
+                <div className="font-medium text-foreground">{withKartSuffix(outcomeDialog.cardName)}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Əməkdaş: {outcomeDialog.empName}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOutcomeDialog(prev => prev ? { ...prev, status: "held" } : prev)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${outcomeDialog.status === "held" ? "border-emerald-500 bg-emerald-500/10 text-emerald-700" : "border-border bg-background text-foreground hover:bg-secondary"}`}
+                >
+                  Keçirildi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOutcomeDialog(prev => prev ? { ...prev, status: "deferred" } : prev)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${outcomeDialog.status === "deferred" ? "border-violet-500 bg-violet-500/10 text-violet-700" : "border-border bg-background text-foreground hover:bg-secondary"}`}
+                >
+                  Təxirə salındı
+                </button>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-foreground">
+                  {outcomeDialog.status === "deferred" ? "Təxirə salınma səbəbi" : "Review şərhi"} <span className="text-destructive">*</span>
+                </label>
+                <textarea
+                  value={outcomeDialog.comment}
+                  onChange={(e) => setOutcomeDialog(prev => prev ? { ...prev, comment: e.target.value } : prev)}
+                  rows={4}
+                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                  placeholder="Şərh yazın..."
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" onClick={() => setOutcomeDialog(null)}>Ləğv et</Button>
+                <Button onClick={saveOutcome}>Yadda saxla</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </>
   );
