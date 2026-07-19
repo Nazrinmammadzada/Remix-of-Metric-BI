@@ -14,12 +14,18 @@ import type { KpiCard } from "@/lib/kpiCardTypes";
 import type { KpiCardStatusRow, KpiCardStatus } from "@/lib/kpiCardStatusStore";
 import KpiExtraTabContent, { isExtraTab } from "./KpiExtraTabs";
 import BscScorecardTab from "./BscScorecardTab";
-import LifecycleView from "./LifecycleView";
-import { getLifecycle, getLifecycleWithFallback } from "@/lib/kpiLifecycleStore";
+import LifecycleView, { REVIEW_STATUS_STYLES } from "./LifecycleView";
+import { getLifecycle, getLifecycleWithFallback, computeReviewStatus, setReviewOutcome } from "@/lib/kpiLifecycleStore";
 import { getEntriesForCard } from "@/lib/kpiSetStore";
 import { getApprovalMatrices, formatAssignee } from "@/lib/matrixStore";
 import { getEmployees } from "@/lib/orgStore";
 import { withKartSuffix } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
 
 export type KpiDetailTab =
   | "general" | "bsc" | "lifecycle" | "reviewTrack"
