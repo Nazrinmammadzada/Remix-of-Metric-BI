@@ -2031,8 +2031,17 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                   : getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
                       startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
                     });
-                return <LifecycleView lifecycle={lc} />;
+                return (
+                  <LifecycleView
+                    lifecycle={lc}
+                    editable
+                    cardId={selectedKpi.id}
+                    cardName={withKartSuffix(selectedKpi.name)}
+                    cardMeta={{ startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency }}
+                  />
+                );
               })()}
+
               {detailTab === "reviewTrack" && (() => {
                 const lc = getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
                   startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
