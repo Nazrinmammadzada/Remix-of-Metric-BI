@@ -16,7 +16,17 @@ const LifecycleDetailDialog = ({ open, onOpenChange, lifecycle }: Props) => {
         <DialogHeader>
           <DialogTitle>KPI Lifecycle — {lifecycle ? withKartSuffix(lifecycle.cardName) : "—"}</DialogTitle>
         </DialogHeader>
-        <LifecycleView lifecycle={lifecycle} />
+        <LifecycleView
+          lifecycle={lifecycle}
+          editable={!!lifecycle}
+          cardId={lifecycle?.cardId}
+          cardName={lifecycle?.cardName}
+          cardMeta={{
+            startDate: lifecycle?.assignment?.start,
+            endDate: lifecycle?.bonus?.end || lifecycle?.evaluation?.end || lifecycle?.assignment?.end,
+            frequency: lifecycle?.assignment?.period,
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

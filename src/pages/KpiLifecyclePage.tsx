@@ -40,6 +40,7 @@ const KpiLifecyclePage = () => {
     () => lifecycles.slice().sort((a, b) => a.cardName.localeCompare(b.cardName)),
     [lifecycles],
   );
+  const activeViewing = viewing ? lifecycles.find(l => l.cardId === viewing.cardId) || viewing : null;
 
   const handleSaveTemplate = () => {
     if (!saveDialog || !tplName.trim()) {
@@ -286,7 +287,7 @@ const KpiLifecyclePage = () => {
         <LifecycleDetailDialog
           open={!!viewing}
           onOpenChange={(o) => { if (!o) setViewing(null); }}
-          lifecycle={viewing}
+          lifecycle={activeViewing}
         />
 
         <Dialog open={!!saveDialog} onOpenChange={(o) => !o && setSaveDialog(null)}>
