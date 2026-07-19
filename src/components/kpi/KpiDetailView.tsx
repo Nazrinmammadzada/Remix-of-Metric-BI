@@ -14,12 +14,18 @@ import type { KpiCard } from "@/lib/kpiCardTypes";
 import type { KpiCardStatusRow, KpiCardStatus } from "@/lib/kpiCardStatusStore";
 import KpiExtraTabContent, { isExtraTab } from "./KpiExtraTabs";
 import BscScorecardTab from "./BscScorecardTab";
-import LifecycleView from "./LifecycleView";
-import { getLifecycle, getLifecycleWithFallback } from "@/lib/kpiLifecycleStore";
+import LifecycleView, { REVIEW_STATUS_STYLES } from "./LifecycleView";
+import { getLifecycle, getLifecycleWithFallback, computeReviewStatus, setReviewOutcome } from "@/lib/kpiLifecycleStore";
 import { getEntriesForCard } from "@/lib/kpiSetStore";
 import { getApprovalMatrices, formatAssignee } from "@/lib/matrixStore";
 import { getEmployees } from "@/lib/orgStore";
 import { withKartSuffix } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+
 
 export type KpiDetailTab =
   | "general" | "bsc" | "lifecycle" | "reviewTrack"
@@ -74,6 +80,9 @@ const KpiDetailView = ({
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [reviewCommentFilters, setReviewCommentFilters] =
     useState<Record<string, { author: string; date: string }>>({});
+  const [outcomeDialog, setOutcomeDialog] = useState<{ reviewId: string; status: "held" | "deferred"; comment: string } | null>(null);
+  const { toast } = useToast();
+
 
   const hasMatrix = !!selectedKpi.matrixId;
   const tabs = KPI_DETAIL_TABS.filter(([k]) => k !== "status" || hasMatrix);
@@ -123,8 +132,17 @@ const KpiDetailView = ({
             : getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
                 startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency,
               });
-          return <LifecycleView lifecycle={lc} />;
+          return (
+            <LifecycleView
+              lifecycle={lc}
+              editable
+              cardId={selectedKpi.id}
+              cardName={withKartSuffix(selectedKpi.name)}
+              cardMeta={{ startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency }}
+            />
+          );
         })()}
+
 
         {detailTab === "reviewTrack" && (() => {
           const lc = getLifecycleWithFallback(selectedKpi.id, withKartSuffix(selectedKpi.name), {
@@ -144,29 +162,48 @@ const KpiDetailView = ({
               ) : (
                 <div className="space-y-3">
                   {reviews.map((r, i) => {
-                    const end = r.end ? new Date(r.end) : null;
-                    const start = r.start ? new Date(r.start) : null;
-                    const status = end && today > end ? "completed" : start && today < start ? "pending" : "in_progress";
-                    const badge = status === "completed" ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
-                      : status === "in_progress" ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
-                      : "bg-slate-500/15 text-slate-600 border-slate-500/30";
-                    const label = status === "completed" ? "Keçirildi" : status === "in_progress" ? "Davam edir" : "Planlaşdırılıb";
+                    const computed = computeReviewStatus(r);
+                    const styleDef = REVIEW_STATUS_STYLES[computed];
+                    const BadgeIcon = styleDef.badgeIcon;
+                    // Legacy 3-way status for comment seeding compatibility
+                    const status = (computed === "held" || computed === "missed" || computed === "deferred")
+                      ? "completed" : computed === "in_progress" ? "in_progress" : "pending";
                     const reviewer = (selectedKpi.team && selectedKpi.team[0]?.name) || selectedKpi.responsible || "—";
+                    const canRecordOutcome = !r.outcomeStatus && (computed === "in_progress" || computed === "missed");
                     return (
-                      <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                      <div key={r.id} className={`flex items-start gap-3 p-3 rounded-lg border ${styleDef.card}`}>
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
                           #{i + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
                             <p className="text-sm font-semibold text-foreground">Review #{i + 1} · {r.period}</p>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge}`}>{label}</span>
+                            <div className="flex items-center gap-2">
+                              {canRecordOutcome && (
+                                <Button size="sm" variant="outline" className="h-6 text-[11px] px-2"
+                                  onClick={() => setOutcomeDialog({ reviewId: r.id, status: "held", comment: "" })}>
+                                  Nəticəni qeyd et
+                                </Button>
+                              )}
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${styleDef.badge}`}>
+                                <BadgeIcon className="w-3 h-3" />{styleDef.badgeLabel}
+                              </span>
+                            </div>
                           </div>
                           <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
                             <span>Başlama: {r.start || "—"}</span>
                             <span>Bitmə: {r.end || "—"}</span>
                             <span>Məsul: {reviewer}</span>
                           </div>
+                          {r.outcomeComment && (
+                            <div className={`mt-2 p-2 rounded-md border ${computed === "deferred" ? "border-violet-200 bg-violet-50 dark:bg-violet-950/40 dark:border-violet-900" : "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-900"}`}>
+                              <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+                                {computed === "deferred" ? "Təxirə salınma səbəbi" : "Review nəticəsi"}
+                              </p>
+                              <p className="text-xs text-foreground mt-0.5">{r.outcomeComment}</p>
+                            </div>
+                          )}
+
                           {(() => {
                             const key = `kpi_review_comments_v1::${selectedKpi.id}::${r.id}`;
                             let comments: { author: string; date: string; text: string }[] = [];
@@ -639,8 +676,62 @@ const KpiDetailView = ({
           );
         })()}
       </div>
+
+      <Dialog open={!!outcomeDialog} onOpenChange={(o) => { if (!o) setOutcomeDialog(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Review nəticəsini qeyd et</DialogTitle></DialogHeader>
+          {outcomeDialog && (
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Nəticə</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button type="button"
+                    onClick={() => setOutcomeDialog({ ...outcomeDialog, status: "held" })}
+                    className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors ${outcomeDialog.status === "held" ? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100" : "border-border hover:border-emerald-300"}`}>
+                    Keçirildi
+                  </button>
+                  <button type="button"
+                    onClick={() => setOutcomeDialog({ ...outcomeDialog, status: "deferred" })}
+                    className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors ${outcomeDialog.status === "deferred" ? "border-violet-500 bg-violet-50 text-violet-900 dark:bg-violet-950/40 dark:text-violet-100" : "border-border hover:border-violet-300"}`}>
+                    Təxirə salındı
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="outcome-comment">
+                  {outcomeDialog.status === "held" ? "Müzakirə, qərar və nəticələr *" : "Təxirə salınma səbəbi *"}
+                </Label>
+                <Textarea id="outcome-comment" rows={4} className="mt-1"
+                  placeholder={outcomeDialog.status === "held" ? "Review zamanı müzakirə olunanlar və qərarlar..." : "Səbəbi qeyd edin..."}
+                  value={outcomeDialog.comment}
+                  onChange={(e) => setOutcomeDialog({ ...outcomeDialog, comment: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOutcomeDialog(null)}>Ləğv et</Button>
+            <Button onClick={() => {
+              if (!outcomeDialog) return;
+              if (!outcomeDialog.comment.trim()) {
+                toast({ title: "Şərh məcburidir", variant: "destructive" });
+                return;
+              }
+              setReviewOutcome(
+                selectedKpi.id,
+                withKartSuffix(selectedKpi.name),
+                { startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency },
+                outcomeDialog.reviewId,
+                { status: outcomeDialog.status, comment: outcomeDialog.comment.trim(), by: selectedKpi.responsible },
+              );
+              toast({ title: outcomeDialog.status === "held" ? "Review keçirildi kimi qeyd olundu" : "Review təxirə salındı" });
+              setOutcomeDialog(null);
+            }}>Yadda saxla</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 export default KpiDetailView;

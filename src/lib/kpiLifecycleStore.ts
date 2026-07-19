@@ -15,7 +15,16 @@ export interface LifecycleStage {
 
 export interface LifecycleReview extends LifecycleStage {
   id: string;
+  /** İstifadəçi tərəfindən qeyd olunan nəticə. Boş olarsa status tarixdən hesablanır. */
+  outcomeStatus?: "held" | "deferred";
+  /** Nəticə şərhi — həm "Keçirildi", həm də "Təxirə salındı" üçün məcburidir. */
+  outcomeComment?: string;
+  /** Nəticənin qeyd olunma tarixi (ISO). */
+  outcomeAt?: string;
+  /** Nəticəni qeyd edən şəxsin adı. */
+  outcomeBy?: string;
 }
+
 
 export interface CardLifecycle {
   cardId: number;
@@ -159,3 +168,80 @@ export const formatStagePeriod = (s?: LifecycleStage): string => {
   if (s.period === "Digər" && s.customPeriodLabel) return s.customPeriodLabel;
   return s.period || "—";
 };
+
+type CardMeta = { startDate?: string; endDate?: string; frequency?: string };
+
+/**
+ * Kartın lifecycle-ına yeni review əlavə edir. Əgər lifecycle yoxdursa,
+ * fallback-dan yaradır. "Yeni Review yarat" axını üçün istifadə olunur.
+ */
+export const appendReviewToCard = (
+  cardId: number,
+  cardName: string,
+  meta: CardMeta | undefined,
+  review: { start: string; end: string; period?: string },
+): LifecycleReview => {
+  const base = getLifecycle(cardId) || getLifecycleWithFallback(cardId, cardName, meta);
+  const id = `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const newReview: LifecycleReview = {
+    id,
+    period: review.period || "Xüsusi",
+    start: review.start,
+    end: review.end,
+  };
+  const nextReviews = [...(base.reviews || []), newReview].sort((a, b) =>
+    (a.start || "").localeCompare(b.start || ""),
+  );
+  setCardLifecycle(cardId, cardName, {
+    assignment: base.assignment,
+    evaluation: base.evaluation,
+    bonus: base.bonus,
+    reviews: nextReviews,
+  });
+  return newReview;
+};
+
+/**
+ * Mövcud review-un nəticəsini qeyd edir (Keçirildi / Təxirə salındı) və şərh əlavə edir.
+ */
+export const setReviewOutcome = (
+  cardId: number,
+  cardName: string,
+  meta: CardMeta | undefined,
+  reviewId: string,
+  outcome: { status: "held" | "deferred"; comment: string; by?: string },
+) => {
+  const base = getLifecycle(cardId) || getLifecycleWithFallback(cardId, cardName, meta);
+  const nextReviews = (base.reviews || []).map(r =>
+    r.id === reviewId
+      ? {
+          ...r,
+          outcomeStatus: outcome.status,
+          outcomeComment: outcome.comment,
+          outcomeAt: new Date().toISOString(),
+          outcomeBy: outcome.by,
+        }
+      : r,
+  );
+  setCardLifecycle(cardId, cardName, {
+    assignment: base.assignment,
+    evaluation: base.evaluation,
+    bonus: base.bonus,
+    reviews: nextReviews,
+  });
+};
+
+export type ReviewComputedStatus = "held" | "deferred" | "missed" | "in_progress" | "pending";
+
+/** Review-un final statusunu hesablayır. outcomeStatus varsa onu, yoxdursa tarixdən çıxarır. */
+export const computeReviewStatus = (r: LifecycleReview): ReviewComputedStatus => {
+  if (r.outcomeStatus === "held") return "held";
+  if (r.outcomeStatus === "deferred") return "deferred";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = r.start ? new Date(r.start) : null;
+  const end = r.end ? new Date(r.end) : null;
+  if (end && today > end) return "missed";
+  if (start && today < start) return "pending";
+  return "in_progress";
+};
+
