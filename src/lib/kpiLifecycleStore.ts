@@ -15,7 +15,16 @@ export interface LifecycleStage {
 
 export interface LifecycleReview extends LifecycleStage {
   id: string;
+  /** İstifadəçi tərəfindən qeyd olunan nəticə. Boş olarsa status tarixdən hesablanır. */
+  outcomeStatus?: "held" | "deferred";
+  /** Nəticə şərhi — həm "Keçirildi", həm də "Təxirə salındı" üçün məcburidir. */
+  outcomeComment?: string;
+  /** Nəticənin qeyd olunma tarixi (ISO). */
+  outcomeAt?: string;
+  /** Nəticəni qeyd edən şəxsin adı. */
+  outcomeBy?: string;
 }
+
 
 export interface CardLifecycle {
   cardId: number;
