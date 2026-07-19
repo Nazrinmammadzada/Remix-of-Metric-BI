@@ -8,7 +8,11 @@ const hashStrLocal = (s: string): number => {
 import Header from "@/components/layout/Header";
 import { Target, TrendingUp, Users, CheckCircle, Lightbulb, Settings2, Search, Download, Plus, X, Calendar, User, Clock, ArrowUp, ArrowDown, GripVertical, Check, Hourglass, CheckCircle2, Trash2, Info, ChevronDown, ChevronUp, Pencil, ShieldCheck, AlertTriangle, Sparkles, UserCheck, Shuffle, UserCog, UserPlus, Sliders, ShoppingCart, Store, Monitor, BarChart3 } from "lucide-react";
 import { PageHero } from "@/components/ui/page-hero";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import PeriodPicker, { type PeriodValue } from "@/components/kpi/PeriodPicker";
 import TeamMultiSelect from "@/components/kpi/TeamMultiSelect";
