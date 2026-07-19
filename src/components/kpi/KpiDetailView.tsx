@@ -162,29 +162,48 @@ const KpiDetailView = ({
               ) : (
                 <div className="space-y-3">
                   {reviews.map((r, i) => {
-                    const end = r.end ? new Date(r.end) : null;
-                    const start = r.start ? new Date(r.start) : null;
-                    const status = end && today > end ? "completed" : start && today < start ? "pending" : "in_progress";
-                    const badge = status === "completed" ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
-                      : status === "in_progress" ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
-                      : "bg-slate-500/15 text-slate-600 border-slate-500/30";
-                    const label = status === "completed" ? "Keçirildi" : status === "in_progress" ? "Davam edir" : "Planlaşdırılıb";
+                    const computed = computeReviewStatus(r);
+                    const styleDef = REVIEW_STATUS_STYLES[computed];
+                    const BadgeIcon = styleDef.badgeIcon;
+                    // Legacy 3-way status for comment seeding compatibility
+                    const status = (computed === "held" || computed === "missed" || computed === "deferred")
+                      ? "completed" : computed === "in_progress" ? "in_progress" : "pending";
                     const reviewer = (selectedKpi.team && selectedKpi.team[0]?.name) || selectedKpi.responsible || "—";
+                    const canRecordOutcome = !r.outcomeStatus && (computed === "in_progress" || computed === "missed");
                     return (
-                      <div key={r.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-secondary/30">
+                      <div key={r.id} className={`flex items-start gap-3 p-3 rounded-lg border ${styleDef.card}`}>
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
                           #{i + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
                             <p className="text-sm font-semibold text-foreground">Review #{i + 1} · {r.period}</p>
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${badge}`}>{label}</span>
+                            <div className="flex items-center gap-2">
+                              {canRecordOutcome && (
+                                <Button size="sm" variant="outline" className="h-6 text-[11px] px-2"
+                                  onClick={() => setOutcomeDialog({ reviewId: r.id, status: "held", comment: "" })}>
+                                  Nəticəni qeyd et
+                                </Button>
+                              )}
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${styleDef.badge}`}>
+                                <BadgeIcon className="w-3 h-3" />{styleDef.badgeLabel}
+                              </span>
+                            </div>
                           </div>
                           <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
                             <span>Başlama: {r.start || "—"}</span>
                             <span>Bitmə: {r.end || "—"}</span>
                             <span>Məsul: {reviewer}</span>
                           </div>
+                          {r.outcomeComment && (
+                            <div className={`mt-2 p-2 rounded-md border ${computed === "deferred" ? "border-violet-200 bg-violet-50 dark:bg-violet-950/40 dark:border-violet-900" : "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-900"}`}>
+                              <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+                                {computed === "deferred" ? "Təxirə salınma səbəbi" : "Review nəticəsi"}
+                              </p>
+                              <p className="text-xs text-foreground mt-0.5">{r.outcomeComment}</p>
+                            </div>
+                          )}
+
                           {(() => {
                             const key = `kpi_review_comments_v1::${selectedKpi.id}::${r.id}`;
                             let comments: { author: string; date: string; text: string }[] = [];
