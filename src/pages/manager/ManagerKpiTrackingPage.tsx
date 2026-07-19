@@ -822,7 +822,7 @@ const KpiDrawer = ({ kpi, tab, setTab, onClose, onOpenTarget, reviewMeta, tabsFi
                 <div className="rounded-xl border border-border bg-background p-4">
                   <div className="text-sm font-semibold text-foreground mb-3">Review Statusu</div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <MetaRow label="Status" value={<Badge className="bg-sky-500/15 text-sky-700">Review davam edir</Badge>} />
+                    <MetaRow label="Status" value={<Badge className={reviewMeta?.reviewStatusClass || "bg-sky-500/15 text-sky-700"}>{reviewMeta?.reviewStatusLabel || "İcrada"}</Badge>} />
                     <MetaRow label="Review növü" value={reviewMeta?.reviewLabel || "Həftəlik Review"} />
                     <MetaRow label="Review #" value={reviewMeta?.reviewNumber ?? 2} />
                     <MetaRow label="Plan tarixi" value={reviewMeta?.reviewStart || kpi.deadline} />
@@ -2088,9 +2088,9 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
                   </ol>
                 </div>
                 <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
-                  <MetaRow label="Qiymətləndiricinin qeydi" value={reviewMeta?.outcomeComment || "Yeni müştəri hədəfi üzrə bir qədər gecikmə var. Növbəti həftə əlavə plan hazırlansın."} />
+                  <MetaRow label="Qiymətləndiricinin qeydi" value="Yeni müştəri hədəfi üzrə bir qədər gecikmə var. Növbəti həftə əlavə plan hazırlansın." />
                   <MetaRow label="Əməkdaşın cavabı" value="Yeni kampaniyaya start verilib. Gələn həftə nəticələr yaxşılaşacaq." />
-                  <MetaRow label="Review qərarı" value={<Badge className={reviewMeta?.reviewStatusClass || "bg-sky-500/15 text-sky-700"}>{reviewMeta?.reviewStatusLabel || "İcrada"}</Badge>} />
+                  <MetaRow label="Review qərarı" value={<Badge className="bg-sky-500/15 text-sky-700">Davam edir</Badge>} />
                   <MetaRow label="Növbəti Review tarixi" value="22.06.2025" />
                 </div>
               </TabsContent>
