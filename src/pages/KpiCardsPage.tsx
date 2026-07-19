@@ -2569,6 +2569,60 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!reviewOutcomeDialog} onOpenChange={(o) => { if (!o) setReviewOutcomeDialog(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Review nəticəsini qeyd et</DialogTitle></DialogHeader>
+          {reviewOutcomeDialog && (
+            <div className="space-y-4 py-2">
+              <div>
+                <Label>Nəticə</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button type="button"
+                    onClick={() => setReviewOutcomeDialog({ ...reviewOutcomeDialog, status: "held" })}
+                    className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors ${reviewOutcomeDialog.status === "held" ? "border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100" : "border-border hover:border-emerald-300"}`}>
+                    Keçirildi
+                  </button>
+                  <button type="button"
+                    onClick={() => setReviewOutcomeDialog({ ...reviewOutcomeDialog, status: "deferred" })}
+                    className={`px-3 py-2 text-sm rounded-lg border-2 transition-colors ${reviewOutcomeDialog.status === "deferred" ? "border-violet-500 bg-violet-50 text-violet-900 dark:bg-violet-950/40 dark:text-violet-100" : "border-border hover:border-violet-300"}`}>
+                    Təxirə salındı
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="ko-comment">
+                  {reviewOutcomeDialog.status === "held" ? "Müzakirə, qərar və nəticələr *" : "Təxirə salınma səbəbi *"}
+                </Label>
+                <Textarea id="ko-comment" rows={4} className="mt-1"
+                  placeholder={reviewOutcomeDialog.status === "held" ? "Review zamanı müzakirə olunanlar və qərarlar..." : "Səbəbi qeyd edin..."}
+                  value={reviewOutcomeDialog.comment}
+                  onChange={(e) => setReviewOutcomeDialog({ ...reviewOutcomeDialog, comment: e.target.value })} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewOutcomeDialog(null)}>Ləğv et</Button>
+            <Button onClick={() => {
+              if (!reviewOutcomeDialog || !selectedKpi) return;
+              if (!reviewOutcomeDialog.comment.trim()) {
+                toast.error("Şərh məcburidir");
+                return;
+              }
+              setReviewOutcome(
+                selectedKpi.id,
+                withKartSuffix(selectedKpi.name),
+                { startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency },
+                reviewOutcomeDialog.reviewId,
+                { status: reviewOutcomeDialog.status, comment: reviewOutcomeDialog.comment.trim(), by: selectedKpi.responsible },
+              );
+              toast.success(reviewOutcomeDialog.status === "held" ? "Review keçirildi kimi qeyd olundu" : "Review təxirə salındı");
+              setReviewOutcomeDialog(null);
+            }}>Yadda saxla</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       {/* Yeni KPI Sehrbazı — 4 addımlı */}
       <CreateKpiWizard open={wizardOpen} onOpenChange={(o) => { setWizardOpen(o); if (!o) { setWizardInitial(undefined); setWizardEditingId(null); } }} initial={wizardInitial} onComplete={handleWizardComplete} />
 
