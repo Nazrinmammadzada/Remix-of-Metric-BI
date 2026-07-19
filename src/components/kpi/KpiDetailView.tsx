@@ -80,6 +80,9 @@ const KpiDetailView = ({
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [reviewCommentFilters, setReviewCommentFilters] =
     useState<Record<string, { author: string; date: string }>>({});
+  const [outcomeDialog, setOutcomeDialog] = useState<{ reviewId: string; status: "held" | "deferred"; comment: string } | null>(null);
+  const { toast } = useToast();
+
 
   const hasMatrix = !!selectedKpi.matrixId;
   const tabs = KPI_DETAIL_TABS.filter(([k]) => k !== "status" || hasMatrix);
