@@ -16,6 +16,7 @@ import {
   LineChart, Check, Clock, MoreVertical, Eye, MessageSquare, Bell, X, Send, Paperclip,
   Target as TargetIcon, AlertTriangle,
 } from "lucide-react";
+import KpiAccordionList, { type AccordionKpi } from "@/components/kpi/KpiAccordionList";
 
 // ============================================================
 // Demo data model
