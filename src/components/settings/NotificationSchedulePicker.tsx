@@ -2,6 +2,10 @@ import type {
   ScheduleConfig, FrequencyKind, Weekday, WeekOfMonth, MonthlyMode, CustomUnit,
 } from "@/lib/notificationSettingsStore";
 import { FREQUENCY_LABELS } from "@/lib/notificationSettingsStore";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const MONTHS_AZ = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
 const WEEKDAYS_AZ: { v: Weekday; label: string }[] = [
@@ -39,11 +43,51 @@ const TimeInput = ({ value, onChange, label = "Saat" }: { value?: string; onChan
   </div>
 );
 
-// Native date input (calendar picker built into browser).
+const toIsoDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+const fromIsoDate = (iso?: string) => {
+  if (!iso) return undefined;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+const scheduleDate = (month?: number, day?: number) => {
+  const year = new Date().getFullYear();
+  const safeMonth = month || 1;
+  const maxDay = new Date(year, safeMonth, 0).getDate();
+  return new Date(year, safeMonth - 1, Math.min(day || 1, maxDay));
+};
+
 const DateInput = ({ value, onChange, label }: { value?: string; onChange: (v: string) => void; label: string }) => (
   <div>
     <label className={labelCls}>{label}</label>
-    <input type="date" value={value || ""} onChange={e => onChange(e.target.value)} className={inputCls} />
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className={cn(inputCls, "flex items-center justify-between text-left font-normal", !value && "text-muted-foreground")}>
+          <span>{value ? fmtDate(value) : "Təqvimdən tarix seçin"}</span>
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar mode="single" selected={fromIsoDate(value)} onSelect={(date) => date && onChange(toIsoDate(date))} initialFocus />
+      </PopoverContent>
+    </Popover>
+  </div>
+);
+
+const CalendarDateButton = ({ label, date, onSelect, disabled, fromMonth, toMonth, defaultMonth }: { label: string; date?: Date; onSelect: (date: Date) => void; disabled?: (date: Date) => boolean; fromMonth?: Date; toMonth?: Date; defaultMonth?: Date }) => (
+  <div>
+    <label className={labelCls}>{label}</label>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className={cn(inputCls, "flex items-center justify-between text-left font-normal")}>
+          <span>{date ? fmtDate(toIsoDate(date)) : "Təqvimdən tarix seçin"}</span>
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar mode="single" selected={date} onSelect={(next) => next && onSelect(next)} disabled={disabled} fromMonth={fromMonth} toMonth={toMonth} defaultMonth={defaultMonth || date} initialFocus />
+      </PopoverContent>
+    </Popover>
   </div>
 );
 
@@ -187,10 +231,12 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
             </label>
           </div>
           {s.monthlyMode !== "weekOfMonth" ? (
-            <div>
-              <label className={labelCls}>Ayın günü</label>
-              <input type="number" min={1} max={31} value={s.dayOfMonth ?? 1} onChange={e => set({ dayOfMonth: Number(e.target.value) })} className={inputCls} />
-            </div>
+            <CalendarDateButton
+              label="Ayın günü"
+              date={new Date(new Date().getFullYear(), new Date().getMonth(), s.dayOfMonth ?? 1)}
+              onSelect={(date) => set({ dayOfMonth: date.getDate() })}
+              disabled={(date) => date.getFullYear() !== new Date().getFullYear() || date.getMonth() !== new Date().getMonth()}
+            />
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -218,6 +264,9 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
         const q = (s.quarter ?? 1) as 1 | 2 | 3 | 4;
         const allowedMonths = QUARTER_MONTHS[q];
         const month = allowedMonths.includes(s.month ?? 0) ? (s.month as number) : allowedMonths[0];
+        const year = new Date().getFullYear();
+        const firstQuarterMonth = allowedMonths[0];
+        const lastQuarterMonth = allowedMonths[allowedMonths.length - 1];
         return (
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -226,16 +275,15 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
                 {[1,2,3,4].map(qq => <option key={qq} value={qq}>{["I","II","III","IV"][qq-1]} rüb</option>)}
               </select>
             </div>
-            <div>
-              <label className={labelCls}>Ay (yalnız seçilmiş rüb)</label>
-              <select value={month} onChange={e => set({ month: Number(e.target.value) })} className={inputCls}>
-                {allowedMonths.map(mi => <option key={mi} value={mi}>{MONTHS_AZ[mi-1]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Gün</label>
-              <input type="number" min={1} max={31} value={s.day ?? 1} onChange={e => set({ day: Number(e.target.value) })} className={inputCls} />
-            </div>
+            <CalendarDateButton
+              label="Tarix (yalnız seçilmiş rübün ayları)"
+              date={scheduleDate(month, s.day)}
+              onSelect={(date) => set({ month: date.getMonth() + 1, day: date.getDate() })}
+              disabled={(date) => date.getFullYear() !== new Date().getFullYear() || !allowedMonths.includes(date.getMonth() + 1)}
+              fromMonth={new Date(year, firstQuarterMonth - 1, 1)}
+              toMonth={new Date(year, lastQuarterMonth - 1, 1)}
+              defaultMonth={new Date(year, month - 1, 1)}
+            />
             <TimeInput value={s.time} onChange={v => set({ time: v })} />
             <div className="col-span-2"><Info>Yalnız {["I","II","III","IV"][q-1]} rübün ayları göstərilir.</Info></div>
           </div>
@@ -244,16 +292,14 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
 
       {s.kind === "yearly" && (
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Ay</label>
-            <select value={s.month ?? 1} onChange={e => set({ month: Number(e.target.value) })} className={inputCls}>
-              {MONTHS_AZ.map((m, i) => <option key={m} value={i+1}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Gün</label>
-            <input type="number" min={1} max={31} value={s.day ?? 1} onChange={e => set({ day: Number(e.target.value) })} className={inputCls} />
-          </div>
+          <CalendarDateButton
+            label="Tarix"
+            date={scheduleDate(s.month, s.day)}
+            onSelect={(date) => set({ month: date.getMonth() + 1, day: date.getDate() })}
+            disabled={(date) => date.getFullYear() !== new Date().getFullYear()}
+            fromMonth={new Date(new Date().getFullYear(), 0, 1)}
+            toMonth={new Date(new Date().getFullYear(), 11, 1)}
+          />
           <TimeInput value={s.time} onChange={v => set({ time: v })} />
         </div>
       )}
