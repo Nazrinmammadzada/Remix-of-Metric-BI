@@ -1,11 +1,8 @@
-import { useMemo } from "react";
 import type {
   ScheduleConfig, FrequencyKind, Weekday, WeekOfMonth, MonthlyMode, CustomUnit,
 } from "@/lib/notificationSettingsStore";
 import { FREQUENCY_LABELS } from "@/lib/notificationSettingsStore";
 
-// Bakı əsas — genişləndirilə bilər.
-const TIMEZONES = ["Asia/Baku", "UTC", "Europe/Moscow", "Europe/Istanbul", "Europe/London", "Asia/Dubai"];
 const MONTHS_AZ = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr"];
 const WEEKDAYS_AZ: { v: Weekday; label: string }[] = [
   { v: 1, label: "Bazar ertəsi" },
@@ -20,6 +17,13 @@ const WEEK_OF_MONTH_LABEL: Record<WeekOfMonth, string> = {
   first: "ilk", second: "ikinci", third: "üçüncü", fourth: "dördüncü", last: "son",
 };
 
+const QUARTER_MONTHS: Record<1 | 2 | 3 | 4, number[]> = {
+  1: [1, 2, 3],
+  2: [4, 5, 6],
+  3: [7, 8, 9],
+  4: [10, 11, 12],
+};
+
 const inputCls = "w-full px-3 py-2 text-sm border border-border rounded-lg bg-background";
 const labelCls = "text-xs font-medium text-muted-foreground mb-1 block";
 
@@ -28,15 +32,6 @@ interface Props {
   onChange: (next: ScheduleConfig) => void;
 }
 
-const TzSelect = ({ value, onChange }: { value?: string; onChange: (v: string) => void }) => (
-  <div>
-    <label className={labelCls}>Saat qurşağı</label>
-    <select value={value || "Asia/Baku"} onChange={e => onChange(e.target.value)} className={inputCls}>
-      {TIMEZONES.map(t => <option key={t} value={t}>{t}</option>)}
-    </select>
-  </div>
-);
-
 const TimeInput = ({ value, onChange, label = "Saat" }: { value?: string; onChange: (v: string) => void; label?: string }) => (
   <div>
     <label className={labelCls}>{label}</label>
@@ -44,6 +39,7 @@ const TimeInput = ({ value, onChange, label = "Saat" }: { value?: string; onChan
   </div>
 );
 
+// Native date input (calendar picker built into browser).
 const DateInput = ({ value, onChange, label }: { value?: string; onChange: (v: string) => void; label: string }) => (
   <div>
     <label className={labelCls}>{label}</label>
@@ -55,7 +51,6 @@ const Info = ({ children }: { children: React.ReactNode }) => (
   <div className="text-xs text-muted-foreground bg-secondary/40 border border-border/60 rounded-lg p-2.5">{children}</div>
 );
 
-// ── Xülasə ─────────────────────────────────────────────────
 const fmtDate = (iso?: string) => {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
@@ -91,13 +86,11 @@ const summarize = (s: ScheduleConfig): string => {
   }
 };
 
-// ── Əsas komponent ─────────────────────────────────────────
 const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
   const set = (patch: Partial<ScheduleConfig>) => onChange({ ...s, ...patch });
 
   const setKind = (kind: FrequencyKind) => {
-    // Növü dəyişəndə defaults tətbiq et.
-    const base: ScheduleConfig = { kind, time: s.time || "09:00", timezone: s.timezone || "Asia/Baku" };
+    const base: ScheduleConfig = { kind, time: s.time || "09:00" };
     if (kind === "monthly") { base.monthlyMode = "dayOfMonth"; base.dayOfMonth = 1; }
     if (kind === "weekly") base.weekdays = [1];
     if (kind === "quarterly") { base.quarter = 1; base.month = 1; base.day = 1; }
@@ -110,6 +103,11 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
     const cur = new Set(s.weekdays || []);
     cur.has(w) ? cur.delete(w) : cur.add(w);
     set({ weekdays: Array.from(cur).sort() as Weekday[] });
+  };
+
+  const setQuarter = (q: 1 | 2 | 3 | 4) => {
+    // Rüb dəyişəndə ay avtomatik həmin rübün ilk ayına düşür.
+    set({ quarter: q, month: QUARTER_MONTHS[q][0] });
   };
 
   return (
@@ -127,11 +125,9 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
         </select>
       </div>
 
-      {/* Kind-specific fields */}
       {s.kind === "on_event" && (
         <div className="grid grid-cols-2 gap-3">
           <TimeInput value={s.time} onChange={v => set({ time: v })} label="Göndərmə vaxtı" />
-          <TzSelect value={s.timezone} onChange={v => set({ timezone: v })} />
           <div className="col-span-2"><Info>Bildiriş hadisə baş verdiyi anda göndəriləcək.</Info></div>
         </div>
       )}
@@ -140,7 +136,6 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
         <div className="grid grid-cols-2 gap-3">
           <DateInput value={s.date} onChange={v => set({ date: v })} label="Tarix" />
           <TimeInput value={s.time} onChange={v => set({ time: v })} />
-          <div className="col-span-2"><TzSelect value={s.timezone} onChange={v => set({ timezone: v })} /></div>
           <div className="col-span-2"><Info>Bildiriş seçilmiş tarix və saatda yalnız bir dəfə göndəriləcək.</Info></div>
         </div>
       )}
@@ -150,7 +145,6 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
           <DateInput value={s.startDate} onChange={v => set({ startDate: v })} label="Başlama tarixi" />
           <DateInput value={s.endDate} onChange={v => set({ endDate: v })} label="Bitmə tarixi (ixtiyari)" />
           <TimeInput value={s.time} onChange={v => set({ time: v })} />
-          <TzSelect value={s.timezone} onChange={v => set({ timezone: v })} />
           <div className="col-span-2"><Info>Bildiriş hər gün seçilmiş saatda göndəriləcək.</Info></div>
         </div>
       )}
@@ -175,10 +169,7 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
               })}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <TimeInput value={s.time} onChange={v => set({ time: v })} />
-            <TzSelect value={s.timezone} onChange={v => set({ timezone: v })} />
-          </div>
+          <TimeInput value={s.time} onChange={v => set({ time: v })} />
           <Info>Bildiriş seçilmiş həftə günlərində göndəriləcək.</Info>
         </div>
       )}
@@ -218,36 +209,38 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
               </div>
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <TimeInput value={s.time} onChange={v => set({ time: v })} />
-            <TzSelect value={s.timezone} onChange={v => set({ timezone: v })} />
-          </div>
+          <TimeInput value={s.time} onChange={v => set({ time: v })} />
           <Info>Bildiriş hər ay avtomatik göndəriləcək.</Info>
         </div>
       )}
 
-      {s.kind === "quarterly" && (
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Rüb</label>
-            <select value={s.quarter ?? 1} onChange={e => set({ quarter: Number(e.target.value) as 1|2|3|4 })} className={inputCls}>
-              {[1,2,3,4].map(q => <option key={q} value={q}>{["I","II","III","IV"][q-1]}</option>)}
-            </select>
+      {s.kind === "quarterly" && (() => {
+        const q = (s.quarter ?? 1) as 1 | 2 | 3 | 4;
+        const allowedMonths = QUARTER_MONTHS[q];
+        const month = allowedMonths.includes(s.month ?? 0) ? (s.month as number) : allowedMonths[0];
+        return (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Rüb</label>
+              <select value={q} onChange={e => setQuarter(Number(e.target.value) as 1|2|3|4)} className={inputCls}>
+                {[1,2,3,4].map(qq => <option key={qq} value={qq}>{["I","II","III","IV"][qq-1]} rüb</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Ay (yalnız seçilmiş rüb)</label>
+              <select value={month} onChange={e => set({ month: Number(e.target.value) })} className={inputCls}>
+                {allowedMonths.map(mi => <option key={mi} value={mi}>{MONTHS_AZ[mi-1]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Gün</label>
+              <input type="number" min={1} max={31} value={s.day ?? 1} onChange={e => set({ day: Number(e.target.value) })} className={inputCls} />
+            </div>
+            <TimeInput value={s.time} onChange={v => set({ time: v })} />
+            <div className="col-span-2"><Info>Yalnız {["I","II","III","IV"][q-1]} rübün ayları göstərilir.</Info></div>
           </div>
-          <div>
-            <label className={labelCls}>Ay</label>
-            <select value={s.month ?? 1} onChange={e => set({ month: Number(e.target.value) })} className={inputCls}>
-              {MONTHS_AZ.map((m, i) => <option key={m} value={i+1}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Gün</label>
-            <input type="number" min={1} max={31} value={s.day ?? 1} onChange={e => set({ day: Number(e.target.value) })} className={inputCls} />
-          </div>
-          <TimeInput value={s.time} onChange={v => set({ time: v })} />
-          <div className="col-span-2"><TzSelect value={s.timezone} onChange={v => set({ timezone: v })} /></div>
-        </div>
-      )}
+        );
+      })()}
 
       {s.kind === "yearly" && (
         <div className="grid grid-cols-2 gap-3">
@@ -262,7 +255,6 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
             <input type="number" min={1} max={31} value={s.day ?? 1} onChange={e => set({ day: Number(e.target.value) })} className={inputCls} />
           </div>
           <TimeInput value={s.time} onChange={v => set({ time: v })} />
-          <TzSelect value={s.timezone} onChange={v => set({ timezone: v })} />
         </div>
       )}
 
@@ -283,7 +275,6 @@ const NotificationSchedulePicker = ({ value: s, onChange }: Props) => {
             </select>
           </div>
           <TimeInput value={s.time} onChange={v => set({ time: v })} />
-          <TzSelect value={s.timezone} onChange={v => set({ timezone: v })} />
           <div className="col-span-2">
             <label className={labelCls}>Advanced Schedule (Cron ifadəsi, ixtiyari)</label>
             <input value={s.cron || ""} onChange={e => set({ cron: e.target.value })} placeholder="0 9 * * 1-5" className={`${inputCls} font-mono`} />
