@@ -536,7 +536,14 @@ const KpiListView = ({
             id: t.id, name: t.name, plan: t.plan, fakt: t.fakt, unit: t.unit, status: t.status,
           })),
         }))}
+        onAction={(item, _t, a) => {
+          const k = rows.find(r => r.id === item.id);
+          if (!k) return;
+          const tab: DrawerTab = a === "history" ? "history" : a === "comments" ? "comments" : a === "reminders" ? "history" : "general";
+          openDrawer(k, tab);
+        }}
       />
+
 
 
       {scope !== "own" && (

@@ -80,7 +80,7 @@ const SEED: NotificationSetting[] = [
     frequency: "on_event",
     sendTime: "09:00",
     schedule: mkSchedule("on_event", "09:00"),
-    recipients: ["role:KPI sahibi", "role:Rəhbər"],
+    recipients: [],
     template: "Sizə yeni KPI təyin olundu: {kpi_name}. Hədəf: {target}.",
   },
   {
@@ -92,7 +92,7 @@ const SEED: NotificationSetting[] = [
     frequency: "on_event",
     sendTime: "10:00",
     schedule: mkSchedule("on_event", "10:00"),
-    recipients: ["role:Qiymətləndirici", "role:KPI sahibi"],
+    recipients: [],
     template: "{kpi_name} üçün qiymətləndirmə dövrü {date} tarixində başlayır.",
   },
   {
@@ -104,7 +104,7 @@ const SEED: NotificationSetting[] = [
     frequency: "daily",
     sendTime: "09:00",
     schedule: mkSchedule("daily", "09:00"),
-    recipients: ["role:KPI sahibi", "role:Rəhbər"],
+    recipients: [],
     template: "{kpi_name} KPI-sının bitməsinə {days_left} gün qalıb. Cari icra: {progress}%.",
   },
   {
@@ -116,7 +116,7 @@ const SEED: NotificationSetting[] = [
     frequency: "daily",
     sendTime: "09:00",
     schedule: mkSchedule("daily", "09:00"),
-    recipients: ["role:KPI sahibi", "role:Rəhbər", "role:HR"],
+    recipients: [],
     template: "{kpi_name} KPI-sı {date} tarixində bitib, nəticə hələ daxil edilməyib.",
   },
   {
@@ -128,7 +128,7 @@ const SEED: NotificationSetting[] = [
     frequency: "on_event",
     sendTime: "10:00",
     schedule: mkSchedule("on_event", "10:00"),
-    recipients: ["role:KPI sahibi", "role:Rəhbər", "role:HR"],
+    recipients: [],
     template: "{period} dövrü üçün bonus hesablanması başlayır.",
   },
   {
@@ -140,7 +140,7 @@ const SEED: NotificationSetting[] = [
     frequency: "on_event",
     sendTime: "09:00",
     schedule: mkSchedule("on_event", "09:00"),
-    recipients: ["role:KPI sahibi", "role:Qiymətləndirici", "role:Rəhbər"],
+    recipients: [],
     template: "{kpi_name} üçün review iclası {date} tarixində keçiriləcək.",
   },
   {
@@ -152,7 +152,7 @@ const SEED: NotificationSetting[] = [
     frequency: "on_event",
     sendTime: "09:00",
     schedule: mkSchedule("on_event", "09:00"),
-    recipients: ["role:KPI sahibi"],
+    recipients: [],
     template: "Sizə yeni hədəf təyin olundu: {sub_kpi_name}.",
   },
   {
@@ -164,7 +164,7 @@ const SEED: NotificationSetting[] = [
     frequency: "daily",
     sendTime: "09:00",
     schedule: mkSchedule("daily", "09:00"),
-    recipients: ["role:Rəhbər", "role:HR"],
+    recipients: [],
     template: "Təsdiq gözləyən KPI mövcuddur: {kpi_name}.",
   },
   {
@@ -176,7 +176,7 @@ const SEED: NotificationSetting[] = [
     frequency: "on_event",
     sendTime: "10:00",
     schedule: mkSchedule("on_event", "10:00"),
-    recipients: ["role:KPI sahibi"],
+    recipients: [],
     template: "{kpi_name} üzrə qiymətləndirmə nəticəniz hazırdır: {score} bal.",
   },
   {
@@ -188,7 +188,7 @@ const SEED: NotificationSetting[] = [
     frequency: "monthly",
     sendTime: "08:00",
     schedule: { kind: "monthly", monthlyMode: "dayOfMonth", dayOfMonth: 1, time: "08:00", timezone: DEFAULT_TZ },
-    recipients: ["role:Rəhbər", "role:HR"],
+    recipients: [],
     template: "{period} üzrə aylıq performans hesabatı hazırdır.",
   },
 ];

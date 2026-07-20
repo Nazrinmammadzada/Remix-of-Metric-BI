@@ -4,10 +4,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
 import { getTeams } from "@/lib/teamsStore";
+import { useRoles } from "@/lib/rolesStore";
 import { LEGACY_RECIPIENT_LABELS } from "@/lib/notificationSettingsStore";
-
-// Sistem rolları — Notification Recipients üçün sabit siyahı.
-const SYSTEM_ROLES = ["KPI sahibi", "Rəhbər", "Qiymətləndirici", "KPI təyin edən", "HR", "CEO"];
 
 interface Props {
   value: string[];
@@ -148,7 +146,8 @@ const NotificationRecipientsPicker = ({ value, onChange }: Props) => {
   const positions = useMemo(() => getPositions().map(p => ({ key: p, label: p })), []);
   const structures = useMemo(() => getStructures(), []);
   const teams = useMemo(() => getTeams().map(t => ({ key: String(t.id), label: t.name })), []);
-  const roleItems = useMemo(() => SYSTEM_ROLES.map(r => ({ key: r, label: r })), []);
+  const rolesList = useRoles();
+  const roleItems = useMemo(() => rolesList.map(r => ({ key: r.name, label: r.name })), [rolesList]);
 
   // struct id → name (chip display)
   const structIdx = useMemo(() => {
