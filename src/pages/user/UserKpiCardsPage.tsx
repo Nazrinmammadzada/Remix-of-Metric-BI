@@ -16,6 +16,7 @@ import {
   LineChart, Check, Clock, MoreVertical, Eye, MessageSquare, Bell, X, Send, Paperclip,
   Target as TargetIcon, AlertTriangle,
 } from "lucide-react";
+import KpiAccordionList, { type AccordionKpi } from "@/components/kpi/KpiAccordionList";
 
 // ============================================================
 // Demo data model
@@ -524,65 +525,19 @@ const KpiListView = ({
         <Button variant="outline" size="sm" className="gap-1.5"><Filter className="w-3.5 h-3.5" /> Filtrlər</Button>
       </div>
 
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/40 text-muted-foreground">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium">KPI</th>
-              <th className="text-right px-4 py-3 font-medium">Plan</th>
-              <th className="text-right px-4 py-3 font-medium">Fakt</th>
-              <th className="text-left px-4 py-3 font-medium w-44">İcra %</th>
-              <th className="text-center px-4 py-3 font-medium">Status</th>
-              <th className="text-left px-4 py-3 font-medium">Deadline</th>
-              <th className="text-right px-4 py-3 font-medium w-24">Əməliyyatlar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(k => {
-              const p = pct(k.plan, k.fakt);
-              return (
-                <tr key={k.id} className="border-t border-border hover:bg-secondary/20 align-top">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{withKartSuffix(k.name)}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{k.description}</div>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmt(k.plan)} {k.unit === "AZN" ? "₼" : ""}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{fmt(k.fakt)} {k.unit === "AZN" ? "₼" : ""}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Progress value={Math.min(p, 100)} className="h-2 flex-1" />
-                      <span className="text-xs tabular-nums font-medium w-9 text-right">{p}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <Badge className={STATUS_META[k.status].cls}>{STATUS_META[k.status].label}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{k.deadline}</td>
-                  <td className="px-4 py-3 text-right">
-                    <Popover open={openMenu === k.id} onOpenChange={o => setOpenMenu(o ? k.id : null)}>
-                      <PopoverTrigger asChild>
-                        <button className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors" aria-label="Əməliyyatlar">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent align="end" className="w-52 p-1">
-                        <MenuItem icon={Eye} label="KPI-yə bax" onClick={() => openDrawer(k, "general")} />
-                        <MenuItem icon={LineChart} label="İcra tarixçəsi" onClick={() => openDrawer(k, "history")} />
-                        <MenuItem icon={MessageSquare} label="Şərhlər"
-                          onClick={() => openDrawer(k, scope === "own" ? "comments" : "general")} />
-                        <MenuItem icon={Bell} label="Xatırlatmalar" onClick={() => openDrawer(k, "history")} />
-                      </PopoverContent>
-                    </Popover>
-                  </td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">KPI tapılmadı.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <KpiAccordionList
+        items={rows.map<AccordionKpi>(k => ({
+          id: k.id,
+          name: k.name,
+          createdAt: k.createdAt,
+          deadline: k.deadline,
+          status: k.status,
+          targets: k.targets.map(t => ({
+            id: t.id, name: t.name, plan: t.plan, fakt: t.fakt, unit: t.unit, status: t.status,
+          })),
+        }))}
+      />
+
 
       {scope !== "own" && (
         <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
