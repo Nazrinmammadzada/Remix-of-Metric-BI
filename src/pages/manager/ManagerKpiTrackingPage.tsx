@@ -111,6 +111,50 @@ const statusMeta: Record<KpiStatus, { label: string; cls: string }> = {
   delayed:     { label: "Gecikir",   cls: "bg-zone-red-bg text-zone-red-text hover:bg-zone-red-bg" },
 };
 
+// Kart üçün hədəf breakdown-ı — seed və dinamik KPI-lar üçün ortaq adapter.
+const SEED_TARGETS: Record<string, { name: string; plan: number; fakt: number; unit: string; status: KpiStatus }[]> = {
+  "Satış Həcminin Artırılması": [
+    { name: "Yeni müştərilərin sayının artırılması", plan: 120, fakt: 98, unit: "ədəd", status: "in_progress" },
+    { name: "Mövcud müştərilərlə satışların artırılması", plan: 250_000, fakt: 120_000, unit: "AZN", status: "at_risk" },
+    { name: "Yeni məhsulun satışa çıxarılması", plan: 1, fakt: 0, unit: "ədəd", status: "delayed" },
+  ],
+  "Yeni Müştəri Qazanılması": [
+    { name: "B2B müqavilələr", plan: 70, fakt: 58, unit: "ədəd", status: "in_progress" },
+    { name: "B2C müqavilələr", plan: 50, fakt: 40, unit: "ədəd", status: "in_progress" },
+  ],
+  "Müştəri Məmnuniyyətinin Artırılması": [
+    { name: "CSAT anketi orta bal", plan: 90, fakt: 61, unit: "%", status: "in_progress" },
+    { name: "Şikayət cavab müddəti (saat)", plan: 24, fakt: 18, unit: "saat", status: "completed" },
+  ],
+  "Komanda satış həcmi (toplu)": [
+    { name: "Aylıq satış — Yanvar", plan: 500_000, fakt: 480_000, unit: "AZN", status: "in_progress" },
+    { name: "Aylıq satış — Fevral", plan: 500_000, fakt: 420_000, unit: "AZN", status: "at_risk" },
+    { name: "Aylıq satış — Mart", plan: 500_000, fakt: 220_000, unit: "AZN", status: "in_progress" },
+  ],
+  "Brand kampaniya reach (toplu)": [
+    { name: "Sosial media reach", plan: 300_000, fakt: 215_000, unit: "istifadəçi", status: "in_progress" },
+    { name: "Web reach", plan: 200_000, fakt: 127_000, unit: "istifadəçi", status: "in_progress" },
+  ],
+  "NPS orta bal (toplu)": [
+    { name: "Komanda üzrə orta NPS", plan: 70, fakt: 72, unit: "bal", status: "completed" },
+  ],
+};
+
+const targetsForKpi = (k: Kpi) => {
+  const key = k.name.replace(/\s+—.*$/, "");
+  const seed = SEED_TARGETS[key];
+  if (seed) return seed.map((t, i) => ({ id: `${k.id}-t${i + 1}`, ...t }));
+  return [{
+    id: `${k.id}-t1`,
+    name: k.method || k.name,
+    plan: k.target,
+    fakt: k.actual,
+    unit: k.unit,
+    status: k.status as AccordionKpiStatus,
+  }];
+};
+
+
 type View = "hub" | "own" | "team" | "sub" | "reviews";
 
 const ManagerKpiTrackingPage = () => {
