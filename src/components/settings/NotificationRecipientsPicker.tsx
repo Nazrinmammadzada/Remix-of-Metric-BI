@@ -4,10 +4,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getEmployees, getStructures, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
 import { getTeams } from "@/lib/teamsStore";
+import { useRoles } from "@/lib/rolesStore";
 import { LEGACY_RECIPIENT_LABELS } from "@/lib/notificationSettingsStore";
-
-// Sistem rolları — Notification Recipients üçün sabit siyahı.
-const SYSTEM_ROLES = ["KPI sahibi", "Rəhbər", "Qiymətləndirici", "KPI təyin edən", "HR", "CEO"];
 
 interface Props {
   value: string[];
