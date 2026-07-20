@@ -26,6 +26,7 @@ import {
   MoreVertical, Eye, LineChart, MessageSquare, Filter, Send, Paperclip, AlertTriangle, Building2,
   TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch, RefreshCw,
 } from "lucide-react";
+import KpiAccordionList, { type AccordionKpi, type AccordionKpiStatus } from "@/components/kpi/KpiAccordionList";
 
 type Stage = "assigned" | "evaluated" | "pending_assign";
 type KpiStatus = "in_progress" | "at_risk" | "completed" | "delayed";
