@@ -25,7 +25,6 @@ export type CustomUnit = "day" | "week" | "month";
 export interface ScheduleConfig {
   kind: FrequencyKind;
   time?: string; // HH:MM
-  timezone?: string;
   date?: string; // ISO yyyy-mm-dd
   startDate?: string;
   endDate?: string;
@@ -63,11 +62,10 @@ export interface NotificationSetting {
 const KEY = "kpi_notification_settings_v2";
 const LEGACY_KEY = "kpi_notification_settings_v1";
 const EVT = "notification-settings-updated";
-
-const DEFAULT_TZ = "Asia/Baku";
+const RECIPIENT_RESET_KEY = "kpi_notification_recipients_default_cleared_v1";
 
 const mkSchedule = (kind: FrequencyKind, time = "09:00"): ScheduleConfig => ({
-  kind, time, timezone: DEFAULT_TZ,
+  kind, time,
 });
 
 const SEED: NotificationSetting[] = [
@@ -187,11 +185,13 @@ const SEED: NotificationSetting[] = [
     channels: ["email"],
     frequency: "monthly",
     sendTime: "08:00",
-    schedule: { kind: "monthly", monthlyMode: "dayOfMonth", dayOfMonth: 1, time: "08:00", timezone: DEFAULT_TZ },
+    schedule: { kind: "monthly", monthlyMode: "dayOfMonth", dayOfMonth: 1, time: "08:00" },
     recipients: [],
     template: "{period} üzrə aylıq performans hesabatı hazırdır.",
   },
 ];
+
+const BUILT_IN_SETTING_IDS = new Set(SEED.map(s => s.id));
 
 const migrate = (raw: any): NotificationSetting => {
   const channels: NotificationChannel[] = Array.isArray(raw.channels)
@@ -207,8 +207,9 @@ const migrate = (raw: any): NotificationSetting => {
   }
   const time = raw.sendTime || raw.schedule?.time || "09:00";
   const schedule: ScheduleConfig = raw.schedule && raw.schedule.kind
-    ? { timezone: DEFAULT_TZ, ...raw.schedule }
+    ? { ...raw.schedule }
     : mkSchedule(freq, time);
+  delete (schedule as any).timezone;
 
   return {
     id: raw.id,
@@ -232,12 +233,17 @@ const load = (): NotificationSetting[] => {
       const migrated = parsed.map(migrate);
       const ids = new Set(migrated.map(p => p.id));
       const missing = SEED.filter(s => !ids.has(s.id));
-      const next = missing.length ? [...migrated, ...missing] : migrated;
+      let next = missing.length ? [...migrated, ...missing] : migrated;
+      if (!localStorage.getItem(RECIPIENT_RESET_KEY)) {
+        next = next.map(n => BUILT_IN_SETTING_IDS.has(n.id) ? { ...n, recipients: [] } : n);
+        localStorage.setItem(RECIPIENT_RESET_KEY, "1");
+      }
       localStorage.setItem(KEY, JSON.stringify(next));
       return next;
     }
   } catch {}
   localStorage.setItem(KEY, JSON.stringify(SEED));
+  localStorage.setItem(RECIPIENT_RESET_KEY, "1");
   return SEED;
 };
 

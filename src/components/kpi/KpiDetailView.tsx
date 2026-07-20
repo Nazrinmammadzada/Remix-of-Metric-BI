@@ -15,7 +15,7 @@ import type { KpiCardStatusRow, KpiCardStatus } from "@/lib/kpiCardStatusStore";
 import KpiExtraTabContent, { isExtraTab } from "./KpiExtraTabs";
 import BscScorecardTab from "./BscScorecardTab";
 import LifecycleView, { REVIEW_STATUS_STYLES } from "./LifecycleView";
-import PerformanceDynamicsTab from "./PerformanceDynamicsTab";
+import PerformanceDynamicsTab from "./PerformanceDynamicsDrilldownTab";
 import { getLifecycle, getLifecycleWithFallback, computeReviewStatus, setReviewOutcome } from "@/lib/kpiLifecycleStore";
 import { getEntriesForCard } from "@/lib/kpiSetStore";
 import { getApprovalMatrices, formatAssignee } from "@/lib/matrixStore";
