@@ -24,6 +24,7 @@ const load = (): KpiCardMeta[] => {
 
 const save = (list: KpiCardMeta[]) => {
   localStorage.setItem(KEY, JSON.stringify(list));
+  window.dispatchEvent(new Event("kpi-cards-updated"));
 };
 
 export const getKpiCardMeta = (cardId: number): KpiCardMeta | null =>
