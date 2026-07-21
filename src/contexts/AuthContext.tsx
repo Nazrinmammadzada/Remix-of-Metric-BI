@@ -360,10 +360,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Defer supabase calls to avoid deadlocks inside the callback.
         setTimeout(() => {
           buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then(u => {
-            if (u) setUser(u);
+            if (u) {
+              setUser(u);
+              if (u.currentOrgId && u.supabaseUserId) {
+                void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+              }
+            }
           });
         }, 0);
       } else {
+        deactivateOrgSync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
