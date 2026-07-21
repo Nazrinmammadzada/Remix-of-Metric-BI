@@ -12,6 +12,7 @@
 //    numeric↔UUID map so re-hydrations stay stable.
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditService";
 import {
   getEmployees, setEmployees, getStructures, setStructures,
   type OrgEmployee, type OrgStructure, type OrgPosition, type OrgSlot,
