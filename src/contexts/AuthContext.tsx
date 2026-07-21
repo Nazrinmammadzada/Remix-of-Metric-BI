@@ -484,6 +484,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivatePayrollSync();
         deactivateLifecycleSync();
         deactivateNotificationsSync();
+        deactivatePhase1Sync();
     await supabase.auth.signOut();
   };
 
