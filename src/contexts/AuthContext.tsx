@@ -303,6 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       if (scheduled) clearTimeout(scheduled);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.clearInterval(interval);
       supabase.removeChannel(channel);
     };
