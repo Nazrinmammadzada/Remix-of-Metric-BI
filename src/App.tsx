@@ -12,6 +12,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AccessDenied from "./pages/AccessDenied";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
 import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
 import KpiHubPage from "./pages/KpiHubPage";
@@ -123,6 +124,7 @@ const App = () => {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordGuard />} />
             <Route path="/access-denied" element={<AccessDenied />} />
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
             <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><AppLayout /></RequirePasswordChanged></RouteGuard>}>
