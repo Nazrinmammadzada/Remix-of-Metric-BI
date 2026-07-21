@@ -211,7 +211,7 @@ const save = (key: string, value: unknown) => {
 
 // ---------- Employees ----------
 
-export const getEmployees = (): OrgEmployee[] => load(STORAGE_EMPLOYEES, seedEmployees);
+export const getEmployees = (): OrgEmployee[] => load(STORAGE_EMPLOYEES, [] as OrgEmployee[]);
 
 export const setEmployees = (list: OrgEmployee[]) => save(STORAGE_EMPLOYEES, list);
 
