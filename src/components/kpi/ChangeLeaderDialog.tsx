@@ -5,7 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Crown, Search, ChevronDown, Check } from "lucide-react";
-import { getEmployees, assignSlot, getAssignedEmployeeIds, type LeaderStructInfo } from "@/lib/orgStore";
+import { getEmployees, getAssignedEmployeeIds, type LeaderStructInfo } from "@/lib/orgStore";
+import { assignSlotInCloud } from "@/lib/orgService";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -20,6 +22,7 @@ const ChangeLeaderDialog = ({ open, onOpenChange, info, currentLeaderId, onSaved
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const employees = getEmployees();
   const currentLeader = employees.find(e => e.id === currentLeaderId);
@@ -44,12 +47,19 @@ const ChangeLeaderDialog = ({ open, onOpenChange, info, currentLeaderId, onSaved
     onOpenChange(o);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!info || selectedId == null) return;
-    assignSlot(info.slotId, { employeeId: selectedId });
-    setSelectedId(null);
-    setSearch("");
-    onSaved();
+    setSaving(true);
+    try {
+      await assignSlotInCloud(info.slotId, { employeeId: selectedId });
+      setSelectedId(null);
+      setSearch("");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Rəhbər dəyişikliyi database-ə yazılmadı.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!info) return null;
@@ -131,7 +141,7 @@ const ChangeLeaderDialog = ({ open, onOpenChange, info, currentLeaderId, onSaved
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>Ləğv et</Button>
-          <Button onClick={handleConfirm} disabled={selectedId == null}>Təsdiq et</Button>
+          <Button onClick={handleConfirm} disabled={selectedId == null || saving}>{saving ? "Yazılır..." : "Təsdiq et"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
