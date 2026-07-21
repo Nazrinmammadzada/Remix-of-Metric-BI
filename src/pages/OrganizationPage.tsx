@@ -22,7 +22,7 @@ import {
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
-import { createEmployeeInCloud } from "@/lib/orgService";
+import { createEmployeeInCloud, persistOrgNow } from "@/lib/orgService";
 
 
 import {
@@ -800,13 +800,14 @@ const PositionCard = ({ position, structureId, structureName }: { position: OrgP
     toast.success("Vəzifə silindi");
   };
 
-  const handleAddSlots = () => {
+  const handleAddSlots = async () => {
     const n = Math.max(1, Math.min(100, Number(slotCount) || 1));
     addSlot(position.id, n, slotFraction);
-    toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
     setShowAddSlot(false);
     setSlotCount(1);
     setSlotFraction(1);
+    try { await persistOrgNow(); } catch {}
+    toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
   };
 
   return (
@@ -967,7 +968,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
             <div className="max-h-64 overflow-y-auto py-1">
               {current && (
                 <button
-                  onClick={() => { assignSlot(slot.id, { employeeId: null }); setOpen(false); toast.success("Təyinat ləğv edildi"); }}
+                  onClick={async () => { assignSlot(slot.id, { employeeId: null }); setOpen(false); try { await persistOrgNow(); } catch {} toast.success("Təyinat ləğv edildi"); }}
                   className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-destructive/5 border-b border-border flex items-center gap-1.5"
                 >
                   <X className="w-3.5 h-3.5" /> Təyinatı ləğv et
@@ -979,7 +980,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
               {available.map(e => (
                 <button
                   key={e.id}
-                  onClick={() => { assignSlot(slot.id, { employeeId: e.id }); setOpen(false); toast.success("Əməkdaş təyin edildi"); }}
+                  onClick={async () => { assignSlot(slot.id, { employeeId: e.id }); setOpen(false); try { await persistOrgNow(); } catch {} toast.success("Əməkdaş təyin edildi"); }}
                   className={`w-full text-left px-3 py-2.5 text-sm hover:bg-secondary/40 flex items-center justify-between gap-3 ${e.id === slot.employeeId ? 'bg-primary/5' : ''}`}
                 >
                   <div className="min-w-0 flex-1">
@@ -995,7 +996,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       </div>
       <Select
         value={String(slot.fraction ?? 1)}
-        onValueChange={(v) => assignSlot(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 })}
+        onValueChange={async (v) => { assignSlot(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 }); try { await persistOrgNow(); } catch {} }}
       >
         <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -1010,9 +1011,10 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
         placeholder="Maaş (AZN)"
         value={slot.salary ?? ""}
         onChange={e => assignSlot(slot.id, { salary: e.target.value ? Number(e.target.value) : null })}
+        onBlur={() => { void persistOrgNow(); }}
         className="w-32 px-2 py-1.5 text-sm border border-border rounded-lg bg-background"
       />
-      <button onClick={() => removeSlot(slot.id)} className="p-1 rounded hover:bg-destructive/10">
+      <button onClick={async () => { removeSlot(slot.id); try { await persistOrgNow(); } catch {} }} className="p-1 rounded hover:bg-destructive/10">
         <Trash2 className="w-3.5 h-3.5 text-destructive" />
       </button>
     </div>
