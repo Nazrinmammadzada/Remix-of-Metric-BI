@@ -127,7 +127,14 @@ export const hydrateOrgFromCloud = async (orgId: string): Promise<void> => {
   setEmployees(employees);
   setStructures(roots);
   suppressFlush = false;
+
+  // Auto-provision auth logins for any employees that lack an auth.users row.
+  try {
+    const { provisionPendingEmployees } = await import("@/lib/employeeService");
+    void provisionPendingEmployees(orgId);
+  } catch {}
 };
+
 
 // ── SEED cloud from current local snapshot (first-time bootstrap) ─────────────
 const seedCloudFromLocal = async (orgId: string) => {
@@ -335,7 +342,17 @@ export const flushLocalOrgToCloud = async () => {
     module: "org_structure",
     metadata: { employees: employees.length, structures: structures.length },
   });
+
+  // After mirroring, provision auth logins for any newly-added employees who
+  // have an email but no auth_user_id yet. Fire-and-forget: the edge function
+  // creates the auth.users row with the default temporary password (123456)
+  // and links it back to org_employees.auth_user_id.
+  try {
+    const { provisionPendingEmployees } = await import("@/lib/employeeService");
+    void provisionPendingEmployees(orgId);
+  } catch {}
 };
+
 
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────
 export const activateOrgSync = async (orgId: string, userId: string) => {
