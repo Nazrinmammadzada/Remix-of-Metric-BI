@@ -452,6 +452,8 @@ export const deactivateOrgSync = () => {
   currentOrgId = null;
   activeUserId = null;
   window.removeEventListener("org-updated", scheduleFlush);
+  window.removeEventListener("beforeunload", beforeUnloadFlush);
+  window.removeEventListener("pagehide", beforeUnloadFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
   if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
   if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
