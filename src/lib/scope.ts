@@ -1,5 +1,10 @@
 // Role-aware visibility helpers used by HR / Manager / User panels so that each
 // panel sees only the slice of data that belongs to it.
+//
+// Phase 3: prefer explicit permission codes (`kpi.view_all`, `kpi.view_team`,
+// `kpi.view_own`, plus `employees.*` and `approvals.*` equivalents) over hard
+// role checks. Roles remain a fallback for legacy sessions that haven't been
+// re-synced from the database yet.
 
 import type { AuthUser } from "@/contexts/AuthContext";
 import {
@@ -18,6 +23,23 @@ import {
 import type { SharedKpiCard } from "./kpiCardStore";
 import type { ApprovalItem } from "./approvalsStore";
 
+const has = (user: AuthUser | null, code: string) =>
+  !!user && Array.isArray(user.permissions) && user.permissions.includes(code);
+
+type Scope = "all" | "team" | "own" | "none";
+
+const resolveScope = (user: AuthUser | null, module: "kpi" | "employees" | "approvals"): Scope => {
+  if (!user) return "none";
+  if (user.role === "SUPER_ADMIN") return "all";
+  if (has(user, `${module}.view_all`)) return "all";
+  if (has(user, `${module}.view_team`)) return "team";
+  if (has(user, `${module}.view_own`)) return "own";
+  // Legacy fallback based on role for sessions without seeded permissions
+  if (user.role === "HR") return "all";
+  if (user.role === "MANAGER") return "team";
+  return "own";
+};
+
 export const getCurrentEmployeeId = (user: AuthUser | null): string | null =>
   getEmployeeIdForEmail(user?.email);
 
@@ -26,21 +48,23 @@ export const getCurrentEmployee = (user: AuthUser | null): EnrichedEmployee | nu
 
 // ---------- Employees ----------
 export const getVisibleEmployees = (user: AuthUser | null): EnrichedEmployee[] => {
-  if (!user) return [];
-  if (user.role === "HR" || user.role === "SUPER_ADMIN") return enrichedEmployees;
+  const scope = resolveScope(user, "employees");
+  if (scope === "none") return [];
+  if (scope === "all") return enrichedEmployees;
   const meId = getCurrentEmployeeId(user);
   if (!meId) return [];
-  if (user.role === "MANAGER") return getManagedEmployees(meId);
+  if (scope === "team") return getManagedEmployees(meId);
   return enrichedEmployees.filter(e => e.id === meId);
 };
 
 // ---------- Structures ----------
 export const getVisibleStructures = (user: AuthUser | null): MockStructure[] => {
-  if (!user) return [];
-  if (user.role === "HR" || user.role === "SUPER_ADMIN") return mockStructures;
+  const scope = resolveScope(user, "employees");
+  if (scope === "none") return [];
+  if (scope === "all") return mockStructures;
   const meId = getCurrentEmployeeId(user);
   if (!meId) return [];
-  if (user.role === "MANAGER") {
+  if (scope === "team") {
     const own = getStructuresLedBy(meId);
     if (own.length > 0) return own;
     const me = getEnrichedEmployee(meId);
@@ -52,11 +76,12 @@ export const getVisibleStructures = (user: AuthUser | null): MockStructure[] => 
 
 // ---------- Teams ----------
 export const getVisibleTeams = (user: AuthUser | null): MockTeam[] => {
-  if (!user) return [];
-  if (user.role === "HR" || user.role === "SUPER_ADMIN") return mockTeams;
+  const scope = resolveScope(user, "employees");
+  if (scope === "none") return [];
+  if (scope === "all") return mockTeams;
   const meId = getCurrentEmployeeId(user);
   if (!meId) return [];
-  if (user.role === "MANAGER") {
+  if (scope === "team") {
     const led = getTeamsLedBy(meId);
     if (led.length > 0) return led;
     return mockTeams.filter(t => t.memberIds.includes(meId));
@@ -69,11 +94,12 @@ export const getVisibleKpiCards = (
   user: AuthUser | null,
   all: SharedKpiCard[],
 ): SharedKpiCard[] => {
-  if (!user) return [];
-  if (user.role === "HR" || user.role === "SUPER_ADMIN") return all;
+  const scope = resolveScope(user, "kpi");
+  if (scope === "none") return [];
+  if (scope === "all") return all;
   const meId = getCurrentEmployeeId(user);
   if (!meId) return [];
-  if (user.role === "MANAGER") {
+  if (scope === "team") {
     const managed = new Set(getManagedEmployees(meId).map(e => e.id));
     const ledTeamIds = new Set(getTeamsLedBy(meId).map(t => t.id));
     const ledStructureIds = new Set(getStructuresLedBy(meId).map(s => s.id));
@@ -85,7 +111,6 @@ export const getVisibleKpiCards = (
       || c.structureIds.some(s => ledStructureIds.has(s)),
     );
   }
-  // USER
   return all.filter(c => c.assigneeIds.includes(meId) || c.ownerId === meId || c.evaluatorIds.includes(meId));
 };
 
@@ -94,10 +119,12 @@ export const getVisibleApprovals = (
   user: AuthUser | null,
   all: ApprovalItem[],
 ): ApprovalItem[] => {
-  if (!user) return [];
-  if (user.role === "HR" || user.role === "SUPER_ADMIN") return all;
+  const scope = resolveScope(user, "approvals");
+  if (scope === "none") return [];
+  if (scope === "all") return all;
   const meId = getCurrentEmployeeId(user);
   if (!meId) return [];
-  if (user.role === "MANAGER") return all.filter(a => a.approverIds.includes(meId));
+  if (scope === "team") return all.filter(a => a.approverIds.includes(meId));
   return all.filter(a => a.createdBy === meId);
 };
+
