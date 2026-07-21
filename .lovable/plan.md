@@ -1,84 +1,66 @@
-# Plan: Təşkilat validasiyaları və Bildiriş sazlamaları yenidən dizaynı
+## Məqsəd
+Sizin `super.admin → HR → əməkdaş → login → rol/icazə əsaslı görünüş` ardıcıllığı tam real backend üzərindən işləməlidir. Artıq qurulmuş hissələr üzərində qalan boşluqları 4 mərhələdə bağlayacağam. Hər mərhələnin sonunda test edə bilərsiniz.
 
-## 1. Təşkilat modulu
+Qərar verilmiş qaydalar (sualdan sonra):
+- Bütün yeni əməkdaşlar üçün default şifrə: **`123456`** (məcburi ilk-giriş dəyişməsi ilə).
+- Custom rollar: sistem template + org-a xas override.
 
-### 1.1 Əməkhaqqı bazası – əməkdaş seçin (dropdown-a axtarış)
-- `src/pages/OrganizationPage.tsx` — "Əməkhaqqı bazası" kartında yeni məlumat əlavə etmə dialoqunda `select` əvəzinə `SearchableSelect` (`src/components/common/SearchableSelect.tsx`) tətbiq et.
+---
 
-### 1.2 Struktur kataloqu – istifadə olunan struktur tipi/vəzifə silinə bilməz
-- `src/lib/orgStore.ts` — köməkçi funksiyalar: `isStructureTypeInUse(typeName)` (units-də yoxla) və `isPositionInUse(positionName)` (employees & slots-da yoxla).
-- Struktur kataloqu kartında silmə əməliyyatında istifadəni yoxla və istifadə olunursa toast.error ilə `"Bu struktur tipi istifadə olunduğu üçün silinə bilməz."` / `"Bu vəzifə istifadə olunduğu üçün silinə bilməz."` göstər.
+## Mərhələ 1 — HR Əməkdaş İdarəetməsi (real Auth users)
 
-### 1.3 Ad / Soyad / Ata adı validasiyası
-- Yeni əməkdaş dialoqunda `firstName`, `lastName`, `middleName`:
-  - `maxLength = 50`
-  - Regex: `^[A-Za-zƏəÇçĞğİıIiÖöŞşÜüÂâ\-\s]+$` (yalnız hərflər + defis + boşluq)
-  - Səhv daxil edilərsə inline error + submit blok:
-    - `"Ad yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
-    - `"Soyad yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
-    - `"Ata adı yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
+**Yeni edge function:** `manage-employees` (service-role)
+- `create`: HR-in orgu üçün Auth user (`123456`, email_confirm=true), `profiles` sətri (`must_change_password=true`), `org_employees` sətri (vəzifə, struktur, komanda, rəhbər, status), `organization_members`, default `USER` rolu bağlama.
+- `update`: profile + org_employees + rol dəyişikliyi.
+- `deactivate` / `reactivate`: `org_employees.status` + Auth user `ban`/`unban`.
+- `reset_password`: şifrəni `123456`-ya qaytar + `must_change_password=true`.
+- Bütün əməliyyatlar `has_permission(caller, org, 'users.manage')` yoxlamasından keçir.
 
-### 1.4 FIN validasiyası
-- Regex: `^[0-9A-HJ-NP-Z]+$` (I, O istisna), uppercase-only
-- Səhv olarsa: `"FİN yalnız rəqəmlər və hərflərdən (I, O istisna) ibarət olmalıdır."`
+**Frontend:**
+- `src/lib/employeeService.ts` — yuxarıdakı funksiyanı çağıran wrapper.
+- `OrganizationPage.tsx`-in "Əməkdaşlar" tabı yalnız `org_employees`-i real DB-dən oxuyur/yazır, `mockExtras`-a düşməz.
+- Ad/soyad/FİN validasiyaları saxlanır.
+- Silinən əməkdaş: soft-deactivate (Auth ban + status=`inactive`).
 
-## 2. Sazlamalar → Bildiriş sazlamaları (`NotificationSettingsTab.tsx`)
+**Nəticə:** HR əməkdaş yaradır → o dərhal `email` + `123456` ilə giriş edir → `Şifrəni dəyişin` səhifəsinə düşür → yeni şifrədən sonra öz roluna uyğun panel.
 
-### 2.1 Kanallardan SMS-i sil və Xatırladıcılar sahəsini tam sil
-- `CHANNEL_LABELS` və tip-dən `sms` çıxarılır (`notificationSettingsStore.ts`), mövcud seed-lərdə təmizlənir.
-- Formada `reminders` bloku və `remDraft` state-i silinir, `supportsReminders` istifadəsi silinir.
+---
 
-### 2.2 Alıcılar – tab-based multi-select
-Yeni komponent: `src/components/settings/NotificationRecipientsPicker.tsx`
+## Mərhələ 2 — RBAC UI (Rollar & İcazələr)
 
-Tablar (Tabs komponenti şadcn):
-1. Şəxs — employees siyahısı (checkbox + search)
-2. Vəzifə — `getPositions()` (checkbox + search)
-3. Struktur — TreeView (`orgStore` units), parent toggle → bütün alt strukturlar
-4. Komanda — `teamsStore` siyahısı (checkbox + search)
-5. Sistem rolu — sabit rol siyahısı: KPI sahibi, Rəhbər, Qiymətləndirici, KPI təyin edən, HR, CEO (checkbox + search)
+- `SettingsPage → Rol və Səlahiyyət` tabı localStorage `rolesStore` əvəzinə DB `roles` + `role_permissions`-a bağlanır.
+- Sistem template rolları (HR/Manager/USER) `is_system_role=true` — silinməz, redaktə oluna bilməz.
+- HR "Yeni rol yarat" → `organization_id=<org>`, `is_system_role=false`, template-dən klonlanır, sonra HR öz icazələrini əlavə/silir.
+- Modul-səviyyəli matris UI: hər modul üçün `view/create/edit/delete/approve/manage` toggles → `permissions.code` ilə eşlənir (məs. `kpi.view`, `kpi.create`...).
+- HR rolları əməkdaşlara `user_roles` cədvəli vasitəsilə təyin edir.
+- `permissionMapping.ts` genişlənir: hazırda 20-ə yaxın kod var, bütün modul×hərəkət kombinasiyaları əlavə olunur (lazım gələn permissions DB-ə migrasiya ilə seed olunacaq).
 
-Token sxemi (backward-compatible əlavə):
-- `person:<AdSoyad>`, `position:<Ad>`, `structure:<UnitId>`, `team:<TeamId>`, `role:<Ad>`
+---
 
-Altda "Seçilmiş alıcılar" bölməsi – bütün seçimlər chip kimi, hər biri × ilə silinə bilər; sağda "Hamısını təmizlə" linki. Tab dəyişəndə seçimlər qorunur (state parent-də saxlanılır). Real-time search. Scroll pozisiyası tab-a görə saxlanılır.
+## Mərhələ 3 — Manager & User panelləri real data
 
-Köhnə `RECIPIENT_LABELS` chip-ləri yeni pickerlə əvəz olunur.
+- `src/pages/manager/*` və `src/pages/user/*` `mockExtras`-dan tamamilə ayrılır.
+- `scope.ts` real `org_employees` + `org_teams` + `org_structures` üzərindən işləyir (artıq DB-də mövcuddur — sadəcə `mockExtras` yerinə real sorğular).
+- KPI Tracking / Results / Bonuslar / Reviews səhifələrinin görünürlüyü DB icazə kodları (`kpi.view_own`, `kpi.view_team`, `kpi.view_subordinates` və s.) əsasında filtrlənir.
+- Yeni permission kodları migrasiya ilə seed olunur (Mərhələ 2 ilə birgə).
 
-### 2.3 Tezlik – dropdown + dinamik forma
-`NotificationSettingsTab.tsx`-də `frequency` bloku yenilənir. Yeni tip:
+---
 
-```ts
-type Frequency =
-  | "on_event" | "on_date" | "daily" | "weekly"
-  | "monthly" | "quarterly" | "yearly" | "custom";
-```
+## Mərhələ 4 — Data izolyasiyası & yekun test
 
-Dropdown seçimlərinə uyğun konfiqurasiya sahələri:
-- on_event: time + timezone
-- on_date: date + time + timezone
-- daily: startDate + endDate? + time + timezone
-- weekly: weekdays[] + time + timezone
-- monthly: mode (`dayOfMonth` | `weekOfMonth`) + gün/həftə + weekday + time + timezone
-- quarterly: quarter (I–IV) + month + day + time + timezone
-- yearly: month + day + time + timezone
-- custom: startDate + endDate + repeatEvery + unit (Gün/Həftə/Ay) + cron?
+- Bütün yeni RLS siyasətlərini `security--linter` ilə yoxla.
+- Cross-tenant leak testi (Playwright): iki fərqli org HR ilə giriş, bir-birinin verilənlərini görməməli.
+- Bir tam ax(ı)nlıq E2E: super_admin → org yarat → HR giriş → 3 əməkdaş yarat + rəhbər → əməkdaş giriş edib şifrə dəyişir → KPI kartı yaradır → təsdiq → nəticə → bonus.
 
-Aşağıda "Cədvəl xülasəsi" — cari seçimlərdən hesablanan human-readable mətn.
-
-`NotificationSetting` tipi genişləndirilir (`schedule` obyektinə köçürülür). Köhnə `sendTime` və `frequency` migrate olunur. Mövcud `FREQUENCY_LABELS` yeni seçimlərlə əvəz olunur.
+---
 
 ## Texniki qeydlər
-- Bütün UI Metric BI dizayn tokenləri (`bg-card`, `border-border`, `text-primary`, s.) ilə.
-- Yeni state-lər localStorage-a serialize olunur (mövcud `notificationSettingsStore` üzərində).
-- Migration: köhnə setting yüklənəndə çatışmayan `schedule` sahəsi `frequency`+`sendTime`-dən inşa edilir; `sms` kanalı avtomatik çıxarılır; `reminders` sahəsi silinir.
-- Tip yoxlaması `tsgo` ilə təsdiq edilir.
+- Bütün edge function-lar caller-in `has_permission` və ya `is_platform_super_admin`-ni yoxlayır.
+- Bütün yeni migrasiyalar `GRANT` + RLS + policy-lər ilə birlikdə gəlir.
+- Heç bir mock fallback qalmır — səhifə boş də olsa real DB-dən oxuyur.
+- Bütün əməliyyatlar `auditService` vasitəsilə loglanır.
 
-## Fayllar
-- `src/pages/OrganizationPage.tsx` (dropdown search, validation, delete guard mesajları)
-- `src/lib/orgStore.ts` (`isStructureTypeInUse`, `isPositionInUse`)
-- `src/components/settings/DropdownCatalogsTab.tsx` (əgər struktur tipi/vəzifə silmə bu kartdadırsa – guard tətbiq)
-- `src/components/settings/NotificationSettingsTab.tsx` (recipients + frequency + kanal/xatırladıcı təmizliyi)
-- `src/components/settings/NotificationRecipientsPicker.tsx` (yeni)
-- `src/components/settings/NotificationSchedulePicker.tsx` (yeni)
-- `src/lib/notificationSettingsStore.ts` (tip genişlənməsi, migrasiya, SMS/reminders təmizliyi)
+---
+
+## İş həcmi
+Təxminən 4 uzun mesaj (hər mərhələ bir mesaj). Hər mərhələdən sonra sınaqdan keçirməyinizi xahiş edəcəm ki, sonrakına keçək. Təsdiqləyirsinizsə, Mərhələ 1-dən başlayıram.
