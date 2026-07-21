@@ -996,7 +996,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       </div>
       <Select
         value={String(slot.fraction ?? 1)}
-        onValueChange={(v) => assignSlot(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 })}
+        onValueChange={async (v) => { assignSlot(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 }); try { await persistOrgNow(); } catch {} }}
       >
         <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -1011,9 +1011,10 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
         placeholder="Maaş (AZN)"
         value={slot.salary ?? ""}
         onChange={e => assignSlot(slot.id, { salary: e.target.value ? Number(e.target.value) : null })}
+        onBlur={() => { void persistOrgNow(); }}
         className="w-32 px-2 py-1.5 text-sm border border-border rounded-lg bg-background"
       />
-      <button onClick={() => removeSlot(slot.id)} className="p-1 rounded hover:bg-destructive/10">
+      <button onClick={async () => { removeSlot(slot.id); try { await persistOrgNow(); } catch {} }} className="p-1 rounded hover:bg-destructive/10">
         <Trash2 className="w-3.5 h-3.5 text-destructive" />
       </button>
     </div>
