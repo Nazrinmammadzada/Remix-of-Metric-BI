@@ -164,6 +164,77 @@ export type Database = {
           },
         ]
       }
+      bonus_runs: {
+        Row: {
+          achievement_pct: number
+          base_salary: number
+          bonus_amount: number
+          bonus_pct: number
+          cap_pct: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          department: string | null
+          employee_local_id: string | null
+          employee_name: string
+          id: string
+          inputs: Json
+          notes: string | null
+          organization_id: string
+          period_label: string
+          updated_at: string
+          weighted_score: number
+        }
+        Insert: {
+          achievement_pct?: number
+          base_salary?: number
+          bonus_amount?: number
+          bonus_pct?: number
+          cap_pct?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          department?: string | null
+          employee_local_id?: string | null
+          employee_name: string
+          id?: string
+          inputs?: Json
+          notes?: string | null
+          organization_id: string
+          period_label: string
+          updated_at?: string
+          weighted_score?: number
+        }
+        Update: {
+          achievement_pct?: number
+          base_salary?: number
+          bonus_amount?: number
+          bonus_pct?: number
+          cap_pct?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          department?: string | null
+          employee_local_id?: string | null
+          employee_name?: string
+          id?: string
+          inputs?: Json
+          notes?: string | null
+          organization_id?: string
+          period_label?: string
+          updated_at?: string
+          weighted_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cascade_matrices: {
         Row: {
           created_at: string
