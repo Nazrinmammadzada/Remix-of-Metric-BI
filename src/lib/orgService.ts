@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/auditService";
 import {
   getEmployees, setEmployees, getStructures, setStructures,
+  assignSlot, addSlot, removeSlot,
   type OrgEmployee, type OrgStructure, type OrgPosition, type OrgSlot,
   type OrgSlotFraction,
 } from "@/lib/orgStore";
@@ -273,6 +274,233 @@ export const flushLocalOrgToCloud = async () => {
 export const persistOrgNow = async () => {
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
   await flushLocalOrgToCloud();
+};
+
+const requireActiveOrg = (): string => {
+  if (!currentOrgId) throw new Error("Aktiv təşkilat tapılmadı. Yenidən daxil olun.");
+  return currentOrgId;
+};
+
+const waitForIdleFlush = async () => {
+  if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (flushInFlight) await flushInFlight;
+};
+
+type SlotContext = {
+  structure: OrgStructure;
+  position: OrgPosition;
+  slot: OrgSlot;
+  structurePath: string;
+  slotIndex: number;
+};
+
+type PositionContext = {
+  structure: OrgStructure;
+  position: OrgPosition;
+  structurePath: string;
+};
+
+const findSlotContext = (slotId: number, nodes: OrgStructure[] = getStructures(), path: string[] = []): SlotContext | null => {
+  for (const node of nodes) {
+    const nextPath = [...path, node.name];
+    for (const position of node.positions) {
+      const slotIndex = position.slots.findIndex((slot) => slot.id === slotId);
+      if (slotIndex >= 0) {
+        return { structure: node, position, slot: position.slots[slotIndex], structurePath: nextPath.join(" › "), slotIndex };
+      }
+    }
+    const child = findSlotContext(slotId, node.children, nextPath);
+    if (child) return child;
+  }
+  return null;
+};
+
+const findPositionContext = (positionId: number, nodes: OrgStructure[] = getStructures(), path: string[] = []): PositionContext | null => {
+  for (const node of nodes) {
+    const nextPath = [...path, node.name];
+    const position = node.positions.find((p) => p.id === positionId);
+    if (position) return { structure: node, position, structurePath: nextPath.join(" › ") };
+    const child = findPositionContext(positionId, node.children, nextPath);
+    if (child) return child;
+  }
+  return null;
+};
+
+const syncEmployeeAssignmentRows = async (orgId: string, localEmployeeIds: number[]) => {
+  const uniqueIds = [...new Set(localEmployeeIds.filter((id): id is number => Number.isFinite(id)))];
+  if (uniqueIds.length === 0) return;
+  const map = loadMap(orgId);
+  const employees = getEmployees();
+
+  await Promise.all(uniqueIds.map(async (localId) => {
+    const employeeUuid = uuidFor(map, localId);
+    const employee = employees.find((item) => item.id === localId);
+    if (!employeeUuid || !employee) return;
+
+    const { error } = await supabase
+      .from("org_employees")
+      .update({
+        structure_path: employee.structurePath ?? null,
+        position_name: employee.positionName ?? null,
+        salary: employee.salary ?? null,
+        is_star_person: !!employee.isStarPerson,
+      })
+      .eq("id", employeeUuid)
+      .eq("organization_id", orgId);
+
+    if (error) console.warn("[orgSync] employee assignment denorm update failed", error);
+  }));
+};
+
+export const assignSlotInCloud = async (
+  slotId: number,
+  patch: { employeeId?: number | null; salary?: number | null; fraction?: OrgSlotFraction },
+) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  const before = findSlotContext(slotId);
+  const touchedEmployees = new Set<number>();
+  if (before?.slot.employeeId != null) touchedEmployees.add(before.slot.employeeId);
+
+  suppressFlush = true;
+  try {
+    assignSlot(slotId, patch);
+  } finally {
+    suppressFlush = false;
+  }
+
+  const after = findSlotContext(slotId);
+  if (!after) throw new Error("Ştat tapılmadı. Səhifəni yeniləyib yenidən cəhd edin.");
+  if (after.slot.employeeId != null) touchedEmployees.add(after.slot.employeeId);
+
+  let map = loadMap(orgId);
+  let slotUuid = uuidFor(map, slotId);
+  if (!slotUuid) {
+    await doFlush(orgId);
+    map = loadMap(orgId);
+    slotUuid = uuidFor(map, slotId);
+  }
+  if (!slotUuid) throw new Error("Ştat database-də tapılmadı. Yenidən cəhd edin.");
+
+  const slotPatch: { employee_id?: string | null; salary?: number | null; fraction?: number } = {};
+  if (patch.employeeId !== undefined) {
+    const employeeId = after.slot.employeeId;
+    const employeeUuid = employeeId != null ? uuidFor(map, employeeId) : null;
+    if (employeeId != null && !employeeUuid) throw new Error("Əməkdaş database-də tapılmadı. Yenidən cəhd edin.");
+    slotPatch.employee_id = employeeUuid;
+  }
+  if (patch.salary !== undefined) slotPatch.salary = after.slot.salary ?? null;
+  if (patch.fraction !== undefined) slotPatch.fraction = after.slot.fraction ?? 1;
+
+  const { error } = await supabase
+    .from("org_slots")
+    .update(slotPatch)
+    .eq("id", slotUuid)
+    .eq("organization_id", orgId);
+
+  if (error) {
+    console.error("[orgSync] slot update failed", error, slotPatch);
+    void hydrateOrgFromCloud(orgId);
+    throw new Error(error.message || "Ştat təyinatı database-ə yazılmadı.");
+  }
+
+  await syncEmployeeAssignmentRows(orgId, [...touchedEmployees]);
+  void logAudit({
+    organizationId: orgId,
+    action: "update",
+    module: "org_structure",
+    entityType: "org_slot",
+    entityId: slotUuid,
+    newValues: slotPatch,
+  });
+};
+
+export const addSlotsInCloud = async (positionId: number, count: number = 1, fraction: OrgSlotFraction = 1) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  const before = findPositionContext(positionId);
+  if (!before) throw new Error("Vəzifə tapılmadı. Səhifəni yeniləyib yenidən cəhd edin.");
+  const beforeIds = new Set(before.position.slots.map((slot) => slot.id));
+  const startOrder = before.position.slots.length;
+
+  suppressFlush = true;
+  try {
+    addSlot(positionId, count, fraction);
+  } finally {
+    suppressFlush = false;
+  }
+
+  const after = findPositionContext(positionId);
+  const newSlots = (after?.position.slots ?? []).filter((slot) => !beforeIds.has(slot.id));
+  if (newSlots.length === 0) return;
+
+  let map = loadMap(orgId);
+  let positionUuid = uuidFor(map, positionId);
+  if (!positionUuid) {
+    await doFlush(orgId);
+    map = loadMap(orgId);
+    positionUuid = uuidFor(map, positionId);
+  }
+  if (!positionUuid) throw new Error("Vəzifə database-də tapılmadı. Yenidən cəhd edin.");
+
+  const rows = newSlots.map((slot, index) => ({
+    organization_id: orgId,
+    position_id: positionUuid,
+    employee_id: null,
+    salary: null,
+    fraction: slot.fraction ?? fraction,
+    sort_order: startOrder + index,
+  }));
+
+  const { data, error } = await supabase.from("org_slots").insert(rows).select("id");
+  if (error || !data) {
+    console.error("[orgSync] slot insert failed", error, rows);
+    void hydrateOrgFromCloud(orgId);
+    throw new Error(error?.message || "Ştat database-ə yazılmadı.");
+  }
+
+  data.forEach((row, index) => {
+    const localId = newSlots[index]?.id;
+    if (localId == null) return;
+    map.toUuid[localId] = row.id;
+    map.toNum[row.id] = localId;
+    if (localId >= map.next) map.next = localId + 1;
+  });
+  saveMap(orgId, map);
+};
+
+export const removeSlotInCloud = async (slotId: number) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  const before = findSlotContext(slotId);
+  const touchedEmployees = before?.slot.employeeId != null ? [before.slot.employeeId] : [];
+  const map = loadMap(orgId);
+  const slotUuid = uuidFor(map, slotId);
+
+  suppressFlush = true;
+  try {
+    removeSlot(slotId);
+  } finally {
+    suppressFlush = false;
+  }
+
+  if (slotUuid) {
+    const { error } = await supabase
+      .from("org_slots")
+      .delete()
+      .eq("id", slotUuid)
+      .eq("organization_id", orgId);
+    if (error) {
+      console.error("[orgSync] slot delete failed", error);
+      void hydrateOrgFromCloud(orgId);
+      throw new Error(error.message || "Ştat database-dən silinmədi.");
+    }
+  }
+
+  await syncEmployeeAssignmentRows(orgId, touchedEmployees);
 };
 
 export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise<OrgEmployee> => {
