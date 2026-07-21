@@ -461,6 +461,100 @@ export type Database = {
           },
         ]
       }
+      kpi_lifecycles: {
+        Row: {
+          assignment: Json | null
+          bonus: Json | null
+          card_local_id: number
+          card_name: string
+          created_at: string
+          evaluation: Json | null
+          id: string
+          organization_id: string
+          reviews: Json
+          updated_at: string
+        }
+        Insert: {
+          assignment?: Json | null
+          bonus?: Json | null
+          card_local_id: number
+          card_name: string
+          created_at?: string
+          evaluation?: Json | null
+          id?: string
+          organization_id: string
+          reviews?: Json
+          updated_at?: string
+        }
+        Update: {
+          assignment?: Json | null
+          bonus?: Json | null
+          card_local_id?: number
+          card_name?: string
+          created_at?: string
+          evaluation?: Json | null
+          id?: string
+          organization_id?: string
+          reviews?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_lifecycles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lifecycle_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          data: Json
+          description: string | null
+          id: string
+          is_system: boolean
+          local_id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          data?: Json
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          local_id: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          data?: Json
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          local_id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifecycle_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_settings: {
         Row: {
           channels: Json
