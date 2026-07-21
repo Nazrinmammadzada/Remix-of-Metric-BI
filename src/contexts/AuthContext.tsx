@@ -19,6 +19,7 @@ import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsS
 import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService";
 import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
 import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/notificationsService";
+import { hydrateLanguageFromProfile } from "@/lib/languageService";
 
 export interface OrgMembership {
   organizationId: string;
@@ -374,6 +375,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activatePayrollSync(u.currentOrgId);
                 void activateLifecycleSync(u.currentOrgId);
                 activateNotificationsSync(u.currentOrgId);
+                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
               }
             }
           });
@@ -406,6 +408,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activatePayrollSync(u.currentOrgId);
                 void activateLifecycleSync(u.currentOrgId);
                 activateNotificationsSync(u.currentOrgId);
+                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
           }
         }
       } else {
@@ -437,6 +440,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activatePayrollSync(u.currentOrgId);
                 void activateLifecycleSync(u.currentOrgId);
                 activateNotificationsSync(u.currentOrgId);
+                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
         }
         return { success: true };
       }
