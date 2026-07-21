@@ -111,12 +111,13 @@ serve(async (req) => {
         userId = created.user.id;
       }
 
-      // Upsert profile
+      // Upsert profile — mark that first login must change temporary password
       await admin.from("profiles").upsert({
         id: userId,
         email,
         first_name: first_name || "",
         last_name: last_name || "",
+        must_change_password: true,
       }, { onConflict: "id" });
 
       // Create HR/Admin org role by copying template permissions
@@ -172,6 +173,7 @@ serve(async (req) => {
       if (!u) return json(404, { error: "İstifadəçi tapılmadı" });
       const { error: uErr } = await admin.auth.admin.updateUserById(u.id, { password, email_confirm: true });
       if (uErr) return json(500, { error: uErr.message });
+      await admin.from("profiles").update({ must_change_password: true }).eq("id", u.id);
       return json(200, { ok: true });
     }
 
