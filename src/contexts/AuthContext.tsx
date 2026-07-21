@@ -382,7 +382,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
-        if (u) setUser(u);
+        if (u) {
+          setUser(u);
+          if (u.currentOrgId && u.supabaseUserId) {
+            void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+          }
+        }
       } else {
         const demo = await loadDemoSession();
         if (demo) setUser(demo);
