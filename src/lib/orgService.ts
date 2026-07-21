@@ -238,10 +238,12 @@ const scheduleFlush = () => {
   if (suppressFlush || !currentOrgId) return;
   pendingFlush = true;
   if (flushTimer) window.clearTimeout(flushTimer);
+  // Very short debounce so bursts of mutations coalesce but the DB write
+  // hits Postgres before the user can navigate/refresh.
   flushTimer = window.setTimeout(() => {
     flushTimer = null;
     void flushLocalOrgToCloud();
-  }, 150);
+  }, 50);
 };
 
 export const flushLocalOrgToCloud = async () => {
