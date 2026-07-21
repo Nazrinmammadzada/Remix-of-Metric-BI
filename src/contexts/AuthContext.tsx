@@ -17,6 +17,7 @@ import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsService";
 import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsService";
 import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService";
+import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
 
 export interface OrgMembership {
   organizationId: string;
@@ -370,6 +371,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activateKpiCardsSync(u.currentOrgId);
                 void activateApprovalsSync(u.currentOrgId);
                 void activatePayrollSync(u.currentOrgId);
+                void activateLifecycleSync(u.currentOrgId);
               }
             }
           });
@@ -379,6 +381,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivateKpiCardsSync();
         deactivateApprovalsSync();
         deactivatePayrollSync();
+        deactivateLifecycleSync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
@@ -398,6 +401,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activateKpiCardsSync(u.currentOrgId);
                 void activateApprovalsSync(u.currentOrgId);
                 void activatePayrollSync(u.currentOrgId);
+                void activateLifecycleSync(u.currentOrgId);
           }
         }
       } else {
@@ -427,6 +431,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activateKpiCardsSync(u.currentOrgId);
                 void activateApprovalsSync(u.currentOrgId);
                 void activatePayrollSync(u.currentOrgId);
+                void activateLifecycleSync(u.currentOrgId);
         }
         return { success: true };
       }
@@ -460,6 +465,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivateKpiCardsSync();
         deactivateApprovalsSync();
         deactivatePayrollSync();
+        deactivateLifecycleSync();
     await supabase.auth.signOut();
   };
 
