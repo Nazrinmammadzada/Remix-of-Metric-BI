@@ -152,6 +152,17 @@ export const flushApprovalsToCloud = async () => {
       { onConflict: "organization_id,local_id" },
     ) : Promise.resolve(),
   ]);
+  void logAudit({
+    organizationId: orgId,
+    action: "sync",
+    module: "approvals",
+    metadata: {
+      approvals: approvals.length,
+      deletions: deletions.length,
+      cascades: cascades.length,
+      queue: queue.length,
+    },
+  });
 };
 
 // ── LIFECYCLE ───────────────────────────────────────────────────────────────
