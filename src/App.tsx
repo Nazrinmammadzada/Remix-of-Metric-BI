@@ -9,6 +9,7 @@ import UserLayout from "@/components/layout/UserLayout";
 import RouteGuard from "@/components/layout/RouteGuard";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AccessDenied from "./pages/AccessDenied";
 import HomePage from "./pages/HomePage";
@@ -119,6 +120,7 @@ const App = () => {
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginGuard />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordGuard />} />
             <Route path="/access-denied" element={<AccessDenied />} />
 
