@@ -544,7 +544,9 @@ export const removeSlotInCloud = async (slotId: number) => {
   }
 
   await syncEmployeeAssignmentRows(orgId, touchedEmployees);
+  markLocalDbWrite();
 };
+
 
 export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise<OrgEmployee> => {
   const orgId = currentOrgId;
