@@ -17,12 +17,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   getEmployees, updateEmployee, toggleEmployeeActive,
-  getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
-  assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
+  getStructures, addRootStructure, addSubStructure, addPosition,
+  removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
-import { createEmployeeInCloud, persistOrgNow } from "@/lib/orgService";
+import { addSlotsInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud } from "@/lib/orgService";
 
 
 import {
@@ -351,18 +351,24 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
   }, [changeLeaderFor]);
 
   // Ştat cədvəlində yeni rəhbər tac klikilə seçildikdə çağırılır.
-  const handleLeaderPick = (newEmpId: number, sourceSlotId: number) => {
+  const handleLeaderPick = async (newEmpId: number, sourceSlotId: number) => {
     if (!leaderChange || !changeLeaderFor) return;
     if (newEmpId === changeLeaderFor) return;
-    // 1) Yeni rəhbəri rəhbər ştatına qoy.
-    assignSlot(leaderChange.slotId, { employeeId: newEmpId });
-    // 2) Yeni rəhbərin əvvəlki (mənbə) ştatını təmizlə — eyni şəxs iki ştatda qalmasın.
-    if (sourceSlotId !== leaderChange.slotId) {
-      assignSlot(sourceSlotId, { employeeId: null });
+    try {
+      // 1) Yeni rəhbəri rəhbər ştatına qoy və dərhal database-də saxla.
+      await assignSlotInCloud(leaderChange.slotId, { employeeId: newEmpId });
+      // 2) Yeni rəhbərin əvvəlki (mənbə) ştatını təmizlə — eyni şəxs iki ştatda qalmasın.
+      if (sourceSlotId !== leaderChange.slotId) {
+        await assignSlotInCloud(sourceSlotId, { employeeId: null });
+      }
+      // 3) Ulduz / rəhbər rolu bayrağını sinxronla.
+      setStarPerson(changeLeaderFor, false);
+      setStarPerson(newEmpId, true);
+      await persistOrgNow();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Rəhbər dəyişikliyi database-ə yazılmadı.");
+      return;
     }
-    // 3) Ulduz / rəhbər rolu bayrağını sinxronla.
-    setStarPerson(changeLeaderFor, false);
-    setStarPerson(newEmpId, true);
 
     // 4) Bu əməkdaş üçün digər struktur rəhbərliyi qalıbsa, növbəti mərhələyə keç.
     const remaining = findLeaderStructuresOf(changeLeaderFor);
@@ -802,12 +808,15 @@ const PositionCard = ({ position, structureId, structureName }: { position: OrgP
 
   const handleAddSlots = async () => {
     const n = Math.max(1, Math.min(100, Number(slotCount) || 1));
-    addSlot(position.id, n, slotFraction);
-    setShowAddSlot(false);
-    setSlotCount(1);
-    setSlotFraction(1);
-    try { await persistOrgNow(); } catch {}
-    toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
+    try {
+      await addSlotsInCloud(position.id, n, slotFraction);
+      setShowAddSlot(false);
+      setSlotCount(1);
+      setSlotFraction(1);
+      toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Ştat database-ə yazılmadı.");
+    }
   };
 
   return (
@@ -878,11 +887,15 @@ interface SlotRowProps { slot: { id: number; employeeId: number | null; salary: 
 
 const SlotRow = ({ slot, index }: SlotRowProps) => {
   const [employees, setEmployees] = useState<OrgEmployee[]>(() => getEmployees());
+  const [salaryDraft, setSalaryDraft] = useState(slot.salary != null ? String(slot.salary) : "");
   useEffect(() => {
     const r = () => setEmployees(getEmployees());
     window.addEventListener("org-updated", r);
     return () => window.removeEventListener("org-updated", r);
   }, []);
+  useEffect(() => {
+    setSalaryDraft(slot.salary != null ? String(slot.salary) : "");
+  }, [slot.id, slot.salary]);
 
   const assignedIds = useMemo(() => getAssignedEmployeeIds(), [employees]);
   const [search, setSearch] = useState("");
@@ -968,7 +981,15 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
             <div className="max-h-64 overflow-y-auto py-1">
               {current && (
                 <button
-                  onClick={async () => { assignSlot(slot.id, { employeeId: null }); setOpen(false); try { await persistOrgNow(); } catch {} toast.success("Təyinat ləğv edildi"); }}
+                  onClick={async () => {
+                    setOpen(false);
+                    try {
+                      await assignSlotInCloud(slot.id, { employeeId: null });
+                      toast.success("Təyinat ləğv edildi");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Təyinat database-də ləğv edilmədi.");
+                    }
+                  }}
                   className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-destructive/5 border-b border-border flex items-center gap-1.5"
                 >
                   <X className="w-3.5 h-3.5" /> Təyinatı ləğv et
@@ -980,7 +1001,15 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
               {available.map(e => (
                 <button
                   key={e.id}
-                  onClick={async () => { assignSlot(slot.id, { employeeId: e.id }); setOpen(false); try { await persistOrgNow(); } catch {} toast.success("Əməkdaş təyin edildi"); }}
+                  onClick={async () => {
+                    setOpen(false);
+                    try {
+                      await assignSlotInCloud(slot.id, { employeeId: e.id });
+                      toast.success("Əməkdaş təyin edildi");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Əməkdaş təyinatı database-ə yazılmadı.");
+                    }
+                  }}
                   className={`w-full text-left px-3 py-2.5 text-sm hover:bg-secondary/40 flex items-center justify-between gap-3 ${e.id === slot.employeeId ? 'bg-primary/5' : ''}`}
                 >
                   <div className="min-w-0 flex-1">
@@ -996,7 +1025,13 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       </div>
       <Select
         value={String(slot.fraction ?? 1)}
-        onValueChange={async (v) => { assignSlot(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 }); try { await persistOrgNow(); } catch {} }}
+        onValueChange={async (v) => {
+          try {
+            await assignSlotInCloud(slot.id, { fraction: Number(v) as 1 | 0.75 | 0.5 | 0.25 });
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Ştat vahidi database-ə yazılmadı.");
+          }
+        }}
       >
         <SelectTrigger className="w-28 h-8 text-xs"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -1009,12 +1044,28 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       <input
         type="number"
         placeholder="Maaş (AZN)"
-        value={slot.salary ?? ""}
-        onChange={e => assignSlot(slot.id, { salary: e.target.value ? Number(e.target.value) : null })}
-        onBlur={() => { void persistOrgNow(); }}
+        value={salaryDraft}
+        onChange={e => setSalaryDraft(e.target.value)}
+        onBlur={async () => {
+          try {
+            await assignSlotInCloud(slot.id, { salary: salaryDraft ? Number(salaryDraft) : null });
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Maaş database-ə yazılmadı.");
+          }
+        }}
         className="w-32 px-2 py-1.5 text-sm border border-border rounded-lg bg-background"
       />
-      <button onClick={async () => { removeSlot(slot.id); try { await persistOrgNow(); } catch {} }} className="p-1 rounded hover:bg-destructive/10">
+      <button
+        onClick={async () => {
+          try {
+            await removeSlotInCloud(slot.id);
+            toast.success("Ştat silindi");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Ştat database-dən silinmədi.");
+          }
+        }}
+        className="p-1 rounded hover:bg-destructive/10"
+      >
         <Trash2 className="w-3.5 h-3.5 text-destructive" />
       </button>
     </div>
