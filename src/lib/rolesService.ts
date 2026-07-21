@@ -1,6 +1,6 @@
 // RBAC service — DB-backed CRUD for roles, permissions, and user↔role assignments.
-// Scoped to the caller's current organization; templates (organization_id IS NULL)
-// are exposed read-only so HR can clone them into org-specific roles.
+// Scoped to the caller's current organization. Default org roles are HR, USER,
+// MANAGER; additional custom roles can be created and persisted in the backend.
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -32,6 +32,16 @@ export interface OrgMemberRow {
   roleIds: string[];        // active roles for that member in this org
 }
 
+const DEFAULT_ROLE_ORDER: Record<string, number> = { hr: 0, user: 1, manager: 2 };
+
+const sortRoles = (items: DbRole[]) =>
+  [...items].sort((a, b) => {
+    const ao = DEFAULT_ROLE_ORDER[a.code] ?? 99;
+    const bo = DEFAULT_ROLE_ORDER[b.code] ?? 99;
+    if (ao !== bo) return ao - bo;
+    return a.name.localeCompare(b.name, "az");
+  });
+
 // ── Permissions catalog ───────────────────────────────────────────────────────
 export const fetchPermissions = async (): Promise<DbPermission[]> => {
   const { data, error } = await supabase
@@ -43,7 +53,7 @@ export const fetchPermissions = async (): Promise<DbPermission[]> => {
   return (data ?? []) as DbPermission[];
 };
 
-// ── Roles (org + templates) ───────────────────────────────────────────────────
+// ── Roles (org-scoped only) ───────────────────────────────────────────────────
 export const fetchRolesForOrg = async (orgId: string): Promise<DbRole[]> => {
   const { data, error } = await supabase
     .from("roles")
@@ -52,12 +62,11 @@ export const fetchRolesForOrg = async (orgId: string): Promise<DbRole[]> => {
       is_system_role, is_platform_role, is_active,
       role_permissions ( permission_id )
     `)
-    .or(`organization_id.eq.${orgId},organization_id.is.null`)
+    .eq("organization_id", orgId)
     .neq("code", "platform_super_admin")
-    .order("is_platform_role", { ascending: true })
     .order("name");
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
+  return sortRoles((data ?? []).map((r: any) => ({
     id: r.id,
     organization_id: r.organization_id,
     name: r.name,
@@ -67,7 +76,7 @@ export const fetchRolesForOrg = async (orgId: string): Promise<DbRole[]> => {
     is_platform_role: !!r.is_platform_role,
     is_active: r.is_active !== false,
     permissionIds: (r.role_permissions ?? []).map((rp: any) => rp.permission_id),
-  }));
+  })));
 };
 
 // ── Org members with their active roles ──────────────────────────────────────
@@ -124,6 +133,13 @@ export const createOrgRole = async (
 ): Promise<DbRole> => {
   const codeBase = input.name
     .toLowerCase()
+    .replace(/ə/g, "e")
+    .replace(/ı/g, "i")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ç/g, "c")
+    .replace(/ğ/g, "g")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 40) || "custom_role";
@@ -133,7 +149,7 @@ export const createOrgRole = async (
     .from("roles")
     .insert({
       organization_id: orgId,
-      name: input.name.trim(),
+      name: input.name.trim().toUpperCase(),
       code,
       description: input.description?.trim() || null,
       is_system_role: false,
@@ -166,7 +182,9 @@ export const updateOrgRole = async (
   roleId: string,
   patch: { name?: string; description?: string | null; is_active?: boolean },
 ): Promise<void> => {
-  const { error } = await supabase.from("roles").update(patch).eq("id", roleId);
+  const next = { ...patch };
+  if (typeof next.name === "string") next.name = next.name.trim().toUpperCase();
+  const { error } = await supabase.from("roles").update(next).eq("id", roleId);
   if (error) throw error;
 };
 
