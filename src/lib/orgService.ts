@@ -282,7 +282,11 @@ const requireActiveOrg = (): string => {
 };
 
 const waitForIdleFlush = async () => {
-  if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (flushTimer) {
+    window.clearTimeout(flushTimer);
+    flushTimer = null;
+    await flushLocalOrgToCloud();
+  }
   if (flushInFlight) await flushInFlight;
 };
 
