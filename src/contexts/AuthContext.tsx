@@ -291,11 +291,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "roles" }, refresh)
       .subscribe();
 
+    // Fallback: refresh on tab focus and every 20s so permission edits reach
+    // the user even when RLS hides realtime broadcasts from their session.
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    const interval = window.setInterval(refresh, 20000);
+
     return () => {
       if (scheduled) clearTimeout(scheduled);
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [user?.supabaseUserId, user?.email]);
+
 
 
 
