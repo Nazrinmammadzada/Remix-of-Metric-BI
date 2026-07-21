@@ -55,6 +55,7 @@ const STORES: StoreMirror[] = [
   { localKey: "user_kpi_subkpis_v3",         cloudKey: "user_kpi_subkpis",     event: "user-kpi-subkpis-updated",            table: "org_catalogs" },
   { localKey: "kpi_card_meta_v1",            cloudKey: "kpi_card_meta",        event: "kpi-cards-updated",                   table: "org_catalogs" },
   { localKey: "kpi_eval_season_open_v1",     cloudKey: "season_open",          event: "season-updated",                      table: "org_catalogs" },
+  { localKey: "kpi_card_status_v1",          cloudKey: "kpi_card_status",      event: "kpi-cards-updated",                   table: "org_catalogs" },
 ];
 
 const readLocal = <T>(key: string, fallback: T): T => {
