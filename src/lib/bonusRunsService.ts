@@ -59,25 +59,26 @@ const mapRow = (r: any): BonusRunRow => ({
 });
 
 export const saveBonusRun = async (input: SaveBonusRunInput): Promise<BonusRunRow | null> => {
+  const payload = {
+    organization_id: input.organizationId,
+    period_label: input.periodLabel,
+    employee_local_id: input.employeeLocalId ?? null,
+    employee_name: input.employeeName,
+    department: input.department ?? null,
+    base_salary: input.baseSalary,
+    weighted_score: input.weightedScore,
+    achievement_pct: input.achievementPct,
+    bonus_pct: input.bonusPct,
+    cap_pct: input.capPct,
+    bonus_amount: input.bonusAmount,
+    currency: input.currency ?? "AZN",
+    inputs: (input.inputs ?? {}) as any,
+    notes: input.notes ?? null,
+    created_by: input.createdBy ?? null,
+  };
   const { data, error } = await supabase
     .from("bonus_runs")
-    .insert({
-      organization_id: input.organizationId,
-      period_label: input.periodLabel,
-      employee_local_id: input.employeeLocalId ?? null,
-      employee_name: input.employeeName,
-      department: input.department ?? null,
-      base_salary: input.baseSalary,
-      weighted_score: input.weightedScore,
-      achievement_pct: input.achievementPct,
-      bonus_pct: input.bonusPct,
-      cap_pct: input.capPct,
-      bonus_amount: input.bonusAmount,
-      currency: input.currency ?? "AZN",
-      inputs: input.inputs ?? {},
-      notes: input.notes ?? null,
-      created_by: input.createdBy ?? null,
-    })
+    .insert(payload as any)
     .select("*")
     .single();
   if (error || !data) return null;
