@@ -800,13 +800,14 @@ const PositionCard = ({ position, structureId, structureName }: { position: OrgP
     toast.success("Vəzifə silindi");
   };
 
-  const handleAddSlots = () => {
+  const handleAddSlots = async () => {
     const n = Math.max(1, Math.min(100, Number(slotCount) || 1));
     addSlot(position.id, n, slotFraction);
-    toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
     setShowAddSlot(false);
     setSlotCount(1);
     setSlotFraction(1);
+    try { await persistOrgNow(); } catch {}
+    toast.success(n > 1 ? `${n} ştat əlavə edildi` : "Ştat əlavə edildi");
   };
 
   return (
