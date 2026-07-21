@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getPasswordForEmail, setPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
-import {
-  findHrAdminByEmail,
-  setHrAdminLastLoginNow,
-  setHrAdminMustChangePassword,
-} from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
   derivePermissionsFromDbCodes,
@@ -22,6 +16,10 @@ import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/no
 import { activatePhase1Sync, deactivatePhase1Sync } from "@/lib/phase1SyncService";
 import { hydrateLanguageFromProfile } from "@/lib/languageService";
 import { logAudit } from "@/lib/auditService";
+// ALL_MODULE_KEYS is intentionally kept imported to preserve the module surface constants
+// referenced elsewhere via re-export patterns.
+void ALL_MODULE_KEYS;
+
 
 export interface OrgMembership {
   organizationId: string;
@@ -41,80 +39,6 @@ export interface AuthUser {
   currentOrgId?: string;
   organizations?: OrgMembership[];
 }
-
-// Legacy demo super admin email (kept for backwards compatibility with prototype data)
-const SUPER_ADMIN_EMAIL = "superadmin@kpi.az";
-
-// Demo account profiles — used as a fallback when Supabase auth doesn't
-// recognise the account. The real production accounts live in Supabase.
-const demoProfiles: { email: string; user: AuthUser }[] = [
-  {
-    email: SUPER_ADMIN_EMAIL,
-    user: {
-      name: "Super Admin",
-      email: SUPER_ADMIN_EMAIL,
-      role: "SUPER_ADMIN",
-      avatar: "SA",
-      department: "Sistem",
-      team: "—",
-      permissions: ["admin_users"],
-    },
-  },
-  {
-    email: "hr@kpi.az",
-    user: {
-      name: "Günel Əlizadə",
-      email: "hr@kpi.az",
-      role: "HR",
-      avatar: "G",
-      department: "HR",
-      team: "HR Komandası",
-      permissions: [...ALL_MODULE_KEYS, "kpi_own", "kpi_team", "teams_compare", "teams_all"],
-    },
-  },
-  {
-    email: "user@kpi.az",
-    user: {
-      name: "Samir Həsənov",
-      email: "user@kpi.az",
-      role: "USER",
-      avatar: "S",
-      department: "Satış Departamenti",
-      team: "Elite Satış Komandası",
-      permissions: ["home", "kpi_own", "kpi_team", "approvals", "reporting", "teams", "teams_compare"],
-    },
-  },
-  {
-    email: "manager@kpi.az",
-    user: {
-      name: "Elvin Rəhimov",
-      email: "manager@kpi.az",
-      role: "MANAGER",
-      avatar: "E",
-      department: "Satış Departamenti",
-      team: "Elite Satış Komandası",
-      permissions: [
-        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
-        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
-      ],
-    },
-  },
-  {
-    email: "kamran@kpi.az",
-    user: {
-      name: "Kamran Quliyev",
-      email: "kamran@kpi.az",
-      role: "MANAGER",
-      avatar: "K",
-      department: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",
-      team: "Rəqəmsal Marketinq Şöbəsi",
-      permissions: [
-        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
-        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
-      ],
-    },
-  },
-];
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -138,101 +62,6 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-// ── Demo/prototype session signing (still used for demo profile fallback) ──────
-const SESSION_KEY = "kpi_auth_v2";
-const SESSION_SECRET_KEY = "kpi_session_secret";
-const SUPERADMIN_SEED_FLAG = "kpi_superadmin_seeded_v2";
-
-const getSessionSecret = (): string => {
-  let s = localStorage.getItem(SESSION_SECRET_KEY);
-  if (!s) {
-    const arr = new Uint8Array(32);
-    crypto.getRandomValues(arr);
-    s = Array.from(arr, b => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(SESSION_SECRET_KEY, s);
-  }
-  return s;
-};
-
-const sign = async (payload: string): Promise<string> => {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(getSessionSecret()),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
-  return Array.from(new Uint8Array(sig), b => b.toString(16).padStart(2, "0")).join("");
-};
-
-interface SignedSession { payload: string; sig: string; }
-
-const resolveDemoUser = (email: string): AuthUser | null => {
-  const lower = email.toLowerCase();
-  const profile = demoProfiles.find(p => p.email.toLowerCase() === lower);
-  if (profile) return profile.user;
-  const hr = findHrAdminByEmail(lower);
-  if (hr && hr.active) {
-    return {
-      name: hr.name,
-      email: hr.email,
-      role: "HR",
-      avatar: hr.name.charAt(0).toUpperCase(),
-      department: "HR",
-      team: "HR Komandası",
-      permissions: hr.permissions,
-      mustChangePassword: !!hr.mustChangePassword,
-    };
-  }
-  return null;
-};
-
-const loadDemoSession = async (): Promise<AuthUser | null> => {
-  localStorage.removeItem("kpi_auth");
-  const raw = localStorage.getItem(SESSION_KEY);
-  if (!raw) return null;
-  try {
-    const { payload, sig } = JSON.parse(raw) as SignedSession;
-    const expected = await sign(payload);
-    if (expected !== sig) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    const parsed = JSON.parse(payload) as { email: string };
-    const user = resolveDemoUser(parsed.email);
-    if (!user) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return user;
-  } catch {
-    localStorage.removeItem(SESSION_KEY);
-    return null;
-  }
-};
-
-const saveDemoSession = async (user: AuthUser) => {
-  const payload = JSON.stringify({ email: user.email, ts: Date.now() });
-  const sig = await sign(payload);
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ payload, sig }));
-};
-
-const seedSuperAdminPassword = () => {
-  if (localStorage.getItem(SUPERADMIN_SEED_FLAG)) return;
-  try {
-    const raw = localStorage.getItem("kpi_user_passwords");
-    if (raw) {
-      const custom = JSON.parse(raw) as Record<string, string>;
-      delete custom[SUPER_ADMIN_EMAIL];
-      delete custom["hr@kpi.az"];
-      delete custom["user@kpi.az"];
-      localStorage.setItem("kpi_user_passwords", JSON.stringify(custom));
-    }
-  } catch {}
-  localStorage.setItem(SUPERADMIN_SEED_FLAG, "1");
-};
 
 // ── Fetch org memberships for a Supabase-authenticated user. ──────────────────
 const fetchOrgMemberships = async (userId: string): Promise<OrgMembership[]> => {
@@ -360,8 +189,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    seedSuperAdminPassword();
-
     // Subscribe first so we never miss an auth event.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
@@ -391,14 +218,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivateLifecycleSync();
         deactivateNotificationsSync();
         deactivatePhase1Sync();
-        // Only clear if there is no active demo session.
-        loadDemoSession().then(demo => {
-          if (!demo) setUser(null);
-        });
+        setUser(null);
       }
     });
 
-    // Initial hydration: prefer Supabase session, fall back to demo session.
+    // Initial hydration from Supabase session.
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -407,24 +231,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(u);
           if (u.currentOrgId && u.supabaseUserId) {
             void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                void activatePhase1Sync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
+            void activateKpiCardsSync(u.currentOrgId);
+            void activateApprovalsSync(u.currentOrgId);
+            void activatePayrollSync(u.currentOrgId);
+            void activateLifecycleSync(u.currentOrgId);
+            activateNotificationsSync(u.currentOrgId);
+            void activatePhase1Sync(u.currentOrgId);
+            if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
           }
         }
-      } else {
-        const demo = await loadDemoSession();
-        if (demo) setUser(demo);
       }
       setLoading(false);
     })();
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const lower = email.toLowerCase().trim();
@@ -451,40 +273,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
         return { success: true };
       }
-      // Fell through — no profile row. Sign out and try demo fallback.
+      // Fell through — no profile row. Sign out.
       await supabase.auth.signOut();
+      return { success: false, error: "Profil tapılmadı" };
     }
 
-    // 2) Legacy demo fallback (prototype accounts).
-    const resolved = resolveDemoUser(lower);
-    if (resolved) {
-      const customPassword = getPasswordForEmail(lower);
-      const ok = customPassword
-        ? customPassword === password
-        : await verifyDemoPassword(lower, password);
-      if (ok) {
-        const hr = findHrAdminByEmail(lower);
-        if (hr) setHrAdminLastLoginNow(hr.id);
-        setUser(resolved);
-        await saveDemoSession(resolved);
-        return { success: true };
-      }
-    }
-
-    return { success: false, error: "Email və ya şifrə yanlışdır" };
+    return { success: false, error: error?.message ?? "Email və ya şifrə yanlışdır" };
   };
+
 
   const logout = async () => {
     void logAudit({ organizationId: user?.currentOrgId ?? null, action: "logout", module: "auth", entityType: "user", entityId: user?.supabaseUserId ?? null });
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
     deactivateOrgSync();
-        deactivateKpiCardsSync();
-        deactivateApprovalsSync();
-        deactivatePayrollSync();
-        deactivateLifecycleSync();
-        deactivateNotificationsSync();
-        deactivatePhase1Sync();
+    deactivateKpiCardsSync();
+    deactivateApprovalsSync();
+    deactivatePayrollSync();
+    deactivateLifecycleSync();
+    deactivateNotificationsSync();
+    deactivatePhase1Sync();
     await supabase.auth.signOut();
   };
 
@@ -498,21 +305,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const value = newPassword.trim();
     if (value.length < 8) return { success: false, error: "Şifrə ən az 8 simvol olmalıdır" };
 
-    // Real Supabase user — update via auth API.
-    if (user.supabaseUserId) {
-      const { error } = await supabase.auth.updateUser({ password: value });
-      if (error) return { success: false, error: error.message };
-      setUser({ ...user, mustChangePassword: false });
-      return { success: true };
+    if (!user.supabaseUserId) {
+      return { success: false, error: "Yalnız Supabase istifadəçiləri şifrəni dəyişə bilər" };
     }
-
-    // Demo fallback.
-    setPasswordForEmail(user.email, value);
-    const hr = findHrAdminByEmail(user.email);
-    if (hr) setHrAdminMustChangePassword(hr.id, false);
+    const { error } = await supabase.auth.updateUser({ password: value });
+    if (error) return { success: false, error: error.message };
     setUser({ ...user, mustChangePassword: false });
     return { success: true };
   };
+
 
   const sendPasswordReset = async (email: string): Promise<{ success: boolean; error?: string }> => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
