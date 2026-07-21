@@ -268,6 +268,12 @@ let currentOrgId: string | null = null;
 let activeUserId: string | null = null;
 let flushInFlight: Promise<void> | null = null;
 let pendingFlush = false;
+// When we perform a direct DB write ourselves, ignore the realtime echo for a
+// short window so it doesn't trigger a full rehydrate (which feels slow to the
+// user because it re-reads the entire org tree).
+let skipRehydrateUntil = 0;
+const markLocalDbWrite = () => { skipRehydrateUntil = Date.now() + 2000; };
+
 
 const scheduleFlush = () => {
   if (suppressFlush || !currentOrgId) return;
@@ -437,6 +443,7 @@ export const assignSlotInCloud = async (
     throw new Error(error.message || "Ştat təyinatı database-ə yazılmadı.");
   }
 
+  markLocalDbWrite();
   await syncEmployeeAssignmentRows(orgId, [...touchedEmployees]);
   void logAudit({
     organizationId: orgId,
@@ -447,6 +454,7 @@ export const assignSlotInCloud = async (
     newValues: slotPatch,
   });
 };
+
 
 export const addSlotsInCloud = async (positionId: number, count: number = 1, fraction: OrgSlotFraction = 1) => {
   const orgId = requireActiveOrg();
@@ -501,7 +509,10 @@ export const addSlotsInCloud = async (positionId: number, count: number = 1, fra
     if (localId >= map.next) map.next = localId + 1;
   });
   saveMap(orgId, map);
+  markLocalDbWrite();
 };
+
+
 
 export const removeSlotInCloud = async (slotId: number) => {
   const orgId = requireActiveOrg();
@@ -533,7 +544,9 @@ export const removeSlotInCloud = async (slotId: number) => {
   }
 
   await syncEmployeeAssignmentRows(orgId, touchedEmployees);
+  markLocalDbWrite();
 };
+
 
 export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise<OrgEmployee> => {
   const orgId = currentOrgId;
@@ -574,9 +587,11 @@ export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise
   const employee = employeeFromRow(data, map);
   saveMap(orgId, map);
 
+  markLocalDbWrite();
   suppressFlush = true;
   setEmployees([...getEmployees().filter(e => e.id !== employee.id), employee]);
   suppressFlush = false;
+
 
   void logAudit({
     organizationId: orgId,
@@ -739,16 +754,16 @@ const beforeUnloadFlush = () => {
 
 const scheduleRehydrate = () => {
   if (!currentOrgId) return;
+  if (Date.now() < skipRehydrateUntil) return;
   if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
   rehydrateTimer = window.setTimeout(async () => {
     rehydrateTimer = null;
-    // If a local mutation is pending or a flush is in flight, wait for it to
-    // finish before rehydrating — otherwise we'd wipe unsynced local changes.
     if (pendingFlush) { await flushLocalOrgToCloud(); }
     if (flushInFlight) { try { await flushInFlight; } catch {} }
     if (currentOrgId) void hydrateOrgFromCloud(currentOrgId);
   }, 400);
 };
+
 
 export const activateOrgSync = async (orgId: string, userId: string) => {
   if (currentOrgId === orgId && activeUserId === userId) return;
@@ -784,7 +799,7 @@ export const activateOrgSync = async (orgId: string, userId: string) => {
   onFocusHandler = () => scheduleRehydrate();
   window.addEventListener("focus", onFocusHandler);
   if (refreshInterval) window.clearInterval(refreshInterval);
-  refreshInterval = window.setInterval(scheduleRehydrate, 15000);
+  refreshInterval = window.setInterval(scheduleRehydrate, 60000);
 };
 
 export const deactivateOrgSync = () => {
