@@ -26,11 +26,8 @@ const LoginPage = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        const lower = email.toLowerCase();
-        if (lower === "superadmin@kpi.az") navigate("/super-admin");
-        else if (lower === "user@kpi.az") navigate("/user");
-        else if (lower === "manager@kpi.az" || lower === "kamran@kpi.az") navigate("/manager");
-        else navigate("/hr");
+        // Root route handles role-based redirect (super admin, HR, manager, user).
+        navigate("/");
       } else {
         setError(result.error || "Giriş uğursuz oldu");
       }

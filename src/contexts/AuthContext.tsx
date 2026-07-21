@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { getPasswordForEmail, setPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
 import {
   findHrAdminByEmail,
@@ -16,13 +17,14 @@ export interface AuthUser {
   team: string;
   permissions: string[];
   mustChangePassword?: boolean;
+  supabaseUserId?: string;
 }
 
-// Super Admin — yalnız HR (Admin) hesablarını idarə edir, başqa heç bir modula girişi yoxdur.
+// Legacy demo super admin email (kept for backwards compatibility with prototype data)
 const SUPER_ADMIN_EMAIL = "superadmin@kpi.az";
 
-// Demo account profiles (NO passwords stored client-side).
-// Passwords are verified via hashed comparison in passwordStore.
+// Demo account profiles — used as a fallback when Supabase auth doesn't
+// recognise the account. The real production accounts live in Supabase.
 const demoProfiles: { email: string; user: AuthUser }[] = [
   {
     email: SUPER_ADMIN_EMAIL,
@@ -33,7 +35,6 @@ const demoProfiles: { email: string; user: AuthUser }[] = [
       avatar: "SA",
       department: "Sistem",
       team: "—",
-      // Yalnız öz idarəetmə ekranı — heç bir əməliyyat modulu yoxdur.
       permissions: ["admin_users"],
     },
   },
@@ -46,7 +47,6 @@ const demoProfiles: { email: string; user: AuthUser }[] = [
       avatar: "G",
       department: "HR",
       team: "HR Komandası",
-      // Default HR — bütün modullara giriş
       permissions: [...ALL_MODULE_KEYS, "kpi_own", "kpi_team", "teams_compare", "teams_all"],
     },
   },
@@ -96,24 +96,27 @@ const demoProfiles: { email: string; user: AuthUser }[] = [
 
 interface AuthContextType {
   user: AuthUser | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   hasPermission: (perm: string) => boolean;
   changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
+  sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  loading: true,
   login: async () => ({ success: false }),
-  logout: () => {},
+  logout: async () => {},
   hasPermission: () => false,
   changePassword: async () => ({ success: false }),
+  sendPasswordReset: async () => ({ success: false }),
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-// Session integrity: derive a per-browser secret and sign the auth payload so
-// users cannot grant themselves elevated roles by editing localStorage directly.
+// ── Demo/prototype session signing (still used for demo profile fallback) ──────
 const SESSION_KEY = "kpi_auth_v2";
 const SESSION_SECRET_KEY = "kpi_session_secret";
 const SUPERADMIN_SEED_FLAG = "kpi_superadmin_seeded_v2";
@@ -144,8 +147,7 @@ const sign = async (payload: string): Promise<string> => {
 
 interface SignedSession { payload: string; sig: string; }
 
-// HR Admin (Super Admin tərəfindən yaradılan) hesablarını AuthUser-ə çevir.
-const resolveUser = (email: string): AuthUser | null => {
+const resolveDemoUser = (email: string): AuthUser | null => {
   const lower = email.toLowerCase();
   const profile = demoProfiles.find(p => p.email.toLowerCase() === lower);
   if (profile) return profile.user;
@@ -165,7 +167,7 @@ const resolveUser = (email: string): AuthUser | null => {
   return null;
 };
 
-const loadSession = async (): Promise<AuthUser | null> => {
+const loadDemoSession = async (): Promise<AuthUser | null> => {
   localStorage.removeItem("kpi_auth");
   const raw = localStorage.getItem(SESSION_KEY);
   if (!raw) return null;
@@ -177,7 +179,7 @@ const loadSession = async (): Promise<AuthUser | null> => {
       return null;
     }
     const parsed = JSON.parse(payload) as { email: string };
-    const user = resolveUser(parsed.email);
+    const user = resolveDemoUser(parsed.email);
     if (!user) {
       localStorage.removeItem(SESSION_KEY);
       return null;
@@ -189,14 +191,12 @@ const loadSession = async (): Promise<AuthUser | null> => {
   }
 };
 
-const saveSession = async (user: AuthUser) => {
+const saveDemoSession = async (user: AuthUser) => {
   const payload = JSON.stringify({ email: user.email, ts: Date.now() });
   const sig = await sign(payload);
   localStorage.setItem(SESSION_KEY, JSON.stringify({ payload, sig }));
 };
 
-// İlk dəfə açılışda köhnə demo şifrəni təmizlə ki, defaultPasswordHashes üzərindən
-// yeni güclü şifrələrlə giriş işləsin.
 const seedSuperAdminPassword = () => {
   if (localStorage.getItem(SUPERADMIN_SEED_FLAG)) return;
   try {
@@ -212,39 +212,132 @@ const seedSuperAdminPassword = () => {
   localStorage.setItem(SUPERADMIN_SEED_FLAG, "1");
 };
 
+// ── Resolve a Supabase-authenticated user into an AuthUser (role + perms) ─────
+const buildAuthUserFromSupabase = async (
+  supabaseUserId: string,
+  email: string,
+): Promise<AuthUser | null> => {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, email, first_name, last_name, is_platform_super_admin")
+    .eq("id", supabaseUserId)
+    .maybeSingle();
+
+  if (!profile) return null;
+
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim()
+    || (profile.email ?? email);
+  const avatar = (fullName || email).charAt(0).toUpperCase();
+
+  // Platform super admin — cross-organisation access to admin surfaces only.
+  if (profile.is_platform_super_admin) {
+    return {
+      name: fullName,
+      email: profile.email ?? email,
+      role: "SUPER_ADMIN",
+      avatar,
+      department: "Platform",
+      team: "—",
+      permissions: ["admin_users"],
+      supabaseUserId,
+    };
+  }
+
+  // Regular org member — for now grant HR-equivalent permissions until the
+  // per-role permission wiring (Step 3) lands. This keeps the app usable.
+  return {
+    name: fullName,
+    email: profile.email ?? email,
+    role: "HR",
+    avatar,
+    department: "—",
+    team: "—",
+    permissions: [...ALL_MODULE_KEYS, "kpi_own", "kpi_team", "teams_compare", "teams_all"],
+    supabaseUserId,
+  };
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     seedSuperAdminPassword();
-    loadSession().then(setUser);
+
+    // Subscribe first so we never miss an auth event.
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        // Defer supabase calls to avoid deadlocks inside the callback.
+        setTimeout(() => {
+          buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then(u => {
+            if (u) setUser(u);
+          });
+        }, 0);
+      } else {
+        // Only clear if there is no active demo session.
+        loadDemoSession().then(demo => {
+          if (!demo) setUser(null);
+        });
+      }
+    });
+
+    // Initial hydration: prefer Supabase session, fall back to demo session.
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
+        if (u) setUser(u);
+      } else {
+        const demo = await loadDemoSession();
+        if (demo) setUser(demo);
+      }
+      setLoading(false);
+    })();
+
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    const lower = email.toLowerCase();
-    const resolved = resolveUser(lower);
-    if (!resolved) {
-      return { success: false, error: "Email və ya şifrə yanlışdır" };
+    const lower = email.toLowerCase().trim();
+
+    // 1) Try real Supabase auth first.
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: lower,
+      password,
+    });
+    if (!error && data?.user) {
+      const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
+      if (u) {
+        setUser(u);
+        return { success: true };
+      }
+      // Fell through — no profile row. Sign out and try demo fallback.
+      await supabase.auth.signOut();
     }
-    const customPassword = getPasswordForEmail(lower);
-    const ok = customPassword
-      ? customPassword === password
-      : await verifyDemoPassword(lower, password);
-    if (!ok) {
-      return { success: false, error: "Email və ya şifrə yanlışdır" };
+
+    // 2) Legacy demo fallback (prototype accounts).
+    const resolved = resolveDemoUser(lower);
+    if (resolved) {
+      const customPassword = getPasswordForEmail(lower);
+      const ok = customPassword
+        ? customPassword === password
+        : await verifyDemoPassword(lower, password);
+      if (ok) {
+        const hr = findHrAdminByEmail(lower);
+        if (hr) setHrAdminLastLoginNow(hr.id);
+        setUser(resolved);
+        await saveDemoSession(resolved);
+        return { success: true };
+      }
     }
-    // Track first-login timestamp for HR admin accounts (used to gate
-    // company deletion when data may already have been created).
-    const hr = findHrAdminByEmail(lower);
-    if (hr) setHrAdminLastLoginNow(hr.id);
-    setUser(resolved);
-    await saveSession(resolved);
-    return { success: true };
+
+    return { success: false, error: "Email və ya şifrə yanlışdır" };
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
+    await supabase.auth.signOut();
   };
 
   const hasPermission = (perm: string) => {
@@ -256,6 +349,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return { success: false, error: "Sessiya tapılmadı" };
     const value = newPassword.trim();
     if (value.length < 8) return { success: false, error: "Şifrə ən az 8 simvol olmalıdır" };
+
+    // Real Supabase user — update via auth API.
+    if (user.supabaseUserId) {
+      const { error } = await supabase.auth.updateUser({ password: value });
+      if (error) return { success: false, error: error.message };
+      setUser({ ...user, mustChangePassword: false });
+      return { success: true };
+    }
+
+    // Demo fallback.
     setPasswordForEmail(user.email, value);
     const hr = findHrAdminByEmail(user.email);
     if (hr) setHrAdminMustChangePassword(hr.id, false);
@@ -263,8 +366,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: true };
   };
 
+  const sendPasswordReset = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasPermission, changePassword }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission, changePassword, sendPasswordReset }}>
       {children}
     </AuthContext.Provider>
   );
