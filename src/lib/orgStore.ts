@@ -265,7 +265,7 @@ export const isPositionInUse = (positionName: string): boolean => {
 
 // ---------- Structures (tree) ----------
 
-export const getStructures = (): OrgStructure[] => load(STORAGE_STRUCTURES, seedStructures);
+export const getStructures = (): OrgStructure[] => load(STORAGE_STRUCTURES, [] as OrgStructure[]);
 
 export const setStructures = (list: OrgStructure[]) => {
   save(STORAGE_STRUCTURES, list);
