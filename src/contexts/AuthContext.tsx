@@ -129,7 +129,7 @@ const buildAuthUserFromSupabase = async (
 ): Promise<AuthUser | null> => {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, email, first_name, last_name, is_platform_super_admin")
+    .select("id, email, first_name, last_name, is_platform_super_admin, must_change_password")
     .eq("id", supabaseUserId)
     .maybeSingle();
 
@@ -141,6 +141,7 @@ const buildAuthUserFromSupabase = async (
 
   const organizations = await fetchOrgMemberships(supabaseUserId);
   const currentOrgId = organizations[0]?.organizationId;
+  const mustChangePassword = !!(profile as any).must_change_password;
 
   // Platform super admin — cross-organisation access to admin surfaces.
   if (profile.is_platform_super_admin) {
@@ -152,6 +153,7 @@ const buildAuthUserFromSupabase = async (
       department: "Platform",
       team: "—",
       permissions: ["admin_users"],
+      mustChangePassword,
       supabaseUserId,
       currentOrgId,
       organizations,
