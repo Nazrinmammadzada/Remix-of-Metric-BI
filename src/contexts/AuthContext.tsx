@@ -180,6 +180,7 @@ const buildAuthUserFromSupabase = async (
     department: organizations[0]?.organizationName ?? "—",
     team: "—",
     permissions,
+    mustChangePassword,
     supabaseUserId,
     currentOrgId,
     organizations,
