@@ -461,6 +461,65 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          channels: Json
+          created_at: string
+          description: string | null
+          enabled: boolean
+          frequency: string | null
+          id: string
+          local_id: string
+          organization_id: string
+          recipients: Json
+          schedule: Json
+          send_time: string | null
+          template: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          frequency?: string | null
+          id?: string
+          local_id: string
+          organization_id: string
+          recipients?: Json
+          schedule?: Json
+          send_time?: string | null
+          template?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          frequency?: string | null
+          id?: string
+          local_id?: string
+          organization_id?: string
+          recipients?: Json
+          schedule?: Json
+          send_time?: string | null
+          template?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_employees: {
         Row: {
           active: boolean
@@ -958,6 +1017,115 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_records: {
+        Row: {
+          created_at: string
+          employee_legacy_id: number
+          id: string
+          legacy_id: number
+          operator: string | null
+          organization_id: string
+          periods: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_legacy_id: number
+          id?: string
+          legacy_id: number
+          operator?: string | null
+          organization_id: string
+          periods?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_legacy_id?: number
+          id?: string
+          legacy_id?: number
+          operator?: string | null
+          organization_id?: string
+          periods?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_uploads: {
+        Row: {
+          created_at: string
+          details: Json
+          file_name: string | null
+          id: string
+          legacy_id: number
+          matched: number | null
+          month: string | null
+          operator: string | null
+          organization_id: string
+          status: string | null
+          title: string | null
+          total_amount: number | null
+          total_rows: number | null
+          unmatched: number | null
+          updated_at: string
+          uploaded_by: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          file_name?: string | null
+          id?: string
+          legacy_id: number
+          matched?: number | null
+          month?: string | null
+          operator?: string | null
+          organization_id: string
+          status?: string | null
+          title?: string | null
+          total_amount?: number | null
+          total_rows?: number | null
+          unmatched?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          file_name?: string | null
+          id?: string
+          legacy_id?: number
+          matched?: number | null
+          month?: string | null
+          operator?: string | null
+          organization_id?: string
+          status?: string | null
+          title?: string | null
+          total_amount?: number | null
+          total_rows?: number | null
+          unmatched?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_uploads_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
