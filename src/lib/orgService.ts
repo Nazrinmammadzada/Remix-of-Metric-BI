@@ -443,6 +443,7 @@ export const assignSlotInCloud = async (
     throw new Error(error.message || "Ştat təyinatı database-ə yazılmadı.");
   }
 
+  markLocalDbWrite();
   await syncEmployeeAssignmentRows(orgId, [...touchedEmployees]);
   void logAudit({
     organizationId: orgId,
@@ -453,6 +454,7 @@ export const assignSlotInCloud = async (
     newValues: slotPatch,
   });
 };
+
 
 export const addSlotsInCloud = async (positionId: number, count: number = 1, fraction: OrgSlotFraction = 1) => {
   const orgId = requireActiveOrg();
