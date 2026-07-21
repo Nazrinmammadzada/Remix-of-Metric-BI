@@ -82,7 +82,8 @@ serve(async (req) => {
 
     // ---------------- PROVISION LOGIN ----------------
     // Creates auth user (or reuses existing) + profile row, links to
-    // org_employees.auth_user_id, adds organization_members + default USER role.
+    // org_employees.auth_user_id and organization_members. Roles are assigned
+    // only from the Rol və Səlahiyyətlər module — no default role is attached.
     if (action === "provision_login") {
       const employee_id = String(body.employee_id || "");
       const emailRaw = String(body.email || "").trim().toLowerCase();
@@ -159,62 +160,6 @@ serve(async (req) => {
         await admin.from("organization_members")
           .update({ status: "active" })
           .eq("id", memberId);
-      }
-
-      // Default USER role for the org (create if missing by cloning template)
-      const { data: userRole } = await admin
-        .from("roles")
-        .select("id")
-        .eq("organization_id", organization_id)
-        .eq("code", "user")
-        .maybeSingle();
-      let roleId = userRole?.id as string | undefined;
-      if (!roleId) {
-        const { data: newRole } = await admin
-          .from("roles")
-          .insert({
-            organization_id,
-            name: "USER",
-            code: "user",
-            is_system_role: true,
-            is_active: true,
-          })
-          .select("id")
-          .single();
-        roleId = newRole?.id;
-        // Copy permissions from user template if it exists
-        const { data: tpl } = await admin
-          .from("roles")
-          .select("id")
-          .eq("code", "user_template")
-          .is("organization_id", null)
-          .maybeSingle();
-        if (tpl?.id && roleId) {
-          const { data: tplPerms } = await admin
-            .from("role_permissions")
-            .select("permission_id")
-            .eq("role_id", tpl.id);
-          if (tplPerms?.length) {
-            await admin.from("role_permissions").insert(
-              tplPerms.map((p: any) => ({ role_id: roleId, permission_id: p.permission_id })),
-            );
-          }
-        }
-      }
-      if (roleId && memberId) {
-        const { data: urExisting } = await admin
-          .from("user_roles")
-          .select("id")
-          .eq("organization_member_id", memberId)
-          .eq("role_id", roleId)
-          .maybeSingle();
-        if (!urExisting) {
-          await admin.from("user_roles").insert({
-            organization_member_id: memberId,
-            role_id: roleId,
-            is_active: true,
-          });
-        }
       }
 
       // Link employee row

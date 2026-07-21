@@ -5,24 +5,25 @@ import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 
 // Every UI module key mapped to the DB permission codes that unlock it.
 const MODULE_KEY_TO_DB_CODES: Record<string, string[]> = {
-  home: ["profile.self_manage", "organization.view"],
+  home: ["home.view"],
   organization: ["org_structure.view", "employees.view"],
   kpi: ["kpi.view"],
   kpi_scores: ["kpi.view", "kpi.evaluate"],
   goal_tracking: ["kpi.view"],
-  kpi_lifecycle: ["kpi.view"],
-  cascading: ["kpi.view", "kpi.assign"],
+  kpi_lifecycle: ["lifecycle.view"],
+  cascading: ["cascading.view"],
   teams: ["teams.view"],
-  evaluation: ["evaluation_360.view", "evaluation_cycles.view"],
-  approvals: ["approval_requests.view"],
-  matrix: ["approval_matrices.view"],
+  evaluation: ["evaluations.view", "evaluation_360.view", "evaluation_cycles.view"],
+  approvals: ["approval_requests.view", "approvals.view"],
+  matrix: ["matrix.view", "approval_matrices.view"],
   reporting: ["reports.view"],
-  whistleblower: ["notifications.view"],
+  whistleblower: ["whistleblower.view"],
   bonus: ["bonus.view"],
-  formulas: ["bonus.configure", "kpi.update"],
-  salary: ["bonus.view"],
+  formulas: ["formulas.view"],
+  salary: ["salary.view"],
   integrations: ["integrations.view"],
   settings: ["settings.view"],
+  audit: ["audit.view"],
 };
 
 // Extra non-module UI keys used across the app.

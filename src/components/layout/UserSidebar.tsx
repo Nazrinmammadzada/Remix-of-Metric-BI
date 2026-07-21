@@ -9,12 +9,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const allNavItems = [
   { path: "/user", labelKey: "nav.home", icon: Home, permissions: ["home"] },
-  { path: "/user/kpi-kartlari", labelKey: "nav.kpi_tracking", icon: LayoutGrid, permissions: ["kpi_own", "kpi_team"] },
+  { path: "/user/kpi-kartlari", labelKey: "nav.kpi_tracking", icon: LayoutGrid, permissions: ["kpi"] },
   { path: "/user/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck, permissions: ["approvals"] },
   { path: "/user/hesabat", labelKey: "nav.report", icon: BarChart3, permissions: ["reporting"] },
   { path: "/user/komandalar", labelKey: "nav.my_team_alt", icon: Users, permissions: ["teams", "teams_compare"] },
-  { path: "/user/qiymetlendirme", labelKey: "nav.evaluation", icon: ClipboardList, permissions: ["home"] },
-  { path: "/user/ayarlar", labelKey: "nav.settings_alt", icon: Settings, permissions: ["home"] },
+  { path: "/user/qiymetlendirme", labelKey: "nav.evaluation", icon: ClipboardList, permissions: ["evaluation"] },
+  { path: "/user/ayarlar", labelKey: "nav.settings_alt", icon: Settings, permissions: ["settings"] },
 ];
 
 const UserSidebar = () => {

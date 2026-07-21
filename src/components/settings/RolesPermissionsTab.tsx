@@ -244,7 +244,7 @@ const permLabel = (p: DbPermission) => PERM_LABELS[p.code] ?? p.description ?? p
 const RolesPermissionsTab = () => {
   const { user, hasPermission } = useAuth();
   const orgId = user?.currentOrgId ?? "";
-  const canManage = hasPermission("roles.manage") || user?.role === "SUPER_ADMIN" || user?.role === "HR";
+  const canManage = hasPermission("roles.manage") || user?.role === "SUPER_ADMIN";
 
   const [loading, setLoading] = useState(true);
   const [permissions, setPermissions] = useState<DbPermission[]>([]);
