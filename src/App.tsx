@@ -11,7 +11,6 @@ import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
-import AccessDenied from "./pages/AccessDenied";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import InvitationsPage from "./pages/InvitationsPage";
 import AuditLogPage from "./pages/AuditLogPage";
@@ -58,6 +57,7 @@ import { useEffect } from "react";
 import { bootstrapDemoReviews } from "@/lib/peerReviewStore";
 import { MOCK_HR_USER_ID, MOCK_USER_ID } from "@/data/mockData";
 import { runDevResetOnce } from "@/lib/devReset";
+import { getDefaultPath } from "@/lib/navigation";
 
 // Bir dəfəlik brauzer təmizliyi — bütün istifadəçi tərəfindən yaradılan
 // localStorage məlumatlarını silir; default seed-lər yenidən yüklənəcək.
@@ -65,39 +65,13 @@ runDevResetOnce();
 
 const queryClient = new QueryClient();
 
-const getDefaultPath = (user: ReturnType<typeof useAuth>["user"]) => {
-  if (!user) return "/login";
-  if (user.role === "SUPER_ADMIN") return "/super-admin";
-  const p = user.permissions;
-  if (p.includes("home")) return user.role === "HR" ? "/hr" : "/user";
-  if (p.includes("organization")) return "/teskilati-struktur";
-  if (p.includes("kpi")) return "/user/kpi-kartlari";
-  if (p.includes("approvals")) return "/user/sistem-tesdiq";
-  if (p.includes("reporting")) return "/user/hesabat";
-  if (p.includes("teams")) return "/user/komandalar";
-  if (p.includes("evaluation")) return "/user/qiymetlendirme";
-  if (p.includes("settings")) return "/user/ayarlar";
-  if (p.includes("kpi_scores")) return "/kpi-qiymetleri";
-  if (p.includes("goal_tracking")) return "/hedef-tayin-izleme";
-  if (p.includes("kpi_lifecycle")) return "/kpi-lifecycle";
-  if (p.includes("cascading")) return "/cascading";
-  if (p.includes("matrix")) return "/tesdiqleme-matrisi";
-  if (p.includes("formulas")) return "/hesablama-dusturlari";
-  if (p.includes("salary")) return "/emekhaqqi-bazasi";
-  if (p.includes("bonus")) return "/bonus";
-  if (p.includes("whistleblower")) return "/whistleblower";
-  if (p.includes("integrations")) return "/inteqrasiyalar";
-  if (p.includes("admin_users")) return "/dahvetler";
-  if (p.includes("audit")) return "/audit-jurnali";
-  return "/access-denied";
-};
-
 const RootRedirect = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
-  return <Navigate to={getDefaultPath(user)} replace />;
+  const path = getDefaultPath(user);
+  return path ? <Navigate to={path} replace /> : null;
 };
 
 const LoginGuard = () => {
@@ -105,7 +79,8 @@ const LoginGuard = () => {
   if (loading) return null;
   if (user) {
     if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
-    return <Navigate to={getDefaultPath(user)} replace />;
+    const path = getDefaultPath(user);
+    return path ? <Navigate to={path} replace /> : null;
   }
   return <LoginPage />;
 };
@@ -123,7 +98,8 @@ const ChangePasswordGuard = () => {
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (!user.mustChangePassword) {
-    return <Navigate to={getDefaultPath(user)} replace />;
+    const path = getDefaultPath(user);
+    return path ? <Navigate to={path} replace /> : null;
   }
   return <ChangePasswordPage />;
 };
@@ -145,7 +121,7 @@ const App = () => {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordGuard />} />
-            <Route path="/access-denied" element={<AccessDenied />} />
+            <Route path="/access-denied" element={<RootRedirect />} />
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
