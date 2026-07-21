@@ -441,6 +441,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
+    deactivateOrgSync();
     await supabase.auth.signOut();
   };
 
