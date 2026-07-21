@@ -152,6 +152,7 @@ const App = () => {
               <Route path="/whistleblower" element={<WhistleblowerPage />} />
               <Route path="/ayarlar" element={<SettingsPage />} />
               <Route path="/dahvetler" element={<InvitationsPage />} />
+              <Route path="/audit-jurnali" element={<AuditLogPage />} />
 
               {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
               <Route path="/hr/rehber" element={<ManagerHomePage />} />
