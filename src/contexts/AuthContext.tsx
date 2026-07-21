@@ -410,6 +410,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
       if (u) {
         setUser(u);
+        if (u.currentOrgId && u.supabaseUserId) {
+          void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+        }
         return { success: true };
       }
       // Fell through — no profile row. Sign out and try demo fallback.
