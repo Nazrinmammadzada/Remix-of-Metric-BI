@@ -39,6 +39,12 @@ const STORES: StoreMirror[] = [
   { localKey: "competency_matrices_v1",      cloudKey: "competency_matrices",  event: "competency-matrices:updated",         table: "org_catalogs" },
   { localKey: "kpi_eval_scales_v2",          cloudKey: "eval_scales",          event: "eval-config-updated",                 table: "org_catalogs" },
   { localKey: "evaluation_surveys_v1",       cloudKey: "evaluation_surveys",   event: "surveys-updated",                     table: "org_catalogs" },
+  // Phase 3 — governance domain
+  { localKey: "wb_reports_v1",               cloudKey: "wb_reports",           event: "wb:updated",                          table: "org_catalogs" },
+  { localKey: "kpi_operations_log_v1",       cloudKey: "operations_log",       event: "operations:updated",                  table: "org_catalogs" },
+  { localKey: "cascade_tree_nodes_v4",       cloudKey: "cascade_tree",         event: "cascade-tree-updated",                table: "org_catalogs" },
+  { localKey: "cascade_assignments_v2",      cloudKey: "cascade_assignments",  event: "cascade-assignments-updated",         table: "org_catalogs" },
+  { localKey: "manual_peer_assignments_v1",  cloudKey: "manual_peer_assignments", event: "manual-assignments-updated",       table: "org_catalogs" },
 ];
 
 const readLocal = <T>(key: string, fallback: T): T => {
