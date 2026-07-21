@@ -173,6 +173,7 @@ serve(async (req) => {
       if (!u) return json(404, { error: "İstifadəçi tapılmadı" });
       const { error: uErr } = await admin.auth.admin.updateUserById(u.id, { password, email_confirm: true });
       if (uErr) return json(500, { error: uErr.message });
+      await admin.from("profiles").update({ must_change_password: true }).eq("id", u.id);
       return json(200, { ok: true });
     }
 
