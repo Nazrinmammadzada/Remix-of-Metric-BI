@@ -19,6 +19,10 @@ import {
   type OrgSlotFraction,
 } from "@/lib/orgStore";
 
+type CreateEmployeeInput = Pick<OrgEmployee, "firstName" | "lastName" | "fin" | "phone" | "email"> & {
+  fatherName?: string;
+};
+
 // ── ID mapping (numeric ↔ uuid) ───────────────────────────────────────────────
 type IdMap = { toUuid: Record<number, string>; toNum: Record<string, number>; next: number };
 const MAP_KEY = (orgId: string) => `kpi_org_idmap_${orgId}`;
@@ -42,6 +46,21 @@ const numFor = (m: IdMap, uuid: string): number => {
 };
 const uuidFor = (m: IdMap, num: number): string | undefined => m.toUuid[num];
 
+const employeeFromRow = (row: any, map: IdMap): OrgEmployee => ({
+  id: numFor(map, row.id),
+  firstName: row.first_name ?? "",
+  lastName: row.last_name ?? "",
+  fatherName: row.father_name ?? undefined,
+  fin: row.fin ?? "",
+  phone: row.phone ?? "",
+  email: row.email ?? "",
+  active: !!row.active,
+  structurePath: row.structure_path ?? undefined,
+  positionName: row.position_name ?? undefined,
+  salary: row.salary != null ? Number(row.salary) : undefined,
+  isStarPerson: !!row.is_star_person,
+});
+
 // ── HYDRATE ───────────────────────────────────────────────────────────────────
 export const hydrateOrgFromCloud = async (orgId: string): Promise<void> => {
   const [empRes, structRes, posRes, slotRes] = await Promise.all([
@@ -63,20 +82,7 @@ export const hydrateOrgFromCloud = async (orgId: string): Promise<void> => {
   const map = loadMap(orgId);
 
   // Employees
-  const employees: OrgEmployee[] = (empRes.data ?? []).map((row: any) => ({
-    id: numFor(map, row.id),
-    firstName: row.first_name ?? "",
-    lastName: row.last_name ?? "",
-    fatherName: row.father_name ?? undefined,
-    fin: row.fin ?? "",
-    phone: row.phone ?? "",
-    email: row.email ?? "",
-    active: !!row.active,
-    structurePath: row.structure_path ?? undefined,
-    positionName: row.position_name ?? undefined,
-    salary: row.salary != null ? Number(row.salary) : undefined,
-    isStarPerson: !!row.is_star_person,
-  }));
+  const employees: OrgEmployee[] = (empRes.data ?? []).map((row: any) => employeeFromRow(row, map));
 
   // Structures — build tree from parent_id
   const rawStruct: any[] = structRes.data ?? [];
@@ -262,6 +268,74 @@ export const flushLocalOrgToCloud = async () => {
     resolveFlush();
     flushInFlight = null;
   }
+};
+
+export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise<OrgEmployee> => {
+  const orgId = currentOrgId;
+  if (!orgId) throw new Error("Aktiv təşkilat tapılmadı. Yenidən daxil olun.");
+
+  if (flushTimer) {
+    window.clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  if (flushInFlight) await flushInFlight;
+
+  const payload = {
+    organization_id: orgId,
+    first_name: input.firstName.trim(),
+    last_name: input.lastName.trim(),
+    father_name: input.fatherName?.trim() || null,
+    fin: input.fin.trim() || null,
+    phone: input.phone.trim() || null,
+    email: input.email.trim() || null,
+    active: true,
+    salary: null,
+    is_star_person: false,
+    structure_path: null,
+    position_name: null,
+  };
+
+  const { data, error } = await supabase
+    .from("org_employees")
+    .insert(payload)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message || "Əməkdaş database-ə yazılmadı.");
+  }
+
+  const map = loadMap(orgId);
+  const employee = employeeFromRow(data, map);
+  saveMap(orgId, map);
+
+  suppressFlush = true;
+  setEmployees([...getEmployees().filter(e => e.id !== employee.id), employee]);
+  suppressFlush = false;
+
+  void logAudit({
+    organizationId: orgId,
+    action: "create",
+    module: "employees",
+    entityType: "org_employee",
+    entityId: data.id,
+    newValues: payload,
+  });
+
+  if (employee.email) {
+    try {
+      const { provisionEmployeeLogin } = await import("@/lib/employeeService");
+      void provisionEmployeeLogin({
+        organizationId: orgId,
+        employeeId: data.id,
+        email: employee.email,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+      });
+    } catch {}
+  }
+
+  return employee;
 };
 
 const doFlush = async (orgId: string) => {
