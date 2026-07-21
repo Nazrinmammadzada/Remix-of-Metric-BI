@@ -355,12 +355,44 @@ export const flushLocalOrgToCloud = async () => {
 
 
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
+let refreshInterval: number | null = null;
+let onFocusHandler: (() => void) | null = null;
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (currentOrgId) void hydrateOrgFromCloud(currentOrgId);
+  }, 400);
+};
+
 export const activateOrgSync = async (orgId: string, userId: string) => {
   if (currentOrgId === orgId && activeUserId === userId) return;
   currentOrgId = orgId;
   activeUserId = userId;
   await hydrateOrgFromCloud(orgId);
   window.addEventListener("org-updated", scheduleFlush);
+
+  // Realtime: any change to org data in Postgres triggers a re-hydration so
+  // other browsers / devices see the update within seconds.
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`org-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "org_employees", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "org_structures", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "org_positions", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "org_slots", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
+
+  // Fallback: refresh on window focus + every 15s so we recover from missed
+  // realtime broadcasts (e.g. sleeping tab, transient websocket drop).
+  onFocusHandler = () => scheduleRehydrate();
+  window.addEventListener("focus", onFocusHandler);
+  if (refreshInterval) window.clearInterval(refreshInterval);
+  refreshInterval = window.setInterval(scheduleRehydrate, 15000);
 };
 
 export const deactivateOrgSync = () => {
@@ -368,4 +400,8 @@ export const deactivateOrgSync = () => {
   activeUserId = null;
   window.removeEventListener("org-updated", scheduleFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (onFocusHandler) { window.removeEventListener("focus", onFocusHandler); onFocusHandler = null; }
+  if (refreshInterval) { window.clearInterval(refreshInterval); refreshInterval = null; }
 };

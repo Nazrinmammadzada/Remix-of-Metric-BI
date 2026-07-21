@@ -154,11 +154,36 @@ const uninstallStoragePatch = () => {
   if (originalRemoveItem) { Storage.prototype.removeItem = originalRemoveItem; originalRemoveItem = null; }
 };
 
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
+let refreshInterval: number | null = null;
+let onFocusHandler: (() => void) | null = null;
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (currentOrgId) void hydratePhase1FromCloud(currentOrgId);
+  }, 500);
+};
+
 export const activatePhase1Sync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
   currentOrgId = orgId;
   installStoragePatch();
   await hydratePhase1FromCloud(orgId);
+
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`catalogs-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "org_catalogs", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
+
+  onFocusHandler = () => scheduleRehydrate();
+  window.addEventListener("focus", onFocusHandler);
+  if (refreshInterval) window.clearInterval(refreshInterval);
+  refreshInterval = window.setInterval(scheduleRehydrate, 15000);
 };
 
 export const deactivatePhase1Sync = () => {
@@ -166,4 +191,8 @@ export const deactivatePhase1Sync = () => {
   uninstallStoragePatch();
   flushTimers.forEach(t => window.clearTimeout(t));
   flushTimers.clear();
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (onFocusHandler) { window.removeEventListener("focus", onFocusHandler); onFocusHandler = null; }
+  if (refreshInterval) { window.clearInterval(refreshInterval); refreshInterval = null; }
 };
