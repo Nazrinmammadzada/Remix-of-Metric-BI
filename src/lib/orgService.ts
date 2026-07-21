@@ -415,6 +415,10 @@ export const activateOrgSync = async (orgId: string, userId: string) => {
   suppressFlush = false;
   await hydrateOrgFromCloud(orgId);
   window.addEventListener("org-updated", scheduleFlush);
+  // Best-effort: if the tab is about to unload, kick a synchronous flush so
+  // the last local mutation reaches the DB.
+  window.addEventListener("beforeunload", beforeUnloadFlush);
+  window.addEventListener("pagehide", beforeUnloadFlush);
 
 
   // Realtime: any change to org data in Postgres triggers a re-hydration so
