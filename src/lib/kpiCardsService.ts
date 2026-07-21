@@ -309,6 +309,12 @@ export const flushLocalKpiCardsToCloud = async () => {
       );
     }
   }
+  void logAudit({
+    organizationId: orgId,
+    action: "sync",
+    module: "kpi_cards",
+    metadata: { cards: shared.length },
+  });
 };
 
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────
