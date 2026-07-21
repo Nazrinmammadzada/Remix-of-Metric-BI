@@ -65,9 +65,6 @@ runDevResetOnce();
 
 const queryClient = new QueryClient();
 
-const hasAnyPermission = (permissions: string[] | undefined, keys: string[]) =>
-  keys.some(key => permissions?.includes(key));
-
 const getDefaultPath = (user: ReturnType<typeof useAuth>["user"]) => {
   if (!user) return "/login";
   if (user.role === "SUPER_ADMIN") return "/super-admin";
@@ -177,7 +174,7 @@ const App = () => {
               <Route path="/dahvetler" element={<RouteGuard requiredPermissions={["admin_users"]}><InvitationsPage /></RouteGuard>} />
               <Route path="/audit-jurnali" element={<RouteGuard requiredPermissions={["audit"]}><AuditLogPage /></RouteGuard>} />
 
-              {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
+              {/* HR daxilindəki Rəhbər sub-modulları */}
               <Route path="/hr/rehber" element={<RouteGuard requiredPermissions={["teams", "approvals", "kpi", "goal_tracking", "kpi_scores", "bonus"]}><ManagerHomePage /></RouteGuard>} />
               <Route path="/hr/rehber/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
               <Route path="/hr/rehber/mesul-kartlar" element={<RouteGuard requiredPermissions={["kpi"]}><ManagerResponsibleCardsPage /></RouteGuard>} />
