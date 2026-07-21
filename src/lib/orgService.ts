@@ -580,9 +580,11 @@ export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise
   const employee = employeeFromRow(data, map);
   saveMap(orgId, map);
 
+  markLocalDbWrite();
   suppressFlush = true;
   setEmployees([...getEmployees().filter(e => e.id !== employee.id), employee]);
   suppressFlush = false;
+
 
   void logAudit({
     organizationId: orgId,
