@@ -442,6 +442,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 activateNotificationsSync(u.currentOrgId);
                 if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
         }
+        void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
         return { success: true };
       }
       // Fell through — no profile row. Sign out and try demo fallback.
