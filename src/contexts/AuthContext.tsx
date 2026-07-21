@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getPasswordForEmail, setPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
-import {
-  findHrAdminByEmail,
-  setHrAdminLastLoginNow,
-  setHrAdminMustChangePassword,
-} from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
   derivePermissionsFromDbCodes,
@@ -22,6 +16,10 @@ import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/no
 import { activatePhase1Sync, deactivatePhase1Sync } from "@/lib/phase1SyncService";
 import { hydrateLanguageFromProfile } from "@/lib/languageService";
 import { logAudit } from "@/lib/auditService";
+// ALL_MODULE_KEYS is intentionally kept imported to preserve the module surface constants
+// referenced elsewhere via re-export patterns.
+void ALL_MODULE_KEYS;
+
 
 export interface OrgMembership {
   organizationId: string;
