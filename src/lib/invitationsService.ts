@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditService";
 
 export interface OrgInvitation {
   id: string;
