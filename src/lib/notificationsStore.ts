@@ -29,30 +29,7 @@ const load = (): NotificationItem[] => {
     const raw = localStorage.getItem(KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  const seed: NotificationItem[] = [
-    {
-      id: "n-seed-1",
-      toEmployeeId: "e8",
-      type: "approval_request",
-      title: "Təsdiq tələbi: Müştəri Məmnuniyyəti",
-      body: "Sistem Təsdiqləri modulunda yeni kart gözləyir.",
-      link: "/manager/sistem-tesdiq",
-      read: false,
-      createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "n-seed-2",
-      toEmployeeId: "e4",
-      type: "goal_assigned",
-      title: "Yeni hədəf: Aylıq Satış Hədəfi",
-      body: "Sizə yeni KPI hədəfi təyin edildi.",
-      link: "/user/kpi-kartlari",
-      read: false,
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-  localStorage.setItem(KEY, JSON.stringify(seed));
-  return seed;
+  return [];
 };
 
 const save = (list: NotificationItem[]) => {
@@ -63,6 +40,9 @@ const save = (list: NotificationItem[]) => {
 export const getNotifications = (): NotificationItem[] => load();
 
 export const pushNotification = (input: Omit<NotificationItem, "id" | "read" | "createdAt">) => {
+  // Fire-and-forget cloud write; cache updates via realtime hydrate.
+  import("./notificationsService").then(m => { void m.pushNotificationCloud(input); });
+  // Optimistic local append so the UI reflects immediately if offline.
   const list = load();
   list.unshift({ ...input, id: crypto.randomUUID(), read: false, createdAt: new Date().toISOString() });
   save(list);
@@ -71,12 +51,15 @@ export const pushNotification = (input: Omit<NotificationItem, "id" | "read" | "
 export const markRead = (id: string) => {
   const list = load().map(n => n.id === id ? { ...n, read: true } : n);
   save(list);
+  import("./notificationsService").then(m => { void m.markReadCloud(id); });
 };
 
 export const markAllRead = (employeeId: string) => {
   const list = load().map(n => n.toEmployeeId === employeeId ? { ...n, read: true } : n);
   save(list);
+  import("./notificationsService").then(m => { void m.markAllReadCloud(employeeId); });
 };
+
 
 export const useNotificationsFor = (employeeId: string | null): NotificationItem[] => {
   const [rows, setRows] = useState<NotificationItem[]>(() => load());
