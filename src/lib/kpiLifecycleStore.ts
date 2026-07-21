@@ -211,7 +211,7 @@ export const setReviewOutcome = (
   cardName: string,
   meta: CardMeta | undefined,
   reviewId: string,
-  outcome: { status: "held" | "deferred"; comment: string; by?: string },
+  outcome: { status: ReviewOutcomeStatus; comment: string; by?: string },
 ) => {
   const base = getLifecycle(cardId) || getLifecycleWithFallback(cardId, cardName, meta);
   const nextReviews = (base.reviews || []).map(r =>
@@ -239,6 +239,8 @@ export type ReviewComputedStatus = "held" | "deferred" | "missed" | "in_progress
 export const computeReviewStatus = (r: LifecycleReview): ReviewComputedStatus => {
   if (r.outcomeStatus === "held") return "held";
   if (r.outcomeStatus === "deferred") return "deferred";
+  if (r.outcomeStatus === "missed") return "missed";
+  if (r.outcomeStatus === "in_progress") return "in_progress";
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const start = r.start ? new Date(r.start) : null;
   const end = r.end ? new Date(r.end) : null;
