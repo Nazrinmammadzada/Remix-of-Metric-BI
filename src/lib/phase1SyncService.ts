@@ -171,8 +171,14 @@ const scheduleRehydrate = () => {
 export const activatePhase1Sync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
   currentOrgId = orgId;
-  installStoragePatch();
+  // Purge any stale local seed for tracked keys BEFORE hydrating.
+  // This prevents a fresh browser from later flushing a demo seed back to the
+  // cloud (which would overwrite the real data other browsers wrote).
+  for (const s of STORES) {
+    try { localStorage.removeItem(s.localKey); } catch { /* noop */ }
+  }
   await hydratePhase1FromCloud(orgId);
+  installStoragePatch();
 
   if (realtimeChannel) supabase.removeChannel(realtimeChannel);
   realtimeChannel = supabase
@@ -185,6 +191,7 @@ export const activatePhase1Sync = async (orgId: string) => {
   if (refreshInterval) window.clearInterval(refreshInterval);
   refreshInterval = window.setInterval(scheduleRehydrate, 15000);
 };
+
 
 export const deactivatePhase1Sync = () => {
   currentOrgId = null;

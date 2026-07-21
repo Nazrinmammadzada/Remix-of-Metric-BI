@@ -373,8 +373,15 @@ export const activateOrgSync = async (orgId: string, userId: string) => {
   if (currentOrgId === orgId && activeUserId === userId) return;
   currentOrgId = orgId;
   activeUserId = userId;
+  // Purge local caches BEFORE hydrate so a fresh browser can't flush the
+  // demo seed back to the cloud on the first user mutation.
+  suppressFlush = true;
+  try { localStorage.removeItem("kpi_org_employees_v5"); } catch {}
+  try { localStorage.removeItem("kpi_org_structures_v6"); } catch {}
+  suppressFlush = false;
   await hydrateOrgFromCloud(orgId);
   window.addEventListener("org-updated", scheduleFlush);
+
 
   // Realtime: any change to org data in Postgres triggers a re-hydration so
   // other browsers / devices see the update within seconds.

@@ -191,14 +191,18 @@ const seedStructures: OrgStructure[] = [
   },
 ];
 
+// NOTE: We deliberately do NOT persist the fallback back into localStorage.
+// The database is the source of truth; hydrate() writes the real data.
+// Persisting a seed here would race with hydrate and cause fresh browsers
+// to push the local demo seed back to the cloud, wiping other browsers' work.
 const load = <T,>(key: string, fallback: T): T => {
   try {
     const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw);
   } catch {}
-  localStorage.setItem(key, JSON.stringify(fallback));
   return fallback;
 };
+
 
 const save = (key: string, value: unknown) => {
   localStorage.setItem(key, JSON.stringify(value));
@@ -207,7 +211,7 @@ const save = (key: string, value: unknown) => {
 
 // ---------- Employees ----------
 
-export const getEmployees = (): OrgEmployee[] => load(STORAGE_EMPLOYEES, seedEmployees);
+export const getEmployees = (): OrgEmployee[] => load(STORAGE_EMPLOYEES, [] as OrgEmployee[]);
 
 export const setEmployees = (list: OrgEmployee[]) => save(STORAGE_EMPLOYEES, list);
 
@@ -261,7 +265,7 @@ export const isPositionInUse = (positionName: string): boolean => {
 
 // ---------- Structures (tree) ----------
 
-export const getStructures = (): OrgStructure[] => load(STORAGE_STRUCTURES, seedStructures);
+export const getStructures = (): OrgStructure[] => load(STORAGE_STRUCTURES, [] as OrgStructure[]);
 
 export const setStructures = (list: OrgStructure[]) => {
   save(STORAGE_STRUCTURES, list);
@@ -787,3 +791,8 @@ export const findLeaderStructuresOf = (employeeId: number): LeaderStructInfo[] =
   walk(getStructures(), []);
   return results;
 };
+
+// Retain references to keep the seed constants from being tree-shaken warnings.
+// They remain as documentation of the historical demo seed.
+void seedEmployees;
+void seedStructures;
