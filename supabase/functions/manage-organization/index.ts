@@ -111,12 +111,13 @@ serve(async (req) => {
         userId = created.user.id;
       }
 
-      // Upsert profile
+      // Upsert profile — mark that first login must change temporary password
       await admin.from("profiles").upsert({
         id: userId,
         email,
         first_name: first_name || "",
         last_name: last_name || "",
+        must_change_password: true,
       }, { onConflict: "id" });
 
       // Create HR/Admin org role by copying template permissions
