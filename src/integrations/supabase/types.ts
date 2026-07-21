@@ -14,56 +14,401 @@ export type Database = {
   }
   public: {
     Tables: {
-      kpi_card_status: {
+      audit_logs: {
         Row: {
-          assignees: Json
-          card_id: number
-          rejected_at: string | null
-          rejected_by: string | null
-          status: Database["public"]["Enums"]["kpi_card_status_enum"]
-          submitted_for_approval: boolean
-          updated_at: string
-          use_matrix: boolean
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json
+          module: string
+          new_values: Json | null
+          organization_id: string | null
+          previous_values: Json | null
         }
         Insert: {
-          assignees?: Json
-          card_id: number
-          rejected_at?: string | null
-          rejected_by?: string | null
-          status?: Database["public"]["Enums"]["kpi_card_status_enum"]
-          submitted_for_approval?: boolean
-          updated_at?: string
-          use_matrix?: boolean
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          module: string
+          new_values?: Json | null
+          organization_id?: string | null
+          previous_values?: Json | null
         }
         Update: {
-          assignees?: Json
-          card_id?: number
-          rejected_at?: string | null
-          rejected_by?: string | null
-          status?: Database["public"]["Enums"]["kpi_card_status_enum"]
-          submitted_for_approval?: boolean
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          module?: string
+          new_values?: Json | null
+          organization_id?: string | null
+          previous_values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          organization_id: string
+          role_ids: string[]
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id: string
+          role_ids?: string[]
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id?: string
+          role_ids?: string[]
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          joined_at: string
+          organization_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id: string
+          status?: string
           updated_at?: string
-          use_matrix?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          settings: Json
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          settings?: Json
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          settings?: Json
+          slug?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
+      }
+      permissions: {
+        Row: {
+          action: string
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          module: string
+          resource: string
+        }
+        Insert: {
+          action: string
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          module: string
+          resource: string
+        }
+        Update: {
+          action?: string
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          module?: string
+          resource?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          is_platform_super_admin: boolean
+          last_login_at: string | null
+          last_name: string | null
+          phone: string | null
+          preferred_language: string
+          profile_photo: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          is_platform_super_admin?: boolean
+          last_login_at?: string | null
+          last_name?: string | null
+          phone?: string | null
+          preferred_language?: string
+          profile_photo?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          is_platform_super_admin?: boolean
+          last_login_at?: string | null
+          last_name?: string | null
+          phone?: string | null
+          preferred_language?: string
+          profile_photo?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      role_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_platform_role: boolean
+          is_system_role: boolean
+          name: string
+          organization_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_platform_role?: boolean
+          is_system_role?: boolean
+          name: string
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_platform_role?: boolean
+          is_system_role?: boolean
+          name?: string
+          organization_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          organization_member_id: string
+          role_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          organization_member_id: string
+          role_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          organization_member_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_organization_member_id_fkey"
+            columns: ["organization_member_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
+      has_permission: {
+        Args: { _org_id: string; _permission_code: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_platform_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      kpi_card_status_enum:
-        | "natamam"
-        | "tesdiq_gozlenilir"
-        | "imtina"
-        | "aktiv"
-        | "legv_olundu"
-        | "qaralama"
-        | "qiymetlendirme"
-        | "tamamlanib"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -190,17 +535,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      kpi_card_status_enum: [
-        "natamam",
-        "tesdiq_gozlenilir",
-        "imtina",
-        "aktiv",
-        "legv_olundu",
-        "qaralama",
-        "qiymetlendirme",
-        "tamamlanib",
-      ],
-    },
+    Enums: {},
   },
 } as const

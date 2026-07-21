@@ -1,4 +1,8 @@
-import { supabase } from "@/integrations/supabase/client";
+// NOTE: The `kpi_card_status` table has been removed as part of the foundation
+// migration. Status persistence will be reintroduced when the KPI card module
+// is migrated to the new multi-tenant schema. Until then, statuses are held in
+// localStorage so the existing UI continues to work.
+const LS_KEY = "kpi_card_status_v1";
 
 export type KpiCardStatus =
   | "qaralama"
@@ -50,17 +54,31 @@ export const STATUS_STYLES: Record<KpiCardStatus, string> = {
 };
 
 export async function fetchAllStatuses(): Promise<Record<number, KpiCardStatusRow>> {
-  const { data, error } = await supabase.from("kpi_card_status").select("*");
-  if (error || !data) return {};
-  const map: Record<number, KpiCardStatusRow> = {};
-  data.forEach((r: any) => {
-    map[r.card_id] = { ...r, assignees: Array.isArray(r.assignees) ? r.assignees : [] };
-  });
-  return map;
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
 }
 
 export async function upsertStatus(row: Partial<KpiCardStatusRow> & { card_id: number }): Promise<void> {
-  await supabase.from("kpi_card_status").upsert(row as any, { onConflict: "card_id" });
+  const current = await fetchAllStatuses();
+  current[row.card_id] = {
+    ...(current[row.card_id] ?? {
+      card_id: row.card_id,
+      status: "natamam",
+      use_matrix: false,
+      submitted_for_approval: false,
+      rejected_by: null,
+      rejected_at: null,
+      assignees: [],
+      updated_at: new Date().toISOString(),
+    }),
+    ...row,
+    updated_at: new Date().toISOString(),
+  } as KpiCardStatusRow;
+  localStorage.setItem(LS_KEY, JSON.stringify(current));
 }
 
 export async function submitToMatrix(cardId: number): Promise<void> {
