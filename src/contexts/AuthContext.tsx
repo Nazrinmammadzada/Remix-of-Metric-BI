@@ -273,28 +273,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
         return { success: true };
       }
-      // Fell through — no profile row. Sign out and try demo fallback.
+      // Fell through — no profile row. Sign out.
       await supabase.auth.signOut();
+      return { success: false, error: "Profil tapılmadı" };
     }
 
-    // 2) Legacy demo fallback (prototype accounts).
-    const resolved = resolveDemoUser(lower);
-    if (resolved) {
-      const customPassword = getPasswordForEmail(lower);
-      const ok = customPassword
-        ? customPassword === password
-        : await verifyDemoPassword(lower, password);
-      if (ok) {
-        const hr = findHrAdminByEmail(lower);
-        if (hr) setHrAdminLastLoginNow(hr.id);
-        setUser(resolved);
-        await saveDemoSession(resolved);
-        return { success: true };
-      }
-    }
-
-    return { success: false, error: "Email və ya şifrə yanlışdır" };
+    return { success: false, error: error?.message ?? "Email və ya şifrə yanlışdır" };
   };
+
 
   const logout = async () => {
     void logAudit({ organizationId: user?.currentOrgId ?? null, action: "logout", module: "auth", entityType: "user", entityId: user?.supabaseUserId ?? null });
