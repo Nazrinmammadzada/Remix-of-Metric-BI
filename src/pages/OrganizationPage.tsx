@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import {
   getEmployees, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition,
-  assignSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
+  removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
