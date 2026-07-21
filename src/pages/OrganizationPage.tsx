@@ -16,12 +16,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
+  getEmployees, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
   assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
+import { createEmployeeInCloud } from "@/lib/orgService";
 
 
 import {
@@ -1168,6 +1169,7 @@ const EmployeesTab = () => {
   const [page, setPage] = useState(1);
 
   const [showCreate, setShowCreate] = useState(false);
+  const [creatingEmployee, setCreatingEmployee] = useState(false);
   const [showChrImport, setShowChrImport] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", fatherName: "", fin: "", phone: "", email: "" });
 
@@ -1256,19 +1258,26 @@ const EmployeesTab = () => {
   }), [editForm, employees, editing]);
   const editValid = Object.values(editErrors).every(v => !v);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!createValid) { toast.error("Formu düzgün doldurun"); return; }
-    addEmployee({
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      fatherName: form.fatherName.trim() || undefined,
-      fin: form.fin.trim(),
-      phone: "",
-      email: form.email.trim(),
-    });
-    toast.success("Əməkdaş yaradıldı");
-    setShowCreate(false);
-    setForm(emptyEmployeeForm);
+    setCreatingEmployee(true);
+    try {
+      await createEmployeeInCloud({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        fatherName: form.fatherName.trim() || undefined,
+        fin: form.fin.trim(),
+        phone: "",
+        email: form.email.trim(),
+      });
+      toast.success("Əməkdaş database-də yaradıldı");
+      setShowCreate(false);
+      setForm(emptyEmployeeForm);
+    } catch (error: any) {
+      toast.error(error?.message || "Əməkdaş yaradılmadı. Database yazısını yoxlayın.");
+    } finally {
+      setCreatingEmployee(false);
+    }
   };
 
   const startEdit = (e: OrgEmployee) => {
@@ -1456,12 +1465,12 @@ const EmployeesTab = () => {
           <div className="flex gap-3 pt-2">
             <button
               onClick={handleCreate}
-              disabled={!createValid}
+              disabled={!createValid || creatingEmployee}
               className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Yarat
+              {creatingEmployee ? "Yaradılır..." : "Yarat"}
             </button>
-            <button onClick={() => { setShowCreate(false); setForm(emptyEmployeeForm); }} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">Ləğv Et</button>
+            <button disabled={creatingEmployee} onClick={() => { setShowCreate(false); setForm(emptyEmployeeForm); }} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card disabled:opacity-50 disabled:cursor-not-allowed">Ləğv Et</button>
           </div>
         </DialogContent>
       </Dialog>
