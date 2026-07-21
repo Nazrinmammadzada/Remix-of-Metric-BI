@@ -714,25 +714,25 @@ const RolesPermissionsTab = () => {
                             </button>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1 flex-1">
+                        <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1">
                           {list.map(p => {
                             const checked = editingIds.has(p.id);
                             return (
                               <button
                                 key={p.id}
                                 onClick={() => togglePerm(p.id)}
-                                className={`flex items-center gap-3 px-4 py-3.5 rounded-lg border-2 text-left text-sm transition-all ${
+                                className={`flex items-center gap-3 px-4 h-11 rounded-full border text-left text-sm transition-all shrink-0 ${
                                   checked
                                     ? "bg-primary/5 border-primary text-foreground"
                                     : "bg-background border-border hover:border-primary/40 hover:bg-secondary/50"
                                 }`}
                               >
-                                <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border-2 transition-colors ${
+                                <div className={`w-4 h-4 rounded-[4px] flex items-center justify-center shrink-0 border transition-colors ${
                                   checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40 bg-transparent"
                                 }`}>
-                                  {checked && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                                  {checked && <Check className="w-3 h-3" strokeWidth={3} />}
                                 </div>
-                                <span className="font-semibold">{permLabel(p)}</span>
+                                <span className="font-medium">{permLabel(p)}</span>
                               </button>
                             );
                           })}
