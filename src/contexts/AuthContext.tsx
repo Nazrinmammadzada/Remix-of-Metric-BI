@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
   derivePermissionsFromDbCodes,
-  deriveRoleFromDbCodes,
   type AppRole,
 } from "@/lib/permissionMapping";
 
@@ -130,8 +129,7 @@ const deriveRoleFromSlugs = (roleCodes: string[], dbCodes: string[]): AppRole =>
   if (s.has("hr") || s.has("hr_admin") || s.has("admin")) return "HR";
   if (s.has("manager") || s.has("rehber")) return "MANAGER";
   if (s.has("user") || s.has("employee")) return "USER";
-  // Fallback to legacy heuristic
-  return deriveRoleFromDbCodes(dbCodes, false);
+  return "USER";
 };
 
 // ── Resolve a Supabase-authenticated user into an AuthUser (role + perms) ─────

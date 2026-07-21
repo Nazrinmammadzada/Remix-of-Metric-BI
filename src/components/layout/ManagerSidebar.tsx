@@ -11,20 +11,20 @@ import { useAppSidebar } from "@/contexts/SidebarContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navItems = [
-  { path: "/manager", labelKey: "nav.home", icon: Home },
-  { path: "/manager/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck },
-  { path: "/manager/mesul-kartlar", labelKey: "nav.responsible_cards", icon: LayoutGrid },
-  { path: "/manager/komandam", labelKey: "nav.my_team", icon: Users },
-  { path: "/manager/kpi-izleme", labelKey: "nav.kpi_tracking", icon: Activity },
-  { path: "/manager/neticelerim", labelKey: "nav.results", icon: Trophy },
-  { path: "/manager/bonuslarim", labelKey: "nav.bonuses", icon: Gift },
-  { path: "/manager/hesabat", labelKey: "nav.reports", icon: BarChart3 },
-  { path: "/manager/ayarlar", labelKey: "nav.settings", icon: Settings },
+  { path: "/manager", labelKey: "nav.home", icon: Home, permissions: ["teams", "approvals", "kpi", "goal_tracking", "kpi_scores", "bonus", "reporting"] },
+  { path: "/manager/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck, permissions: ["approvals"] },
+  { path: "/manager/mesul-kartlar", labelKey: "nav.responsible_cards", icon: LayoutGrid, permissions: ["kpi"] },
+  { path: "/manager/komandam", labelKey: "nav.my_team", icon: Users, permissions: ["teams"] },
+  { path: "/manager/kpi-izleme", labelKey: "nav.kpi_tracking", icon: Activity, permissions: ["goal_tracking"] },
+  { path: "/manager/neticelerim", labelKey: "nav.results", icon: Trophy, permissions: ["kpi_scores"] },
+  { path: "/manager/bonuslarim", labelKey: "nav.bonuses", icon: Gift, permissions: ["bonus"] },
+  { path: "/manager/hesabat", labelKey: "nav.reports", icon: BarChart3, permissions: ["reporting"] },
+  { path: "/manager/ayarlar", labelKey: "nav.settings", icon: Settings, permissions: ["settings"] },
 ];
 
 const ManagerSidebar = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { collapsed, toggle } = useAppSidebar();
   const { t } = useTranslation();
 
@@ -50,7 +50,7 @@ const ManagerSidebar = () => {
         </button>
 
         <nav className={`flex-1 ${collapsed ? "px-2" : "px-3"} mt-4 space-y-1 overflow-y-auto scrollbar-hide`}>
-          {navItems.map((item) => {
+          {navItems.filter(item => item.permissions.some(p => hasPermission(p))).map((item) => {
             const isActive = location.pathname === item.path;
             const label = t(item.labelKey);
             const link = (

@@ -1,10 +1,8 @@
 // Role-aware visibility helpers used by HR / Manager / User panels so that each
 // panel sees only the slice of data that belongs to it.
 //
-// Phase 3: prefer explicit permission codes (`kpi.view_all`, `kpi.view_team`,
-// `kpi.view_own`, plus `employees.*` and `approvals.*` equivalents) over hard
-// role checks. Roles remain a fallback for legacy sessions that haven't been
-// re-synced from the database yet.
+// Visibility is driven only by explicit permission codes (`kpi.view_all`,
+// `kpi.view_team`, `kpi.view_own`, plus `employees.*` and `approvals.*`).
 
 import type { AuthUser } from "@/contexts/AuthContext";
 import {
@@ -34,10 +32,7 @@ const resolveScope = (user: AuthUser | null, module: "kpi" | "employees" | "appr
   if (has(user, `${module}.view_all`)) return "all";
   if (has(user, `${module}.view_team`)) return "team";
   if (has(user, `${module}.view_own`)) return "own";
-  // Legacy fallback based on role for sessions without seeded permissions
-  if (user.role === "HR") return "all";
-  if (user.role === "MANAGER") return "team";
-  return "own";
+  return "none";
 };
 
 export const getCurrentEmployeeId = (user: AuthUser | null): string | null =>

@@ -65,15 +65,39 @@ runDevResetOnce();
 
 const queryClient = new QueryClient();
 
+const getDefaultPath = (user: ReturnType<typeof useAuth>["user"]) => {
+  if (!user) return "/login";
+  if (user.role === "SUPER_ADMIN") return "/super-admin";
+  const p = user.permissions;
+  if (p.includes("home")) return user.role === "HR" ? "/hr" : "/user";
+  if (p.includes("organization")) return "/teskilati-struktur";
+  if (p.includes("kpi")) return "/user/kpi-kartlari";
+  if (p.includes("approvals")) return "/user/sistem-tesdiq";
+  if (p.includes("reporting")) return "/user/hesabat";
+  if (p.includes("teams")) return "/user/komandalar";
+  if (p.includes("evaluation")) return "/user/qiymetlendirme";
+  if (p.includes("settings")) return "/user/ayarlar";
+  if (p.includes("kpi_scores")) return "/kpi-qiymetleri";
+  if (p.includes("goal_tracking")) return "/hedef-tayin-izleme";
+  if (p.includes("kpi_lifecycle")) return "/kpi-lifecycle";
+  if (p.includes("cascading")) return "/cascading";
+  if (p.includes("matrix")) return "/tesdiqleme-matrisi";
+  if (p.includes("formulas")) return "/hesablama-dusturlari";
+  if (p.includes("salary")) return "/emekhaqqi-bazasi";
+  if (p.includes("bonus")) return "/bonus";
+  if (p.includes("whistleblower")) return "/whistleblower";
+  if (p.includes("integrations")) return "/inteqrasiyalar";
+  if (p.includes("admin_users")) return "/dahvetler";
+  if (p.includes("audit")) return "/audit-jurnali";
+  return "/access-denied";
+};
+
 const RootRedirect = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
-  if (user.role === "SUPER_ADMIN") return <Navigate to="/super-admin" replace />;
-  if (user.role === "MANAGER") return <Navigate to="/manager" replace />;
-  if (user.role === "USER") return <Navigate to="/user" replace />;
-  return <Navigate to="/hr" replace />;
+  return <Navigate to={getDefaultPath(user)} replace />;
 };
 
 const LoginGuard = () => {
@@ -81,11 +105,7 @@ const LoginGuard = () => {
   if (loading) return null;
   if (user) {
     if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
-    const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
-      : user.role === "HR" ? "/hr"
-      : user.role === "MANAGER" ? "/manager"
-      : "/user";
-    return <Navigate to={dest} replace />;
+    return <Navigate to={getDefaultPath(user)} replace />;
   }
   return <LoginPage />;
 };
@@ -103,11 +123,7 @@ const ChangePasswordGuard = () => {
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (!user.mustChangePassword) {
-    const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
-      : user.role === "HR" ? "/hr"
-      : user.role === "MANAGER" ? "/manager"
-      : "/user";
-    return <Navigate to={dest} replace />;
+    return <Navigate to={getDefaultPath(user)} replace />;
   }
   return <ChangePasswordPage />;
 };
@@ -134,38 +150,38 @@ const App = () => {
 
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
             <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><AppLayout /></RequirePasswordChanged></RouteGuard>}>
-              <Route path="/hr" element={<HomePage />} />
-              <Route path="/kpi-kartlari" element={<KpiHubPage />} />
-              <Route path="/kpi-qiymetleri" element={<KpiScoresPage />} />
+              <Route path="/hr" element={<RouteGuard requiredPermissions={["home"]}><HomePage /></RouteGuard>} />
+              <Route path="/kpi-kartlari" element={<RouteGuard requiredPermissions={["kpi"]}><KpiHubPage /></RouteGuard>} />
+              <Route path="/kpi-qiymetleri" element={<RouteGuard requiredPermissions={["kpi_scores"]}><KpiScoresPage /></RouteGuard>} />
               
-              <Route path="/hedef-tayin-izleme" element={<GoalTrackingPage />} />
-              <Route path="/kpi-lifecycle" element={<KpiLifecyclePage />} />
-              <Route path="/cascading" element={<CascadingHubPage />} />
-              <Route path="/cascade-matrisi" element={<CascadeMatrixPage />} />
+              <Route path="/hedef-tayin-izleme" element={<RouteGuard requiredPermissions={["goal_tracking"]}><GoalTrackingPage /></RouteGuard>} />
+              <Route path="/kpi-lifecycle" element={<RouteGuard requiredPermissions={["kpi_lifecycle"]}><KpiLifecyclePage /></RouteGuard>} />
+              <Route path="/cascading" element={<RouteGuard requiredPermissions={["cascading"]}><CascadingHubPage /></RouteGuard>} />
+              <Route path="/cascade-matrisi" element={<RouteGuard requiredPermissions={["cascading", "matrix"]}><CascadeMatrixPage /></RouteGuard>} />
 
-              <Route path="/sistem-tesdiq" element={<UserApprovalsPage />} />
-              <Route path="/tesdiqleme-matrisi" element={<MatrixPage />} />
-              <Route path="/hesabat" element={<ReportsPage />} />
-              <Route path="/komandalar" element={<TeamsPage />} />
-              <Route path="/hesablama-dusturlari" element={<FormulasHubPage />} />
-              <Route path="/inteqrasiyalar" element={<IntegrationsPage />} />
-              <Route path="/teskilati-struktur" element={<OrganizationPage />} />
-              <Route path="/emekhaqqi-bazasi" element={<SalaryPage />} />
-              <Route path="/bonus" element={<BonusPage />} />
-              <Route path="/qiymetlendirme" element={<EvaluationPage />} />
-              <Route path="/whistleblower" element={<WhistleblowerPage />} />
-              <Route path="/ayarlar" element={<SettingsPage />} />
-              <Route path="/dahvetler" element={<InvitationsPage />} />
-              <Route path="/audit-jurnali" element={<AuditLogPage />} />
+              <Route path="/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
+              <Route path="/tesdiqleme-matrisi" element={<RouteGuard requiredPermissions={["matrix"]}><MatrixPage /></RouteGuard>} />
+              <Route path="/hesabat" element={<RouteGuard requiredPermissions={["reporting"]}><ReportsPage /></RouteGuard>} />
+              <Route path="/komandalar" element={<RouteGuard requiredPermissions={["teams"]}><TeamsPage /></RouteGuard>} />
+              <Route path="/hesablama-dusturlari" element={<RouteGuard requiredPermissions={["formulas"]}><FormulasHubPage /></RouteGuard>} />
+              <Route path="/inteqrasiyalar" element={<RouteGuard requiredPermissions={["integrations"]}><IntegrationsPage /></RouteGuard>} />
+              <Route path="/teskilati-struktur" element={<RouteGuard requiredPermissions={["organization"]}><OrganizationPage /></RouteGuard>} />
+              <Route path="/emekhaqqi-bazasi" element={<RouteGuard requiredPermissions={["salary"]}><SalaryPage /></RouteGuard>} />
+              <Route path="/bonus" element={<RouteGuard requiredPermissions={["bonus"]}><BonusPage /></RouteGuard>} />
+              <Route path="/qiymetlendirme" element={<RouteGuard requiredPermissions={["evaluation"]}><EvaluationPage /></RouteGuard>} />
+              <Route path="/whistleblower" element={<RouteGuard requiredPermissions={["whistleblower"]}><WhistleblowerPage /></RouteGuard>} />
+              <Route path="/ayarlar" element={<RouteGuard requiredPermissions={["settings"]}><SettingsPage /></RouteGuard>} />
+              <Route path="/dahvetler" element={<RouteGuard requiredPermissions={["admin_users"]}><InvitationsPage /></RouteGuard>} />
+              <Route path="/audit-jurnali" element={<RouteGuard requiredPermissions={["audit"]}><AuditLogPage /></RouteGuard>} />
 
-              {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
-              <Route path="/hr/rehber" element={<ManagerHomePage />} />
-              <Route path="/hr/rehber/sistem-tesdiq" element={<UserApprovalsPage />} />
-              <Route path="/hr/rehber/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
-              <Route path="/hr/rehber/komandam" element={<TeamsPage />} />
-              <Route path="/hr/rehber/kpi-izleme" element={<ManagerKpiTrackingPage />} />
-              <Route path="/hr/rehber/neticelerim" element={<ManagerResultsPage />} />
-              <Route path="/hr/rehber/bonuslarim" element={<ManagerBonusPage />} />
+              {/* HR daxilindəki Rəhbər sub-modulları */}
+              <Route path="/hr/rehber" element={<RouteGuard requiredPermissions={["teams", "approvals", "kpi", "goal_tracking", "kpi_scores", "bonus"]}><ManagerHomePage /></RouteGuard>} />
+              <Route path="/hr/rehber/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
+              <Route path="/hr/rehber/mesul-kartlar" element={<RouteGuard requiredPermissions={["kpi"]}><ManagerResponsibleCardsPage /></RouteGuard>} />
+              <Route path="/hr/rehber/komandam" element={<RouteGuard requiredPermissions={["teams"]}><TeamsPage /></RouteGuard>} />
+              <Route path="/hr/rehber/kpi-izleme" element={<RouteGuard requiredPermissions={["goal_tracking"]}><ManagerKpiTrackingPage /></RouteGuard>} />
+              <Route path="/hr/rehber/neticelerim" element={<RouteGuard requiredPermissions={["kpi_scores"]}><ManagerResultsPage /></RouteGuard>} />
+              <Route path="/hr/rehber/bonuslarim" element={<RouteGuard requiredPermissions={["bonus"]}><ManagerBonusPage /></RouteGuard>} />
             </Route>
 
             {/* Super Admin Panel — yalnız HR (Admin) idarəetməsi */}
@@ -175,28 +191,28 @@ const App = () => {
 
             {/* User Panel — Super Admin bura giriş edə bilməz */}
             <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><UserLayout /></RequirePasswordChanged></RouteGuard>}>
-              <Route path="/user" element={<UserHomePage />} />
-              <Route path="/user/kpi-kartlari" element={<RouteGuard requiredPermissions={["kpi_own", "kpi_team"]}><UserKpiCardsPage /></RouteGuard>} />
+              <Route path="/user" element={<RouteGuard requiredPermissions={["home"]}><UserHomePage /></RouteGuard>} />
+              <Route path="/user/kpi-kartlari" element={<RouteGuard requiredPermissions={["kpi"]}><UserKpiCardsPage /></RouteGuard>} />
               <Route path="/user/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
               <Route path="/user/hesabat" element={<RouteGuard requiredPermissions={["reporting"]}><UserReportsPage /></RouteGuard>} />
               <Route path="/user/komandalar" element={<RouteGuard requiredPermissions={["teams", "teams_compare"]}><UserTeamsPage /></RouteGuard>} />
-              <Route path="/user/qiymetlendirme" element={<UserEvaluationPage />} />
-              <Route path="/user/whistleblower" element={<UserWhistleblowerPage />} />
-              <Route path="/user/ayarlar" element={<UserSettingsPage />} />
+              <Route path="/user/qiymetlendirme" element={<RouteGuard requiredPermissions={["evaluation"]}><UserEvaluationPage /></RouteGuard>} />
+              <Route path="/user/whistleblower" element={<RouteGuard requiredPermissions={["whistleblower"]}><UserWhistleblowerPage /></RouteGuard>} />
+              <Route path="/user/ayarlar" element={<RouteGuard requiredPermissions={["settings"]}><UserSettingsPage /></RouteGuard>} />
             </Route>
 
             {/* Manager (Rəhbər) Panel */}
-            <Route element={<RouteGuard requiredRole="MANAGER"><RequirePasswordChanged><ManagerLayout /></RequirePasswordChanged></RouteGuard>}>
-              <Route path="/manager" element={<ManagerHomePage />} />
-              <Route path="/manager/sistem-tesdiq" element={<UserApprovalsPage />} />
-              <Route path="/manager/mesul-kartlar" element={<ManagerResponsibleCardsPage />} />
-              <Route path="/manager/komandam" element={<TeamsPage />} />
-              <Route path="/manager/kpi-izleme" element={<ManagerKpiTrackingPage />} />
-              <Route path="/manager/neticelerim" element={<ManagerResultsPage />} />
-              <Route path="/manager/bonuslarim" element={<ManagerBonusPage />} />
-              <Route path="/manager/hesabat" element={<ReportsPage />} />
-              <Route path="/manager/whistleblower" element={<UserWhistleblowerPage />} />
-              <Route path="/manager/ayarlar" element={<SettingsPage />} />
+            <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><ManagerLayout /></RequirePasswordChanged></RouteGuard>}>
+              <Route path="/manager" element={<RouteGuard requiredPermissions={["teams", "approvals", "kpi", "goal_tracking", "kpi_scores", "bonus", "reporting"]}><ManagerHomePage /></RouteGuard>} />
+              <Route path="/manager/sistem-tesdiq" element={<RouteGuard requiredPermissions={["approvals"]}><UserApprovalsPage /></RouteGuard>} />
+              <Route path="/manager/mesul-kartlar" element={<RouteGuard requiredPermissions={["kpi"]}><ManagerResponsibleCardsPage /></RouteGuard>} />
+              <Route path="/manager/komandam" element={<RouteGuard requiredPermissions={["teams"]}><TeamsPage /></RouteGuard>} />
+              <Route path="/manager/kpi-izleme" element={<RouteGuard requiredPermissions={["goal_tracking"]}><ManagerKpiTrackingPage /></RouteGuard>} />
+              <Route path="/manager/neticelerim" element={<RouteGuard requiredPermissions={["kpi_scores"]}><ManagerResultsPage /></RouteGuard>} />
+              <Route path="/manager/bonuslarim" element={<RouteGuard requiredPermissions={["bonus"]}><ManagerBonusPage /></RouteGuard>} />
+              <Route path="/manager/hesabat" element={<RouteGuard requiredPermissions={["reporting"]}><ReportsPage /></RouteGuard>} />
+              <Route path="/manager/whistleblower" element={<RouteGuard requiredPermissions={["whistleblower"]}><UserWhistleblowerPage /></RouteGuard>} />
+              <Route path="/manager/ayarlar" element={<RouteGuard requiredPermissions={["settings"]}><SettingsPage /></RouteGuard>} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

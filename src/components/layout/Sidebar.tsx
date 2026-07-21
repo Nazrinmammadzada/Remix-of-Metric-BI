@@ -34,12 +34,12 @@ const ADMIN_ITEMS: NavItem[] = [
 ];
 
 const MANAGER_ITEMS: NavItem[] = [
-  { path: "/hr/rehber/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck },
-  { path: "/hr/rehber/mesul-kartlar", labelKey: "nav.responsible_cards", icon: LayoutGrid },
-  { path: "/hr/rehber/komandam", labelKey: "nav.my_team", icon: Users },
-  { path: "/hr/rehber/kpi-izleme", labelKey: "nav.kpi_tracking", icon: Activity },
-  { path: "/hr/rehber/neticelerim", labelKey: "nav.my_results", icon: Trophy },
-  { path: "/hr/rehber/bonuslarim", labelKey: "nav.my_bonuses", icon: Gift },
+  { path: "/hr/rehber/sistem-tesdiq", labelKey: "nav.system_approvals", icon: ClipboardCheck, perm: "approvals" },
+  { path: "/hr/rehber/mesul-kartlar", labelKey: "nav.responsible_cards", icon: LayoutGrid, perm: "kpi" },
+  { path: "/hr/rehber/komandam", labelKey: "nav.my_team", icon: Users, perm: "teams" },
+  { path: "/hr/rehber/kpi-izleme", labelKey: "nav.kpi_tracking", icon: Activity, perm: "goal_tracking" },
+  { path: "/hr/rehber/neticelerim", labelKey: "nav.my_results", icon: Trophy, perm: "kpi_scores" },
+  { path: "/hr/rehber/bonuslarim", labelKey: "nav.my_bonuses", icon: Gift, perm: "bonus" },
 ];
 
 const Sidebar = () => {
@@ -50,8 +50,8 @@ const Sidebar = () => {
   const [adminOpen, setAdminOpen] = useState(true);
   const [managerOpen, setManagerOpen] = useState(true);
 
-  // Rəhbər bölməsi: Günel Əlizadə üçün açıqdır (o həm HR, həm rəhbərdir).
-  const showManagerSection = user?.name === "Günel Əlizadə";
+  const managerFiltered = MANAGER_ITEMS.filter(it => !it.perm || (user?.permissions.includes(it.perm) ?? false));
+  const showManagerSection = managerFiltered.length > 0;
 
   const renderItem = (item: NavItem) => {
     const isActive = location.pathname === item.path;
@@ -129,7 +129,7 @@ const Sidebar = () => {
             </div>
           )}
 
-          {/* ===== RƏHBƏR qrupu (yalnız Günel Əlizadə) ===== */}
+          {/* ===== RƏHBƏR qrupu ===== */}
           {showManagerSection && (
             <>
               {!collapsed ? (
@@ -149,7 +149,7 @@ const Sidebar = () => {
               )}
               {managerOpen && (
                 <div className={collapsed ? "space-y-1" : "space-y-1 pl-1 border-l border-sidebar-fg/10 ml-2"}>
-                  {MANAGER_ITEMS.map(renderItem)}
+                  {managerFiltered.map(renderItem)}
                 </div>
               )}
             </>
