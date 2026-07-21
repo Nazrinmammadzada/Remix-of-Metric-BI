@@ -799,7 +799,7 @@ export const activateOrgSync = async (orgId: string, userId: string) => {
   onFocusHandler = () => scheduleRehydrate();
   window.addEventListener("focus", onFocusHandler);
   if (refreshInterval) window.clearInterval(refreshInterval);
-  refreshInterval = window.setInterval(scheduleRehydrate, 15000);
+  refreshInterval = window.setInterval(scheduleRehydrate, 60000);
 };
 
 export const deactivateOrgSync = () => {
