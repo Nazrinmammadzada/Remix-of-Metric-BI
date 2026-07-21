@@ -391,8 +391,12 @@ let onFocusHandler: (() => void) | null = null;
 const scheduleRehydrate = () => {
   if (!currentOrgId) return;
   if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
-  rehydrateTimer = window.setTimeout(() => {
+  rehydrateTimer = window.setTimeout(async () => {
     rehydrateTimer = null;
+    // If a local mutation is pending or a flush is in flight, wait for it to
+    // finish before rehydrating — otherwise we'd wipe unsynced local changes.
+    if (pendingFlush) { await flushLocalOrgToCloud(); }
+    if (flushInFlight) { try { await flushInFlight; } catch {} }
     if (currentOrgId) void hydrateOrgFromCloud(currentOrgId);
   }, 400);
 };
