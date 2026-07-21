@@ -285,14 +285,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     void logAudit({ organizationId: user?.currentOrgId ?? null, action: "logout", module: "auth", entityType: "user", entityId: user?.supabaseUserId ?? null });
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
     deactivateOrgSync();
-        deactivateKpiCardsSync();
-        deactivateApprovalsSync();
-        deactivatePayrollSync();
-        deactivateLifecycleSync();
-        deactivateNotificationsSync();
-        deactivatePhase1Sync();
+    deactivateKpiCardsSync();
+    deactivateApprovalsSync();
+    deactivatePayrollSync();
+    deactivateLifecycleSync();
+    deactivateNotificationsSync();
+    deactivatePhase1Sync();
     await supabase.auth.signOut();
   };
 
@@ -306,21 +305,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const value = newPassword.trim();
     if (value.length < 8) return { success: false, error: "Şifrə ən az 8 simvol olmalıdır" };
 
-    // Real Supabase user — update via auth API.
-    if (user.supabaseUserId) {
-      const { error } = await supabase.auth.updateUser({ password: value });
-      if (error) return { success: false, error: error.message };
-      setUser({ ...user, mustChangePassword: false });
-      return { success: true };
+    if (!user.supabaseUserId) {
+      return { success: false, error: "Yalnız Supabase istifadəçiləri şifrəni dəyişə bilər" };
     }
-
-    // Demo fallback.
-    setPasswordForEmail(user.email, value);
-    const hr = findHrAdminByEmail(user.email);
-    if (hr) setHrAdminMustChangePassword(hr.id, false);
+    const { error } = await supabase.auth.updateUser({ password: value });
+    if (error) return { success: false, error: error.message };
     setUser({ ...user, mustChangePassword: false });
     return { success: true };
   };
+
 
   const sendPasswordReset = async (email: string): Promise<{ success: boolean; error?: string }> => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
