@@ -64,6 +64,228 @@ export type Database = {
           },
         ]
       }
+      org_employees: {
+        Row: {
+          active: boolean
+          auth_user_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          father_name: string | null
+          fin: string | null
+          first_name: string
+          id: string
+          is_star_person: boolean
+          last_name: string
+          organization_id: string
+          phone: string | null
+          position_name: string | null
+          salary: number | null
+          structure_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          father_name?: string | null
+          fin?: string | null
+          first_name: string
+          id?: string
+          is_star_person?: boolean
+          last_name: string
+          organization_id: string
+          phone?: string | null
+          position_name?: string | null
+          salary?: number | null
+          structure_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          auth_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          father_name?: string | null
+          fin?: string | null
+          first_name?: string
+          id?: string
+          is_star_person?: boolean
+          last_name?: string
+          organization_id?: string
+          phone?: string | null
+          position_name?: string | null
+          salary?: number | null
+          structure_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_employees_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_positions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          sort_order: number
+          structure_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          sort_order?: number
+          structure_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          structure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_positions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_positions_structure_id_fkey"
+            columns: ["structure_id"]
+            isOneToOne: false
+            referencedRelation: "org_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_slots: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          fraction: number
+          id: string
+          organization_id: string
+          position_id: string
+          salary: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          fraction?: number
+          id?: string
+          organization_id: string
+          position_id: string
+          salary?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          fraction?: number
+          id?: string
+          organization_id?: string
+          position_id?: string
+          salary?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_slots_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "org_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_slots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_slots_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "org_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_structures: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          organization_id: string
+          parent_id: string | null
+          sort_order: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          parent_id?: string | null
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          parent_id?: string | null
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_structures_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_structures_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_invitations: {
         Row: {
           accepted_at: string | null

@@ -13,6 +13,7 @@ import {
   HR_FULL_UI_PERMISSIONS,
   type AppRole,
 } from "@/lib/permissionMapping";
+import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 
 export interface OrgMembership {
   organizationId: string;
@@ -359,10 +360,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Defer supabase calls to avoid deadlocks inside the callback.
         setTimeout(() => {
           buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then(u => {
-            if (u) setUser(u);
+            if (u) {
+              setUser(u);
+              if (u.currentOrgId && u.supabaseUserId) {
+                void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+              }
+            }
           });
         }, 0);
       } else {
+        deactivateOrgSync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
@@ -375,7 +382,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
-        if (u) setUser(u);
+        if (u) {
+          setUser(u);
+          if (u.currentOrgId && u.supabaseUserId) {
+            void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+          }
+        }
       } else {
         const demo = await loadDemoSession();
         if (demo) setUser(demo);
@@ -398,6 +410,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
       if (u) {
         setUser(u);
+        if (u.currentOrgId && u.supabaseUserId) {
+          void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+        }
         return { success: true };
       }
       // Fell through — no profile row. Sign out and try demo fallback.
@@ -426,6 +441,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
+    deactivateOrgSync();
     await supabase.auth.signOut();
   };
 
