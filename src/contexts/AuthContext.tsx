@@ -1,12 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getPasswordForEmail, setPasswordForEmail, verifyDemoPassword } from "@/lib/passwordStore";
-import {
-  findHrAdminByEmail,
-  setHrAdminLastLoginNow,
-  setHrAdminMustChangePassword,
-} from "@/lib/hrAdminStore";
-import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
   derivePermissionsFromDbCodes,
   deriveRoleFromDbCodes,
@@ -41,80 +34,6 @@ export interface AuthUser {
   organizations?: OrgMembership[];
 }
 
-// Legacy demo super admin email (kept for backwards compatibility with prototype data)
-const SUPER_ADMIN_EMAIL = "superadmin@kpi.az";
-
-// Demo account profiles — used as a fallback when Supabase auth doesn't
-// recognise the account. The real production accounts live in Supabase.
-const demoProfiles: { email: string; user: AuthUser }[] = [
-  {
-    email: SUPER_ADMIN_EMAIL,
-    user: {
-      name: "Super Admin",
-      email: SUPER_ADMIN_EMAIL,
-      role: "SUPER_ADMIN",
-      avatar: "SA",
-      department: "Sistem",
-      team: "—",
-      permissions: ["admin_users"],
-    },
-  },
-  {
-    email: "hr@kpi.az",
-    user: {
-      name: "Günel Əlizadə",
-      email: "hr@kpi.az",
-      role: "HR",
-      avatar: "G",
-      department: "HR",
-      team: "HR Komandası",
-      permissions: [...ALL_MODULE_KEYS, "kpi_own", "kpi_team", "teams_compare", "teams_all"],
-    },
-  },
-  {
-    email: "user@kpi.az",
-    user: {
-      name: "Samir Həsənov",
-      email: "user@kpi.az",
-      role: "USER",
-      avatar: "S",
-      department: "Satış Departamenti",
-      team: "Elite Satış Komandası",
-      permissions: ["home", "kpi_own", "kpi_team", "approvals", "reporting", "teams", "teams_compare"],
-    },
-  },
-  {
-    email: "manager@kpi.az",
-    user: {
-      name: "Elvin Rəhimov",
-      email: "manager@kpi.az",
-      role: "MANAGER",
-      avatar: "E",
-      department: "Satış Departamenti",
-      team: "Elite Satış Komandası",
-      permissions: [
-        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
-        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
-      ],
-    },
-  },
-  {
-    email: "kamran@kpi.az",
-    user: {
-      name: "Kamran Quliyev",
-      email: "kamran@kpi.az",
-      role: "MANAGER",
-      avatar: "K",
-      department: "Marketinq Departamenti › Rəqəmsal Marketinq Şöbəsi",
-      team: "Rəqəmsal Marketinq Şöbəsi",
-      permissions: [
-        "home", "approvals", "kpi_own", "kpi_team", "teams", "teams_compare",
-        "goal_tracking", "kpi_scores", "bonus", "reporting", "whistleblower", "settings",
-      ],
-    },
-  },
-];
-
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -123,6 +42,7 @@ interface AuthContextType {
   hasPermission: (perm: string) => boolean;
   changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
+  switchOrganization: (orgId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -133,105 +53,12 @@ const AuthContext = createContext<AuthContextType>({
   hasPermission: () => false,
   changePassword: async () => ({ success: false }),
   sendPasswordReset: async () => ({ success: false }),
+  switchOrganization: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-// ── Demo/prototype session signing (still used for demo profile fallback) ──────
-const SESSION_KEY = "kpi_auth_v2";
-const SESSION_SECRET_KEY = "kpi_session_secret";
-const SUPERADMIN_SEED_FLAG = "kpi_superadmin_seeded_v2";
-
-const getSessionSecret = (): string => {
-  let s = localStorage.getItem(SESSION_SECRET_KEY);
-  if (!s) {
-    const arr = new Uint8Array(32);
-    crypto.getRandomValues(arr);
-    s = Array.from(arr, b => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(SESSION_SECRET_KEY, s);
-  }
-  return s;
-};
-
-const sign = async (payload: string): Promise<string> => {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(getSessionSecret()),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
-  return Array.from(new Uint8Array(sig), b => b.toString(16).padStart(2, "0")).join("");
-};
-
-interface SignedSession { payload: string; sig: string; }
-
-const resolveDemoUser = (email: string): AuthUser | null => {
-  const lower = email.toLowerCase();
-  const profile = demoProfiles.find(p => p.email.toLowerCase() === lower);
-  if (profile) return profile.user;
-  const hr = findHrAdminByEmail(lower);
-  if (hr && hr.active) {
-    return {
-      name: hr.name,
-      email: hr.email,
-      role: "HR",
-      avatar: hr.name.charAt(0).toUpperCase(),
-      department: "HR",
-      team: "HR Komandası",
-      permissions: hr.permissions,
-      mustChangePassword: !!hr.mustChangePassword,
-    };
-  }
-  return null;
-};
-
-const loadDemoSession = async (): Promise<AuthUser | null> => {
-  localStorage.removeItem("kpi_auth");
-  const raw = localStorage.getItem(SESSION_KEY);
-  if (!raw) return null;
-  try {
-    const { payload, sig } = JSON.parse(raw) as SignedSession;
-    const expected = await sign(payload);
-    if (expected !== sig) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    const parsed = JSON.parse(payload) as { email: string };
-    const user = resolveDemoUser(parsed.email);
-    if (!user) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return user;
-  } catch {
-    localStorage.removeItem(SESSION_KEY);
-    return null;
-  }
-};
-
-const saveDemoSession = async (user: AuthUser) => {
-  const payload = JSON.stringify({ email: user.email, ts: Date.now() });
-  const sig = await sign(payload);
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ payload, sig }));
-};
-
-const seedSuperAdminPassword = () => {
-  if (localStorage.getItem(SUPERADMIN_SEED_FLAG)) return;
-  try {
-    const raw = localStorage.getItem("kpi_user_passwords");
-    if (raw) {
-      const custom = JSON.parse(raw) as Record<string, string>;
-      delete custom[SUPER_ADMIN_EMAIL];
-      delete custom["hr@kpi.az"];
-      delete custom["user@kpi.az"];
-      localStorage.setItem("kpi_user_passwords", JSON.stringify(custom));
-    }
-  } catch {}
-  localStorage.setItem(SUPERADMIN_SEED_FLAG, "1");
-};
+const CURRENT_ORG_KEY = "kpi_current_org_id";
 
 // ── Fetch org memberships for a Supabase-authenticated user. ──────────────────
 const fetchOrgMemberships = async (userId: string): Promise<OrgMembership[]> => {
@@ -246,7 +73,7 @@ const fetchOrgMemberships = async (userId: string): Promise<OrgMembership[]> => 
       organizationId: row.organization_id as string,
       organizationName: (row.organizations?.name as string) ?? "—",
     }))
-    .filter(m => !!m.organizationId);
+    .filter((m) => !!m.organizationId);
 };
 
 // ── Fetch the DB permission codes granted to a user within a given org. ───────
@@ -296,6 +123,7 @@ const fetchPermissionCodesForOrg = async (
 const buildAuthUserFromSupabase = async (
   supabaseUserId: string,
   email: string,
+  preferredOrgId?: string | null,
 ): Promise<AuthUser | null> => {
   const { data: profile } = await supabase
     .from("profiles")
@@ -310,9 +138,14 @@ const buildAuthUserFromSupabase = async (
   const avatar = (fullName || email).charAt(0).toUpperCase();
 
   const organizations = await fetchOrgMemberships(supabaseUserId);
-  const currentOrgId = organizations[0]?.organizationId;
+  const stored = preferredOrgId ?? localStorage.getItem(CURRENT_ORG_KEY);
+  const currentOrgId =
+    (stored && organizations.some((o) => o.organizationId === stored) ? stored : undefined)
+    ?? organizations[0]?.organizationId;
 
-  // Platform super admin — cross-organisation access to admin surfaces.
+  if (currentOrgId) localStorage.setItem(CURRENT_ORG_KEY, currentOrgId);
+
+  // Platform super admin — cross-organisation access.
   if (profile.is_platform_super_admin) {
     return {
       name: fullName,
@@ -328,14 +161,11 @@ const buildAuthUserFromSupabase = async (
     };
   }
 
-  // Regular org member — resolve role + permissions from user_roles for the
-  // active organisation. Users with no org membership get a minimal profile.
   let dbCodes: string[] = [];
   if (currentOrgId) {
     dbCodes = await fetchPermissionCodesForOrg(supabaseUserId, currentOrgId);
   }
   const role = deriveRoleFromDbCodes(dbCodes, false);
-  // HR always gets the full UI module surface; others rely on the derived map.
   const permissions = role === "HR"
     ? Array.from(new Set([...dbCodes, ...HR_FULL_UI_PERMISSIONS]))
     : derivePermissionsFromDbCodes(dbCodes);
@@ -345,7 +175,7 @@ const buildAuthUserFromSupabase = async (
     email: profile.email ?? email,
     role,
     avatar,
-    department: organizations[0]?.organizationName ?? "—",
+    department: organizations.find((o) => o.organizationId === currentOrgId)?.organizationName ?? "—",
     team: "—",
     permissions,
     supabaseUserId,
@@ -354,67 +184,56 @@ const buildAuthUserFromSupabase = async (
   };
 };
 
+const activateOrgServices = (u: AuthUser) => {
+  if (!u.currentOrgId || !u.supabaseUserId) return;
+  void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+  void activateKpiCardsSync(u.currentOrgId);
+  void activateApprovalsSync(u.currentOrgId);
+  void activatePayrollSync(u.currentOrgId);
+  void activateLifecycleSync(u.currentOrgId);
+  activateNotificationsSync(u.currentOrgId);
+  void hydrateLanguageFromProfile(u.supabaseUserId);
+};
+
+const deactivateAllOrgServices = () => {
+  deactivateOrgSync();
+  deactivateKpiCardsSync();
+  deactivateApprovalsSync();
+  deactivatePayrollSync();
+  deactivateLifecycleSync();
+  deactivateNotificationsSync();
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    seedSuperAdminPassword();
-
-    // Subscribe first so we never miss an auth event.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        // Defer supabase calls to avoid deadlocks inside the callback.
         setTimeout(() => {
-          buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then(u => {
+          buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then((u) => {
             if (u) {
               setUser(u);
-              if (u.currentOrgId && u.supabaseUserId) {
-                void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-              }
+              activateOrgServices(u);
             }
           });
         }, 0);
       } else {
-        deactivateOrgSync();
-        deactivateKpiCardsSync();
-        deactivateApprovalsSync();
-        deactivatePayrollSync();
-        deactivateLifecycleSync();
-        deactivateNotificationsSync();
-        // Only clear if there is no active demo session.
-        loadDemoSession().then(demo => {
-          if (!demo) setUser(null);
-        });
+        deactivateAllOrgServices();
+        localStorage.removeItem(CURRENT_ORG_KEY);
+        setUser(null);
       }
     });
 
-    // Initial hydration: prefer Supabase session, fall back to demo session.
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
         if (u) {
           setUser(u);
-          if (u.currentOrgId && u.supabaseUserId) {
-            void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-          }
+          activateOrgServices(u);
         }
-      } else {
-        const demo = await loadDemoSession();
-        if (demo) setUser(demo);
       }
       setLoading(false);
     })();
@@ -424,61 +243,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const lower = email.toLowerCase().trim();
-
-    // 1) Try real Supabase auth first.
     const { data, error } = await supabase.auth.signInWithPassword({
       email: lower,
       password,
     });
-    if (!error && data?.user) {
-      const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
-      if (u) {
-        setUser(u);
-        if (u.currentOrgId && u.supabaseUserId) {
-          void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-        }
-        void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
-        return { success: true };
-      }
-      // Fell through — no profile row. Sign out and try demo fallback.
+    if (error || !data?.user) {
+      return { success: false, error: "Email və ya şifrə yanlışdır" };
+    }
+    const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
+    if (!u) {
       await supabase.auth.signOut();
+      return { success: false, error: "Profil tapılmadı. Zəhmət olmasa administrator ilə əlaqə saxlayın." };
     }
-
-    // 2) Legacy demo fallback (prototype accounts).
-    const resolved = resolveDemoUser(lower);
-    if (resolved) {
-      const customPassword = getPasswordForEmail(lower);
-      const ok = customPassword
-        ? customPassword === password
-        : await verifyDemoPassword(lower, password);
-      if (ok) {
-        const hr = findHrAdminByEmail(lower);
-        if (hr) setHrAdminLastLoginNow(hr.id);
-        setUser(resolved);
-        await saveDemoSession(resolved);
-        return { success: true };
-      }
-    }
-
-    return { success: false, error: "Email və ya şifrə yanlışdır" };
+    setUser(u);
+    activateOrgServices(u);
+    void logAudit({
+      organizationId: u.currentOrgId ?? null,
+      action: "login",
+      module: "auth",
+      entityType: "user",
+      entityId: u.supabaseUserId ?? null,
+      metadata: { method: "password", email: lower },
+    });
+    return { success: true };
   };
 
   const logout = async () => {
-    void logAudit({ organizationId: user?.currentOrgId ?? null, action: "logout", module: "auth", entityType: "user", entityId: user?.supabaseUserId ?? null });
+    void logAudit({
+      organizationId: user?.currentOrgId ?? null,
+      action: "logout",
+      module: "auth",
+      entityType: "user",
+      entityId: user?.supabaseUserId ?? null,
+    });
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
-    deactivateOrgSync();
-        deactivateKpiCardsSync();
-        deactivateApprovalsSync();
-        deactivatePayrollSync();
-        deactivateLifecycleSync();
-        deactivateNotificationsSync();
+    localStorage.removeItem(CURRENT_ORG_KEY);
+    deactivateAllOrgServices();
     await supabase.auth.signOut();
   };
 
@@ -491,19 +291,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return { success: false, error: "Sessiya tapılmadı" };
     const value = newPassword.trim();
     if (value.length < 8) return { success: false, error: "Şifrə ən az 8 simvol olmalıdır" };
-
-    // Real Supabase user — update via auth API.
-    if (user.supabaseUserId) {
-      const { error } = await supabase.auth.updateUser({ password: value });
-      if (error) return { success: false, error: error.message };
-      setUser({ ...user, mustChangePassword: false });
-      return { success: true };
-    }
-
-    // Demo fallback.
-    setPasswordForEmail(user.email, value);
-    const hr = findHrAdminByEmail(user.email);
-    if (hr) setHrAdminMustChangePassword(hr.id, false);
+    const { error } = await supabase.auth.updateUser({ password: value });
+    if (error) return { success: false, error: error.message };
     setUser({ ...user, mustChangePassword: false });
     return { success: true };
   };
@@ -516,8 +305,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { success: true };
   };
 
+  const switchOrganization = async (orgId: string) => {
+    if (!user?.supabaseUserId) return;
+    if (!user.organizations?.some((o) => o.organizationId === orgId)) return;
+    deactivateAllOrgServices();
+    localStorage.setItem(CURRENT_ORG_KEY, orgId);
+    const u = await buildAuthUserFromSupabase(user.supabaseUserId, user.email, orgId);
+    if (u) {
+      setUser(u);
+      activateOrgServices(u);
+      void logAudit({
+        organizationId: orgId,
+        action: "switch_organization",
+        module: "auth",
+        entityType: "organization",
+        entityId: orgId,
+      });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission, changePassword, sendPasswordReset }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, hasPermission, changePassword, sendPasswordReset, switchOrganization }}>
       {children}
     </AuthContext.Provider>
   );

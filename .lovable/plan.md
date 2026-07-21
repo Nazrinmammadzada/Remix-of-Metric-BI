@@ -1,84 +1,61 @@
-# Plan: Təşkilat validasiyaları və Bildiriş sazlamaları yenidən dizaynı
+# Tam backend inteqrasiya planı
 
-## 1. Təşkilat modulu
+İki paralel audit (mock data + backend inteqrasiya) tamamlandı. Aşağıda tapılan boşluqlar və hər biri üçün konkret icra planı verilir. Sistemin bütün modulları real Supabase üzərində, RLS və server-side RBAC ilə işlək vəziyyətə gətiriləcək.
 
-### 1.1 Əməkhaqqı bazası – əməkdaş seçin (dropdown-a axtarış)
-- `src/pages/OrganizationPage.tsx` — "Əməkhaqqı bazası" kartında yeni məlumat əlavə etmə dialoqunda `select` əvəzinə `SearchableSelect` (`src/components/common/SearchableSelect.tsx`) tətbiq et.
+## Faza 1 — Təhlükəsizlik və RLS (kritik)
 
-### 1.2 Struktur kataloqu – istifadə olunan struktur tipi/vəzifə silinə bilməz
-- `src/lib/orgStore.ts` — köməkçi funksiyalar: `isStructureTypeInUse(typeName)` (units-də yoxla) və `isPositionInUse(positionName)` (employees & slots-da yoxla).
-- Struktur kataloqu kartında silmə əməliyyatında istifadəni yoxla və istifadə olunursa toast.error ilə `"Bu struktur tipi istifadə olunduğu üçün silinə bilməz."` / `"Bu vəzifə istifadə olunduğu üçün silinə bilməz."` göstər.
+1. **RLS-i sərtləşdir** — hazırda `is_org_member` ilə bütün üzvlər yaza bilir. Aşağıdakı cədvəllərdə INSERT/UPDATE/DELETE üçün `has_permission()` tələb ediləcək:
+   - `approval_matrices`, `deletion_matrices`, `cascade_matrices` → `approval_matrices.manage`
+   - `salary_records`, `salary_uploads` → `salary.manage`
+   - `bonus_runs` → `bonus.configure`
+   - `kpi_lifecycles`, `lifecycle_templates` → `lifecycle.manage`
+   - `notification_settings` → `notifications.manage`
+   - `approval_queue` → INSERT `approval.request`, UPDATE/DELETE yalnız `service_role` (yalnız `process-approval` edge function)
+2. **Demo login-i sil** — `AuthContext.demoProfiles`, `passwordStore.defaultPasswordHashes`, `resolveDemoUser`/`verifyDemoPassword` fallback tam çıxarılacaq. Yalnız Supabase auth qalacaq.
+3. **`notifications` sahibliyi** — `to_employee_id` = `auth.uid()` yoxlaması policy-lərə əlavə ediləcək.
 
-### 1.3 Ad / Soyad / Ata adı validasiyası
-- Yeni əməkdaş dialoqunda `firstName`, `lastName`, `middleName`:
-  - `maxLength = 50`
-  - Regex: `^[A-Za-zƏəÇçĞğİıIiÖöŞşÜüÂâ\-\s]+$` (yalnız hərflər + defis + boşluq)
-  - Səhv daxil edilərsə inline error + submit blok:
-    - `"Ad yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
-    - `"Soyad yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
-    - `"Ata adı yalnız hərflərdən və defis (-) işarəsindən ibarət olmalıdır."`
+## Faza 2 — Mock data-nın silinməsi
 
-### 1.4 FIN validasiyası
-- Regex: `^[0-9A-HJ-NP-Z]+$` (I, O istisna), uppercase-only
-- Səhv olarsa: `"FİN yalnız rəqəmlər və hərflərdən (I, O istisna) ibarət olmalıdır."`
+4. **Evaluation/Peer Review modulu** real backend üzərinə köçürüləcək:
+   - `mockEmployees`, `mockStructures`, `mockTeams`, `EMAIL_TO_EMPLOYEE_ID` silinəcək.
+   - Yeni cədvəllər: `peer_reviews`, `evaluation_cycles`, `evaluation_scores`, `competency_matrix_entries`.
+   - `peerReviewStore`, `kpiEvaluationStore`, `competencyMatrixStore`, `evaluationSurveyStore` cloud-sync pattern-ə keçəcək.
+   - `EvaluationPage`, `UserEvaluationPage`, `PeerEvaluationDialog`, `CompetencyMatrixTab`, `MyAnonymousScores`, `KpiPlanningDialog`, `SharedKpiPanel` real `org_employees` üzərindən işləyəcək.
+5. **`OrganizationPage` MOCK_CHR_CHANGES** silinəcək — real `approval_queue` sorğusu ilə əvəzlənəcək.
+6. **`ReportsPage`, `UserReportsPage`** mock filter dropdown-ları real org tree ilə əvəzlənəcək; `individualKpiAssignees` hardcode-u KPI assignment sorğusu ilə əvəz olunacaq.
+7. **`GoalTrackingPage.statusFor`** — real KPI actuals-dan hesablanacaq.
+8. **`PeriodPicker.buildDemoSeries`** yalnız placeholder kimi qalacaq, dashboard-lar real aggregate-ə bağlanacaq.
+9. **`hrAdminStore`, `companiesStore`** silinəcək — Super Admin əməliyyatları birbaşa `organizations`/`profiles`/`organization_members` üzərinə yazacaq.
 
-## 2. Sazlamalar → Bildiriş sazlamaları (`NotificationSettingsTab.tsx`)
+## Faza 3 — Sync etibarlılığı
 
-### 2.1 Kanallardan SMS-i sil və Xatırladıcılar sahəsini tam sil
-- `CHANNEL_LABELS` və tip-dən `sms` çıxarılır (`notificationSettingsStore.ts`), mövcud seed-lərdə təmizlənir.
-- Formada `reminders` bloku və `remDraft` state-i silinir, `supportsReminders` istifadəsi silinir.
+10. **Silent failure-lərin aradan qaldırılması** — bütün `*Service.ts` flush funksiyalarında `.error` yoxlanacaq, uğursuzluq toast + audit ilə göstəriləcək, local optimistic update geri qaytarılacaq.
+11. **Delete propagation** — `orgService`, `kpiCardsService`, `payrollService`, `lifecycleService` üçün tombstone/diff-DELETE əlavə ediləcək ki, local silinmələr cloud-a köçsün.
+12. **Konkurent yazışma** — kritik cədvəllərdə `updated_at` version check (optimistic concurrency) əlavə olunacaq.
+13. **Numeric↔UUID ID map** localStorage-dan çıxarılıb DB-də saxlanılacaq (`legacy_id` sütunları artıq mövcuddur — istifadə genişləndiriləcək).
 
-### 2.2 Alıcılar – tab-based multi-select
-Yeni komponent: `src/components/settings/NotificationRecipientsPicker.tsx`
+## Faza 4 — Multi-tenant və audit
 
-Tablar (Tabs komponenti şadcn):
-1. Şəxs — employees siyahısı (checkbox + search)
-2. Vəzifə — `getPositions()` (checkbox + search)
-3. Struktur — TreeView (`orgStore` units), parent toggle → bütün alt strukturlar
-4. Komanda — `teamsStore` siyahısı (checkbox + search)
-5. Sistem rolu — sabit rol siyahısı: KPI sahibi, Rəhbər, Qiymətləndirici, KPI təyin edən, HR, CEO (checkbox + search)
+14. **Tenant switcher** — istifadəçinin bir neçə `organization_members` sətri olduqda header-də org seçim UI, `currentOrgId` URL və `localStorage`-də saxlanılacaq.
+15. **`hasPermission()`** hər tenant dəyişimində və müəyyən interval-larda yenidən sorğulanacaq.
+16. **Audit zənginləşdirməsi** — `"sync"` ümumi event-lər əvəzinə hər entity üçün `previousValues`/`newValues` diff loglanacaq (org, KPI card, lifecycle, approvals).
 
-Token sxemi (backward-compatible əlavə):
-- `person:<AdSoyad>`, `position:<Ad>`, `structure:<UnitId>`, `team:<TeamId>`, `role:<Ad>`
+## Faza 5 — Edge functions və localStorage-only store-lar
 
-Altda "Seçilmiş alıcılar" bölməsi – bütün seçimlər chip kimi, hər biri × ilə silinə bilər; sağda "Hamısını təmizlə" linki. Tab dəyişəndə seçimlər qorunur (state parent-də saxlanılır). Real-time search. Scroll pozisiyası tab-a görə saxlanılır.
-
-Köhnə `RECIPIENT_LABELS` chip-ləri yeni pickerlə əvəz olunur.
-
-### 2.3 Tezlik – dropdown + dinamik forma
-`NotificationSettingsTab.tsx`-də `frequency` bloku yenilənir. Yeni tip:
-
-```ts
-type Frequency =
-  | "on_event" | "on_date" | "daily" | "weekly"
-  | "monthly" | "quarterly" | "yearly" | "custom";
-```
-
-Dropdown seçimlərinə uyğun konfiqurasiya sahələri:
-- on_event: time + timezone
-- on_date: date + time + timezone
-- daily: startDate + endDate? + time + timezone
-- weekly: weekdays[] + time + timezone
-- monthly: mode (`dayOfMonth` | `weekOfMonth`) + gün/həftə + weekday + time + timezone
-- quarterly: quarter (I–IV) + month + day + time + timezone
-- yearly: month + day + time + timezone
-- custom: startDate + endDate + repeatEvery + unit (Gün/Həftə/Ay) + cron?
-
-Aşağıda "Cədvəl xülasəsi" — cari seçimlərdən hesablanan human-readable mətn.
-
-`NotificationSetting` tipi genişləndirilir (`schedule` obyektinə köçürülür). Köhnə `sendTime` və `frequency` migrate olunur. Mövcud `FREQUENCY_LABELS` yeni seçimlərlə əvəz olunur.
+17. **`accept-invitation`** `listUsers` pagination + rate limiting.
+18. **`calculate-bonus`** rate limiting.
+19. **~25 localStorage-only store**-un triage-i: hər biri ya real cədvələ köçürüləcək (`whistleblowerStore`, `rolesStore`, `teamsStore`, `dropdownCatalogStore`, `seasonStore`, `formulasStore`, `formulaAssignmentsStore`, `cascadeMatrixStore`, `cascadingStore`, `matrixStore`, `manualAssignmentsStore`, `catalogStore`, `operationsLogStore`, `salaryUploadsStore`), ya da UI-state kimi rəsmi işarələnəcək.
+20. **`devReset`** `import.meta.env.DEV` guard.
 
 ## Texniki qeydlər
-- Bütün UI Metric BI dizayn tokenləri (`bg-card`, `border-border`, `text-primary`, s.) ilə.
-- Yeni state-lər localStorage-a serialize olunur (mövcud `notificationSettingsStore` üzərində).
-- Migration: köhnə setting yüklənəndə çatışmayan `schedule` sahəsi `frequency`+`sendTime`-dən inşa edilir; `sms` kanalı avtomatik çıxarılır; `reminders` sahəsi silinir.
-- Tip yoxlaması `tsgo` ilə təsdiq edilir.
 
-## Fayllar
-- `src/pages/OrganizationPage.tsx` (dropdown search, validation, delete guard mesajları)
-- `src/lib/orgStore.ts` (`isStructureTypeInUse`, `isPositionInUse`)
-- `src/components/settings/DropdownCatalogsTab.tsx` (əgər struktur tipi/vəzifə silmə bu kartdadırsa – guard tətbiq)
-- `src/components/settings/NotificationSettingsTab.tsx` (recipients + frequency + kanal/xatırladıcı təmizliyi)
-- `src/components/settings/NotificationRecipientsPicker.tsx` (yeni)
-- `src/components/settings/NotificationSchedulePicker.tsx` (yeni)
-- `src/lib/notificationSettingsStore.ts` (tip genişlənməsi, migrasiya, SMS/reminders təmizliyi)
+- Hər RLS dəyişikliyi ayrı migration-da göndəriləcək (təsdiq lazımdır).
+- Yeni cədvəllər üçün mütləq `GRANT` + `service_role` daxil ediləcək.
+- Bütün edge function dəyişiklikləri deploy olunacaq; frontend yalnız `supabase.functions.invoke` istifadə edəcək.
+- Mövcud demo istifadəçilər (`hr@kpi.az`, `user@kpi.az`, `manager@kpi.az`) silindiyi üçün, real testing üçün `super.admin@outlook.com` üzərindən yeni istifadəçilər dəvətlə (`accept-invitation` flow) yaradılmalıdır.
+
+## Həcm və mərhələli təslim
+
+Bu iş **5 faza** və təxminən **20 böyük dəyişiklik** deməkdir (12+ migration, 30+ fayl redaktəsi, 4+ yeni cədvəl, mock-ların silinməsi bütün evaluation vertikalını yenidən sim edir). Bir mesajda tam təslim etmək praktik deyil — hər faza ayrı-ayrı deploy ediləcək, hər fazadan sonra siz test edib növbətini təsdiqləyəcəksiniz.
+
+**Başlanğıc:** təsdiqlədikdən sonra **Faza 1** (RLS sərtləşdirməsi + demo auth-un silinməsi) ilə başlayıram — bu ən yüksək təhlükəsizlik risqidir və digər fazalar üçün təməldir.
