@@ -109,16 +109,12 @@ serve(async (req) => {
         return json(200, { ok: true, already: true, user_id: emp.auth_user_id });
       }
 
-      // Create or reuse
+      // Create or reuse — idempotent: if createUser reports duplicate email
+      // or a spurious "database error", fall back to lookup by email.
+      let userId: string | undefined;
       const existing = await findAuthUserByEmail(admin, emailRaw);
-      let userId: string;
       if (existing) {
         userId = existing.id;
-        await admin.auth.admin.updateUserById(userId, {
-          password: DEFAULT_PASSWORD,
-          email_confirm: true,
-          user_metadata: { first_name, last_name },
-        });
       } else {
         const { data: created, error: cErr } = await admin.auth.admin.createUser({
           email: emailRaw,
@@ -126,11 +122,21 @@ serve(async (req) => {
           email_confirm: true,
           user_metadata: { first_name, last_name },
         });
-        if (cErr || !created?.user) {
-          return json(500, { error: cErr?.message || "İstifadəçi yaradıla bilmədi" });
+        if (created?.user) {
+          userId = created.user.id;
+        } else {
+          // Duplicate email or transient trigger error — try to find the user.
+          const found = await findAuthUserByEmail(admin, emailRaw);
+          if (found) userId = found.id;
+          else return json(500, { error: cErr?.message || "İstifadəçi yaradıla bilmədi" });
         }
-        userId = created.user.id;
       }
+      // Ensure password + confirmation are set for the (possibly pre-existing) user.
+      await admin.auth.admin.updateUserById(userId, {
+        password: DEFAULT_PASSWORD,
+        email_confirm: true,
+        user_metadata: { first_name, last_name },
+      });
 
       await admin.from("profiles").upsert({
         id: userId,
