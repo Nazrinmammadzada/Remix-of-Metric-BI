@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getPeriods, addPeriod, deletePeriod, computeDurationLabel, formatPeriodRange, type KpiPeriod } from "@/lib/teamsStore";
 import DropdownCatalogsTab from "@/components/settings/DropdownCatalogsTab";
 import NotificationSettingsTab from "@/components/settings/NotificationSettingsTab";
+import RolesPermissionsTab from "@/components/settings/RolesPermissionsTab";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
 
 // Settings Tab 1 - Məlumat Cədvəli
