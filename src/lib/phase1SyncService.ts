@@ -86,7 +86,8 @@ const scheduleFlush = (cloudKey?: string) => {
 export const flushPhase1ToCloud = async () => {
   const orgId = currentOrgId;
   if (!orgId) return;
-  const rows = STORES.map(s => ({
+  type Row = { organization_id: string; catalog_key: string; entries: unknown };
+  const rows: Row[] = STORES.map(s => ({
     organization_id: orgId,
     catalog_key: s.cloudKey,
     entries: readLocal<unknown>(s.localKey, null),
