@@ -45,6 +45,16 @@ const STORES: StoreMirror[] = [
   { localKey: "cascade_tree_nodes_v4",       cloudKey: "cascade_tree",         event: "cascade-tree-updated",                table: "org_catalogs" },
   { localKey: "cascade_assignments_v2",      cloudKey: "cascade_assignments",  event: "cascade-assignments-updated",         table: "org_catalogs" },
   { localKey: "manual_peer_assignments_v1",  cloudKey: "manual_peer_assignments", event: "manual-assignments-updated",       table: "org_catalogs" },
+  // Phase 5 — remaining stores sweep
+  { localKey: "kpi_set_entries_v6",          cloudKey: "kpi_set_entries",      event: "kpi-set-updated",                     table: "org_catalogs" },
+  { localKey: "kpi_hr_admin_accounts_v1",    cloudKey: "hr_admin_accounts",    event: "hr-admins-updated",                   table: "org_catalogs" },
+  { localKey: "kpi_roles_v1",                cloudKey: "roles_catalog",        event: "kpi-roles-updated",                   table: "org_catalogs" },
+  { localKey: "kpi_notification_settings_v2", cloudKey: "notification_settings_v2", event: "notification-settings-updated",  table: "org_catalogs" },
+  { localKey: "manager_cascade_load_v1",     cloudKey: "manager_cascade_load", event: "manager-cascade-load-updated",        table: "org_catalogs" },
+  { localKey: "kpi_companies_v1",            cloudKey: "companies",            event: "companies-updated",                   table: "org_catalogs" },
+  { localKey: "user_kpi_subkpis_v3",         cloudKey: "user_kpi_subkpis",     event: "user-kpi-subkpis-updated",            table: "org_catalogs" },
+  { localKey: "kpi_card_meta_v1",            cloudKey: "kpi_card_meta",        event: "kpi-cards-updated",                   table: "org_catalogs" },
+  { localKey: "kpi_eval_season_open_v1",     cloudKey: "season_open",          event: "season-updated",                      table: "org_catalogs" },
 ];
 
 const readLocal = <T>(key: string, fallback: T): T => {
