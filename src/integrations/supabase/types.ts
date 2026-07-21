@@ -729,6 +729,82 @@ export type Database = {
           },
         ]
       }
+      org_catalogs: {
+        Row: {
+          catalog_key: string
+          created_at: string
+          entries: Json
+          id: string
+          metadata: Json
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          catalog_key: string
+          created_at?: string
+          entries?: Json
+          id?: string
+          metadata?: Json
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          catalog_key?: string
+          created_at?: string
+          entries?: Json
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_catalogs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_dropdown_catalogs: {
+        Row: {
+          created_at: string
+          dropdown_key: string
+          id: string
+          metadata: Json
+          options: Json
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dropdown_key: string
+          id?: string
+          metadata?: Json
+          options?: Json
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dropdown_key?: string
+          id?: string
+          metadata?: Json
+          options?: Json
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_dropdown_catalogs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_employees: {
         Row: {
           active: boolean
@@ -797,6 +873,139 @@ export type Database = {
           },
         ]
       }
+      org_formula_assignments: {
+        Row: {
+          created_at: string
+          formula_id: string
+          id: string
+          metadata: Json
+          organization_id: string
+          target_id: string
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          formula_id: string
+          id?: string
+          metadata?: Json
+          organization_id: string
+          target_id: string
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          formula_id?: string
+          id?: string
+          metadata?: Json
+          organization_id?: string
+          target_id?: string
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_formula_assignments_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "org_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_formula_assignments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_formulas: {
+        Row: {
+          created_at: string
+          description: string | null
+          expression: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          name: string
+          organization_id: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          expression: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name: string
+          organization_id: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          expression?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name?: string
+          organization_id?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_formulas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_matrices: {
+        Row: {
+          created_at: string
+          id: string
+          matrix_key: string
+          organization_id: string
+          payload: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matrix_key: string
+          organization_id: string
+          payload?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matrix_key?: string
+          organization_id?: string
+          payload?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_matrices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_positions: {
         Row: {
           created_at: string
@@ -838,6 +1047,113 @@ export type Database = {
             columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "org_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_salaries: {
+        Row: {
+          base_salary: number
+          created_at: string
+          currency: string
+          effective_date: string | null
+          employee_email: string | null
+          employee_id: string | null
+          id: string
+          metadata: Json
+          notes: string | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_salary?: number
+          created_at?: string
+          currency?: string
+          effective_date?: string | null
+          employee_email?: string | null
+          employee_id?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_salary?: number
+          created_at?: string
+          currency?: string
+          effective_date?: string | null
+          employee_email?: string | null
+          employee_id?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_salaries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "org_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_salaries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_salary_uploads: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          payload: Json
+          rows_failed: number
+          rows_success: number
+          rows_total: number
+          source_file: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          payload?: Json
+          rows_failed?: number
+          rows_success?: number
+          rows_total?: number
+          source_file?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          payload?: Json
+          rows_failed?: number
+          rows_success?: number
+          rows_total?: number
+          source_file?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_salary_uploads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -945,6 +1261,57 @@ export type Database = {
           {
             foreignKeyName: "org_structures_parent_id_fkey"
             columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_structures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_teams: {
+        Row: {
+          created_at: string
+          id: string
+          manager_id: string | null
+          members: Json
+          metadata: Json
+          name: string
+          organization_id: string
+          structure_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manager_id?: string | null
+          members?: Json
+          metadata?: Json
+          name: string
+          organization_id: string
+          structure_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manager_id?: string | null
+          members?: Json
+          metadata?: Json
+          name?: string
+          organization_id?: string
+          structure_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_teams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_teams_structure_id_fkey"
+            columns: ["structure_id"]
             isOneToOne: false
             referencedRelation: "org_structures"
             referencedColumns: ["id"]

@@ -19,6 +19,7 @@ import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsS
 import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService";
 import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
 import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/notificationsService";
+import { activatePhase1Sync, deactivatePhase1Sync } from "@/lib/phase1SyncService";
 import { hydrateLanguageFromProfile } from "@/lib/languageService";
 import { logAudit } from "@/lib/auditService";
 
@@ -376,6 +377,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activatePayrollSync(u.currentOrgId);
                 void activateLifecycleSync(u.currentOrgId);
                 activateNotificationsSync(u.currentOrgId);
+                void activatePhase1Sync(u.currentOrgId);
                 if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
               }
             }
@@ -388,6 +390,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivatePayrollSync();
         deactivateLifecycleSync();
         deactivateNotificationsSync();
+        deactivatePhase1Sync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
@@ -409,6 +412,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activatePayrollSync(u.currentOrgId);
                 void activateLifecycleSync(u.currentOrgId);
                 activateNotificationsSync(u.currentOrgId);
+                void activatePhase1Sync(u.currentOrgId);
                 if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
           }
         }
@@ -441,6 +445,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 void activatePayrollSync(u.currentOrgId);
                 void activateLifecycleSync(u.currentOrgId);
                 activateNotificationsSync(u.currentOrgId);
+                void activatePhase1Sync(u.currentOrgId);
                 if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
         }
         void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
@@ -479,6 +484,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivatePayrollSync();
         deactivateLifecycleSync();
         deactivateNotificationsSync();
+        deactivatePhase1Sync();
     await supabase.auth.signOut();
   };
 
