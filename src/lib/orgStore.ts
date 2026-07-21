@@ -191,14 +191,18 @@ const seedStructures: OrgStructure[] = [
   },
 ];
 
+// NOTE: We deliberately do NOT persist the fallback back into localStorage.
+// The database is the source of truth; hydrate() writes the real data.
+// Persisting a seed here would race with hydrate and cause fresh browsers
+// to push the local demo seed back to the cloud, wiping other browsers' work.
 const load = <T,>(key: string, fallback: T): T => {
   try {
     const raw = localStorage.getItem(key);
     if (raw) return JSON.parse(raw);
   } catch {}
-  localStorage.setItem(key, JSON.stringify(fallback));
   return fallback;
 };
+
 
 const save = (key: string, value: unknown) => {
   localStorage.setItem(key, JSON.stringify(value));
