@@ -587,69 +587,70 @@ const RolesPermissionsTab = () => {
           </DialogHeader>
 
           {editing && (
-            <div className="flex-1 overflow-y-auto px-8 py-5 space-y-4">
-              {/* Meta row: Dil / Başlıq / Təsvir */}
-              <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_2fr] gap-4">
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1.5 block">Dil</label>
-                  <div className="relative">
-                    <select
-                      defaultValue="AZ"
-                      className="w-full appearance-none px-3 py-2.5 text-sm border border-primary/60 rounded-lg bg-background pr-8 font-medium"
-                    >
-                      <option value="AZ">AZ</option>
-                      <option value="EN">EN</option>
-                      <option value="RU">RU</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 absolute right-2.5 top-3 text-muted-foreground pointer-events-none" />
+            <div className="flex-1 min-h-0 flex flex-col px-8 pt-5 pb-3">
+              {/* Sticky header: meta + toggle */}
+              <div className="shrink-0 space-y-4 pb-4 bg-card">
+                <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_2fr] gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1.5 block">Dil</label>
+                    <div className="relative">
+                      <select
+                        defaultValue="AZ"
+                        className="w-full appearance-none px-3 py-2.5 text-sm border border-primary/60 rounded-lg bg-background pr-8 font-medium"
+                      >
+                        <option value="AZ">AZ</option>
+                        <option value="EN">EN</option>
+                        <option value="RU">RU</option>
+                      </select>
+                      <ChevronDown className="w-4 h-4 absolute right-2.5 top-3 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1.5 block">
+                      Başlıq <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      value={editing.name}
+                      onChange={e => setEditing(prev => prev ? { ...prev, name: e.target.value.toUpperCase() } : prev)}
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background uppercase tracking-wider font-semibold focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1.5 block">
+                      Təsvir <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      value={editing.description || ""}
+                      onChange={e => setEditing(prev => prev ? { ...prev, description: e.target.value } : prev)}
+                      placeholder="Rolun qısa təsviri"
+                      className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background focus:border-primary focus:outline-none"
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1.5 block">
-                    Başlıq <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    value={editing.name}
-                    onChange={e => setEditing(prev => prev ? { ...prev, name: e.target.value.toUpperCase() } : prev)}
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background uppercase tracking-wider font-semibold focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground mb-1.5 block">
-                    Təsvir <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    value={editing.description || ""}
-                    onChange={e => setEditing(prev => prev ? { ...prev, description: e.target.value } : prev)}
-                    placeholder="Rolun qısa təsviri"
-                    className="w-full px-3 py-2.5 text-sm border border-border rounded-lg bg-background focus:border-primary focus:outline-none"
-                  />
+
+                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setEditingIds(prev => prev.size === permissions.length ? new Set() : new Set(permissions.map(p => p.id)))}
+                    className="flex items-center gap-3 text-left"
+                  >
+                    <span className={`relative w-11 h-6 rounded-full transition-colors ${editingIds.size === permissions.length ? "bg-primary" : "bg-muted"}`}>
+                      <span className={`absolute top-0.5 block w-5 h-5 rounded-full bg-card shadow transition-transform ${editingIds.size === permissions.length ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-foreground">Bütün icazələri seç</span>
+                      <span className="block text-[11px] text-muted-foreground">Bütün modullarda bütün icazələri bir kliklə yandır/söndür</span>
+                    </span>
+                  </button>
+                  <span className="text-lg font-bold text-primary tabular-nums">{editingIds.size} / {permissions.length}</span>
                 </div>
               </div>
 
-              {/* Global toggle card */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
-                <button
-                  type="button"
-                  onClick={() => setEditingIds(prev => prev.size === permissions.length ? new Set() : new Set(permissions.map(p => p.id)))}
-                  className="flex items-center gap-3 text-left"
-                >
-                  <span className={`relative w-11 h-6 rounded-full transition-colors ${editingIds.size === permissions.length ? "bg-primary" : "bg-muted"}`}>
-                    <span className={`absolute top-0.5 block w-5 h-5 rounded-full bg-card shadow transition-transform ${editingIds.size === permissions.length ? "translate-x-5" : "translate-x-0.5"}`} />
-                  </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">Bütün icazələri seç</span>
-                    <span className="block text-[11px] text-muted-foreground">Bütün modullarda bütün icazələri bir kliklə yandır/söndür</span>
-                  </span>
-                </button>
-                <span className="text-lg font-bold text-primary tabular-nums">{editingIds.size} / {permissions.length}</span>
-              </div>
-
-              {/* Modules + Permissions */}
-              <div className="grid grid-cols-12 gap-4 min-h-[440px]">
+              {/* Modules + Permissions — independent scroll columns */}
+              <div className="flex-1 min-h-0 grid grid-cols-12 gap-4">
                 {/* Module list */}
-                <div className="col-span-5 flex flex-col">
-                  <div className="relative mb-3">
+                <div className="col-span-5 flex flex-col min-h-0">
+                  <div className="relative mb-3 shrink-0">
                     <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                     <input
                       value={moduleSearch}
@@ -658,7 +659,7 @@ const RolesPermissionsTab = () => {
                       className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-lg bg-background focus:border-primary focus:outline-none"
                     />
                   </div>
-                  <div className="overflow-y-auto flex-1 space-y-1.5 pr-1">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1">
                     {modules
                       .filter(m => (MODULE_LABELS[m] ?? m).toLowerCase().includes(moduleSearch.toLowerCase()))
                       .map(m => {
@@ -693,14 +694,14 @@ const RolesPermissionsTab = () => {
                 </div>
 
                 {/* Permissions for selected module */}
-                <div className="col-span-7 flex flex-col">
+                <div className="col-span-7 flex flex-col min-h-0">
                   {(() => {
                     const list = permByModule.get(selectedModule) ?? [];
                     const on = list.filter(p => editingIds.has(p.id)).length;
                     const allOn = list.length > 0 && on === list.length;
                     return (
                       <>
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-3 shrink-0">
                           <div>
                             <h4 className="text-base font-semibold text-foreground">{MODULE_LABELS[selectedModule] ?? selectedModule}</h4>
                             <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">{on} / {list.length} icazə seçilib</p>
@@ -714,7 +715,7 @@ const RolesPermissionsTab = () => {
                             </button>
                           )}
                         </div>
-                        <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1">
+                        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2.5 pr-1">
                           {list.map(p => {
                             const checked = editingIds.has(p.id);
                             return (
@@ -747,12 +748,13 @@ const RolesPermissionsTab = () => {
               </div>
 
               {/* Footer note */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+              <div className="shrink-0 flex items-center gap-2 text-xs text-muted-foreground pt-3">
                 <Users className="w-4 h-4 shrink-0" />
                 <span>İstifadəçilər rol yaradıldıqdan sonra kartın üzərindəki <Users className="w-3.5 h-3.5 inline-block mx-0.5 text-primary" /> ikonundan idarə olunur.</span>
               </div>
             </div>
           )}
+
 
           {editing && (
             <div className="px-8 py-4 border-t border-border shrink-0 flex gap-3 bg-card">
