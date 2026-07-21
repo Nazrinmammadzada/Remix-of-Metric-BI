@@ -14,6 +14,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AccessDenied from "./pages/AccessDenied";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import InvitationsPage from "./pages/InvitationsPage";
+import AuditLogPage from "./pages/AuditLogPage";
 import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
 import KpiHubPage from "./pages/KpiHubPage";
@@ -151,6 +152,7 @@ const App = () => {
               <Route path="/whistleblower" element={<WhistleblowerPage />} />
               <Route path="/ayarlar" element={<SettingsPage />} />
               <Route path="/dahvetler" element={<InvitationsPage />} />
+              <Route path="/audit-jurnali" element={<AuditLogPage />} />
 
               {/* HR daxilindəki Rəhbər sub-modulları (Günel Əlizadə üçün) */}
               <Route path="/hr/rehber" element={<ManagerHomePage />} />

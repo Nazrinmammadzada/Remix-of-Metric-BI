@@ -12,6 +12,7 @@
 //    numeric↔UUID map so re-hydrations stay stable.
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditService";
 import {
   getEmployees, setEmployees, getStructures, setStructures,
   type OrgEmployee, type OrgStructure, type OrgPosition, type OrgSlot,
@@ -328,6 +329,12 @@ export const flushLocalOrgToCloud = async () => {
   await walk(structures, null);
 
   saveMap(orgId, map);
+  void logAudit({
+    organizationId: orgId,
+    action: "sync",
+    module: "org_structure",
+    metadata: { employees: employees.length, structures: structures.length },
+  });
 };
 
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────

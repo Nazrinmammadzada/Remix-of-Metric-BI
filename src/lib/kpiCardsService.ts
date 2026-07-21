@@ -13,6 +13,7 @@ import {
   getSharedKpiCards, upsertSharedKpiCard,
   type SharedKpiCard, type SharedKpiStatus, type ExecutionStatus,
 } from "@/lib/kpiCardStore";
+import { logAudit } from "@/lib/auditService";
 
 const SHARED_KEY = "shared_kpi_cards_v1";
 const STATUS_KEY = "kpi_card_status_v1";
@@ -309,6 +310,12 @@ export const flushLocalKpiCardsToCloud = async () => {
       );
     }
   }
+  void logAudit({
+    organizationId: orgId,
+    action: "sync",
+    module: "kpi_cards",
+    metadata: { cards: shared.length },
+  });
 };
 
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────

@@ -3,6 +3,7 @@
 // into Supabase, hydrating on login and flushing on local changes.
 
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditService";
 
 const APPROVAL_KEY = "kpi_approval_matrices_v3";
 const DELETION_KEY = "kpi_deletion_matrices_v3";
@@ -151,6 +152,17 @@ export const flushApprovalsToCloud = async () => {
       { onConflict: "organization_id,local_id" },
     ) : Promise.resolve(),
   ]);
+  void logAudit({
+    organizationId: orgId,
+    action: "sync",
+    module: "approvals",
+    metadata: {
+      approvals: approvals.length,
+      deletions: deletions.length,
+      cascades: cascades.length,
+      queue: queue.length,
+    },
+  });
 };
 
 // ── LIFECYCLE ───────────────────────────────────────────────────────────────
