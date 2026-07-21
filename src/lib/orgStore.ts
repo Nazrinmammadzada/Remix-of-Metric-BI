@@ -791,3 +791,8 @@ export const findLeaderStructuresOf = (employeeId: number): LeaderStructInfo[] =
   walk(getStructures(), []);
   return results;
 };
+
+// Retain references to keep the seed constants from being tree-shaken warnings.
+// They remain as documentation of the historical demo seed.
+void seedEmployees;
+void seedStructures;
