@@ -108,20 +108,20 @@ serve(async (req) => {
         if (existing) {
           userId = existing.id;
         } else {
-        const { data: created, error: cErr } = await admin.auth.admin.createUser({
-          email: emailRaw,
-          password: DEFAULT_PASSWORD,
-          email_confirm: true,
-          user_metadata: { first_name, last_name },
-        });
-        if (created?.user) {
-          userId = created.user.id;
-        } else {
-          // Duplicate email or transient trigger error — try to find the user.
-          const found = await findAuthUserByEmail(admin, emailRaw);
-          if (found) userId = found.id;
-          else return json(500, { error: cErr?.message || "İstifadəçi yaradıla bilmədi" });
-        }
+          const { data: created, error: cErr } = await admin.auth.admin.createUser({
+            email: emailRaw,
+            password: DEFAULT_PASSWORD,
+            email_confirm: true,
+            user_metadata: { first_name, last_name },
+          });
+          if (created?.user) {
+            userId = created.user.id;
+          } else {
+            // Duplicate email or transient trigger error — try to find the user.
+            const found = await findAuthUserByEmail(admin, emailRaw);
+            if (found) userId = found.id;
+            else return json(500, { error: cErr?.message || "İstifadəçi yaradıla bilmədi" });
+          }
         }
       }
       // Ensure password + confirmation are set for the (possibly pre-existing) user.
