@@ -642,17 +642,26 @@ const RolesPermissionsTab = () => {
                       .map(m => {
                         const list = permByModule.get(m) ?? [];
                         const on = list.filter(p => editingIds.has(p.id)).length;
+                        const total = list.length;
                         const active = m === selectedModule;
+                        const fullyOn = total > 0 && on === total;
                         return (
                           <button
                             key={m}
                             onClick={() => setSelectedModule(m)}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center justify-between transition-colors ${
-                              active ? "bg-primary/10 text-primary font-medium" : "hover:bg-secondary"
+                            className={`w-full text-left px-3 py-2.5 rounded-md text-sm flex items-center gap-2 transition-colors ${
+                              active ? "bg-primary/10 text-primary font-semibold" : "hover:bg-secondary text-foreground"
                             }`}
                           >
-                            <span>{MODULE_LABELS[m] ?? m}</span>
-                            <span className="text-[11px] text-muted-foreground">{on}/{list.length}</span>
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0 ${
+                              fullyOn ? "bg-emerald-500 text-white" : on > 0 ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground/60"
+                            }`}>
+                              <Check className="w-3 h-3" strokeWidth={3} />
+                            </span>
+                            <span className="flex-1 truncate">{MODULE_LABELS[m] ?? m}</span>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                              fullyOn ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
+                            }`}>{on}/{total}</span>
                           </button>
                         );
                       })}
@@ -663,40 +672,43 @@ const RolesPermissionsTab = () => {
                 <div className="col-span-8 border border-border rounded-lg p-4 flex flex-col">
                   {(() => {
                     const list = permByModule.get(selectedModule) ?? [];
-                    const allOn = list.length > 0 && list.every(p => editingIds.has(p.id));
+                    const on = list.filter(p => editingIds.has(p.id)).length;
+                    const allOn = list.length > 0 && on === list.length;
                     return (
                       <>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-semibold">{MODULE_LABELS[selectedModule] ?? selectedModule}</h4>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h4 className="text-base font-semibold text-foreground">{MODULE_LABELS[selectedModule] ?? selectedModule}</h4>
+                            <p className="text-xs text-muted-foreground mt-0.5">{on} / {list.length} icazə seçilib</p>
+                          </div>
                           {list.length > 0 && (
                             <button
                               onClick={() => toggleModuleAll(selectedModule)}
-                              className="text-xs px-2.5 py-1 rounded border border-border hover:bg-secondary"
+                              className="text-xs px-3 py-1.5 rounded-md text-primary hover:bg-primary/10 font-medium"
                             >
                               {allOn ? "Hamısını sil" : "Hamısını seç"}
                             </button>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto">
+                        <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1">
                           {list.map(p => {
-                            const on = editingIds.has(p.id);
+                            const checked = editingIds.has(p.id);
                             return (
                               <button
                                 key={p.id}
                                 onClick={() => togglePerm(p.id)}
-                                className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-left text-sm transition-colors ${
-                                  on ? "bg-primary/5 border-primary/40" : "bg-background border-border hover:bg-secondary"
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 text-left text-sm transition-all ${
+                                  checked
+                                    ? "bg-primary/5 border-primary text-foreground"
+                                    : "bg-background border-border hover:border-primary/40 hover:bg-secondary/50"
                                 }`}
                               >
-                                <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                  on ? "bg-primary border-primary text-primary-foreground" : "border-border"
+                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
+                                  checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40 bg-transparent"
                                 }`}>
-                                  {on && <Check className="w-3 h-3" />}
+                                  {checked && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="font-medium truncate">{p.description || p.code}</div>
-                                  <div className="text-[11px] text-muted-foreground truncate">{p.code}</div>
-                                </div>
+                                <span className="font-medium">{permLabel(p)}</span>
                               </button>
                             );
                           })}
