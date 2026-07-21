@@ -390,6 +390,14 @@ let rehydrateTimer: number | null = null;
 let refreshInterval: number | null = null;
 let onFocusHandler: (() => void) | null = null;
 
+const beforeUnloadFlush = () => {
+  if (pendingFlush || flushTimer) {
+    if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+    // Fire and forget — some browsers will keep the request alive briefly.
+    void flushLocalOrgToCloud();
+  }
+};
+
 const scheduleRehydrate = () => {
   if (!currentOrgId) return;
   if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
