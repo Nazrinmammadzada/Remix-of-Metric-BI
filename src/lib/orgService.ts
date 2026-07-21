@@ -329,6 +329,12 @@ export const flushLocalOrgToCloud = async () => {
   await walk(structures, null);
 
   saveMap(orgId, map);
+  void logAudit({
+    organizationId: orgId,
+    action: "sync",
+    module: "org_structure",
+    metadata: { employees: employees.length, structures: structures.length },
+  });
 };
 
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────
