@@ -1927,13 +1927,14 @@ const CardTargetsDrawer = ({ data, onClose, onOpenTarget }: {
 // ============================================================
 // TARGET DETAIL DRAWER — Bir hədəfə aid tarixçə / şərhlər / xatırlat.
 // ============================================================
+type TargetDrawerTab = "general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments" | "performance";
 const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
   data: { cardId: string; cardName: string; target: CardTarget } | null;
   onClose: () => void;
-  tabsFilter?: ("general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments")[];
+  tabsFilter?: TargetDrawerTab[];
 }) => {
-  const initialTab = (tabsFilter && tabsFilter[0]) || "general";
-  const [tab, setTab] = useState<"general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments">(initialTab);
+  const initialTab: TargetDrawerTab = (tabsFilter && tabsFilter[0]) || "general";
+  const [tab, setTab] = useState<TargetDrawerTab>(initialTab);
   const [draft, setDraft] = useState("");
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
 
