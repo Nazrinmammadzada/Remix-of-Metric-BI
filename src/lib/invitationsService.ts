@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditService";
 
 export interface OrgInvitation {
   id: string;
@@ -31,7 +32,16 @@ export async function createInvitation(params: {
     .select("*")
     .single();
   if (error) throw error;
-  return data as OrgInvitation;
+  const invitation = data as OrgInvitation;
+  await logAudit({
+    organizationId: invitation.organization_id,
+    action: "invite",
+    module: "invitations",
+    entityType: "organization_invitation",
+    entityId: invitation.id,
+    newValues: { email: invitation.email, role_ids: invitation.role_ids },
+  });
+  return invitation;
 }
 
 export async function listInvitations(organizationId: string): Promise<OrgInvitation[]> {
@@ -45,11 +55,27 @@ export async function listInvitations(organizationId: string): Promise<OrgInvita
 }
 
 export async function revokeInvitation(id: string): Promise<void> {
+  const { data: existing } = await supabase
+    .from("organization_invitations")
+    .select("organization_id, email, status")
+    .eq("id", id)
+    .maybeSingle();
   const { error } = await supabase
     .from("organization_invitations")
     .update({ status: "revoked" })
     .eq("id", id);
   if (error) throw error;
+  if (existing) {
+    await logAudit({
+      organizationId: existing.organization_id as string,
+      action: "revoke",
+      module: "invitations",
+      entityType: "organization_invitation",
+      entityId: id,
+      previousValues: { status: existing.status },
+      newValues: { status: "revoked", email: existing.email },
+    });
+  }
 }
 
 export function buildInvitationLink(token: string): string {
