@@ -4,9 +4,9 @@ import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
   derivePermissionsFromDbCodes,
   deriveRoleFromDbCodes,
-  HR_FULL_UI_PERMISSIONS,
   type AppRole,
 } from "@/lib/permissionMapping";
+
 import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsService";
 import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsService";
@@ -79,11 +79,11 @@ const fetchOrgMemberships = async (userId: string): Promise<OrgMembership[]> => 
     .filter(m => !!m.organizationId);
 };
 
-// ── Fetch the DB permission codes granted to a user within a given org. ───────
-const fetchPermissionCodesForOrg = async (
+// ── Fetch the DB permission codes + role slugs granted to a user in an org. ──
+const fetchRoleDataForOrg = async (
   userId: string,
   orgId: string,
-): Promise<string[]> => {
+): Promise<{ codes: string[]; roleCodes: string[] }> => {
   const { data } = await supabase
     .from("organization_members")
     .select(`
@@ -92,6 +92,7 @@ const fetchPermissionCodesForOrg = async (
         is_active,
         expires_at,
         roles!inner(
+          code,
           is_active,
           role_permissions(
             permissions(code)
@@ -104,8 +105,9 @@ const fetchPermissionCodesForOrg = async (
     .eq("status", "active")
     .maybeSingle();
 
-  if (!data) return [];
+  if (!data) return { codes: [], roleCodes: [] };
   const codes = new Set<string>();
+  const roleCodes = new Set<string>();
   const nowMs = Date.now();
   const userRoles: any[] = (data as any).user_roles ?? [];
   for (const ur of userRoles) {
@@ -113,13 +115,23 @@ const fetchPermissionCodesForOrg = async (
     if (ur.expires_at && new Date(ur.expires_at).getTime() < nowMs) continue;
     const role = ur.roles;
     if (!role || !role.is_active) continue;
+    if (role.code) roleCodes.add(String(role.code).toLowerCase());
     const rps: any[] = role.role_permissions ?? [];
     for (const rp of rps) {
       const code = rp.permissions?.code;
       if (code) codes.add(code);
     }
   }
-  return Array.from(codes);
+  return { codes: Array.from(codes), roleCodes: Array.from(roleCodes) };
+};
+
+const deriveRoleFromSlugs = (roleCodes: string[], dbCodes: string[]): AppRole => {
+  const s = new Set(roleCodes);
+  if (s.has("hr") || s.has("hr_admin") || s.has("admin")) return "HR";
+  if (s.has("manager") || s.has("rehber")) return "MANAGER";
+  if (s.has("user") || s.has("employee")) return "USER";
+  // Fallback to legacy heuristic
+  return deriveRoleFromDbCodes(dbCodes, false);
 };
 
 // ── Resolve a Supabase-authenticated user into an AuthUser (role + perms) ─────
@@ -160,17 +172,21 @@ const buildAuthUserFromSupabase = async (
     };
   }
 
-  // Regular org member — resolve role + permissions from user_roles for the
-  // active organisation. Users with no org membership get a minimal profile.
+  // Regular org member — role + permissions derive strictly from user_roles /
+  // role_permissions for the active organisation. Whatever HR toggles in the
+  // "Rol və Səlahiyyətlər" surface flows directly to every user of that role.
   let dbCodes: string[] = [];
+  let roleCodes: string[] = [];
   if (currentOrgId) {
-    dbCodes = await fetchPermissionCodesForOrg(supabaseUserId, currentOrgId);
+    const r = await fetchRoleDataForOrg(supabaseUserId, currentOrgId);
+    dbCodes = r.codes;
+    roleCodes = r.roleCodes;
   }
-  const role = deriveRoleFromDbCodes(dbCodes, false);
-  // HR always gets the full UI module surface; others rely on the derived map.
-  const permissions = role === "HR"
-    ? Array.from(new Set([...dbCodes, ...HR_FULL_UI_PERMISSIONS]))
-    : derivePermissionsFromDbCodes(dbCodes);
+  const role = deriveRoleFromSlugs(roleCodes, dbCodes);
+  // Permissions surface: DB codes + derived UI module keys. No blanket HR
+  // override — an HR user with a stripped-down role sees only what's granted.
+  const permissions = derivePermissionsFromDbCodes(dbCodes);
+
 
   return {
     name: fullName,
@@ -275,11 +291,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "roles" }, refresh)
       .subscribe();
 
+    // Fallback: refresh on tab focus and every 20s so permission edits reach
+    // the user even when RLS hides realtime broadcasts from their session.
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    const interval = window.setInterval(refresh, 20000);
+
     return () => {
       if (scheduled) clearTimeout(scheduled);
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [user?.supabaseUserId, user?.email]);
+
 
 
 
