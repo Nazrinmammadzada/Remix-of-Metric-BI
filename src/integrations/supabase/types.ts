@@ -1478,6 +1478,7 @@ export type Database = {
           is_platform_super_admin: boolean
           last_login_at: string | null
           last_name: string | null
+          must_change_password: boolean
           phone: string | null
           preferred_language: string
           profile_photo: string | null
@@ -1492,6 +1493,7 @@ export type Database = {
           is_platform_super_admin?: boolean
           last_login_at?: string | null
           last_name?: string | null
+          must_change_password?: boolean
           phone?: string | null
           preferred_language?: string
           profile_photo?: string | null
@@ -1506,6 +1508,7 @@ export type Database = {
           is_platform_super_admin?: boolean
           last_login_at?: string | null
           last_name?: string | null
+          must_change_password?: boolean
           phone?: string | null
           preferred_language?: string
           profile_photo?: string | null
