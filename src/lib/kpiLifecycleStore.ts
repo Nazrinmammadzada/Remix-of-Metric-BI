@@ -13,11 +13,13 @@ export interface LifecycleStage {
   end: string;    // YYYY-MM-DD
 }
 
+export type ReviewOutcomeStatus = "held" | "deferred" | "in_progress" | "missed";
+
 export interface LifecycleReview extends LifecycleStage {
   id: string;
   /** İstifadəçi tərəfindən qeyd olunan nəticə. Boş olarsa status tarixdən hesablanır. */
-  outcomeStatus?: "held" | "deferred";
-  /** Nəticə şərhi — həm "Keçirildi", həm də "Təxirə salındı" üçün məcburidir. */
+  outcomeStatus?: ReviewOutcomeStatus;
+  /** Nəticə şərhi — "Təxirə salındı" və "Keçirilmədi" üçün məcburidir. */
   outcomeComment?: string;
   /** Nəticənin qeyd olunma tarixi (ISO). */
   outcomeAt?: string;
