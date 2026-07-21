@@ -120,14 +120,20 @@ serve(async (req) => {
         must_change_password: true,
       }, { onConflict: "id" });
 
-      // Create HR/Admin org role by copying template permissions
-      const { data: tpl } = await admin.from("roles").select("id").eq("code", "hr_admin_template").maybeSingle();
+      // Create default HR org role by copying template permissions
+      const { data: tpl } = await admin
+        .from("roles")
+        .select("id")
+        .in("code", ["hr_template", "hr_admin_template"])
+        .is("organization_id", null)
+        .limit(1)
+        .maybeSingle();
       const { data: role, error: rErr } = await admin
         .from("roles")
         .insert({
           organization_id: org.id,
-          name: "HR / Admin",
-          code: "hr_admin",
+          name: "HR",
+          code: "hr",
           is_system_role: true,
           is_active: true,
         })
@@ -219,7 +225,7 @@ serve(async (req) => {
           .from("roles")
           .select("id")
           .eq("organization_id", o.id)
-          .eq("code", "hr_admin")
+          .eq("code", "hr")
           .maybeSingle();
         let adminEmail = "";
         let adminName = "";

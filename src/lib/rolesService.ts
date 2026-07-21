@@ -85,9 +85,6 @@ export const fetchOrgMembersWithRoles = async (orgId: string): Promise<OrgMember
     .from("organization_members")
     .select(`
       id, user_id,
-      profiles:profiles!organization_members_user_id_fkey (
-        first_name, last_name, email
-      ),
       user_roles ( role_id, is_active, expires_at )
     `)
     .eq("organization_id", orgId)
@@ -95,22 +92,36 @@ export const fetchOrgMembersWithRoles = async (orgId: string): Promise<OrgMember
   if (error) throw error;
 
   const userIds = (members ?? []).map((m: any) => m.user_id).filter(Boolean);
+  const profiles = userIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email")
+        .in("id", userIds)
+    : { data: [] as any[], error: null };
+
   const emp = userIds.length
     ? await supabase
         .from("org_employees")
-        .select("auth_user_id, position_name")
+        .select("auth_user_id, first_name, last_name, email, position_name")
         .in("auth_user_id", userIds)
         .eq("organization_id", orgId)
     : { data: [] as any[], error: null };
 
+  const profileByAuth = new Map<string, any>();
+  for (const p of profiles.data ?? []) {
+    if (p.id) profileByAuth.set(p.id, p);
+  }
+
+  const employeeByAuth = new Map<string, any>();
   const positionByAuth = new Map<string, string>();
   for (const e of emp.data ?? []) {
+    if (e.auth_user_id) employeeByAuth.set(e.auth_user_id, e);
     if (e.auth_user_id) positionByAuth.set(e.auth_user_id, e.position_name || "");
   }
 
   const nowMs = Date.now();
   return (members ?? []).map((m: any) => {
-    const p = m.profiles ?? {};
+    const p = profileByAuth.get(m.user_id) ?? employeeByAuth.get(m.user_id) ?? {};
     const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ").trim() || (p.email ?? "—");
     const activeRoleIds: string[] = (m.user_roles ?? [])
       .filter((ur: any) => ur.is_active !== false && (!ur.expires_at || new Date(ur.expires_at).getTime() > nowMs))
