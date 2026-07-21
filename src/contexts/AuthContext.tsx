@@ -15,6 +15,7 @@ import {
 } from "@/lib/permissionMapping";
 import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsService";
+import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsService";
 
 export interface OrgMembership {
   organizationId: string;
