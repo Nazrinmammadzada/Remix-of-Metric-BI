@@ -2121,6 +2121,31 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
                 </div>
               </TabsContent>
 
+              <TabsContent value="performance" className="mt-0 space-y-3">
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="Cari nəticə" value={`${fmt(target.fakt)} ${target.unit}`} />
+                  <MetaRow label="Hədəf" value={`${fmt(target.plan)} ${target.unit}`} />
+                  <MetaRow label="İcra faizi" value={`${pct}%`} />
+                  <MetaRow label="Trend" value={<span className={pct >= 90 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-rose-600"}>{pct >= 90 ? "▲ Yüksəliş" : pct >= 70 ? "▬ Sabit" : "▼ Enmə"}</span>} />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-foreground mb-2">Dövr üzrə dinamika</div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {["Yan","Fev","Mar","Apr","May","İyn","İyl","Avq","Sen","Okt","Noy","Dek"].map((m, i) => {
+                      const v = Math.round(20 + ((pct + i * 7) % 80));
+                      const c = v >= 90 ? "bg-emerald-500" : v >= 70 ? "bg-amber-500" : "bg-rose-500";
+                      return (
+                        <div key={m} className="rounded-md border border-border p-2 text-center">
+                          <div className="text-[10px] text-muted-foreground">{m}</div>
+                          <div className="mt-1 h-1.5 rounded-full bg-secondary overflow-hidden"><div className={`h-full ${c}`} style={{ width: `${Math.min(v,100)}%` }} /></div>
+                          <div className="text-[10px] tabular-nums mt-1">{v}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </TabsContent>
+
               <TabsContent value="attachments" className="mt-0">
                 <ul className="space-y-2 text-xs">
                   {["Review_Report.pdf", "Satış_Hesabatı.xlsx", "Bonus_Hesabatı.pdf"].map(f => (
