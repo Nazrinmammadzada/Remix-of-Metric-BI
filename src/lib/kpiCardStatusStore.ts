@@ -1,4 +1,8 @@
-import { supabase } from "@/integrations/supabase/client";
+// NOTE: The `kpi_card_status` table has been removed as part of the foundation
+// migration. Status persistence will be reintroduced when the KPI card module
+// is migrated to the new multi-tenant schema. Until then, statuses are held in
+// localStorage so the existing UI continues to work.
+const LS_KEY = "kpi_card_status_v1";
 
 export type KpiCardStatus =
   | "qaralama"
