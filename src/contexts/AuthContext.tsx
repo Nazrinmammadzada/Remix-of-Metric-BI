@@ -313,6 +313,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     const { error } = await supabase.auth.updateUser({ password: value });
     if (error) return { success: false, error: error.message };
+    await supabase.from("profiles").update({ must_change_password: false }).eq("id", user.supabaseUserId);
     setUser({ ...user, mustChangePassword: false });
     return { success: true };
   };
