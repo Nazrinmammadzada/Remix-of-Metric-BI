@@ -470,6 +470,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    void logAudit({ organizationId: user?.currentOrgId ?? null, action: "logout", module: "auth", entityType: "user", entityId: user?.supabaseUserId ?? null });
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
     deactivateOrgSync();
