@@ -11,14 +11,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
   getSharedKpiCards, upsertSharedKpiCard,
-} from "@/lib/kpiCardStore";
-import { logAudit } from "@/lib/auditService";
-// re-open placeholder to keep line numbers valid
-type __KpiCardsSvcNoop = never;
-// (unused)
-export type __KpiCardsSvcSentinel = __KpiCardsSvcNoop;
   type SharedKpiCard, type SharedKpiStatus, type ExecutionStatus,
 } from "@/lib/kpiCardStore";
+import { logAudit } from "@/lib/auditService";
 
 const SHARED_KEY = "shared_kpi_cards_v1";
 const STATUS_KEY = "kpi_card_status_v1";
