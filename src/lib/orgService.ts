@@ -83,7 +83,7 @@ export const hydrateOrgFromCloud = async (orgId: string): Promise<void> => {
   const map = loadMap(orgId);
 
   // Employees
-  const employees: OrgEmployee[] = (empRes.data ?? []).map((row: any) => employeeFromRow(row, map));
+  let employees: OrgEmployee[] = (empRes.data ?? []).map((row: any) => employeeFromRow(row, map));
 
   // Structures — build tree from parent_id
   const rawStruct: any[] = structRes.data ?? [];
@@ -127,6 +127,34 @@ export const hydrateOrgFromCloud = async (orgId: string): Promise<void> => {
       fraction: (Number(sl.fraction) as OrgSlotFraction) || 1,
     });
   }
+
+  // Rebuild employee structure/position fields from actual slot assignments.
+  // org_slots is authoritative, so refresh/other-browser views stay correct even
+  // if the denormalized org_employees columns were not updated by an older client.
+  const assignments = new Map<number, { structurePath: string; positionName: string; salary?: number }>();
+  const collectAssignments = (items: OrgStructure[], path: string[] = []) => {
+    for (const node of items) {
+      const nextPath = [...path, node.name];
+      for (const position of node.positions) {
+        for (const slot of position.slots) {
+          if (slot.employeeId == null) continue;
+          assignments.set(slot.employeeId, {
+            structurePath: nextPath.join(" › "),
+            positionName: position.name,
+            salary: slot.salary ?? undefined,
+          });
+        }
+      }
+      collectAssignments(node.children, nextPath);
+    }
+  };
+  collectAssignments(roots);
+  employees = employees.map((employee) => {
+    const assignment = assignments.get(employee.id);
+    return assignment
+      ? { ...employee, ...assignment }
+      : { ...employee, structurePath: undefined, positionName: undefined, salary: undefined };
+  });
 
   saveMap(orgId, map);
   // Write to localStorage caches without triggering a re-flush.
