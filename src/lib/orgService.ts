@@ -127,7 +127,14 @@ export const hydrateOrgFromCloud = async (orgId: string): Promise<void> => {
   setEmployees(employees);
   setStructures(roots);
   suppressFlush = false;
+
+  // Auto-provision auth logins for any employees that lack an auth.users row.
+  try {
+    const { provisionPendingEmployees } = await import("@/lib/employeeService");
+    void provisionPendingEmployees(orgId);
+  } catch {}
 };
+
 
 // ── SEED cloud from current local snapshot (first-time bootstrap) ─────────────
 const seedCloudFromLocal = async (orgId: string) => {
