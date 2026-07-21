@@ -96,7 +96,7 @@ export const flushPhase1ToCloud = async () => {
 
   const { error } = await supabase
     .from("org_catalogs")
-    .upsert(rows, { onConflict: "organization_id,catalog_key" });
+    .upsert(rows as never, { onConflict: "organization_id,catalog_key" });
   if (error) return;
   void logAudit({
     organizationId: orgId,
