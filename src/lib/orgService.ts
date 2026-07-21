@@ -268,6 +268,12 @@ let currentOrgId: string | null = null;
 let activeUserId: string | null = null;
 let flushInFlight: Promise<void> | null = null;
 let pendingFlush = false;
+// When we perform a direct DB write ourselves, ignore the realtime echo for a
+// short window so it doesn't trigger a full rehydrate (which feels slow to the
+// user because it re-reads the entire org tree).
+let skipRehydrateUntil = 0;
+const markLocalDbWrite = () => { skipRehydrateUntil = Date.now() + 2000; };
+
 
 const scheduleFlush = () => {
   if (suppressFlush || !currentOrgId) return;
