@@ -17,8 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   getEmployees, updateEmployee, toggleEmployeeActive,
-  getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
-  assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
+  getStructures, addRootStructure, addSubStructure, addPosition,
+  assignSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
@@ -887,11 +887,15 @@ interface SlotRowProps { slot: { id: number; employeeId: number | null; salary: 
 
 const SlotRow = ({ slot, index }: SlotRowProps) => {
   const [employees, setEmployees] = useState<OrgEmployee[]>(() => getEmployees());
+  const [salaryDraft, setSalaryDraft] = useState(slot.salary != null ? String(slot.salary) : "");
   useEffect(() => {
     const r = () => setEmployees(getEmployees());
     window.addEventListener("org-updated", r);
     return () => window.removeEventListener("org-updated", r);
   }, []);
+  useEffect(() => {
+    setSalaryDraft(slot.salary != null ? String(slot.salary) : "");
+  }, [slot.id, slot.salary]);
 
   const assignedIds = useMemo(() => getAssignedEmployeeIds(), [employees]);
   const [search, setSearch] = useState("");
@@ -1040,11 +1044,11 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       <input
         type="number"
         placeholder="Maaş (AZN)"
-        value={slot.salary ?? ""}
-        onChange={e => assignSlot(slot.id, { salary: e.target.value ? Number(e.target.value) : null })}
-        onBlur={async (e) => {
+        value={salaryDraft}
+        onChange={e => setSalaryDraft(e.target.value)}
+        onBlur={async () => {
           try {
-            await assignSlotInCloud(slot.id, { salary: e.currentTarget.value ? Number(e.currentTarget.value) : null });
+            await assignSlotInCloud(slot.id, { salary: salaryDraft ? Number(salaryDraft) : null });
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Maaş database-ə yazılmadı.");
           }
