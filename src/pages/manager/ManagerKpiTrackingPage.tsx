@@ -1989,7 +1989,7 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
               const ALL_TABS: [typeof tab, string][] = [
                 ["general", "Ümumi"], ["execution", "İcra"], ["fact", "Fakt"],
                 ["evaluation", "Qiymət."], ["history", "Tarixçə"], ["review", "Review"],
-                ["comments", "Şərhlər"], ["attachments", "Əlavələr"],
+                ["comments", "Şərhlər"], ["performance", "Performans"], ["attachments", "Əlavələr"],
               ];
               const visible = ALL_TABS.filter(([k]) => !tabsFilter || tabsFilter.includes(k));
               return (
