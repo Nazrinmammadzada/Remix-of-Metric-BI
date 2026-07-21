@@ -17,28 +17,229 @@ import {
   type OrgMemberRow,
 } from "@/lib/rolesService";
 
-// Human-friendly module labels (AZ).
+// Human-friendly module labels (AZ) — ordered for the left sidebar.
 const MODULE_LABELS: Record<string, string> = {
-  approvals: "Təsdiqləmələr",
-  audit: "Audit",
-  bonus: "Bonus",
-  employees: "Əməkdaşlar",
-  evaluations: "Qiymətləndirmə",
-  integrations: "İnteqrasiyalar",
+  home: "Əsas Səhifə",
   kpi: "KPI Kartları",
+  kpi_scores: "KPI Nəticələri",
+  kpi_tracking: "KPI İzlənməsi",
   lifecycle: "KPI Lifecycle",
-  notifications: "Bildirişlər",
-  org_structure: "Təşkilati Struktur",
-  organization: "Təşkilat",
-  profile: "Profil",
+  approvals: "Sistem Təsdiqləri",
+  matrix: "Təsdiqləmə Matrisi",
+  cascading: "Kaskadlama",
+  evaluations: "Qiymətləndirmə",
   reports: "Hesabatlar",
-  roles: "Rollar",
-  salary: "Əməkhaqqı",
-  settings: "Ayarlar",
-  structure: "Struktur",
   teams: "Komandalar",
+  organization: "Struktur / Təşkilat",
+  employees: "Əməkdaşlar",
+  bonus: "Bonuslar",
+  salary: "Əməkhaqqı",
+  formulas: "Hesablama Düsturları",
+  integrations: "İnteqrasiyalar",
+  whistleblower: "Anonim Bildiriş",
+  notifications: "Bildirişlər",
+  roles: "Rollar və Səlahiyyət",
   users: "İstifadəçilər",
+  settings: "Sazlamalar",
+  audit: "Audit",
+  profile: "Profil",
+  org_structure: "Təşkilati Struktur",
+  structure: "Struktur",
+  organization_settings: "Təşkilat Ayarları",
 };
+const MODULE_ORDER = Object.keys(MODULE_LABELS);
+const moduleSortKey = (m: string) => {
+  const idx = MODULE_ORDER.indexOf(m);
+  return idx === -1 ? 999 : idx;
+};
+
+// Human-friendly permission labels for granular buttons (AZ). Falls back to
+// the DB `description` when a code is not listed here.
+const PERM_LABELS: Record<string, string> = {
+  // Home
+  "home.view": "Baxış",
+  "home.widgets": "Bütün widget-lər",
+  "home.export": "Export",
+  // KPI cards
+  "kpi.view": "Baxış",
+  "kpi.create": "KPI yarat",
+  "kpi.edit": "Redaktə et",
+  "kpi.update": "Redaktə et",
+  "kpi.delete": "Sil",
+  "kpi.duplicate": "Kopyala",
+  "kpi.submit_approval": "Təsdiqə göndər",
+  "kpi.cancel": "Ləğv et",
+  "kpi.assign": "Təyin et",
+  "kpi.cascade": "Kaskadla",
+  "kpi.export": "Export",
+  "kpi.import": "Import",
+  "kpi.change_status": "Statusu dəyiş",
+  "kpi.manage": "Tam idarəetmə",
+  "kpi.evaluate": "Qiymətləndir",
+  "kpi.approve": "Təsdiqlə",
+  // Approvals
+  "approvals.view": "Baxış",
+  "approvals.approve": "Təsdiqlə",
+  "approvals.reject": "Rədd et",
+  "approvals.delegate": "Delegasiya et",
+  "approval_requests.view": "Baxış",
+  "approval_requests.action": "Qərar ver",
+  "approval.request": "Sorğu yarat",
+  "approval_matrices.view": "Matrisə baxış",
+  "approval_matrices.manage": "Matrisi idarə et",
+  // Reports
+  "reports.view": "Baxış",
+  "reports.filter": "Filtr",
+  "reports.export": "Export",
+  "reports.export_excel": "Excel ixracı",
+  "reports.export_pdf": "PDF ixracı",
+  "reports.schedule": "Cədvəllə göndər",
+  "reports.share": "Paylaş",
+  // Teams
+  "teams.view": "Baxış",
+  "teams.create": "Komanda yarat",
+  "teams.edit": "Redaktə et",
+  "teams.delete": "Sil",
+  "teams.add_member": "Üzv əlavə et",
+  "teams.remove_member": "Üzv sil",
+  "teams.change_leader": "Rəhbər dəyiş",
+  "teams.manage": "Tam idarəetmə",
+  // Formulas
+  "formulas.view": "Baxış",
+  "formulas.create": "Yarat",
+  "formulas.edit": "Redaktə et",
+  "formulas.delete": "Sil",
+  "formulas.assign": "Təyin et",
+  // Integrations
+  "integrations.view": "Baxış",
+  "integrations.connect": "Qoşul",
+  "integrations.disconnect": "Kəs",
+  "integrations.configure": "Konfiqurasiya",
+  "integrations.test": "Test et",
+  "integrations.sync": "Sinxronizasiya",
+  "integrations.export": "Export",
+  "integrations.import": "Import",
+  "integrations.logs": "Loglar",
+  "integrations.manage": "Tam idarəetmə",
+  // Matrix
+  "matrix.view": "Baxış",
+  "matrix.create": "Yarat",
+  "matrix.edit": "Redaktə et",
+  "matrix.delete": "Sil",
+  "matrix.assign": "Təyin et",
+  "matrix.export": "Export",
+  // Organization / structure
+  "organization.view": "Baxış",
+  "organization.update": "Redaktə et",
+  "organization.create_structure": "Struktur vahidi yarat",
+  "organization.edit_structure": "Struktur vahidini redaktə et",
+  "organization.delete_structure": "Struktur vahidini sil",
+  "organization.add_employee": "Əməkdaş əlavə et",
+  "organization.edit_employee": "Əməkdaşı redaktə et",
+  "organization.deactivate_employee": "Deaktiv et",
+  "organization.set_star": "Rəhbər (⭐) təyin et",
+  "org_structure.view": "Baxış",
+  "org_structure.create": "Struktur yarat",
+  "org_structure.update": "Struktur redaktə et",
+  "org_structure.delete": "Struktur sil",
+  "structure.manage": "Tam idarəetmə",
+  // Employees
+  "employees.view": "Baxış",
+  "employees.create": "Yarat",
+  "employees.update": "Redaktə et",
+  "employees.delete": "Sil",
+  "employees.manage": "Tam idarəetmə",
+  // Evaluations
+  "evaluations.view": "Baxış",
+  "evaluations.create": "Yarat",
+  "evaluations.edit": "Redaktə et",
+  "evaluations.delete": "Sil",
+  "evaluations.submit": "Göndər",
+  "evaluations.approve": "Təsdiqlə",
+  "evaluations.export": "Export",
+  "evaluations.close": "Bağla",
+  "evaluation_360.view": "360 baxış",
+  "evaluation_360.submit": "360 göndər",
+  "evaluation_360.manage": "360 idarə",
+  "evaluation_cycles.view": "Dövrlər baxış",
+  "evaluation_cycles.manage": "Dövrləri idarə et",
+  // Lifecycle
+  "lifecycle.view": "Baxış",
+  "lifecycle.create": "Yarat",
+  "lifecycle.edit": "Redaktə et",
+  "lifecycle.delete": "Sil",
+  "lifecycle.create_review": "Review yarat",
+  "lifecycle.change_review_status": "Review statusu dəyiş",
+  "lifecycle.export": "Export",
+  "lifecycle.manage": "Tam idarəetmə",
+  // Cascading
+  "cascading.view": "Baxış",
+  "cascading.distribute": "Bölüşdür",
+  "cascading.load": "Yüklə",
+  "cascading.change_leader": "Rəhbər dəyiş",
+  "cascading.approve": "Təsdiqlə",
+  "cascading.export": "Export",
+  // Bonus
+  "bonus.view": "Baxış",
+  "bonus.calculate": "Hesabla",
+  "bonus.recalculate": "Yenidən hesabla",
+  "bonus.approve": "Təsdiqlə",
+  "bonus.publish": "Yayımla",
+  "bonus.configure": "Konfiqurasiya",
+  "bonus.export": "Export",
+  "bonus.audit": "Audit",
+  // Salary
+  "salary.view": "Baxış",
+  "salary.upload": "Yüklə",
+  "salary.edit": "Redaktə et",
+  "salary.delete": "Sil",
+  "salary.export": "Export",
+  "salary.manage": "Tam idarəetmə",
+  // Whistleblower
+  "whistleblower.view": "Baxış",
+  "whistleblower.create": "Bildiriş yarat",
+  "whistleblower.respond": "Cavabla",
+  "whistleblower.close": "Bağla",
+  // Notifications
+  "notifications.view": "Baxış",
+  "notifications.settings": "Sazlamalar",
+  "notifications.send": "Göndər",
+  "notifications.mark_read": "Oxundu işarələ",
+  "notifications.delete": "Sil",
+  "notifications.manage": "Tam idarəetmə",
+  // Roles
+  "roles.view": "Baxış",
+  "roles.create": "Yarat",
+  "roles.update": "Redaktə et",
+  "roles.delete": "Sil",
+  "roles.assign": "İstifadəçilərə təyin et",
+  "roles.manage": "Tam idarəetmə",
+  // Users
+  "users.view": "Baxış",
+  "users.invite": "Dəvət et",
+  "users.create": "Yarat",
+  "users.update": "Redaktə et",
+  "users.deactivate": "Deaktiv et",
+  "users.reactivate": "Reaktiv et",
+  "users.reset_password": "Şifrə sıfırla",
+  "users.assign_roles": "Rol təyin et",
+  "users.manage": "Tam idarəetmə",
+  // Settings
+  "settings.view": "Baxış",
+  "settings.edit": "Redaktə et",
+  "settings.export": "Export",
+  "settings.import": "Import",
+  "settings.language": "Dil sazlaması",
+  "settings.reset": "Sıfırla",
+  "settings.manage": "Tam idarəetmə",
+  // Audit
+  "audit.view": "Baxış",
+  "audit.export": "Export",
+  "audit.filter": "Filtr",
+  // Profile
+  "profile.self_manage": "Öz profilini idarə et",
+};
+const permLabel = (p: DbPermission) => PERM_LABELS[p.code] ?? p.description ?? p.code;
 
 const RolesPermissionsTab = () => {
   const { user, hasPermission } = useAuth();
@@ -91,7 +292,7 @@ const RolesPermissionsTab = () => {
 
   const modules = useMemo(() => {
     const set = new Set(permissions.map(p => p.module));
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => moduleSortKey(a) - moduleSortKey(b));
   }, [permissions]);
   useEffect(() => {
     if (!selectedModule && modules.length) setSelectedModule(modules[0]);
@@ -441,17 +642,26 @@ const RolesPermissionsTab = () => {
                       .map(m => {
                         const list = permByModule.get(m) ?? [];
                         const on = list.filter(p => editingIds.has(p.id)).length;
+                        const total = list.length;
                         const active = m === selectedModule;
+                        const fullyOn = total > 0 && on === total;
                         return (
                           <button
                             key={m}
                             onClick={() => setSelectedModule(m)}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center justify-between transition-colors ${
-                              active ? "bg-primary/10 text-primary font-medium" : "hover:bg-secondary"
+                            className={`w-full text-left px-3 py-2.5 rounded-md text-sm flex items-center gap-2 transition-colors ${
+                              active ? "bg-primary/10 text-primary font-semibold" : "hover:bg-secondary text-foreground"
                             }`}
                           >
-                            <span>{MODULE_LABELS[m] ?? m}</span>
-                            <span className="text-[11px] text-muted-foreground">{on}/{list.length}</span>
+                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full shrink-0 ${
+                              fullyOn ? "bg-emerald-500 text-white" : on > 0 ? "bg-emerald-500/20 text-emerald-600" : "bg-muted text-muted-foreground/60"
+                            }`}>
+                              <Check className="w-3 h-3" strokeWidth={3} />
+                            </span>
+                            <span className="flex-1 truncate">{MODULE_LABELS[m] ?? m}</span>
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
+                              fullyOn ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
+                            }`}>{on}/{total}</span>
                           </button>
                         );
                       })}
@@ -462,40 +672,43 @@ const RolesPermissionsTab = () => {
                 <div className="col-span-8 border border-border rounded-lg p-4 flex flex-col">
                   {(() => {
                     const list = permByModule.get(selectedModule) ?? [];
-                    const allOn = list.length > 0 && list.every(p => editingIds.has(p.id));
+                    const on = list.filter(p => editingIds.has(p.id)).length;
+                    const allOn = list.length > 0 && on === list.length;
                     return (
                       <>
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-semibold">{MODULE_LABELS[selectedModule] ?? selectedModule}</h4>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h4 className="text-base font-semibold text-foreground">{MODULE_LABELS[selectedModule] ?? selectedModule}</h4>
+                            <p className="text-xs text-muted-foreground mt-0.5">{on} / {list.length} icazə seçilib</p>
+                          </div>
                           {list.length > 0 && (
                             <button
                               onClick={() => toggleModuleAll(selectedModule)}
-                              className="text-xs px-2.5 py-1 rounded border border-border hover:bg-secondary"
+                              className="text-xs px-3 py-1.5 rounded-md text-primary hover:bg-primary/10 font-medium"
                             >
                               {allOn ? "Hamısını sil" : "Hamısını seç"}
                             </button>
                           )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto">
+                        <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1">
                           {list.map(p => {
-                            const on = editingIds.has(p.id);
+                            const checked = editingIds.has(p.id);
                             return (
                               <button
                                 key={p.id}
                                 onClick={() => togglePerm(p.id)}
-                                className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-left text-sm transition-colors ${
-                                  on ? "bg-primary/5 border-primary/40" : "bg-background border-border hover:bg-secondary"
+                                className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 text-left text-sm transition-all ${
+                                  checked
+                                    ? "bg-primary/5 border-primary text-foreground"
+                                    : "bg-background border-border hover:border-primary/40 hover:bg-secondary/50"
                                 }`}
                               >
-                                <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                                  on ? "bg-primary border-primary text-primary-foreground" : "border-border"
+                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors ${
+                                  checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40 bg-transparent"
                                 }`}>
-                                  {on && <Check className="w-3 h-3" />}
+                                  {checked && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
                                 </div>
-                                <div className="min-w-0">
-                                  <div className="font-medium truncate">{p.description || p.code}</div>
-                                  <div className="text-[11px] text-muted-foreground truncate">{p.code}</div>
-                                </div>
+                                <span className="font-medium">{permLabel(p)}</span>
                               </button>
                             );
                           })}
