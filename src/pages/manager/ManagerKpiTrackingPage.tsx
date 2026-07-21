@@ -27,6 +27,9 @@ import {
   TrendingUp, TrendingDown, Minus, MapPin, Layers, ShieldAlert, Target as TargetIcon, GitBranch, RefreshCw,
 } from "lucide-react";
 import KpiAccordionList, { type AccordionKpi, type AccordionKpiStatus } from "@/components/kpi/KpiAccordionList";
+import ReviewOverviewDialog, { type ReviewOverviewData } from "@/components/kpi/ReviewOverviewDialog";
+import ReviewStatusChangeDialog, { type ReviewStatusValue } from "@/components/kpi/ReviewStatusChangeDialog";
+import PerformanceDynamicsDrilldownTab from "@/components/kpi/PerformanceDynamicsDrilldownTab";
 
 type Stage = "assigned" | "evaluated" | "pending_assign";
 type KpiStatus = "in_progress" | "at_risk" | "completed" | "delayed";
@@ -1924,13 +1927,14 @@ const CardTargetsDrawer = ({ data, onClose, onOpenTarget }: {
 // ============================================================
 // TARGET DETAIL DRAWER — Bir hədəfə aid tarixçə / şərhlər / xatırlat.
 // ============================================================
+type TargetDrawerTab = "general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments" | "performance";
 const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
   data: { cardId: string; cardName: string; target: CardTarget } | null;
   onClose: () => void;
-  tabsFilter?: ("general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments")[];
+  tabsFilter?: TargetDrawerTab[];
 }) => {
-  const initialTab = (tabsFilter && tabsFilter[0]) || "general";
-  const [tab, setTab] = useState<"general" | "execution" | "fact" | "evaluation" | "history" | "review" | "comments" | "attachments">(initialTab);
+  const initialTab: TargetDrawerTab = (tabsFilter && tabsFilter[0]) || "general";
+  const [tab, setTab] = useState<TargetDrawerTab>(initialTab);
   const [draft, setDraft] = useState("");
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
 
@@ -1985,7 +1989,7 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
               const ALL_TABS: [typeof tab, string][] = [
                 ["general", "Ümumi"], ["execution", "İcra"], ["fact", "Fakt"],
                 ["evaluation", "Qiymət."], ["history", "Tarixçə"], ["review", "Review"],
-                ["comments", "Şərhlər"], ["attachments", "Əlavələr"],
+                ["comments", "Şərhlər"], ["performance", "Performans"], ["attachments", "Əlavələr"],
               ];
               const visible = ALL_TABS.filter(([k]) => !tabsFilter || tabsFilter.includes(k));
               return (
@@ -2114,6 +2118,31 @@ const TargetDetailDrawer = ({ data, onClose, tabsFilter }: {
                       </div>
                     </div>
                   ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="performance" className="mt-0 space-y-3">
+                <div className="rounded-xl border border-border p-3 space-y-2 text-xs">
+                  <MetaRow label="Cari nəticə" value={`${fmt(target.fakt)} ${target.unit}`} />
+                  <MetaRow label="Hədəf" value={`${fmt(target.plan)} ${target.unit}`} />
+                  <MetaRow label="İcra faizi" value={`${pct}%`} />
+                  <MetaRow label="Trend" value={<span className={pct >= 90 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-rose-600"}>{pct >= 90 ? "▲ Yüksəliş" : pct >= 70 ? "▬ Sabit" : "▼ Enmə"}</span>} />
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-foreground mb-2">Dövr üzrə dinamika</div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {["Yan","Fev","Mar","Apr","May","İyn","İyl","Avq","Sen","Okt","Noy","Dek"].map((m, i) => {
+                      const v = Math.round(20 + ((pct + i * 7) % 80));
+                      const c = v >= 90 ? "bg-emerald-500" : v >= 70 ? "bg-amber-500" : "bg-rose-500";
+                      return (
+                        <div key={m} className="rounded-md border border-border p-2 text-center">
+                          <div className="text-[10px] text-muted-foreground">{m}</div>
+                          <div className="mt-1 h-1.5 rounded-full bg-secondary overflow-hidden"><div className={`h-full ${c}`} style={{ width: `${Math.min(v,100)}%` }} /></div>
+                          <div className="text-[10px] tabular-nums mt-1">{v}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </TabsContent>
 
@@ -2290,11 +2319,9 @@ const ReviewsView = () => {
   const rows = useReviewRows();
   const { user } = useAuth();
   const [q, setQ] = useState("");
-  const [viewKpi, setViewKpi] = useState<Kpi | null>(null);
-  const [viewKpiTab, setViewKpiTab] = useState<DrawerTab>("review");
-  const [viewMeta, setViewMeta] = useState<{ reviewLabel: string; reviewStart: string; evaluator?: string; reviewStatusLabel?: string; reviewStatusClass?: string; outcomeComment?: string } | null>(null);
+  const [overview, setOverview] = useState<{ row: ReviewRow; data: ReviewOverviewData } | null>(null);
+  const [statusDialog, setStatusDialog] = useState<{ row: ReviewRow } | null>(null);
   const [targetDetail, setTargetDetail] = useState<{ cardId: string; cardName: string; target: CardTarget } | null>(null);
-  const [outcomeDialog, setOutcomeDialog] = useState<{ cardId: number; cardName: string; reviewId: string; status: "held" | "deferred"; comment: string; empName: string } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -2308,58 +2335,49 @@ const ReviewsView = () => {
     );
   }, [rows, q]);
 
-  const openKpi = (r: ReviewRow) => {
-    const reviewStyle = REVIEW_STATUS_STYLES[r.reviewStatus];
-    const kpi: Kpi = {
-      id: r.key,
-      name: r.cardName,
-      description: `Review mərhələsində olan KPI kartı — ${r.reviewLabel}`,
-      period: r.reviewLabel,
-      target: 100, actual: r.progress, unit: "%",
-      stage: "assigned",
-      status: r.progress >= 100 ? "completed" : r.progress >= 75 ? "in_progress" : r.progress >= 50 ? "at_risk" : "delayed",
-      deadline: r.reviewStart,
-      createdAt: r.reviewStart,
-      updatedAt: r.updatedAt,
-      responsible: { name: r.empName, role: r.position },
-      measure: "%", type: "Review", method: "Lifecycle review", weight: 20,
+  const toOverviewStatus = (s: ReviewComputedStatus): ReviewStatusValue =>
+    s === "held" ? "held" : s === "deferred" ? "deferred" : s === "missed" ? "missed" : "in_progress";
+
+  const buildOverviewData = (r: ReviewRow): ReviewOverviewData => {
+    const NOTES = ["Plan üzrə irəliləyir.", "Yaxşı nəticə göstərilir.", "Təkmilləşdirmə tələb olunur.", "Review dövrü bitib, lakin qiymətləndirmə aparılmayıb.", "Plan üzrə irəliləyir.", "Review təxirə salındı."];
+    const buckets = buildCardTargets(r.key, 100, "%");
+    const targets = buckets.map((t, i) => {
+      const pct = Math.round((t.fakt / t.plan) * 100);
+      // Vary statuses across targets so the summary strip has meaningful numbers
+      const cycle: ReviewStatusValue[] = ["held", "in_progress", "held", "missed", "in_progress", "deferred"];
+      const st: ReviewStatusValue = pct >= 100 ? "held" : pct < 65 ? cycle[i % cycle.length] : cycle[(i + 1) % cycle.length];
+      return { name: t.name, progress: pct, status: st, lastScore: `${(pct / 20).toFixed(1)} / 5`, note: NOTES[i % NOTES.length] };
+    });
+    return {
+      reviewType: r.reviewLabel,
+      planDate: r.reviewStart,
+      nextReviewDate: "22.06.2025",
+      updatedAt: `${r.updatedAt}   14:30`,
+      status: toOverviewStatus(r.reviewStatus),
+      overallProgress: r.progress,
+      reviewers: [
+        { name: "Elvin Məmmədov", position: "Satış şöbəsinin rəhbəri", badge: "Birbaşa rəhbər" },
+        { name: "Aysel Məmmədova", position: "HR Business Partner", badge: "HR" },
+      ],
+      targets,
     };
-    setViewKpi(kpi);
-    setViewKpiTab("review");
-    setViewMeta({
-      reviewLabel: r.reviewLabel,
-      reviewStart: r.reviewStart,
-      evaluator: r.position,
-      reviewStatusLabel: reviewStyle.badgeLabel,
-      reviewStatusClass: reviewStyle.badge,
-      outcomeComment: r.outcomeComment,
-    });
   };
 
-  const openOutcome = (r: ReviewRow) => {
-    setOutcomeDialog({
-      cardId: r.cardId,
-      cardName: r.cardName,
-      reviewId: r.reviewId,
-      status: r.reviewStatus === "deferred" ? "deferred" : "held",
-      comment: r.outcomeComment || "",
-      empName: r.empName,
-    });
-  };
+  const openOverview = (r: ReviewRow) => setOverview({ row: r, data: buildOverviewData(r) });
 
-  const saveOutcome = () => {
-    if (!outcomeDialog) return;
-    if (!outcomeDialog.comment.trim()) {
-      toast({ title: "Şərh məcburidir", variant: "destructive" });
-      return;
-    }
-    setReviewOutcome(outcomeDialog.cardId, outcomeDialog.cardName, undefined, outcomeDialog.reviewId, {
-      status: outcomeDialog.status,
-      comment: outcomeDialog.comment.trim(),
+  const saveStatus = (v: { status: ReviewStatusValue; comment: string }) => {
+    if (!statusDialog) return;
+    setReviewOutcome(statusDialog.row.cardId, statusDialog.row.cardName, undefined, statusDialog.row.reviewId, {
+      status: v.status,
+      comment: v.comment,
       by: user?.name || "Rəhbər",
     });
     toast({ title: "Review statusu yeniləndi" });
-    setOutcomeDialog(null);
+    setStatusDialog(null);
+    // Refresh overview data if the dialog was opened from it
+    if (overview && overview.row.reviewId === statusDialog.row.reviewId) {
+      setOverview({ row: overview.row, data: { ...overview.data, status: v.status } });
+    }
   };
 
   return (
@@ -2430,19 +2448,14 @@ const ReviewsView = () => {
                     <td className="px-4 py-3 text-muted-foreground">{r.reviewStart}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.updatedAt}</td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Button size="sm" variant="outline" className="h-8 text-xs px-2" onClick={() => openOutcome(r)}>
-                          {r.outcomeComment ? "Statusu dəyiş" : "Status əlavə et"}
-                        </Button>
-                        <button
-                          onClick={() => openKpi(r)}
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                          aria-label="Bax"
-                          title="Bax"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => openOverview(r)}
+                        className="w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Bax"
+                        title="Review-a bax"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -2452,65 +2465,28 @@ const ReviewsView = () => {
         </div>
       </div>
 
-      <KpiDrawer
-        kpi={viewKpi}
-        tab={viewKpiTab}
-        setTab={setViewKpiTab}
-        onClose={() => { setViewKpi(null); setViewMeta(null); }}
-        reviewMeta={viewMeta ?? undefined}
-        tabsFilter={["review"]}
-        onOpenTarget={(t) => viewKpi && setTargetDetail({ cardId: viewKpi.id, cardName: viewKpi.name, target: t })}
+      {overview && (
+        <ReviewOverviewDialog
+          open={!!overview}
+          onOpenChange={(o) => !o && setOverview(null)}
+          title={withKartSuffix(overview.row.cardName)}
+          data={overview.data}
+          onChangeStatus={() => setStatusDialog({ row: overview.row })}
+          onOpenTarget={(idx) => {
+            const t = buildCardTargets(overview.row.key, 100, "%")[idx];
+            if (t) setTargetDetail({ cardId: overview.row.key, cardName: overview.row.cardName, target: t });
+          }}
+        />
+      )}
+
+      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} tabsFilter={["review", "comments", "performance"]} />
+
+      <ReviewStatusChangeDialog
+        open={!!statusDialog}
+        onOpenChange={(o) => !o && setStatusDialog(null)}
+        currentStatus={statusDialog ? toOverviewStatus(statusDialog.row.reviewStatus) : "in_progress"}
+        onSave={saveStatus}
       />
-      <TargetDetailDrawer data={targetDetail} onClose={() => setTargetDetail(null)} tabsFilter={["review", "comments"]} />
-
-      <Dialog open={!!outcomeDialog} onOpenChange={(o) => !o && setOutcomeDialog(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review statusu əlavə et</DialogTitle>
-          </DialogHeader>
-          {outcomeDialog && (
-            <div className="space-y-4">
-              <div className="rounded-lg border border-border bg-secondary/30 p-3 text-sm">
-                <div className="font-medium text-foreground">{withKartSuffix(outcomeDialog.cardName)}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">Əməkdaş: {outcomeDialog.empName}</div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOutcomeDialog(prev => prev ? { ...prev, status: "held" } : prev)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${outcomeDialog.status === "held" ? "border-emerald-500 bg-emerald-500/10 text-emerald-700" : "border-border bg-background text-foreground hover:bg-secondary"}`}
-                >
-                  Keçirildi
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOutcomeDialog(prev => prev ? { ...prev, status: "deferred" } : prev)}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${outcomeDialog.status === "deferred" ? "border-violet-500 bg-violet-500/10 text-violet-700" : "border-border bg-background text-foreground hover:bg-secondary"}`}
-                >
-                  Təxirə salındı
-                </button>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-foreground">
-                  {outcomeDialog.status === "deferred" ? "Təxirə salınma səbəbi" : "Review şərhi"} <span className="text-destructive">*</span>
-                </label>
-                <textarea
-                  value={outcomeDialog.comment}
-                  onChange={(e) => setOutcomeDialog(prev => prev ? { ...prev, comment: e.target.value } : prev)}
-                  rows={4}
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-                  placeholder="Şərh yazın..."
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-1">
-                <Button variant="outline" onClick={() => setOutcomeDialog(null)}>Ləğv et</Button>
-                <Button onClick={saveOutcome}>Yadda saxla</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
     </>
   );
 };
