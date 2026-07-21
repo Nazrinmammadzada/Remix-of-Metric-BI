@@ -7,17 +7,30 @@ import {
   setHrAdminMustChangePassword,
 } from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
+import {
+  derivePermissionsFromDbCodes,
+  deriveRoleFromDbCodes,
+  HR_FULL_UI_PERMISSIONS,
+  type AppRole,
+} from "@/lib/permissionMapping";
+
+export interface OrgMembership {
+  organizationId: string;
+  organizationName: string;
+}
 
 export interface AuthUser {
   name: string;
   email: string;
-  role: "HR" | "USER" | "SUPER_ADMIN" | "MANAGER";
+  role: AppRole;
   avatar: string;
   department: string;
   team: string;
   permissions: string[];
   mustChangePassword?: boolean;
   supabaseUserId?: string;
+  currentOrgId?: string;
+  organizations?: OrgMembership[];
 }
 
 // Legacy demo super admin email (kept for backwards compatibility with prototype data)
