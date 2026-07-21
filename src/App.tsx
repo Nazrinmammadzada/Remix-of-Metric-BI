@@ -14,6 +14,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import AccessDenied from "./pages/AccessDenied";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import InvitationsPage from "./pages/InvitationsPage";
+import AuditLogPage from "./pages/AuditLogPage";
 import HomePage from "./pages/HomePage";
 import KpiCardsPage from "./pages/KpiCardsPage";
 import KpiHubPage from "./pages/KpiHubPage";
