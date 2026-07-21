@@ -189,8 +189,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    seedSuperAdminPassword();
-
     // Subscribe first so we never miss an auth event.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
@@ -220,14 +218,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivateLifecycleSync();
         deactivateNotificationsSync();
         deactivatePhase1Sync();
-        // Only clear if there is no active demo session.
-        loadDemoSession().then(demo => {
-          if (!demo) setUser(null);
-        });
+        setUser(null);
       }
     });
 
-    // Initial hydration: prefer Supabase session, fall back to demo session.
+    // Initial hydration from Supabase session.
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -236,24 +231,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(u);
           if (u.currentOrgId && u.supabaseUserId) {
             void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                void activatePhase1Sync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
+            void activateKpiCardsSync(u.currentOrgId);
+            void activateApprovalsSync(u.currentOrgId);
+            void activatePayrollSync(u.currentOrgId);
+            void activateLifecycleSync(u.currentOrgId);
+            activateNotificationsSync(u.currentOrgId);
+            void activatePhase1Sync(u.currentOrgId);
+            if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
           }
         }
-      } else {
-        const demo = await loadDemoSession();
-        if (demo) setUser(demo);
       }
       setLoading(false);
     })();
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const lower = email.toLowerCase().trim();
