@@ -14,6 +14,7 @@ import {
   type AppRole,
 } from "@/lib/permissionMapping";
 import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
+import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsService";
 
 export interface OrgMembership {
   organizationId: string;
