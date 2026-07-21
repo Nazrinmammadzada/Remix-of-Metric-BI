@@ -64,6 +64,215 @@ export type Database = {
           },
         ]
       }
+      kpi_card_history: {
+        Row: {
+          action: string
+          actor: string | null
+          id: string
+          kpi_card_id: string
+          note: string | null
+          occurred_at: string
+          organization_id: string
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          id?: string
+          kpi_card_id: string
+          note?: string | null
+          occurred_at?: string
+          organization_id: string
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          id?: string
+          kpi_card_id?: string
+          note?: string | null
+          occurred_at?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_card_history_kpi_card_id_fkey"
+            columns: ["kpi_card_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpi_card_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpi_card_targets: {
+        Row: {
+          assigner: string | null
+          cascading: boolean
+          created_at: string
+          created_by_mode: string | null
+          id: string
+          kpi_card_id: string
+          legacy_id: string | null
+          name: string
+          organization_id: string
+          score_limit: number | null
+          sort_order: number
+          target_value: string | null
+          type: string | null
+          unit: string | null
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          assigner?: string | null
+          cascading?: boolean
+          created_at?: string
+          created_by_mode?: string | null
+          id?: string
+          kpi_card_id: string
+          legacy_id?: string | null
+          name: string
+          organization_id: string
+          score_limit?: number | null
+          sort_order?: number
+          target_value?: string | null
+          type?: string | null
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          assigner?: string | null
+          cascading?: boolean
+          created_at?: string
+          created_by_mode?: string | null
+          id?: string
+          kpi_card_id?: string
+          legacy_id?: string | null
+          name?: string
+          organization_id?: string
+          score_limit?: number | null
+          sort_order?: number
+          target_value?: string | null
+          type?: string | null
+          unit?: string | null
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_card_targets_kpi_card_id_fkey"
+            columns: ["kpi_card_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpi_card_targets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpi_cards: {
+        Row: {
+          assignee_ids: string[]
+          assignees: Json
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          evaluator_ids: string[]
+          execution: Json
+          frequency: string | null
+          id: string
+          legacy_numeric_id: number | null
+          matrix_id: string | null
+          name: string
+          organization_id: string
+          owner_employee_id: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejected_reason: string | null
+          scoring_system: string | null
+          start_date: string | null
+          status: string
+          structure_ids: string[]
+          submitted_for_approval: boolean
+          team_ids: string[]
+          updated_at: string
+          use_matrix: boolean
+        }
+        Insert: {
+          assignee_ids?: string[]
+          assignees?: Json
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          evaluator_ids?: string[]
+          execution?: Json
+          frequency?: string | null
+          id?: string
+          legacy_numeric_id?: number | null
+          matrix_id?: string | null
+          name: string
+          organization_id: string
+          owner_employee_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_reason?: string | null
+          scoring_system?: string | null
+          start_date?: string | null
+          status?: string
+          structure_ids?: string[]
+          submitted_for_approval?: boolean
+          team_ids?: string[]
+          updated_at?: string
+          use_matrix?: boolean
+        }
+        Update: {
+          assignee_ids?: string[]
+          assignees?: Json
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          evaluator_ids?: string[]
+          execution?: Json
+          frequency?: string | null
+          id?: string
+          legacy_numeric_id?: number | null
+          matrix_id?: string | null
+          name?: string
+          organization_id?: string
+          owner_employee_id?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_reason?: string | null
+          scoring_system?: string | null
+          start_date?: string | null
+          status?: string
+          structure_ids?: string[]
+          submitted_for_approval?: boolean
+          team_ids?: string[]
+          updated_at?: string
+          use_matrix?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_cards_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_employees: {
         Row: {
           active: boolean
