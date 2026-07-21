@@ -968,7 +968,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
             <div className="max-h-64 overflow-y-auto py-1">
               {current && (
                 <button
-                  onClick={() => { assignSlot(slot.id, { employeeId: null }); setOpen(false); toast.success("Təyinat ləğv edildi"); }}
+                  onClick={async () => { assignSlot(slot.id, { employeeId: null }); setOpen(false); try { await persistOrgNow(); } catch {} toast.success("Təyinat ləğv edildi"); }}
                   className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-destructive/5 border-b border-border flex items-center gap-1.5"
                 >
                   <X className="w-3.5 h-3.5" /> Təyinatı ləğv et
@@ -980,7 +980,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
               {available.map(e => (
                 <button
                   key={e.id}
-                  onClick={() => { assignSlot(slot.id, { employeeId: e.id }); setOpen(false); toast.success("Əməkdaş təyin edildi"); }}
+                  onClick={async () => { assignSlot(slot.id, { employeeId: e.id }); setOpen(false); try { await persistOrgNow(); } catch {} toast.success("Əməkdaş təyin edildi"); }}
                   className={`w-full text-left px-3 py-2.5 text-sm hover:bg-secondary/40 flex items-center justify-between gap-3 ${e.id === slot.employeeId ? 'bg-primary/5' : ''}`}
                 >
                   <div className="min-w-0 flex-1">
