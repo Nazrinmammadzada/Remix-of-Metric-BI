@@ -140,10 +140,15 @@ const RolesPermissionsTab = () => {
   };
   const saveEdit = async () => {
     if (!editing) return;
+    if (!editing.name.trim()) { toast.error("Rol adı mütləqdir"); return; }
     setSaving(true);
     try {
+      await updateOrgRole(editing.id, {
+        name: editing.name,
+        description: editing.description || null,
+      });
       await setRolePermissions(editing.id, Array.from(editingIds));
-      toast.success("İcazələr yadda saxlanıldı");
+      toast.success("Rol və icazələr backend-də yadda saxlanıldı");
       setEditing(null);
       await reload();
     } catch (e: any) {
@@ -197,11 +202,8 @@ const RolesPermissionsTab = () => {
   };
 
   const removeRole = async (r: DbRole) => {
-    if (r.is_platform_role || r.organization_id === null) {
-      toast.error("Şablon rolları silinə bilməz"); return;
-    }
     if (r.is_system_role) {
-      toast.error("Sistem rolları silinə bilməz"); return;
+      toast.error("Default HR / USER / MANAGER rolları silinə bilməz"); return;
     }
     if (!confirm(`"${r.name}" rolu silinsin?`)) return;
     try {
@@ -228,7 +230,7 @@ const RolesPermissionsTab = () => {
         <div>
           <h3 className="text-lg font-semibold text-foreground">Rollar və İcazələr</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Şablon rolları oxu-yalnız; təşkilat üçün öz rollarınızı yaradın və icazələri fərdiləşdirin.
+            Default rollar: HR, USER, MANAGER. Rollara əməkdaş təyin edin, icazələri dəyişin və yeni custom rol yaradın.
           </p>
         </div>
         {canManage && (
@@ -248,7 +250,6 @@ const RolesPermissionsTab = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {roles.map(r => {
-            const isTemplate = r.organization_id === null;
             const isSystem = r.is_system_role;
             const memberCount = memberCountByRole.get(r.id) ?? 0;
             return (
@@ -256,8 +257,8 @@ const RolesPermissionsTab = () => {
                 key={r.id}
                 className="group relative border border-border rounded-xl p-5 bg-card hover:border-primary/50 hover:shadow-md transition-all duration-200 flex flex-col"
               >
-                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {!isTemplate && canManage && (
+                <div className="absolute top-3 right-3 flex items-center gap-1">
+                  {canManage && (
                     <button
                       onClick={() => openUsers(r)}
                       className="p-1.5 rounded-md bg-background border border-border hover:bg-secondary"
@@ -270,12 +271,12 @@ const RolesPermissionsTab = () => {
                     <button
                       onClick={() => openEdit(r)}
                       className="p-1.5 rounded-md bg-background border border-border hover:bg-secondary"
-                      title={isTemplate ? "Şablona bax" : "Rolu redaktə et"}
+                      title="Rolu və icazələri redaktə et"
                     >
                       <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                   )}
-                  {!isTemplate && !isSystem && canManage && (
+                  {!isSystem && canManage && (
                     <button
                       onClick={() => removeRole(r)}
                       className="p-1.5 rounded-md bg-background border border-border hover:bg-zone-red-bg"
@@ -293,10 +294,7 @@ const RolesPermissionsTab = () => {
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold tracking-wider text-sm text-foreground truncate">{r.name}</h4>
                     <div className="flex flex-wrap gap-1 mt-0.5">
-                      {isTemplate && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 uppercase tracking-wider font-semibold">Şablon</span>
-                      )}
-                      {isSystem && !isTemplate && (
+                      {isSystem && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary uppercase tracking-wider font-semibold">Sistem</span>
                       )}
                     </div>
@@ -311,9 +309,12 @@ const RolesPermissionsTab = () => {
                   <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-secondary text-secondary-foreground font-medium">
                     <Users className="w-3 h-3" /> {memberCount} istifadəçi
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border border-border text-muted-foreground font-medium">
+                  <button
+                    onClick={() => openEdit(r)}
+                    className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border border-border text-muted-foreground font-medium hover:bg-secondary"
+                  >
                     {r.permissionIds.length}/{permissions.length} icazə
-                  </span>
+                  </button>
                 </div>
               </div>
             );
@@ -354,12 +355,12 @@ const RolesPermissionsTab = () => {
                 <option value="">— Boş rol —</option>
                 {roles.map(r => (
                   <option key={r.id} value={r.id}>
-                    {r.name} {r.organization_id === null ? "(Şablon)" : ""}
+                    {r.name}
                   </option>
                 ))}
               </select>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Şablonun bütün icazələri yeni rola köçürüləcək; sonradan redaktə edə bilərsiniz.
+                Seçilən rolun bütün icazələri yeni rola köçürüləcək; sonradan redaktə edə bilərsiniz.
               </p>
             </div>
             <div className="flex gap-3 pt-2">
@@ -385,11 +386,43 @@ const RolesPermissionsTab = () => {
           </DialogHeader>
           {editing && (
             <div className="space-y-4">
-              {(editing.organization_id === null) && (
-                <div className="text-[11px] px-3 py-2 rounded bg-blue-500/10 text-blue-700 border border-blue-500/20">
-                  Bu şablon roludur — icazələr yalnız oxumaq üçün göstərilir. Bu rolu təşkilat üçün istifadə etmək istəsəniz, "Yeni Rol Yarat" düyməsindən şablon əsasında kopyalayın.
+              <div className="p-4 rounded-lg border border-border bg-secondary/40 space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1 block">Başlıq</label>
+                    <input
+                      value={editing.name}
+                      onChange={e => setEditing(prev => prev ? { ...prev, name: e.target.value.toUpperCase() } : prev)}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background uppercase tracking-wider font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-foreground mb-1 block">Təsvir</label>
+                    <input
+                      value={editing.description || ""}
+                      onChange={e => setEditing(prev => prev ? { ...prev, description: e.target.value } : prev)}
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                    />
+                  </div>
                 </div>
-              )}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setEditingIds(prev => prev.size === permissions.length ? new Set() : new Set(permissions.map(p => p.id)))}
+                    className="flex items-center gap-3 text-left"
+                  >
+                    <span className={`w-10 h-5 rounded-full transition-colors ${editingIds.size === permissions.length ? "bg-primary" : "bg-muted"}`}>
+                      <span className={`block w-4 h-4 mt-0.5 rounded-full bg-card shadow transition-transform ${editingIds.size === permissions.length ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-foreground">Bütün icazələri seç</span>
+                      <span className="block text-[11px] text-muted-foreground">Bütün modullarda bütün icazələri bir kliklə yandır/söndür</span>
+                    </span>
+                  </button>
+                  <span className="text-sm font-bold text-primary">{editingIds.size} / {permissions.length}</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-12 gap-4 min-h-[420px]">
                 {/* Module list */}
                 <div className="col-span-4 border border-border rounded-lg p-3 flex flex-col">
@@ -430,12 +463,11 @@ const RolesPermissionsTab = () => {
                   {(() => {
                     const list = permByModule.get(selectedModule) ?? [];
                     const allOn = list.length > 0 && list.every(p => editingIds.has(p.id));
-                    const readOnly = editing.organization_id === null;
                     return (
                       <>
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="text-sm font-semibold">{MODULE_LABELS[selectedModule] ?? selectedModule}</h4>
-                          {!readOnly && list.length > 0 && (
+                          {list.length > 0 && (
                             <button
                               onClick={() => toggleModuleAll(selectedModule)}
                               className="text-xs px-2.5 py-1 rounded border border-border hover:bg-secondary"
@@ -450,11 +482,10 @@ const RolesPermissionsTab = () => {
                             return (
                               <button
                                 key={p.id}
-                                disabled={readOnly}
                                 onClick={() => togglePerm(p.id)}
                                 className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-left text-sm transition-colors ${
                                   on ? "bg-primary/5 border-primary/40" : "bg-background border-border hover:bg-secondary"
-                                } ${readOnly ? "cursor-not-allowed opacity-80" : ""}`}
+                                }`}
                               >
                                 <div className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
                                   on ? "bg-primary border-primary text-primary-foreground" : "border-border"
@@ -479,15 +510,13 @@ const RolesPermissionsTab = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                {editing.organization_id !== null && (
-                  <button
-                    onClick={saveEdit}
-                    disabled={saving}
-                    className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-60"
-                  >
-                    {saving ? "Saxlanılır..." : "Yadda Saxla"}
-                  </button>
-                )}
+                <button
+                  onClick={saveEdit}
+                  disabled={saving}
+                  className="flex-1 py-2.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-60"
+                >
+                  {saving ? "Saxlanılır..." : "Yadda Saxla"}
+                </button>
                 <button onClick={() => setEditing(null)} className="flex-1 py-2.5 text-sm rounded-lg border border-border bg-card">
                   Bağla
                 </button>
@@ -528,6 +557,7 @@ const RolesPermissionsTab = () => {
                   })
                   .map(m => {
                     const on = pendingMembers.has(m.memberId);
+                    const assignedRoleNames = roles.filter(r => m.roleIds.includes(r.id)).map(r => r.name).join(", ");
                     return (
                       <button
                         key={m.memberId}
@@ -548,6 +578,9 @@ const RolesPermissionsTab = () => {
                           <div className="font-medium truncate">{m.fullName}</div>
                           <div className="text-[11px] text-muted-foreground truncate">
                             {m.positionName || "—"}{m.email ? ` · ${m.email}` : ""}
+                          </div>
+                          <div className="text-[10px] text-primary truncate mt-0.5">
+                            Profil rolları: {assignedRoleNames || "rol yoxdur"}
                           </div>
                         </div>
                       </button>

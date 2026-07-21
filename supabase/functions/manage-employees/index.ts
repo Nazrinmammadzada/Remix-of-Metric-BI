@@ -1,12 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const DEFAULT_PASSWORD = "123456";
 
@@ -105,30 +99,29 @@ serve(async (req) => {
         .eq("organization_id", organization_id)
         .maybeSingle();
       if (!emp) return json(404, { error: "Əməkdaş tapılmadı" });
-      if (emp.auth_user_id) {
-        return json(200, { ok: true, already: true, user_id: emp.auth_user_id });
-      }
+      let userId: string | undefined = emp.auth_user_id || undefined;
 
       // Create or reuse — idempotent: if createUser reports duplicate email
       // or a spurious "database error", fall back to lookup by email.
-      let userId: string | undefined;
-      const existing = await findAuthUserByEmail(admin, emailRaw);
-      if (existing) {
-        userId = existing.id;
-      } else {
-        const { data: created, error: cErr } = await admin.auth.admin.createUser({
-          email: emailRaw,
-          password: DEFAULT_PASSWORD,
-          email_confirm: true,
-          user_metadata: { first_name, last_name },
-        });
-        if (created?.user) {
-          userId = created.user.id;
+      if (!userId) {
+        const existing = await findAuthUserByEmail(admin, emailRaw);
+        if (existing) {
+          userId = existing.id;
         } else {
-          // Duplicate email or transient trigger error — try to find the user.
-          const found = await findAuthUserByEmail(admin, emailRaw);
-          if (found) userId = found.id;
-          else return json(500, { error: cErr?.message || "İstifadəçi yaradıla bilmədi" });
+          const { data: created, error: cErr } = await admin.auth.admin.createUser({
+            email: emailRaw,
+            password: DEFAULT_PASSWORD,
+            email_confirm: true,
+            user_metadata: { first_name, last_name },
+          });
+          if (created?.user) {
+            userId = created.user.id;
+          } else {
+            // Duplicate email or transient trigger error — try to find the user.
+            const found = await findAuthUserByEmail(admin, emailRaw);
+            if (found) userId = found.id;
+            else return json(500, { error: cErr?.message || "İstifadəçi yaradıla bilmədi" });
+          }
         }
       }
       // Ensure password + confirmation are set for the (possibly pre-existing) user.

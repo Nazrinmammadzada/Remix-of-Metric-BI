@@ -120,14 +120,20 @@ serve(async (req) => {
         must_change_password: true,
       }, { onConflict: "id" });
 
-      // Create HR/Admin org role by copying template permissions
-      const { data: tpl } = await admin.from("roles").select("id").eq("code", "hr_admin_template").maybeSingle();
+      // Create default HR org role by copying template permissions
+      const { data: tpl } = await admin
+        .from("roles")
+        .select("id")
+        .in("code", ["hr_template", "hr_admin_template"])
+        .is("organization_id", null)
+        .limit(1)
+        .maybeSingle();
       const { data: role, error: rErr } = await admin
         .from("roles")
         .insert({
           organization_id: org.id,
-          name: "HR / Admin",
-          code: "hr_admin",
+          name: "HR",
+          code: "hr",
           is_system_role: true,
           is_active: true,
         })
@@ -141,6 +147,44 @@ serve(async (req) => {
           await admin.from("role_permissions").insert(
             perms.map((p: any) => ({ role_id: role.id, permission_id: p.permission_id }))
           );
+        }
+      }
+
+      // Ensure the organization also starts with USER and MANAGER default roles.
+      for (const defaultRole of [
+        { code: "user", name: "USER", template: "user_template" },
+        { code: "manager", name: "MANAGER", template: "manager_template" },
+      ]) {
+        const { data: createdDefault } = await admin
+          .from("roles")
+          .insert({
+            organization_id: org.id,
+            name: defaultRole.name,
+            code: defaultRole.code,
+            is_system_role: true,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+
+        if (createdDefault?.id) {
+          const { data: templateRole } = await admin
+            .from("roles")
+            .select("id")
+            .eq("code", defaultRole.template)
+            .is("organization_id", null)
+            .maybeSingle();
+          if (templateRole?.id) {
+            const { data: templatePerms } = await admin
+              .from("role_permissions")
+              .select("permission_id")
+              .eq("role_id", templateRole.id);
+            if (templatePerms?.length) {
+              await admin.from("role_permissions").insert(
+                templatePerms.map((p: any) => ({ role_id: createdDefault.id, permission_id: p.permission_id }))
+              );
+            }
+          }
         }
       }
 
@@ -219,7 +263,7 @@ serve(async (req) => {
           .from("roles")
           .select("id")
           .eq("organization_id", o.id)
-          .eq("code", "hr_admin")
+          .eq("code", "hr")
           .maybeSingle();
         let adminEmail = "";
         let adminName = "";
