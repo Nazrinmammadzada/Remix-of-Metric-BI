@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  getEmployees, addEmployee, updateEmployee, toggleEmployeeActive,
+  getEmployees, updateEmployee, toggleEmployeeActive,
   getStructures, addRootStructure, addSubStructure, addPosition, addSlot,
   assignSlot, removeSlot, removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
