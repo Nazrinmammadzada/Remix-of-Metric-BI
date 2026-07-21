@@ -7,17 +7,30 @@ import {
   setHrAdminMustChangePassword,
 } from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
+import {
+  derivePermissionsFromDbCodes,
+  deriveRoleFromDbCodes,
+  HR_FULL_UI_PERMISSIONS,
+  type AppRole,
+} from "@/lib/permissionMapping";
+
+export interface OrgMembership {
+  organizationId: string;
+  organizationName: string;
+}
 
 export interface AuthUser {
   name: string;
   email: string;
-  role: "HR" | "USER" | "SUPER_ADMIN" | "MANAGER";
+  role: AppRole;
   avatar: string;
   department: string;
   team: string;
   permissions: string[];
   mustChangePassword?: boolean;
   supabaseUserId?: string;
+  currentOrgId?: string;
+  organizations?: OrgMembership[];
 }
 
 // Legacy demo super admin email (kept for backwards compatibility with prototype data)
@@ -212,6 +225,65 @@ const seedSuperAdminPassword = () => {
   localStorage.setItem(SUPERADMIN_SEED_FLAG, "1");
 };
 
+// ── Fetch org memberships for a Supabase-authenticated user. ──────────────────
+const fetchOrgMemberships = async (userId: string): Promise<OrgMembership[]> => {
+  const { data } = await supabase
+    .from("organization_members")
+    .select("organization_id, organizations(id, name)")
+    .eq("user_id", userId)
+    .eq("status", "active");
+  if (!data) return [];
+  return data
+    .map((row: any) => ({
+      organizationId: row.organization_id as string,
+      organizationName: (row.organizations?.name as string) ?? "—",
+    }))
+    .filter(m => !!m.organizationId);
+};
+
+// ── Fetch the DB permission codes granted to a user within a given org. ───────
+const fetchPermissionCodesForOrg = async (
+  userId: string,
+  orgId: string,
+): Promise<string[]> => {
+  const { data } = await supabase
+    .from("organization_members")
+    .select(`
+      id,
+      user_roles!inner(
+        is_active,
+        expires_at,
+        roles!inner(
+          is_active,
+          role_permissions(
+            permissions(code)
+          )
+        )
+      )
+    `)
+    .eq("user_id", userId)
+    .eq("organization_id", orgId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!data) return [];
+  const codes = new Set<string>();
+  const nowMs = Date.now();
+  const userRoles: any[] = (data as any).user_roles ?? [];
+  for (const ur of userRoles) {
+    if (!ur.is_active) continue;
+    if (ur.expires_at && new Date(ur.expires_at).getTime() < nowMs) continue;
+    const role = ur.roles;
+    if (!role || !role.is_active) continue;
+    const rps: any[] = role.role_permissions ?? [];
+    for (const rp of rps) {
+      const code = rp.permissions?.code;
+      if (code) codes.add(code);
+    }
+  }
+  return Array.from(codes);
+};
+
 // ── Resolve a Supabase-authenticated user into an AuthUser (role + perms) ─────
 const buildAuthUserFromSupabase = async (
   supabaseUserId: string,
@@ -229,7 +301,10 @@ const buildAuthUserFromSupabase = async (
     || (profile.email ?? email);
   const avatar = (fullName || email).charAt(0).toUpperCase();
 
-  // Platform super admin — cross-organisation access to admin surfaces only.
+  const organizations = await fetchOrgMemberships(supabaseUserId);
+  const currentOrgId = organizations[0]?.organizationId;
+
+  // Platform super admin — cross-organisation access to admin surfaces.
   if (profile.is_platform_super_admin) {
     return {
       name: fullName,
@@ -240,20 +315,34 @@ const buildAuthUserFromSupabase = async (
       team: "—",
       permissions: ["admin_users"],
       supabaseUserId,
+      currentOrgId,
+      organizations,
     };
   }
 
-  // Regular org member — for now grant HR-equivalent permissions until the
-  // per-role permission wiring (Step 3) lands. This keeps the app usable.
+  // Regular org member — resolve role + permissions from user_roles for the
+  // active organisation. Users with no org membership get a minimal profile.
+  let dbCodes: string[] = [];
+  if (currentOrgId) {
+    dbCodes = await fetchPermissionCodesForOrg(supabaseUserId, currentOrgId);
+  }
+  const role = deriveRoleFromDbCodes(dbCodes, false);
+  // HR always gets the full UI module surface; others rely on the derived map.
+  const permissions = role === "HR"
+    ? Array.from(new Set([...dbCodes, ...HR_FULL_UI_PERMISSIONS]))
+    : derivePermissionsFromDbCodes(dbCodes);
+
   return {
     name: fullName,
     email: profile.email ?? email,
-    role: "HR",
+    role,
     avatar,
-    department: "—",
+    department: organizations[0]?.organizationName ?? "—",
     team: "—",
-    permissions: [...ALL_MODULE_KEYS, "kpi_own", "kpi_team", "teams_compare", "teams_all"],
+    permissions,
     supabaseUserId,
+    currentOrgId,
+    organizations,
   };
 };
 
