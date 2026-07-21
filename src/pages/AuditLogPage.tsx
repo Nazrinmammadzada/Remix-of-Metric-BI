@@ -3,13 +3,18 @@ import { Loader2, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { listAuditLogs, type AuditLogRow } from "@/lib/auditService";
 
-const MODULES = ["", "invitations", "kpi_cards", "approvals", "org_structure"] as const;
+const MODULES = ["", "auth", "invitations", "kpi_cards", "approvals", "org_structure", "lifecycle", "bonus_runs", "notifications", "payroll"] as const;
 const moduleLabel: Record<string, string> = {
   "": "Bütün modullar",
+  auth: "Autentifikasiya",
   invitations: "Dəvətlər",
   kpi_cards: "KPI Kartları",
   approvals: "Təsdiqlər / Matrislər",
   org_structure: "Təşkilati Struktur",
+  lifecycle: "Lifecycle",
+  bonus_runs: "Bonus Hesablamaları",
+  notifications: "Bildirişlər",
+  payroll: "Əməkhaqqı",
 };
 
 const actionBadge: Record<string, string> = {

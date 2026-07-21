@@ -20,6 +20,7 @@ import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService
 import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
 import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/notificationsService";
 import { hydrateLanguageFromProfile } from "@/lib/languageService";
+import { logAudit } from "@/lib/auditService";
 
 export interface OrgMembership {
   organizationId: string;
@@ -442,6 +443,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 activateNotificationsSync(u.currentOrgId);
                 if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
         }
+        void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
         return { success: true };
       }
       // Fell through — no profile row. Sign out and try demo fallback.
@@ -468,6 +470,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    void logAudit({ organizationId: user?.currentOrgId ?? null, action: "logout", module: "auth", entityType: "user", entityId: user?.supabaseUserId ?? null });
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
     deactivateOrgSync();
