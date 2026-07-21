@@ -231,16 +231,40 @@ let suppressFlush = false;
 let flushTimer: number | null = null;
 let currentOrgId: string | null = null;
 let activeUserId: string | null = null;
+let flushInFlight: Promise<void> | null = null;
+let pendingFlush = false;
 
 const scheduleFlush = () => {
   if (suppressFlush || !currentOrgId) return;
+  pendingFlush = true;
   if (flushTimer) window.clearTimeout(flushTimer);
-  flushTimer = window.setTimeout(() => { flushTimer = null; void flushLocalOrgToCloud(); }, 400);
+  // Very short debounce so bursts of mutations coalesce but the DB write
+  // hits Postgres before the user can navigate/refresh.
+  flushTimer = window.setTimeout(() => {
+    flushTimer = null;
+    void flushLocalOrgToCloud();
+  }, 50);
 };
 
 export const flushLocalOrgToCloud = async () => {
   const orgId = currentOrgId;
   if (!orgId) return;
+  // Serialize concurrent flushes to avoid duplicate inserts.
+  if (flushInFlight) {
+    await flushInFlight;
+  }
+  let resolveFlush!: () => void;
+  flushInFlight = new Promise<void>((r) => { resolveFlush = r; });
+  pendingFlush = false;
+  try {
+    await doFlush(orgId);
+  } finally {
+    resolveFlush();
+    flushInFlight = null;
+  }
+};
+
+const doFlush = async (orgId: string) => {
   const map = loadMap(orgId);
 
   // Diff by full replace for simplicity: delete rows whose numeric id no longer
@@ -266,10 +290,16 @@ export const flushLocalOrgToCloud = async () => {
       position_name: e.positionName ?? null,
     };
     if (uuid) {
-      await supabase.from("org_employees").update(payload).eq("id", uuid);
+      const { error } = await supabase.from("org_employees").update(payload).eq("id", uuid);
+      if (error) console.error("[orgSync] employee update failed", error, payload);
     } else {
       const ins = await supabase.from("org_employees").insert(payload).select("id").single();
-      if (ins.data) { map.toUuid[e.id] = ins.data.id; map.toNum[ins.data.id] = e.id; }
+      if (ins.error) {
+        console.error("[orgSync] employee insert failed", ins.error, payload);
+      } else if (ins.data) {
+        map.toUuid[e.id] = ins.data.id;
+        map.toNum[ins.data.id] = e.id;
+      }
     }
   }
 
@@ -360,11 +390,23 @@ let rehydrateTimer: number | null = null;
 let refreshInterval: number | null = null;
 let onFocusHandler: (() => void) | null = null;
 
+const beforeUnloadFlush = () => {
+  if (pendingFlush || flushTimer) {
+    if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+    // Fire and forget — some browsers will keep the request alive briefly.
+    void flushLocalOrgToCloud();
+  }
+};
+
 const scheduleRehydrate = () => {
   if (!currentOrgId) return;
   if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
-  rehydrateTimer = window.setTimeout(() => {
+  rehydrateTimer = window.setTimeout(async () => {
     rehydrateTimer = null;
+    // If a local mutation is pending or a flush is in flight, wait for it to
+    // finish before rehydrating — otherwise we'd wipe unsynced local changes.
+    if (pendingFlush) { await flushLocalOrgToCloud(); }
+    if (flushInFlight) { try { await flushInFlight; } catch {} }
     if (currentOrgId) void hydrateOrgFromCloud(currentOrgId);
   }, 400);
 };
@@ -381,6 +423,10 @@ export const activateOrgSync = async (orgId: string, userId: string) => {
   suppressFlush = false;
   await hydrateOrgFromCloud(orgId);
   window.addEventListener("org-updated", scheduleFlush);
+  // Best-effort: if the tab is about to unload, kick a synchronous flush so
+  // the last local mutation reaches the DB.
+  window.addEventListener("beforeunload", beforeUnloadFlush);
+  window.addEventListener("pagehide", beforeUnloadFlush);
 
 
   // Realtime: any change to org data in Postgres triggers a re-hydration so
@@ -406,6 +452,8 @@ export const deactivateOrgSync = () => {
   currentOrgId = null;
   activeUserId = null;
   window.removeEventListener("org-updated", scheduleFlush);
+  window.removeEventListener("beforeunload", beforeUnloadFlush);
+  window.removeEventListener("pagehide", beforeUnloadFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
   if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
   if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
