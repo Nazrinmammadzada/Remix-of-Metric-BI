@@ -1,18 +1,45 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Building2, Plus, Trash2, KeyRound, Copy, Eye, EyeOff, X, Check, RefreshCw, Upload, Mail, ShieldAlert, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Company,
-  createCompany,
-  deleteCompany,
-  ensureCompanySeed,
-  generateStrongPassword,
-  updateCompanyAdminPassword,
-  useCompanies,
-  makeFallbackLogo,
-} from "@/lib/companiesStore";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string;
+  admin: { name: string; email: string };
+  created_at: string;
+}
+
+const makeFallbackLogo = (initials: string, color: string): string => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" rx="24" fill="${color}"/><text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="48" font-weight="700" fill="white">${initials}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
+const generateStrongPassword = (length = 14): string => {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const sym = "!@#$%^&*";
+  const all = upper + lower + digits + sym;
+  const arr = new Uint32Array(length);
+  crypto.getRandomValues(arr);
+  const out = [
+    upper[arr[0] % upper.length],
+    lower[arr[1] % lower.length],
+    digits[arr[2] % digits.length],
+    sym[arr[3] % sym.length],
+  ];
+  for (let i = 4; i < length; i++) out.push(all[arr[i] % all.length]);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = arr[i % arr.length] % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out.join("");
+};
 
 const readFileAsDataUrl = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -23,23 +50,41 @@ const readFileAsDataUrl = (file: File): Promise<string> =>
   });
 
 const SuperAdminCompaniesPage = () => {
-  useEffect(() => { ensureCompanySeed(); }, []);
-  const companies = useCompanies();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [pwdResetId, setPwdResetId] = useState<string | null>(null);
+  const [pwdReset, setPwdReset] = useState<Company | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke("manage-organization", {
+      body: { action: "list" },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message || "Şirkətləri yükləmək mümkün olmadı");
+      return;
+    }
+    setCompanies((data as any)?.companies || []);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => toast.success(`${label} kopyalandı`));
   };
 
-  const handleDelete = (c: Company) => {
+  const handleDelete = async (c: Company) => {
     if (!confirm(`"${c.name}" şirkəti və admin hesabı silinsin?`)) return;
-    const res = deleteCompany(c.id);
-    if (!res.ok) {
-      toast.error(res.error || "Silmək mümkün olmadı", { duration: 6000 });
+    const { data, error } = await supabase.functions.invoke("manage-organization", {
+      body: { action: "delete", organization_id: c.id },
+    });
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || "Silmək mümkün olmadı");
       return;
     }
     toast.success("Şirkət silindi");
+    load();
   };
 
   return (
@@ -61,7 +106,11 @@ const SuperAdminCompaniesPage = () => {
         </button>
       </div>
 
-      {companies.length === 0 ? (
+      {loading ? (
+        <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground">
+          Yüklənir...
+        </div>
+      ) : companies.length === 0 ? (
         <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground">
           Hələ heç bir şirkət yaradılmayıb.
         </div>
@@ -78,7 +127,7 @@ const SuperAdminCompaniesPage = () => {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground truncate">{c.name}</h3>
                   <p className="text-xs text-muted-foreground">
-                    Yaradılıb: {new Date(c.createdAt).toLocaleDateString("az-AZ")}
+                    Yaradılıb: {new Date(c.created_at).toLocaleDateString("az-AZ")}
                   </p>
                 </div>
                 <button
@@ -93,19 +142,21 @@ const SuperAdminCompaniesPage = () => {
               <div className="rounded-lg border border-border bg-background p-3 space-y-2 text-sm">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Admin Hesabı</p>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-foreground truncate">{c.admin.name}</span>
+                  <span className="text-foreground truncate">{c.admin.name || "—"}</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground truncate">
-                    <Mail className="w-3.5 h-3.5 shrink-0" /> {c.admin.email}
+                    <Mail className="w-3.5 h-3.5 shrink-0" /> {c.admin.email || "—"}
                   </span>
-                  <button
-                    onClick={() => copy(c.admin.email, "E-poçt")}
-                    className="w-7 h-7 rounded-md hover:bg-secondary flex items-center justify-center shrink-0"
-                    title="Kopyala"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
+                  {c.admin.email && (
+                    <button
+                      onClick={() => copy(c.admin.email, "E-poçt")}
+                      className="w-7 h-7 rounded-md hover:bg-secondary flex items-center justify-center shrink-0"
+                      title="Kopyala"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Lock className="w-3.5 h-3.5" />
@@ -115,8 +166,9 @@ const SuperAdminCompaniesPage = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setPwdResetId(c.id)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm hover:bg-secondary"
+                  onClick={() => setPwdReset(c)}
+                  disabled={!c.admin.email}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm hover:bg-secondary disabled:opacity-50"
                 >
                   <KeyRound className="w-4 h-4" /> Şifrəni yenilə
                 </button>
@@ -126,11 +178,16 @@ const SuperAdminCompaniesPage = () => {
         </div>
       )}
 
-      {showCreate && <CreateCompanyDialog onClose={() => setShowCreate(false)} />}
-      {pwdResetId && (
+      {showCreate && (
+        <CreateCompanyDialog
+          onClose={() => setShowCreate(false)}
+          onCreated={() => { setShowCreate(false); load(); }}
+        />
+      )}
+      {pwdReset && (
         <ResetCompanyPasswordDialog
-          company={companies.find(c => c.id === pwdResetId)!}
-          onClose={() => setPwdResetId(null)}
+          company={pwdReset}
+          onClose={() => setPwdReset(null)}
         />
       )}
     </div>
@@ -190,7 +247,7 @@ const OneTimeCredentialsView = ({
           </button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          İstifadəçi ilk girişdə bu şifrəni məcburi olaraq dəyişəcək.
+          İstifadəçi bu şifrə ilə birbaşa daxil ola bilər.
         </p>
       </div>
       <label className="flex items-start gap-2 text-sm">
@@ -212,13 +269,14 @@ const OneTimeCredentialsView = ({
 
 // ---------------- Create ----------------
 
-const CreateCompanyDialog = ({ onClose }: { onClose: () => void }) => {
+const CreateCompanyDialog = ({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) => {
   const [name, setName] = useState("");
   const [logo, setLogo] = useState("");
   const [adminName, setAdminName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(() => generateStrongPassword());
   const [showPwd, setShowPwd] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState<{ email: string; password: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -231,14 +289,30 @@ const CreateCompanyDialog = ({ onClose }: { onClose: () => void }) => {
     setLogo(await readFileAsDataUrl(f));
   };
 
-  const submit = () => {
-    const res = createCompany(name, logo, adminName, email || undefined, password);
-    if (!res.ok || !res.company || !res.plaintextPassword) {
-      toast.error(res.error || "Xəta baş verdi");
+  const submit = async () => {
+    if (!name.trim()) return toast.error("Şirkət adını daxil edin");
+    if (!adminName.trim()) return toast.error("Admin adını daxil edin");
+    if (!email.trim()) return toast.error("E-poçt daxil edin");
+    if (password.trim().length < 8) return toast.error("Şifrə ən az 8 simvol olmalıdır");
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("manage-organization", {
+      body: {
+        action: "create",
+        name: name.trim(),
+        logo,
+        admin_name: adminName.trim(),
+        email: email.trim(),
+        password: password.trim(),
+      },
+    });
+    setBusy(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || "Xəta baş verdi");
       return;
     }
     toast.success("Şirkət yaradıldı");
-    setReveal({ email: res.company.admin.email, password: res.plaintextPassword });
+    setReveal({ email: (data as any).email, password: password.trim() });
+    onCreated();
   };
 
   return (
@@ -315,12 +389,12 @@ const CreateCompanyDialog = ({ onClose }: { onClose: () => void }) => {
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">E-poçt (boş buraxılsa avtomatik təyin olunur)</label>
+              <label className="text-xs text-muted-foreground">E-poçt</label>
               <input
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="mt-1 w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
-                placeholder="admin@sirket.kpi.az"
+                placeholder="admin@sirket.com"
               />
             </div>
             <div>
@@ -358,8 +432,12 @@ const CreateCompanyDialog = ({ onClose }: { onClose: () => void }) => {
           <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary">
             Ləğv et
           </button>
-          <button onClick={submit} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1">
-            <Check className="w-4 h-4" /> Yarat
+          <button
+            onClick={submit}
+            disabled={busy}
+            className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 inline-flex items-center gap-1 disabled:opacity-50"
+          >
+            <Check className="w-4 h-4" /> {busy ? "Yaradılır..." : "Yarat"}
           </button>
         </div>
         </>
@@ -374,14 +452,23 @@ const CreateCompanyDialog = ({ onClose }: { onClose: () => void }) => {
 const ResetCompanyPasswordDialog = ({ company, onClose }: { company: Company; onClose: () => void }) => {
   const [pwd, setPwd] = useState(() => generateStrongPassword());
   const [show, setShow] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState<string | null>(null);
 
-  const submit = () => {
-    if (pwd.trim().length < 6) {
-      toast.error("Şifrə ən az 6 simvol olmalıdır");
+  const submit = async () => {
+    if (pwd.trim().length < 8) {
+      toast.error("Şifrə ən az 8 simvol olmalıdır");
       return;
     }
-    updateCompanyAdminPassword(company.id, pwd.trim());
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("manage-organization", {
+      body: { action: "reset_password", email: company.admin.email, password: pwd.trim() },
+    });
+    setBusy(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || "Şifrə yenilənmədi");
+      return;
+    }
     toast.success("Şifrə yeniləndi");
     setReveal(pwd.trim());
   };
@@ -439,15 +526,19 @@ const ResetCompanyPasswordDialog = ({ company, onClose }: { company: Company; on
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Şifrə yeniləndikdə istifadəçi növbəti girişdə onu məcburi dəyişəcək və şifrə YALNIZ bir dəfə göstəriləcək.
+                Şifrə yeniləndikdə istifadəçi yeni şifrə ilə birbaşa daxil ola bilər və şifrə YALNIZ bir dəfə göstəriləcək.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
               <button onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-secondary">
                 Ləğv et
               </button>
-              <button onClick={submit} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90">
-                Yenilə
+              <button
+                onClick={submit}
+                disabled={busy}
+                className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? "Yenilənir..." : "Yenilə"}
               </button>
             </div>
           </>
