@@ -244,12 +244,11 @@ const scheduleFlush = () => {
   if (suppressFlush || !currentOrgId) return;
   pendingFlush = true;
   if (flushTimer) window.clearTimeout(flushTimer);
-  // Very short debounce so bursts of mutations coalesce but the DB write
-  // hits Postgres before the user can navigate/refresh.
+  // Fire immediately so DB writes hit Postgres before the user can refresh.
   flushTimer = window.setTimeout(() => {
     flushTimer = null;
     void flushLocalOrgToCloud();
-  }, 50);
+  }, 0);
 };
 
 export const flushLocalOrgToCloud = async () => {
@@ -268,6 +267,12 @@ export const flushLocalOrgToCloud = async () => {
     resolveFlush();
     flushInFlight = null;
   }
+};
+
+/** Force any pending local mutation to be written to the DB and await it. */
+export const persistOrgNow = async () => {
+  if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  await flushLocalOrgToCloud();
 };
 
 export const createEmployeeInCloud = async (input: CreateEmployeeInput): Promise<OrgEmployee> => {
