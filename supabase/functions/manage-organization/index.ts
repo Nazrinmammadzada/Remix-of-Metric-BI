@@ -150,6 +150,44 @@ serve(async (req) => {
         }
       }
 
+      // Ensure the organization also starts with USER and MANAGER default roles.
+      for (const defaultRole of [
+        { code: "user", name: "USER", template: "user_template" },
+        { code: "manager", name: "MANAGER", template: "manager_template" },
+      ]) {
+        const { data: createdDefault } = await admin
+          .from("roles")
+          .insert({
+            organization_id: org.id,
+            name: defaultRole.name,
+            code: defaultRole.code,
+            is_system_role: true,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+
+        if (createdDefault?.id) {
+          const { data: templateRole } = await admin
+            .from("roles")
+            .select("id")
+            .eq("code", defaultRole.template)
+            .is("organization_id", null)
+            .maybeSingle();
+          if (templateRole?.id) {
+            const { data: templatePerms } = await admin
+              .from("role_permissions")
+              .select("permission_id")
+              .eq("role_id", templateRole.id);
+            if (templatePerms?.length) {
+              await admin.from("role_permissions").insert(
+                templatePerms.map((p: any) => ({ role_id: createdDefault.id, permission_id: p.permission_id }))
+              );
+            }
+          }
+        }
+      }
+
       // Add member + user_role
       const { data: member, error: mErr } = await admin
         .from("organization_members")
