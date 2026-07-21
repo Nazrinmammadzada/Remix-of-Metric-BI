@@ -107,27 +107,41 @@ export const flushPhase1ToCloud = async () => {
 };
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
-const listeners: Array<{ event: string; handler: () => void }> = [];
+const trackedLocalKeys = new Set(STORES.map(s => s.localKey));
+let originalSetItem: ((key: string, value: string) => void) | null = null;
+let originalRemoveItem: ((key: string) => void) | null = null;
+
+const installStoragePatch = () => {
+  if (originalSetItem) return;
+  originalSetItem = Storage.prototype.setItem;
+  originalRemoveItem = Storage.prototype.removeItem;
+  const setItem = originalSetItem;
+  const removeItem = originalRemoveItem;
+  Storage.prototype.setItem = function (key: string, value: string) {
+    setItem.call(this, key, value);
+    if (this === window.localStorage && trackedLocalKeys.has(key)) scheduleFlush(key);
+  };
+  Storage.prototype.removeItem = function (key: string) {
+    removeItem.call(this, key);
+    if (this === window.localStorage && trackedLocalKeys.has(key)) scheduleFlush(key);
+  };
+};
+
+const uninstallStoragePatch = () => {
+  if (originalSetItem) { Storage.prototype.setItem = originalSetItem; originalSetItem = null; }
+  if (originalRemoveItem) { Storage.prototype.removeItem = originalRemoveItem; originalRemoveItem = null; }
+};
 
 export const activatePhase1Sync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
   currentOrgId = orgId;
+  installStoragePatch();
   await hydratePhase1FromCloud(orgId);
-  // Wire one listener per unique event.
-  const unique = new Set(STORES.map(s => s.event));
-  unique.forEach(evt => {
-    const handler = () => scheduleFlush(evt);
-    window.addEventListener(evt, handler);
-    listeners.push({ event: evt, handler });
-  });
 };
 
 export const deactivatePhase1Sync = () => {
   currentOrgId = null;
-  while (listeners.length) {
-    const { event, handler } = listeners.pop()!;
-    window.removeEventListener(event, handler);
-  }
+  uninstallStoragePatch();
   flushTimers.forEach(t => window.clearTimeout(t));
   flushTimers.clear();
 };
