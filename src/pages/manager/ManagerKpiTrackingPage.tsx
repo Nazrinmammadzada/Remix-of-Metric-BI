@@ -221,7 +221,14 @@ const ManagerKpiTrackingPage = () => {
     return result;
   }, [tree, sharedCards, user?.name]);
 
-  const myKpis = useMemo(() => [...dynamicMyKpis, ...MY_KPIS], [dynamicMyKpis]);
+  // Yalnız cari istifadəçiyə aid KPI-lar. Seed-də olan digər şəxslərin
+  // demo KPI-ları başqa hesablarda "Mənim KPI-larım"-da görünməməlidir.
+  const myKpis = useMemo(() => {
+    const seed = user?.name
+      ? MY_KPIS.filter(k => k.responsible.name === user.name)
+      : MY_KPIS;
+    return [...dynamicMyKpis, ...seed];
+  }, [dynamicMyKpis, user?.name]);
 
   // Rəhbər yalnız öz strukturunu görməlidir, HR/SUPER_ADMIN isə bütün şirkəti.
   const subScopePath = useMemo<string | null>(() => {

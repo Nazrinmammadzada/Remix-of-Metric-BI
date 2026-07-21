@@ -2042,7 +2042,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 return (
                   <LifecycleView
                     lifecycle={lc}
-                    editable
                     cardId={selectedKpi.id}
                     cardName={withKartSuffix(selectedKpi.name)}
                     cardMeta={{ startDate: selectedKpi.startDate, endDate: selectedKpi.endDate, frequency: selectedKpi.frequency }}
@@ -2074,7 +2073,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                           const status = (computed === "held" || computed === "missed" || computed === "deferred")
                             ? "completed" : computed === "in_progress" ? "in_progress" : "pending";
                           const reviewer = (selectedKpi.team && selectedKpi.team[0]?.name) || selectedKpi.responsible || "—";
-                          const canRecordOutcome = !r.outcomeStatus && (computed === "in_progress" || computed === "missed");
                           return (
                             <div key={r.id} className={`flex items-start gap-3 p-3 rounded-lg border ${styleDef.card}`}>
                               <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold shrink-0">
@@ -2083,17 +2081,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2 flex-wrap">
                                   <p className="text-sm font-semibold text-foreground">Review #{i + 1} · {r.period}</p>
-                                  <div className="flex items-center gap-2">
-                                    {canRecordOutcome && (
-                                      <Button size="sm" variant="outline" className="h-6 text-[11px] px-2"
-                                        onClick={() => setReviewOutcomeDialog({ reviewId: r.id, status: "held", comment: "" })}>
-                                        Nəticəni qeyd et
-                                      </Button>
-                                    )}
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${styleDef.badge}`}>
-                                      <BadgeIcon className="w-3 h-3" />{styleDef.badgeLabel}
-                                    </span>
-                                  </div>
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${styleDef.badge}`}>
+                                    <BadgeIcon className="w-3 h-3" />{styleDef.badgeLabel}
+                                  </span>
                                 </div>
                                 <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
                                   <span>Başlama: {r.start || "—"}</span>

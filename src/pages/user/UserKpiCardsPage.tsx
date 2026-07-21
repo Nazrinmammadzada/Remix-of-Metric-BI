@@ -498,10 +498,9 @@ const KpiListView = ({
               <SelectTrigger className="w-44 h-9 mt-0.5"><SelectValue placeholder="Bütün statuslar" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Bütün statuslar</SelectItem>
-                <SelectItem value="in_progress">İcradadır</SelectItem>
-                <SelectItem value="at_risk">Riskdə</SelectItem>
+                <SelectItem value="in_progress">İcrada</SelectItem>
                 <SelectItem value="completed">Tamamlandı</SelectItem>
-                <SelectItem value="delayed">Gecikir</SelectItem>
+                <SelectItem value="not_achieved">Tamamlanmadı</SelectItem>
               </SelectContent>
             </Select>
           </div>
