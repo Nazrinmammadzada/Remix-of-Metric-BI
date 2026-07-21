@@ -79,6 +79,7 @@ export async function upsertStatus(row: Partial<KpiCardStatusRow> & { card_id: n
     updated_at: new Date().toISOString(),
   } as KpiCardStatusRow;
   localStorage.setItem(LS_KEY, JSON.stringify(current));
+  window.dispatchEvent(new Event("kpi-cards-updated"));
 }
 
 export async function submitToMatrix(cardId: number): Promise<void> {
