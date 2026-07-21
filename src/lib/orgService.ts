@@ -231,16 +231,38 @@ let suppressFlush = false;
 let flushTimer: number | null = null;
 let currentOrgId: string | null = null;
 let activeUserId: string | null = null;
+let flushInFlight: Promise<void> | null = null;
+let pendingFlush = false;
 
 const scheduleFlush = () => {
   if (suppressFlush || !currentOrgId) return;
+  pendingFlush = true;
   if (flushTimer) window.clearTimeout(flushTimer);
-  flushTimer = window.setTimeout(() => { flushTimer = null; void flushLocalOrgToCloud(); }, 400);
+  flushTimer = window.setTimeout(() => {
+    flushTimer = null;
+    void flushLocalOrgToCloud();
+  }, 150);
 };
 
 export const flushLocalOrgToCloud = async () => {
   const orgId = currentOrgId;
   if (!orgId) return;
+  // Serialize concurrent flushes to avoid duplicate inserts.
+  if (flushInFlight) {
+    await flushInFlight;
+  }
+  let resolveFlush!: () => void;
+  flushInFlight = new Promise<void>((r) => { resolveFlush = r; });
+  pendingFlush = false;
+  try {
+    await doFlush(orgId);
+  } finally {
+    resolveFlush();
+    flushInFlight = null;
+  }
+};
+
+const doFlush = async (orgId: string) => {
   const map = loadMap(orgId);
 
   // Diff by full replace for simplicity: delete rows whose numeric id no longer
@@ -266,10 +288,16 @@ export const flushLocalOrgToCloud = async () => {
       position_name: e.positionName ?? null,
     };
     if (uuid) {
-      await supabase.from("org_employees").update(payload).eq("id", uuid);
+      const { error } = await supabase.from("org_employees").update(payload).eq("id", uuid);
+      if (error) console.error("[orgSync] employee update failed", error, payload);
     } else {
       const ins = await supabase.from("org_employees").insert(payload).select("id").single();
-      if (ins.data) { map.toUuid[e.id] = ins.data.id; map.toNum[ins.data.id] = e.id; }
+      if (ins.error) {
+        console.error("[orgSync] employee insert failed", ins.error, payload);
+      } else if (ins.data) {
+        map.toUuid[e.id] = ins.data.id;
+        map.toNum[ins.data.id] = e.id;
+      }
     }
   }
 
