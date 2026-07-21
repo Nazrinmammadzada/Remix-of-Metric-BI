@@ -7,6 +7,8 @@ import {
   setHrAdminMustChangePassword,
 } from "@/lib/hrAdminStore";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _ALL_MODULE_KEYS = ALL_MODULE_KEYS;
 import {
   derivePermissionsFromDbCodes,
   deriveRoleFromDbCodes,
