@@ -13,6 +13,7 @@ import {
   HR_FULL_UI_PERMISSIONS,
   type AppRole,
 } from "@/lib/permissionMapping";
+import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 
 export interface OrgMembership {
   organizationId: string;
