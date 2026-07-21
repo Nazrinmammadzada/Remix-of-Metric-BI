@@ -390,6 +390,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivatePayrollSync();
         deactivateLifecycleSync();
         deactivateNotificationsSync();
+        deactivatePhase1Sync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
