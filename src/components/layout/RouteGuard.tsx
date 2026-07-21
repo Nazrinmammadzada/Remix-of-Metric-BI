@@ -11,7 +11,9 @@ interface RouteGuardProps {
 }
 
 const RouteGuard = ({ children, requiredPermissions, requiredRole, blockRoles }: RouteGuardProps) => {
-  const { user, hasPermission } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
+
+  if (loading) return null;
 
   if (!user) return <Navigate to="/login" replace />;
 

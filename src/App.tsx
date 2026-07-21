@@ -66,7 +66,8 @@ runDevResetOnce();
 const queryClient = new QueryClient();
 
 const RootRedirect = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
   if (user.role === "SUPER_ADMIN") return <Navigate to="/super-admin" replace />;
@@ -76,7 +77,8 @@ const RootRedirect = () => {
 };
 
 const LoginGuard = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   if (user) {
     if (user.mustChangePassword) return <Navigate to="/change-password" replace />;
     const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
@@ -90,13 +92,15 @@ const LoginGuard = () => {
 
 // Force users with a temporary password to visit /change-password first.
 const RequirePasswordChanged = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   if (user?.mustChangePassword) return <Navigate to="/change-password" replace />;
   return <>{children}</>;
 };
 
 const ChangePasswordGuard = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (!user.mustChangePassword) {
     const dest = user.role === "SUPER_ADMIN" ? "/super-admin"
