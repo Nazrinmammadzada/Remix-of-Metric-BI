@@ -18,7 +18,6 @@ const Inner = () => {
 const UserLayout = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "USER") return <Navigate to="/access-denied" replace />;
   return (
     <SidebarProvider>
       <Inner />
