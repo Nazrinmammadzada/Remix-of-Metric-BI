@@ -124,6 +124,7 @@ const App = () => {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/change-password" element={<ChangePasswordGuard />} />
             <Route path="/access-denied" element={<AccessDenied />} />
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
             {/* HR Panel — Super Admin bura giriş edə bilməz */}
             <Route element={<RouteGuard blockRoles={["SUPER_ADMIN"]}><RequirePasswordChanged><AppLayout /></RequirePasswordChanged></RouteGuard>}>
