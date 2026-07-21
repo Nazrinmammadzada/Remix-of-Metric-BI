@@ -745,16 +745,16 @@ const beforeUnloadFlush = () => {
 
 const scheduleRehydrate = () => {
   if (!currentOrgId) return;
+  if (Date.now() < skipRehydrateUntil) return;
   if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
   rehydrateTimer = window.setTimeout(async () => {
     rehydrateTimer = null;
-    // If a local mutation is pending or a flush is in flight, wait for it to
-    // finish before rehydrating — otherwise we'd wipe unsynced local changes.
     if (pendingFlush) { await flushLocalOrgToCloud(); }
     if (flushInFlight) { try { await flushInFlight; } catch {} }
     if (currentOrgId) void hydrateOrgFromCloud(currentOrgId);
   }, 400);
 };
+
 
 export const activateOrgSync = async (orgId: string, userId: string) => {
   if (currentOrgId === orgId && activeUserId === userId) return;
