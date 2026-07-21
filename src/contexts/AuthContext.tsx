@@ -4,9 +4,9 @@ import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
   derivePermissionsFromDbCodes,
   deriveRoleFromDbCodes,
-  HR_FULL_UI_PERMISSIONS,
   type AppRole,
 } from "@/lib/permissionMapping";
+
 import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsService";
 import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsService";
