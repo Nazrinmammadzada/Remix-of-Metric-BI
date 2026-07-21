@@ -18,6 +18,7 @@ import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsServ
 import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsService";
 import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService";
 import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
+import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/notificationsService";
 
 export interface OrgMembership {
   organizationId: string;
