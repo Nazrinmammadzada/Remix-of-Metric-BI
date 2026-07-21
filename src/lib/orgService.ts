@@ -507,9 +507,11 @@ export const addSlotsInCloud = async (positionId: number, count: number = 1, fra
     map.toUuid[localId] = row.id;
     map.toNum[row.id] = localId;
     if (localId >= map.next) map.next = localId + 1;
+  });
   saveMap(orgId, map);
   markLocalDbWrite();
 };
+
 
 
 export const removeSlotInCloud = async (slotId: number) => {
