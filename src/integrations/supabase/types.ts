@@ -14,6 +14,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_matrices: {
+        Row: {
+          created_at: string
+          id: string
+          local_id: string
+          mode: string | null
+          name: string
+          organization_id: string
+          steps: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          local_id: string
+          mode?: string | null
+          name: string
+          organization_id: string
+          steps?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          local_id?: string
+          mode?: string | null
+          name?: string
+          organization_id?: string
+          steps?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_matrices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approval_queue: {
+        Row: {
+          approver_ids: Json
+          created_at: string
+          created_by: string | null
+          current_step: number | null
+          decisions: Json
+          id: string
+          kpi_card_local_id: string
+          kpi_name: string
+          local_id: string
+          matrix_local_id: string | null
+          organization_id: string
+          status: string
+          steps_chain: Json | null
+          updated_at: string
+        }
+        Insert: {
+          approver_ids?: Json
+          created_at?: string
+          created_by?: string | null
+          current_step?: number | null
+          decisions?: Json
+          id?: string
+          kpi_card_local_id: string
+          kpi_name: string
+          local_id: string
+          matrix_local_id?: string | null
+          organization_id: string
+          status?: string
+          steps_chain?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          approver_ids?: Json
+          created_at?: string
+          created_by?: string | null
+          current_step?: number | null
+          decisions?: Json
+          id?: string
+          kpi_card_local_id?: string
+          kpi_name?: string
+          local_id?: string
+          matrix_local_id?: string | null
+          organization_id?: string
+          status?: string
+          steps_chain?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -57,6 +157,94 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cascade_matrices: {
+        Row: {
+          created_at: string
+          id: string
+          local_id: string
+          name: string
+          organization_id: string
+          scope_name: string
+          scope_type: string
+          shared_persons: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          local_id: string
+          name: string
+          organization_id: string
+          scope_name: string
+          scope_type: string
+          shared_persons?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          local_id?: string
+          name?: string
+          organization_id?: string
+          scope_name?: string
+          scope_type?: string
+          shared_persons?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cascade_matrices_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deletion_matrices: {
+        Row: {
+          approver: Json | null
+          created_at: string
+          id: string
+          local_id: string
+          min_approvals: number | null
+          mode: string | null
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          approver?: Json | null
+          created_at?: string
+          id?: string
+          local_id: string
+          min_approvals?: number | null
+          mode?: string | null
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          approver?: Json | null
+          created_at?: string
+          id?: string
+          local_id?: string
+          min_approvals?: number | null
+          mode?: string | null
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deletion_matrices_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

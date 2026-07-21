@@ -15,6 +15,7 @@ import {
 } from "@/lib/permissionMapping";
 import { activateOrgSync, deactivateOrgSync } from "@/lib/orgService";
 import { activateKpiCardsSync, deactivateKpiCardsSync } from "@/lib/kpiCardsService";
+import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsService";
 
 export interface OrgMembership {
   organizationId: string;
@@ -366,6 +367,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               if (u.currentOrgId && u.supabaseUserId) {
                 void activateOrgSync(u.currentOrgId, u.supabaseUserId);
                 void activateKpiCardsSync(u.currentOrgId);
+                void activateApprovalsSync(u.currentOrgId);
               }
             }
           });
@@ -373,6 +375,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         deactivateOrgSync();
         deactivateKpiCardsSync();
+        deactivateApprovalsSync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
@@ -390,6 +393,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (u.currentOrgId && u.supabaseUserId) {
             void activateOrgSync(u.currentOrgId, u.supabaseUserId);
                 void activateKpiCardsSync(u.currentOrgId);
+                void activateApprovalsSync(u.currentOrgId);
           }
         }
       } else {
@@ -417,6 +421,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (u.currentOrgId && u.supabaseUserId) {
           void activateOrgSync(u.currentOrgId, u.supabaseUserId);
                 void activateKpiCardsSync(u.currentOrgId);
+                void activateApprovalsSync(u.currentOrgId);
         }
         return { success: true };
       }
@@ -448,6 +453,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem(SESSION_KEY);
     deactivateOrgSync();
         deactivateKpiCardsSync();
+        deactivateApprovalsSync();
     await supabase.auth.signOut();
   };
 
