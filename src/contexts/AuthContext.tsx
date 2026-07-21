@@ -20,6 +20,7 @@ import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService
 import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
 import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/notificationsService";
 import { hydrateLanguageFromProfile } from "@/lib/languageService";
+import { logAudit } from "@/lib/auditService";
 
 export interface OrgMembership {
   organizationId: string;
