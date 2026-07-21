@@ -250,6 +250,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
+  // Realtime: when roles / role_permissions / user_roles change anywhere in
+  // the org, re-derive the current user's permissions so the UI updates
+  // without requiring a re-login.
+  useEffect(() => {
+    if (!user?.supabaseUserId) return;
+    const uid = user.supabaseUserId;
+    const email = user.email;
+
+    let scheduled: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (scheduled) return;
+      scheduled = setTimeout(async () => {
+        scheduled = null;
+        const fresh = await buildAuthUserFromSupabase(uid, email);
+        if (fresh) setUser(fresh);
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`rbac-live-${uid}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "role_permissions" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "roles" }, refresh)
+      .subscribe();
+
+    return () => {
+      if (scheduled) clearTimeout(scheduled);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.supabaseUserId, user?.email]);
+
+
+
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const lower = email.toLowerCase().trim();
