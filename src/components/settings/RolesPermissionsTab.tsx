@@ -292,7 +292,7 @@ const RolesPermissionsTab = () => {
 
   const modules = useMemo(() => {
     const set = new Set(permissions.map(p => p.module));
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => moduleSortKey(a) - moduleSortKey(b));
   }, [permissions]);
   useEffect(() => {
     if (!selectedModule && modules.length) setSelectedModule(modules[0]);
