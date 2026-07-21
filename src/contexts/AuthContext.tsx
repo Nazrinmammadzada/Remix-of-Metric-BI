@@ -365,12 +365,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               setUser(u);
               if (u.currentOrgId && u.supabaseUserId) {
                 void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+                void activateKpiCardsSync(u.currentOrgId);
               }
             }
           });
         }, 0);
       } else {
         deactivateOrgSync();
+        deactivateKpiCardsSync();
         // Only clear if there is no active demo session.
         loadDemoSession().then(demo => {
           if (!demo) setUser(null);
@@ -387,6 +389,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(u);
           if (u.currentOrgId && u.supabaseUserId) {
             void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+                void activateKpiCardsSync(u.currentOrgId);
           }
         }
       } else {
@@ -413,6 +416,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(u);
         if (u.currentOrgId && u.supabaseUserId) {
           void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+                void activateKpiCardsSync(u.currentOrgId);
         }
         return { success: true };
       }
@@ -443,6 +447,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
     deactivateOrgSync();
+        deactivateKpiCardsSync();
     await supabase.auth.signOut();
   };
 
