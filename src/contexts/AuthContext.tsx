@@ -283,7 +283,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         scheduled = null;
         const fresh = await buildAuthUserFromSupabase(uid, email);
         if (fresh) setUser(fresh);
-      }, 250);
+      }, 1500);
     };
 
     const channel = supabase
