@@ -535,12 +535,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await signInWithPasswordFast(lower, password, LOGIN_TIMEOUT_MS);
 
     if (!error && data?.user) {
-      const u = await withTimeout(
-        fetchAuthUserDirect(data.user.id, data.user.email ?? lower, data.access_token, LOGIN_TIMEOUT_MS)
-          .then(directUser => directUser ?? buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower)),
-        LOGIN_TIMEOUT_MS,
+      const u = (await withTimeout(
+        fetchAuthUserDirect(data.user.id, data.user.email ?? lower, data.access_token, 3500),
+        4000,
         "İstifadəçi məlumatları alınmadı"
-      );
+      ).catch(() => null)) ?? buildImmediateAuthUser(data, lower);
       if (u) {
           setUser(u);
           if (u.currentOrgId && u.supabaseUserId) {
