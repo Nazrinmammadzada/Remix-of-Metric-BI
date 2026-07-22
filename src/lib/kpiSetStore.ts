@@ -224,8 +224,7 @@ const norm = (value?: string | number | null) => String(value ?? "").split(" —
 
 const entryKey = (entry: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeId" | "assigneeName">) => {
   const assignee = entry.assigneeId != null ? String(entry.assigneeId) : norm(entry.assigneeName);
-  const target = norm(entry.subKpiName) || String(entry.subKpiId ?? "");
-  return `${entry.cardId}::${assignee}::${target}`;
+  return `${entry.cardId}::${assignee}`;
 };
 
 const betterEntry = (a: KpiSetEntry, b: KpiSetEntry) => {
@@ -233,7 +232,7 @@ const betterEntry = (a: KpiSetEntry, b: KpiSetEntry) => {
   return (Number(a.updatedAt) || 0) >= (Number(b.updatedAt) || 0) ? a : b;
 };
 
-const dedupeEntries = (rows: KpiSetEntry[]): KpiSetEntry[] => {
+export const dedupeKpiSetEntries = (rows: KpiSetEntry[]): KpiSetEntry[] => {
   const map = new Map<string, KpiSetEntry>();
   rows.forEach(row => {
     const key = entryKey(row);
@@ -248,7 +247,7 @@ const load = (): KpiSetEntry[] => {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as KpiSetEntry[];
-      const compact = dedupeEntries(Array.isArray(parsed) ? parsed : []);
+      const compact = dedupeKpiSetEntries(Array.isArray(parsed) ? parsed : []);
       if (compact.length !== parsed.length) localStorage.setItem(KEY, JSON.stringify(compact));
       return compact;
     }
@@ -258,7 +257,7 @@ const load = (): KpiSetEntry[] => {
 };
 
 const persist = (rows: KpiSetEntry[]) => {
-  localStorage.setItem(KEY, JSON.stringify(dedupeEntries(rows)));
+  localStorage.setItem(KEY, JSON.stringify(dedupeKpiSetEntries(rows)));
   window.dispatchEvent(new Event(EVT));
 };
 

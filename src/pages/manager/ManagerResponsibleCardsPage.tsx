@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
+import { useKpiSet, getIncomingCascadeLoad, dedupeKpiSetEntries, type KpiSetEntry } from "@/lib/kpiSetStore";
 import { addPendingEntry } from "@/lib/kpiSetStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
@@ -63,14 +63,15 @@ const getSetterEntriesFromSharedCards = (
 ): KpiSetEntry[] => {
   const me = stripPos(userName);
   if (!me) return [];
-  const existing = new Set(localRows.map(r => `${r.cardId}::${stripPos(r.assigneeName)}::${String(r.subKpiName || "").trim()}`));
+  const entryKey = (r: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeName">) => `${r.cardId}::${stripPos(r.assigneeName)}`;
+  const existing = new Set(localRows.map(entryKey));
   const rows: KpiSetEntry[] = [];
   sharedCards.forEach(card => {
     const cardId = card.numericId ?? stableNum(card.id);
     (card.targets || []).forEach((target, index) => {
       if (target.createdBy !== "other" || stripPos(target.assigner) !== me) return;
       const targetName = String(target.name || `Hədəf ${index + 1}`).trim();
-      const key = `${cardId}::${me}::${targetName}`;
+      const key = entryKey({ cardId, subKpiId: index + 1, subKpiName: targetName, assigneeName: me });
       if (existing.has(key)) return;
       rows.push({
         id: `shared-${card.id}-${target.id || index}-${me}`,
@@ -131,7 +132,7 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
   const assignCount = useMemo(
     () => {
       const derived = getSetterEntriesFromSharedCards(sharedCards, user?.name, rows);
-      return rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards)).length + derived.length;
+      return dedupeKpiSetEntries([...rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards)), ...derived]).length;
     },
     [rows, sharedCards, user?.name],
   );
@@ -210,7 +211,7 @@ const AssignView = () => {
     const local = rows
       .filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards))
       .filter(r => String(r.subKpiName || "").trim() || !derivedCardAssignees.has(`${r.cardId}::${stripPos(r.assigneeName)}`));
-    return [...local, ...derived];
+    return dedupeKpiSetEntries([...local, ...derived]);
   }, [rows, sharedCards, user?.name]);
 
   const groups = useMemo<CardGroup[]>(() => {

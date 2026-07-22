@@ -157,6 +157,18 @@ const targetsForKpi = (k: Kpi) => {
   }];
 };
 
+const dedupeKpis = <T extends Kpi>(rows: T[]): T[] => {
+  const norm = (value?: string) => String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const keyOf = (k: Kpi) => [norm(k.name), norm(k.responsible?.name), norm(k.deadline), norm(k.method)].join("::");
+  const map = new Map<string, T>();
+  rows.forEach(row => {
+    const key = keyOf(row);
+    const prev = map.get(key);
+    if (!prev || Date.parse(row.updatedAt || "") >= Date.parse(prev.updatedAt || "")) map.set(key, row);
+  });
+  return Array.from(map.values());
+};
+
 
 type View = "hub" | "own" | "team" | "sub" | "reviews";
 
@@ -221,7 +233,7 @@ const ManagerKpiTrackingPage = () => {
           });
         });
     }
-    return result;
+    return dedupeKpis(result);
   }, [tree, sharedCards, user?.name]);
 
   // Yalnız cari istifadəçiyə aid KPI-lar. Seed-də olan digər şəxslərin
@@ -230,7 +242,7 @@ const ManagerKpiTrackingPage = () => {
     const seed = user?.name
       ? MY_KPIS.filter(k => k.responsible.name === user.name)
       : MY_KPIS;
-    return [...dynamicMyKpis, ...seed];
+    return dedupeKpis([...dynamicMyKpis, ...seed]);
   }, [dynamicMyKpis, user?.name]);
 
   // Rəhbər yalnız öz strukturunu görməlidir, HR/SUPER_ADMIN isə bütün şirkəti.

@@ -69,7 +69,7 @@ const writeLocal = (key: string, value: unknown) => {
 const normalizeKpiSetEntries = (value: unknown): unknown => {
   if (!Array.isArray(value)) return value;
   const norm = (v: unknown) => String(v ?? "").split(" — ")[0].trim().toLowerCase().replace(/\s+/g, " ");
-  const keyOf = (row: any) => `${row?.cardId}::${row?.assigneeId ?? norm(row?.assigneeName)}::${norm(row?.subKpiName) || row?.subKpiId || ""}`;
+  const keyOf = (row: any) => `${row?.cardId}::${row?.assigneeId ?? norm(row?.assigneeName)}`;
   const map = new Map<string, any>();
   value.forEach((row: any) => {
     const key = keyOf(row);
@@ -79,6 +79,25 @@ const normalizeKpiSetEntries = (value: unknown): unknown => {
     }
   });
   return Array.from(map.values()).sort((a, b) => Number(b?.updatedAt || 0) - Number(a?.updatedAt || 0));
+};
+
+const normalizeCascadeTree = (value: unknown): unknown => {
+  if (!Array.isArray(value)) return value;
+  const norm = (v: unknown) => String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  const keyOf = (row: any) => `${row?.parentId || "root"}::${norm(row?.cardName)}::${norm(row?.goalName)}::${row?.assigneeId ?? norm(row?.assigneeName)}`;
+  const map = new Map<string, any>();
+  value.forEach((row: any) => {
+    const key = keyOf(row);
+    const prev = map.get(key);
+    if (!prev || Number(row?.updatedAt || row?.createdAt || 0) > Number(prev?.updatedAt || prev?.createdAt || 0)) map.set(key, row);
+  });
+  return Array.from(map.values()).sort((a, b) => Number(b?.updatedAt || b?.createdAt || 0) - Number(a?.updatedAt || a?.createdAt || 0));
+};
+
+const normalizeStoreValue = (localKey: string, value: unknown): unknown => {
+  if (localKey === "kpi_set_entries_v6") return normalizeKpiSetEntries(value);
+  if (localKey === "cascade_tree_nodes_v4") return normalizeCascadeTree(value);
+  return value;
 };
 
 let suppressFlush = false;
@@ -101,7 +120,7 @@ export const hydratePhase1FromCloud = async (orgId: string): Promise<void> => {
     for (const store of STORES) {
       const val = byKey.get(store.cloudKey);
       if (val !== undefined && val !== null) {
-        const normalized = store.localKey === "kpi_set_entries_v6" ? normalizeKpiSetEntries(val) : val;
+        const normalized = normalizeStoreValue(store.localKey, val);
         writeLocal(store.localKey, normalized);
         lastWrittenJson.set(store.localKey, JSON.stringify(normalized));
         touchedEvents.add(store.event);
@@ -138,7 +157,8 @@ export const flushPhase1ToCloud = async (localKey?: string) => {
   const rows: Row[] = [];
   const changedKeys: string[] = [];
   for (const s of stores) {
-    const entries = readLocal<unknown>(s.localKey, null);
+    const rawEntries = readLocal<unknown>(s.localKey, null);
+    const entries = normalizeStoreValue(s.localKey, rawEntries);
     if (entries === null || entries === undefined) continue;
     const json = JSON.stringify(entries);
     if (lastWrittenJson.get(s.localKey) === json) continue;

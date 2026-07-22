@@ -11,6 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
   getSharedKpiCards, upsertSharedKpiCard,
+  dedupeSharedKpiCards,
   type SharedKpiCard, type SharedKpiStatus, type ExecutionStatus,
 } from "@/lib/kpiCardStore";
 import { logAudit } from "@/lib/auditService";
@@ -63,7 +64,7 @@ export const hydrateKpiCardsFromCloud = async (orgId: string): Promise<void> => 
   }
 
   // Rebuild shared KPI card records.
-  const shared: SharedKpiCard[] = cards.map((c: any) => ({
+  const shared: SharedKpiCard[] = dedupeSharedKpiCards(cards.map((c: any) => ({
     id: c.id as string,
     numericId: c.legacy_numeric_id ?? undefined,
     name: c.name,
@@ -100,7 +101,7 @@ export const hydrateKpiCardsFromCloud = async (orgId: string): Promise<void> => 
     })),
     createdAt: c.created_at,
     updatedAt: c.updated_at,
-  }));
+  })));
 
   // Rebuild status + meta caches from card rows.
   const status: Record<number, any> = {};
@@ -259,7 +260,17 @@ export const flushLocalKpiCardsToCloud = async () => {
     };
 
     let cardUuid: string | null = null;
-    if (isUuid(c.id)) {
+    if (numeric != null) {
+      const upsert = await supabase
+        .from("kpi_cards")
+        .upsert(payload, { onConflict: "organization_id,legacy_numeric_id" })
+        .select("id")
+        .single();
+      if (upsert.data) {
+        cardUuid = upsert.data.id as string;
+        if (c.id !== cardUuid) upsertSharedKpiCard({ ...c, id: cardUuid });
+      }
+    } else if (isUuid(c.id)) {
       const upd = await supabase.from("kpi_cards").update(payload).eq("id", c.id).select("id").maybeSingle();
       if (upd.data) cardUuid = upd.data.id as string;
       else {
