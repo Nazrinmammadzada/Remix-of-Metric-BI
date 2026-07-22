@@ -924,7 +924,7 @@ const AddSalaryDialog = ({ open, onClose, employees, onSaved }: AddSalaryDialogP
     setPeriods(p => p.map(x => x._key === key ? { ...x, _open: !x._open } : x));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!employeeId) { toast.error("Əməkdaş seçin"); return; }
     const emp = employees.find(e => e.id === Number(employeeId));
     if (!emp) return;
@@ -932,22 +932,32 @@ const AddSalaryDialog = ({ open, onClose, employees, onSaved }: AddSalaryDialogP
       toast.error("Bütün dövr sahələrini düzgün doldurun");
       return;
     }
-    addRecord({
-      employeeId: emp.id,
-      operator: "Admin",
-      periods: periods.map((p, i) => ({
-        id: Date.now() + i,
-        month: p.month,
-        year: p.year,
-        salary: p.salary,
-        totalDays: p.totalDays,
-        workedDays: p.workedDays,
-      })),
-    });
-    toast.success("Məlumat əlavə edildi");
-    reset();
-    onClose();
+    setSaving(true);
+    try {
+      await addRecord({
+        employeeId: emp.id,
+        operator: "Admin",
+        periods: periods.map((p, i) => ({
+          id: Date.now() + i,
+          month: p.month,
+          year: p.year,
+          salary: p.salary,
+          totalDays: p.totalDays,
+          workedDays: p.workedDays,
+        })),
+      });
+      const last = periods[periods.length - 1];
+      onSaved?.(last.year, last.month);
+      toast.success("Məlumat əlavə edildi və yadda saxlanıldı");
+      reset();
+      onClose();
+    } catch (e) {
+      toast.error("Yadda saxlama zamanı xəta baş verdi");
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
