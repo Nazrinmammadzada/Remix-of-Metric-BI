@@ -98,7 +98,20 @@ export const upsertSharedKpiCard = (card: SharedKpiCard) => {
   const list = load();
   const key = cardKey(card);
   const idx = list.findIndex(c => c.id === card.id || cardKey(c) === key);
-  if (idx >= 0) list[idx] = { ...card, updatedAt: new Date().toISOString() };
+  if (idx >= 0) {
+    const existing = list[idx];
+    const existingUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(existing.id);
+    const incomingUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(card.id);
+    list[idx] = {
+      ...existing,
+      ...card,
+      // Kart artıq backend UUID-si alıbsa, sonrakı edit zamanı legacy `kpi-123`
+      // id-si ilə əvəzlənməsin; əks halda hər flush yeni DB sətri yaradır.
+      id: existingUuid && !incomingUuid ? existing.id : card.id,
+      createdAt: existing.createdAt || card.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
   else list.unshift({ ...card, createdAt: card.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
   save(list);
 };
