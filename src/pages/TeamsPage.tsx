@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore";
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
-import { getStructures, type OrgStructure } from "@/lib/orgStore";
+import { getStructures, getEmployees as getLiveEmployees, type OrgStructure } from "@/lib/orgStore";
 import { useAuth } from "@/contexts/AuthContext";
 import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
