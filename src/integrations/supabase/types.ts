@@ -1606,7 +1606,7 @@ export type Database = {
       salary_records: {
         Row: {
           created_at: string
-          employee_id: string | null
+          employee_id: string
           employee_legacy_id: number
           id: string
           legacy_id: number
@@ -1617,7 +1617,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          employee_id?: string | null
+          employee_id: string
           employee_legacy_id: number
           id?: string
           legacy_id: number
@@ -1628,7 +1628,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          employee_id?: string | null
+          employee_id?: string
           employee_legacy_id?: number
           id?: string
           legacy_id?: number
@@ -1638,6 +1638,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "salary_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "org_employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "salary_records_organization_id_fkey"
             columns: ["organization_id"]
