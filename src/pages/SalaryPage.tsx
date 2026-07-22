@@ -260,7 +260,7 @@ const SalaryPage = () => {
     // Also seed base records for the selected period for each employee
     employees.forEach(emp => {
       if (!emp.salary) return;
-      addRecord({
+      void addRecord({
         employeeId: emp.id,
         operator: "HR Departamenti",
         periods: [{
