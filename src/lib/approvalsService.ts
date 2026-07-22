@@ -3,7 +3,7 @@
 // into Supabase, hydrating on login and flushing on local changes.
 
 import { supabase } from "@/integrations/supabase/client";
-import { logAudit } from "@/lib/auditService";
+
 
 const APPROVAL_KEY = "kpi_approval_matrices_v3";
 const DELETION_KEY = "kpi_deletion_matrices_v3";
