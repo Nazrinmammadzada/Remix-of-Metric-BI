@@ -45,7 +45,7 @@ const SalaryPage = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<SalaryRecord[]>(() => getRecords());
 
-  const [employees] = useState<OrgEmployee[]>(() => getEmployees());
+  const [employees, setEmployees] = useState<OrgEmployee[]>(() => getEmployees());
   const [uploads, setUploads] = useState<SalaryUpload[]>(() => getUploads());
 
   // Tabs
@@ -86,11 +86,14 @@ const SalaryPage = () => {
   useEffect(() => {
     const refresh = () => setRecords(getRecords());
     const refreshUploads = () => setUploads(getUploads());
+    const refreshEmployees = () => setEmployees(getEmployees());
     window.addEventListener("salary-updated", refresh);
     window.addEventListener("salary-uploads-updated", refreshUploads);
+    window.addEventListener("org-updated", refreshEmployees);
     return () => {
       window.removeEventListener("salary-updated", refresh);
       window.removeEventListener("salary-uploads-updated", refreshUploads);
+      window.removeEventListener("org-updated", refreshEmployees);
     };
   }, []);
 

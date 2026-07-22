@@ -18,6 +18,7 @@ export interface SalaryPeriod {
 export interface SalaryRecord {
   id: number;
   employeeId: number;
+  employeeUuid?: string;
   operator: string;
   periods: SalaryPeriod[];
   createdAt: string;
@@ -58,8 +59,7 @@ const load = (): SalaryRecord[] => {
     const raw = localStorage.getItem(STORAGE);
     if (raw) return JSON.parse(raw);
   } catch {}
-  localStorage.setItem(STORAGE, JSON.stringify(seed));
-  return seed;
+  return [];
 };
 
 const save = (list: SalaryRecord[]) => {
@@ -74,6 +74,12 @@ const flushCloud = async () => {
     const m = await import("@/lib/payrollService");
     await m.flushPayrollToCloud?.();
   } catch { /* noop */ }
+};
+
+const persistRecordCloud = async (record: SalaryRecord) => {
+  const m = await import("@/lib/payrollService");
+  const persisted = await m.persistSalaryRecordToCloud?.(record);
+  if (!persisted) await m.flushPayrollToCloud?.();
 };
 
 export const getRecords = (): SalaryRecord[] => load();
@@ -114,7 +120,7 @@ export const addRecord = async (data: Omit<SalaryRecord, "id" | "createdAt">) =>
 
   const next = [...others, nextRecord];
   save(next);
-  await flushCloud();
+  await persistRecordCloud(nextRecord);
   return next;
 };
 
