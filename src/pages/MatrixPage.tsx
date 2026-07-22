@@ -403,6 +403,7 @@ const ApprovalDialog = ({ open, onClose, initial, onSaved }: { open: boolean; on
 
   const ordinal = (n: number) => `${n}-ci təsdiqləyici`;
   const positionRoles = useCatalogValues("approver_roles", POSITION_ROLE_DEFAULTS);
+  const allUsers = useAllUsers();
 
   useEffect(() => {
     if (open) {
