@@ -35,11 +35,8 @@ const demoStaticPeople: TeamMember[] = [
   { name: "Orxan Məmmədov", role: "İpoteka Mütəxəssisi", kpiScore: 83, avatar: "O" },
 ];
 
-const liveOrgPeople = (structures: OrgStructure[]): TeamMember[] => {
-  // Static import at top of the file. We reuse orgStore's live snapshot.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { getEmployees } = require("@/lib/orgStore") as typeof import("@/lib/orgStore");
-  const emps = getEmployees();
+const liveOrgPeople = (_structures: OrgStructure[]): TeamMember[] => {
+  const emps = getLiveEmployees();
   return emps.map((e) => {
     const fullName = `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || (e.email ?? "—");
     return {
