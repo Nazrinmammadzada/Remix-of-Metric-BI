@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, type KpiSetEntry } from "@/lib/kpiSetStore";
+import { addPendingEntry } from "@/lib/kpiSetStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,11 @@ const parseNum = (v: string) => parseFloat(String(v).replace(/[^\d.\-]/g, "")) |
 
 // "Ad Soyad — Vəzifə" formatını sadə "Ad Soyad"-a çevirir.
 const stripPos = (v?: string) => String(v || "").split(" — ")[0].trim();
+const stableNum = (s: string): number => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+};
 
 const isEntryAssignedToSetter = (entry: KpiSetEntry, userName?: string, sharedCards: ReturnType<typeof useSharedKpiCards> = []) => {
   if (entry.ownerType !== "manager") return false;
@@ -49,6 +55,45 @@ interface CardGroup {
   cardName: string;
   entries: KpiSetEntry[];
 }
+
+const getSetterEntriesFromSharedCards = (
+  sharedCards: ReturnType<typeof useSharedKpiCards>,
+  userName?: string,
+  localRows: KpiSetEntry[] = [],
+): KpiSetEntry[] => {
+  const me = stripPos(userName);
+  if (!me) return [];
+  const existing = new Set(localRows.map(r => `${r.cardId}::${stripPos(r.assigneeName)}::${String(r.subKpiName || "").trim()}`));
+  const rows: KpiSetEntry[] = [];
+  sharedCards.forEach(card => {
+    const cardId = card.numericId ?? stableNum(card.id);
+    (card.targets || []).forEach((target, index) => {
+      if (target.createdBy !== "other" || stripPos(target.assigner) !== me) return;
+      const targetName = String(target.name || `Hədəf ${index + 1}`).trim();
+      const key = `${cardId}::${me}::${targetName}`;
+      if (existing.has(key)) return;
+      rows.push({
+        id: `shared-${card.id}-${target.id || index}-${me}`,
+        cardId,
+        cardName: card.name,
+        subKpiId: index + 1,
+        subKpiName: targetName,
+        type: target.type as KpiSetEntry["type"],
+        target: String(target.targetValue || ""),
+        unit: target.unit || "",
+        assigneeName: me,
+        ownerType: "manager",
+        status: "pending",
+        weight: target.weight,
+        weightMin: 5,
+        weightMax: 40,
+        cascadable: !!target.cascading,
+        updatedAt: Date.parse(card.updatedAt || card.createdAt || "") || Date.now(),
+      });
+    });
+  });
+  return rows;
+};
 
 const ManagerResponsibleCardsPage = () => {
   const [view, setView] = useState<View>("hub");
@@ -84,7 +129,10 @@ const HubView = ({ onOpen }: { onOpen: (v: View) => void }) => {
 
   // Yalnız cari istifadəçiyə həvalə olunmuş target-setter entry-ləri
   const assignCount = useMemo(
-    () => rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards)).length,
+    () => {
+      const derived = getSetterEntriesFromSharedCards(sharedCards, user?.name, rows);
+      return rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards)).length + derived.length;
+    },
     [rows, sharedCards, user?.name],
   );
   const evalCount = evalItems.length;
@@ -156,11 +204,19 @@ const AssignView = () => {
   const [assignEntry, setAssignEntry] = useState<KpiSetEntry | null>(null);
   const [cascadeConfirm, setCascadeConfirm] = useState<{ entry: KpiSetEntry; value: number; unit: string } | null>(null);
 
+  const assignRows = useMemo(() => {
+    const derived = getSetterEntriesFromSharedCards(sharedCards, user?.name, rows);
+    const derivedCardAssignees = new Set(derived.map(d => `${d.cardId}::${stripPos(d.assigneeName)}`));
+    const local = rows
+      .filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards))
+      .filter(r => String(r.subKpiName || "").trim() || !derivedCardAssignees.has(`${r.cardId}::${stripPos(r.assigneeName)}`));
+    return [...local, ...derived];
+  }, [rows, sharedCards, user?.name]);
+
   const groups = useMemo<CardGroup[]>(() => {
     // Yalnız cari istifadəçi target-setter olan entry-lər
-    const managerRows = rows.filter(r => isEntryAssignedToSetter(r, user?.name, sharedCards));
     const map = new Map<number, CardGroup>();
-    for (const r of managerRows) {
+    for (const r of assignRows) {
       if (!map.has(r.cardId)) map.set(r.cardId, { cardId: r.cardId, cardName: r.cardName, entries: [] });
       map.get(r.cardId)!.entries.push(r);
     }
@@ -171,9 +227,32 @@ const AssignView = () => {
       g.cardName.toLowerCase().includes(s) ||
       g.entries.some(e => e.subKpiName.toLowerCase().includes(s))
     );
-  }, [rows, sharedCards, q, user?.name]);
+  }, [assignRows, q]);
 
-  const openAssign = (e: KpiSetEntry) => setAssignEntry(e);
+  const openAssign = (e: KpiSetEntry) => {
+    if (!String(e.id).startsWith("shared-")) {
+      setAssignEntry(e);
+      return;
+    }
+    const materialized = addPendingEntry({
+      id: e.id,
+      cardId: e.cardId,
+      cardName: e.cardName,
+      subKpiId: e.subKpiId,
+      subKpiName: e.subKpiName,
+      type: e.type,
+      target: e.target,
+      unit: e.unit,
+      assigneeName: e.assigneeName,
+      assigneeId: e.assigneeId,
+      ownerType: e.ownerType,
+      weight: e.weight,
+      weightMin: e.weightMin,
+      weightMax: e.weightMax,
+      cascadable: e.cascadable,
+    });
+    setAssignEntry(materialized);
+  };
 
   const totals = useMemo(() => {
     const all = groups.flatMap(g => g.entries);

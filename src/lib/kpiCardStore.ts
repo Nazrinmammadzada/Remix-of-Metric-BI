@@ -118,7 +118,11 @@ export const buildSharedCardFromDraft = (
   numericId: meta.numericId,
   name: d.name || "Adsız KPI",
   ownerId: meta.ownerId,
-  evaluatorIds: Array.from(new Set(d.targets.map(t => t.evaluator).filter(Boolean))),
+  evaluatorIds: Array.from(new Set(d.targets.flatMap((t: any) => (
+    Array.isArray(t.evaluators) && t.evaluators.length
+      ? t.evaluators.map((e: any) => e.name)
+      : [t.evaluator]
+  )).filter(Boolean))),
   assigneeIds: meta.assigneeIds && meta.assigneeIds.length > 0
     ? meta.assigneeIds
     : Array.from(new Set(d.targets.map(t => t.assigner).filter(Boolean))),
