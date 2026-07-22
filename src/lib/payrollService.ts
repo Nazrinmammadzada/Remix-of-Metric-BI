@@ -28,51 +28,60 @@ export const hydratePayrollFromCloud = async (orgId: string): Promise<void> => {
     supabase.from("salary_uploads").select("*").eq("organization_id", orgId).order("legacy_id"),
   ]);
 
-  if (!nsRes.error && nsRes.data && nsRes.data.length > 0) {
-    writeLocal(NOTIF_KEY, nsRes.data.map(r => ({
-      id: r.local_id,
-      title: r.title,
-      description: r.description ?? "",
-      enabled: r.enabled,
-      channels: r.channels ?? [],
-      frequency: r.frequency ?? "on_event",
-      sendTime: r.send_time ?? "09:00",
-      schedule: r.schedule ?? { kind: r.frequency ?? "on_event", time: r.send_time ?? "09:00" },
-      recipients: r.recipients ?? [],
-      template: r.template ?? "",
-    })));
-  }
-  if (!srRes.error && srRes.data && srRes.data.length > 0) {
-    writeLocal(SALARY_KEY, srRes.data.map(r => ({
-      id: r.legacy_id,
-      employeeId: r.employee_legacy_id,
-      operator: r.operator ?? "",
-      periods: r.periods ?? [],
-      createdAt: r.created_at,
-    })));
-  }
-  if (!suRes.error && suRes.data && suRes.data.length > 0) {
-    writeLocal(UPLOAD_KEY, suRes.data.map(r => ({
-      id: r.legacy_id,
-      operator: r.operator ?? "",
-      year: r.year ?? 0,
-      month: r.month ?? "",
-      status: r.status ?? "Aktiv",
-      totalAmount: Number(r.total_amount ?? 0),
-      totalRows: r.total_rows ?? 0,
-      matched: r.matched ?? 0,
-      unmatched: r.unmatched ?? 0,
-      fileName: r.file_name ?? "",
-      uploadedBy: r.uploaded_by ?? "",
-      title: r.title ?? "",
-      details: r.details ?? [],
-      createdAt: r.created_at,
-    })));
-  }
+  suppressFlush = true;
+  try {
+    if (!nsRes.error && nsRes.data) {
+      writeLocal(NOTIF_KEY, nsRes.data.map(r => ({
+        id: r.local_id,
+        title: r.title,
+        description: r.description ?? "",
+        enabled: r.enabled,
+        channels: r.channels ?? [],
+        frequency: r.frequency ?? "on_event",
+        sendTime: r.send_time ?? "09:00",
+        schedule: r.schedule ?? { kind: r.frequency ?? "on_event", time: r.send_time ?? "09:00" },
+        recipients: r.recipients ?? [],
+        template: r.template ?? "",
+      })));
+    }
+    if (!srRes.error && srRes.data) {
+      writeLocal(SALARY_KEY, srRes.data.map(r => {
+        const employeeUuid = (r as any).employee_id as string | null | undefined;
+        return {
+          id: r.legacy_id,
+          employeeId: employeeUuid ? getOrgLocalIdForUuid(orgId, employeeUuid) : r.employee_legacy_id,
+          employeeUuid: employeeUuid ?? undefined,
+          operator: r.operator ?? "",
+          periods: r.periods ?? [],
+          createdAt: r.created_at,
+        };
+      }));
+    }
+    if (!suRes.error && suRes.data) {
+      writeLocal(UPLOAD_KEY, suRes.data.map(r => ({
+        id: r.legacy_id,
+        operator: r.operator ?? "",
+        year: r.year ?? 0,
+        month: r.month ?? "",
+        status: r.status ?? "Aktiv",
+        totalAmount: Number(r.total_amount ?? 0),
+        totalRows: r.total_rows ?? 0,
+        matched: r.matched ?? 0,
+        unmatched: r.unmatched ?? 0,
+        fileName: r.file_name ?? "",
+        uploadedBy: r.uploaded_by ?? "",
+        title: r.title ?? "",
+        details: r.details ?? [],
+        createdAt: r.created_at,
+      })));
+    }
 
-  window.dispatchEvent(new Event(NOTIF_EVT));
-  window.dispatchEvent(new Event(SALARY_EVT));
-  window.dispatchEvent(new Event(UPLOAD_EVT));
+    window.dispatchEvent(new Event(NOTIF_EVT));
+    window.dispatchEvent(new Event(SALARY_EVT));
+    window.dispatchEvent(new Event(UPLOAD_EVT));
+  } finally {
+    suppressFlush = false;
+  }
 };
 
 // ── FLUSH ───────────────────────────────────────────────────────────────────
@@ -127,11 +136,12 @@ export const flushPayrollToCloud = async () => {
     (async () => {
       await supabase.from("salary_records").delete().eq("organization_id", orgId);
       if (salary.length) {
-        await supabase.from("salary_records").insert(
+        await (supabase.from("salary_records") as any).insert(
           salary.map(s => ({
             organization_id: orgId,
             legacy_id: s.id,
             employee_legacy_id: s.employeeId,
+            employee_id: s.employeeUuid ?? getOrgUuidForLocalId(orgId, Number(s.employeeId)) ?? null,
             operator: s.operator ?? null,
             periods: s.periods ?? [],
           })),
@@ -160,6 +170,29 @@ export const flushPayrollToCloud = async () => {
   ]);
 };
 
+export const persistSalaryRecordToCloud = async (record: any): Promise<boolean> => {
+  const orgId = currentOrgId;
+  if (!orgId) return false;
+  const employeeUuid = record.employeeUuid ?? getOrgUuidForLocalId(orgId, Number(record.employeeId)) ?? null;
+  const table = supabase.from("salary_records") as any;
+  let del = table.delete().eq("organization_id", orgId);
+  del = employeeUuid ? del.eq("employee_id", employeeUuid) : del.eq("employee_legacy_id", Number(record.employeeId));
+  const { error: deleteError } = await del;
+  if (deleteError) throw deleteError;
+
+  const { error: insertError } = await table.insert({
+    organization_id: orgId,
+    legacy_id: record.id,
+    employee_legacy_id: record.employeeId,
+    employee_id: employeeUuid,
+    operator: record.operator ?? null,
+    periods: record.periods ?? [],
+  });
+  if (insertError) throw insertError;
+  if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  return true;
+};
+
 // ── LIFECYCLE ───────────────────────────────────────────────────────────────
 export const activatePayrollSync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
@@ -168,6 +201,13 @@ export const activatePayrollSync = async (orgId: string) => {
   window.addEventListener(NOTIF_EVT, scheduleFlush);
   window.addEventListener(SALARY_EVT, scheduleFlush);
   window.addEventListener(UPLOAD_EVT, scheduleFlush);
+
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`payroll-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "salary_records", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "salary_uploads", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
 };
 
 export const deactivatePayrollSync = () => {
@@ -176,4 +216,6 @@ export const deactivatePayrollSync = () => {
   window.removeEventListener(SALARY_EVT, scheduleFlush);
   window.removeEventListener(UPLOAD_EVT, scheduleFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
 };
