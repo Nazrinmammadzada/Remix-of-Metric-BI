@@ -1064,7 +1064,7 @@ const AddSalaryDialog = ({ open, onClose, employees, onSaved }: AddSalaryDialogP
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => { reset(); onClose(); }}>Ləğv et</Button>
-            <Button onClick={handleSave}>Yadda saxla</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "Saxlanılır..." : "Yadda saxla"}</Button>
           </div>
         </div>
       </DialogContent>
