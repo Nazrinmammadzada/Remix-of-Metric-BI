@@ -31,6 +31,8 @@ const LoginPage = () => {
       } else {
         setError(result.error || "Giriş uğursuz oldu");
       }
+    } catch (err: any) {
+      setError(err?.message || "Giriş zamanı xəta baş verdi");
     } finally {
       setLoading(false);
     }
