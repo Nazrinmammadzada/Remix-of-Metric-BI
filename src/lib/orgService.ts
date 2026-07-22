@@ -16,6 +16,7 @@ import { logAudit } from "@/lib/auditService";
 import {
   getEmployees, setEmployees, getStructures, setStructures,
   assignSlot, addSlot, removeSlot, addRootStructure, addSubStructure, addPosition,
+  renameStructure, setStarPerson,
   type OrgEmployee, type OrgStructure, type OrgPosition, type OrgSlot,
   type OrgSlotFraction,
 } from "@/lib/orgStore";
@@ -687,6 +688,95 @@ export const removeSlotInCloud = async (slotId: number) => {
 
   await syncEmployeeAssignmentRows(orgId, touchedEmployees);
   markLocalDbWrite();
+};
+
+
+// Struktur vahidinin adını dəyişir və dərhal database-ə yazır.
+export const renameStructureInCloud = async (structureId: number, name: string) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Ad boş ola bilməz.");
+
+  let map = loadMap(orgId);
+  let uuid = uuidFor(map, structureId);
+  if (!uuid) {
+    await doFlush(orgId);
+    map = loadMap(orgId);
+    uuid = uuidFor(map, structureId);
+  }
+  if (!uuid) throw new Error("Struktur database-də tapılmadı. Yenidən cəhd edin.");
+
+  suppressFlush = true;
+  try {
+    renameStructure(structureId, trimmed);
+  } finally {
+    suppressFlush = false;
+  }
+
+  const { error } = await supabase
+    .from("org_structures")
+    .update({ name: trimmed })
+    .eq("id", uuid)
+    .eq("organization_id", orgId);
+
+  if (error) {
+    console.error("[orgSync] structure rename failed", error);
+    void hydrateOrgFromCloud(orgId);
+    throw new Error(error.message || "Ad database-ə yazılmadı.");
+  }
+
+  markLocalDbWrite();
+
+  void logAudit({
+    organizationId: orgId,
+    action: "update",
+    module: "org_structure",
+    entityType: "org_structure",
+    entityId: uuid,
+    newValues: { name: trimmed },
+  });
+};
+
+
+// Şəxsə Rəhbər (⭐) rolu verir / geri götürür və dəyişikliyi database-ə yazır.
+// Eyni struktur vahidində digər rəhbər avtomatik geri götürülərsə, onun da
+// is_star_person sahəsi DB-də yenilənir.
+export const setStarPersonInCloud = async (employeeId: number, isStar: boolean) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  const before = getEmployees();
+  const beforeStars = new Set(before.filter(e => e.isStarPerson).map(e => e.id));
+
+  suppressFlush = true;
+  try {
+    setStarPerson(employeeId, isStar);
+  } finally {
+    suppressFlush = false;
+  }
+
+  const after = getEmployees();
+  const afterStars = new Set(after.filter(e => e.isStarPerson).map(e => e.id));
+
+  // Bütün dəyişmiş əməkdaşları topla — əlavə olunanlar və çıxarılanlar.
+  const changed = new Set<number>();
+  for (const id of afterStars) if (!beforeStars.has(id)) changed.add(id);
+  for (const id of beforeStars) if (!afterStars.has(id)) changed.add(id);
+  changed.add(employeeId);
+
+  await syncEmployeeAssignmentRows(orgId, [...changed]);
+  markLocalDbWrite();
+
+  void logAudit({
+    organizationId: orgId,
+    action: "update",
+    module: "org_structure",
+    entityType: "org_employee",
+    entityId: uuidFor(loadMap(orgId), employeeId) ?? String(employeeId),
+    newValues: { is_star_person: isStar },
+  });
 };
 
 

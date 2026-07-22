@@ -22,7 +22,7 @@ import {
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
-import { addPositionInCloud, addSlotsInCloud, addStructuresInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud } from "@/lib/orgService";
+import { addPositionInCloud, addSlotsInCloud, addStructuresInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud, renameStructureInCloud, setStarPersonInCloud } from "@/lib/orgService";
 
 
 import {
@@ -361,10 +361,9 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
       if (sourceSlotId !== leaderChange.slotId) {
         await assignSlotInCloud(sourceSlotId, { employeeId: null });
       }
-      // 3) Ulduz / rəhbər rolu bayrağını sinxronla.
-      setStarPerson(changeLeaderFor, false);
-      setStarPerson(newEmpId, true);
-      await persistOrgNow();
+      // 3) Ulduz / rəhbər rolu bayrağını database-də sinxronla.
+      await setStarPersonInCloud(changeLeaderFor, false);
+      await setStarPersonInCloud(newEmpId, true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Rəhbər dəyişikliyi database-ə yazılmadı.");
       return;
@@ -568,12 +567,17 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff,
 
   useEffect(() => { setDraftName(node.name); }, [node.name]);
 
-  const commitRename = () => {
+  const commitRename = async () => {
     const v = draftName.trim();
     if (!v) { setDraftName(node.name); setEditing(false); return; }
     if (v !== node.name) {
-      renameStructure(node.id, v);
-      toast.success("Ad yeniləndi");
+      try {
+        await renameStructureInCloud(node.id, v);
+        toast.success("Ad yeniləndi");
+      } catch (err) {
+        setDraftName(node.name);
+        toast.error(err instanceof Error ? err.message : "Ad database-ə yazılmadı.");
+      }
     }
     setEditing(false);
   };
@@ -916,7 +920,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
   );
 
   const leaderCtx = useContext(LeaderChangeCtx);
-  const handleToggleStar = () => {
+  const handleToggleStar = async () => {
     if (!current) return;
     // Rəhbəri dəyiş rejimi aktivdirsə tac klik yeni rəhbər seçimi kimi işləyir.
     if (leaderCtx) {
@@ -932,11 +936,15 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       return;
     }
     const next = !current.isStarPerson;
-    setStarPerson(current.id, next);
-    if (next) {
-      toast.success(`⭐ ${current.firstName} ${current.lastName} — Rəhbər rolu təyin edildi`);
-    } else {
-      toast.info(`${current.firstName} ${current.lastName} — Rəhbər rolu geri götürüldü`);
+    try {
+      await setStarPersonInCloud(current.id, next);
+      if (next) {
+        toast.success(`⭐ ${current.firstName} ${current.lastName} — Rəhbər rolu təyin edildi`);
+      } else {
+        toast.info(`${current.firstName} ${current.lastName} — Rəhbər rolu geri götürüldü`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Rəhbər rolu database-ə yazılmadı.");
     }
   };
 
