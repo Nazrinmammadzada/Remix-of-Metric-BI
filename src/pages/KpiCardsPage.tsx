@@ -19,7 +19,7 @@ import TeamMultiSelect from "@/components/kpi/TeamMultiSelect";
 import FilterTeamSelect from "@/components/kpi/FilterTeamSelect";
 import { getTeams } from "@/lib/teamsStore";
 import { validateTarget, getTargetPlaceholder, getTargetUnitSuffix } from "@/lib/kpiValidation";
-import { getApprovalMatrices, getDeletionMatrix, getDeletionMatrices, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, type ApprovalMatrix, type DeletionMatrix } from "@/lib/matrixStore";
+import { getApprovalMatrices, getDeletionMatrix, getDeletionMatrices, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, userRoleMap, roleUserMap, type ApprovalMatrix, type DeletionMatrix } from "@/lib/matrixStore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
