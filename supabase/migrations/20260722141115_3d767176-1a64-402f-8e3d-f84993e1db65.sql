@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION private.dedupe_kpi_set_entries_catalog_trigger() FROM PUBLIC, anon, authenticated, service_role, postgres;
+REVOKE ALL ON FUNCTION private.dedupe_cascade_tree_catalog_trigger() FROM PUBLIC, anon, authenticated, service_role, postgres;
