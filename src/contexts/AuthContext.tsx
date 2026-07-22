@@ -257,6 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             void activateLifecycleSync(u.currentOrgId);
             activateNotificationsSync(u.currentOrgId);
             void activatePhase1Sync(u.currentOrgId);
+            void activateTeamsSync(u.currentOrgId);
             if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
           }
         }
