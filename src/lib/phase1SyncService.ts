@@ -28,8 +28,8 @@ const STORES: StoreMirror[] = [
   { localKey: "kpi_formula_assignments_v2",  cloudKey: "formula_assignments",  event: "formula-assignments:updated",         table: "org_catalogs" },
   { localKey: "kpi_catalog_v2",              cloudKey: "catalog",              event: "catalog:updated",                     table: "org_catalogs" },
   { localKey: "kpi_dropdown_catalog_v1",     cloudKey: "dropdown_catalog",     event: "dropdown-catalog:updated",            table: "org_catalogs" },
-  { localKey: "kpi_deletion_requests_v1",    cloudKey: "deletion_requests",    event: "matrix:updated",                      table: "org_catalogs" },
-  { localKey: "kpi_deleted_ids_v1",          cloudKey: "deleted_kpi_ids",      event: "matrix:updated",                      table: "org_catalogs" },
+  { localKey: "kpi_deletion_requests_v1",    cloudKey: "deletion_requests",    event: "kpi-deletion-requests-updated",       table: "org_catalogs" },
+  { localKey: "kpi_deleted_ids_v1",          cloudKey: "deleted_kpi_ids",      event: "kpi-deletion-requests-updated",       table: "org_catalogs" },
   // Phase 2 — evaluation domain
   { localKey: "peer_reviews_v1",             cloudKey: "peer_reviews",         event: "peer-reviews:updated",                table: "org_catalogs" },
   { localKey: "competency_matrices_v1",      cloudKey: "competency_matrices",  event: "competency-matrices:updated",         table: "org_catalogs" },
