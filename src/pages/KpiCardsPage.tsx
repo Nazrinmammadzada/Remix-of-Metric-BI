@@ -764,11 +764,17 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     // Matris seçilibsə → əvvəlcə Set tamamlanmalıdır; Set bitəndə sistem avtomatik
     // "tesdiq_gozlenilir"-ə keçirir (bax: kpiApprovalFlow.triggerCardApprovalIfComplete).
     const hasPendingSet = (d.targets || []).some((t: any) => t.createdBy === "other");
+    // Status axını (bax: KPI Status Flow diaqramı):
+    //   Qaralama → Natamam → Təsdiq gözlənilir → (Aktiv | İmtina)
+    //   İmtinadan yalnız iki yol var: "Redaktə et və yenidən göndər" (→ Təsdiq gözlənilir)
+    //   və ya "Ləğv et" (→ Ləğv edildi). Birbaşa Aktiv-ə keçid yoxdur.
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
-      action === "create_active" ? "aktiv"
-      : action === "submit"
-        ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
-        : "qaralama";
+      wasRejected && action === "submit"
+        ? "tesdiq_gozlenilir"
+        : action === "create_active" ? "aktiv"
+        : action === "submit"
+          ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
+          : "qaralama";
     try {
       await upsertStatus({
         card_id: id,
