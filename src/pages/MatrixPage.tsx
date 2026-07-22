@@ -17,13 +17,38 @@ import { getOperationsLog, addOperationLog, type OperationLogEntry } from "@/lib
 import ColumnSearchHeader from "@/components/common/ColumnSearchHeader";
 import { DataTable } from "@/components/common/DataTable";
 import { useCatalogValues } from "@/lib/dropdownCatalogStore";
+import { getEmployees as getLiveEmployees } from "@/lib/orgStore";
 
 const POSITION_ROLE_DEFAULTS = ["Departament Rəhbəri", "Şöbə Müdiri", "Departament Direktoru", "Komanda Lideri", "HR Direktoru", "CFO", "CEO", "Kurator"];
 
-const allUsers = [
+const LEGACY_DEMO_USERS = [
   "Günel Əlizadə", "Samir Həsənov", "Leyla Məmmədova", "Rəşad Əliyev", "Nigar Hüseynova",
   "Farid Həsənov", "Emin Məmmədov", "Leyla Həsənova", "Kamran Quliyev", "Aysu Quliyeva",
 ];
+
+// DB-synced live employee names unioned with legacy demo names so the
+// approval / deletion matrix picker always shows the latest staff.
+const useAllUsers = (): string[] => {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const bump = () => setTick(x => x + 1);
+    window.addEventListener("org-updated", bump);
+    window.addEventListener("storage", bump);
+    return () => {
+      window.removeEventListener("org-updated", bump);
+      window.removeEventListener("storage", bump);
+    };
+  }, []);
+  return useMemo(() => {
+    const live = getLiveEmployees().map(e =>
+      `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || (e.email ?? ""),
+    ).filter(Boolean);
+    const seen = new Set(live.map(n => n.toLowerCase()));
+    const demo = LEGACY_DEMO_USERS.filter(n => !seen.has(n.toLowerCase()));
+    return [...live, ...demo];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+};
 
 const MatrixPage = () => {
   const [approvals, setApprovals] = useState<ApprovalMatrix[]>([]);
