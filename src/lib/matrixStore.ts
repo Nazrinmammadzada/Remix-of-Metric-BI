@@ -181,6 +181,7 @@ export interface DeletionRequest {
 }
 
 const REQUESTS_KEY = "kpi_deletion_requests_v1";
+const DELETION_REQUEST_EVT = "kpi-deletion-requests-updated";
 
 export const getDeletionRequests = (): DeletionRequest[] => {
   try {
@@ -217,7 +218,7 @@ export const addDeletionRequest = (req: Omit<DeletionRequest, "id" | "requestedA
   const value: DeletionRequest = { ...req, id: crypto.randomUUID(), requestedAt: new Date().toISOString(), status: "pending" };
   list.unshift(value);
   localStorage.setItem(REQUESTS_KEY, JSON.stringify(list));
-  window.dispatchEvent(new Event("matrix:updated"));
+  window.dispatchEvent(new Event(DELETION_REQUEST_EVT));
   return value;
 };
 
@@ -239,7 +240,7 @@ export const updateDeletionRequest = (id: string, status: "approved" | "rejected
       window.dispatchEvent(new CustomEvent("kpi:deleted", { detail: { kpiId: req.kpiId } }));
     }
   }
-  window.dispatchEvent(new Event("matrix:updated"));
+  window.dispatchEvent(new Event(DELETION_REQUEST_EVT));
 };
 
 export const getDeletedKpiIds = (): number[] => {
