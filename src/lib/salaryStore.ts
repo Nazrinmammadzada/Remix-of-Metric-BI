@@ -65,44 +65,66 @@ const load = (): SalaryRecord[] => {
 const save = (list: SalaryRecord[]) => {
   localStorage.setItem(STORAGE, JSON.stringify(list));
   window.dispatchEvent(new Event("salary-updated"));
-  // Fire-and-forget immediate cloud flush so periods per-month persist
-  // across refresh / logout / another browser / another device.
-  import("@/lib/payrollService").then(m => m.flushPayrollToCloud?.()).catch(() => {});
+};
+
+// Fire-and-forget immediate cloud flush so periods per-month persist
+// across refresh / logout / another browser / another device.
+const flushCloud = async () => {
+  try {
+    const m = await import("@/lib/payrollService");
+    await m.flushPayrollToCloud?.();
+  } catch { /* noop */ }
 };
 
 export const getRecords = (): SalaryRecord[] => load();
 
 /**
- * Merge-oriented add: one record per employee. New periods with the same
- * (year, month) REPLACE existing ones so the table always shows the most
- * recent value the user entered for that month.
+ * Merge-oriented add: guarantees ONE record per employee. New periods with the
+ * same (year, month) REPLACE existing ones — across all records for that
+ * employee — so the table always shows the most recent value the user entered
+ * for that month.
  */
-export const addRecord = (data: Omit<SalaryRecord, "id" | "createdAt">) => {
+export const addRecord = async (data: Omit<SalaryRecord, "id" | "createdAt">) => {
   const list = load();
-  const existing = list.find(r => r.employeeId === data.employeeId);
-  if (existing) {
-    const key = (p: SalaryPeriod) => `${p.year}-${p.month}`;
-    const incomingKeys = new Set(data.periods.map(key));
-    const kept = existing.periods.filter(p => !incomingKeys.has(key(p)));
-    let nextPid = Math.max(0, ...list.flatMap(r => r.periods.map(p => p.id))) + 1;
-    const merged = [...kept, ...data.periods.map(p => ({ ...p, id: nextPid++ }))];
-    merged.sort((a, b) => a.year - b.year || MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month));
-    existing.periods = merged;
-    if (data.operator) existing.operator = data.operator;
-    save(list);
-    return list;
-  }
-  const id = list.length ? Math.max(...list.map(r => r.id)) + 1 : 1;
-  list.push({ ...data, id, createdAt: new Date().toISOString() });
-  save(list);
-  return list;
+  // Collapse any pre-existing records for the same employee into one bucket.
+  const sameEmp = list.filter(r => r.employeeId === data.employeeId);
+  const others = list.filter(r => r.employeeId !== data.employeeId);
+
+  const key = (p: SalaryPeriod) => `${p.year}-${p.month}`;
+  const incomingKeys = new Set(data.periods.map(key));
+
+  const kept = sameEmp.flatMap(r => r.periods).filter(p => !incomingKeys.has(key(p)));
+  const allPeriods = [...kept, ...data.periods];
+  // Renumber period ids and sort chronologically.
+  let pid = 1;
+  const nextPeriods = allPeriods
+    .sort((a, b) => a.year - b.year || MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month))
+    .map(p => ({ ...p, id: pid++ }));
+
+  const base = sameEmp[0];
+  const nextRecord: SalaryRecord = base
+    ? { ...base, operator: data.operator || base.operator, periods: nextPeriods }
+    : {
+        id: (list.length ? Math.max(...list.map(r => r.id)) : 0) + 1,
+        employeeId: data.employeeId,
+        operator: data.operator,
+        periods: nextPeriods,
+        createdAt: new Date().toISOString(),
+      };
+
+  const next = [...others, nextRecord];
+  save(next);
+  await flushCloud();
+  return next;
 };
 
 export const removeRecord = (id: number) => {
   save(load().filter(r => r.id !== id));
+  void flushCloud();
 };
 
 export const computePay = (p: SalaryPeriod): number => {
   if (!p.totalDays || p.totalDays <= 0) return 0;
   return Math.round((p.salary * p.workedDays) / p.totalDays);
 };
+
