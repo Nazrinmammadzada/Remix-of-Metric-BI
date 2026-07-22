@@ -16,6 +16,7 @@ import { logAudit } from "@/lib/auditService";
 import {
   getEmployees, setEmployees, getStructures, setStructures,
   assignSlot, addSlot, removeSlot, addRootStructure, addSubStructure, addPosition,
+  renameStructure, setStarPerson,
   type OrgEmployee, type OrgStructure, type OrgPosition, type OrgSlot,
   type OrgSlotFraction,
 } from "@/lib/orgStore";
