@@ -884,6 +884,7 @@ interface AddSalaryDialogProps {
   open: boolean;
   onClose: () => void;
   employees: OrgEmployee[];
+  onSaved?: (year: number, month: Month) => void;
 }
 
 const blankPeriod = (): Omit<SalaryPeriod, "id"> => ({
@@ -894,16 +895,18 @@ const blankPeriod = (): Omit<SalaryPeriod, "id"> => ({
   workedDays: 0,
 });
 
-const AddSalaryDialog = ({ open, onClose, employees }: AddSalaryDialogProps) => {
+const AddSalaryDialog = ({ open, onClose, employees, onSaved }: AddSalaryDialogProps) => {
   const [employeeId, setEmployeeId] = useState<string>("");
   const [periods, setPeriods] = useState<Array<Omit<SalaryPeriod, "id"> & { _key: number; _open: boolean }>>([
     { ...blankPeriod(), _key: Date.now(), _open: true },
   ]);
+  const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setEmployeeId("");
     setPeriods([{ ...blankPeriod(), _key: Date.now(), _open: true }]);
   };
+
 
   const addPeriod = () => {
     setPeriods(p => [...p, { ...blankPeriod(), _key: Date.now() + Math.random(), _open: true }]);
