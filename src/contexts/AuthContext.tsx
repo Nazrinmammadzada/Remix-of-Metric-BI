@@ -347,9 +347,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         "Giriş sorğusu cavab vermədi"
       );
 
-      if (!error && data?.user) {
-        const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
-        if (u) {
+    if (!error && data?.user) {
+      const u = await withTimeout(
+        buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower),
+        LOGIN_TIMEOUT_MS,
+        "İstifadəçi məlumatları alınmadı"
+      );
+      if (u) {
           setUser(u);
           if (u.currentOrgId && u.supabaseUserId) {
             void activateOrgSync(u.currentOrgId, u.supabaseUserId);
