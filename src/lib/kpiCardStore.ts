@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import type { CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 
-export type SharedKpiStatus = "natamam" | "tesdiq_gozlenilir" | "imtina" | "aktiv";
+export type SharedKpiStatus = "qaralama" | "natamam" | "tesdiq_gozlenilir" | "imtina" | "aktiv";
 export type ExecutionStatus = "baslanmayib" | "icrada" | "tamamlandi" | "gecikme";
 
 export interface SharedKpiCard {
