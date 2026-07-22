@@ -921,7 +921,7 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
   );
 
   const leaderCtx = useContext(LeaderChangeCtx);
-  const handleToggleStar = () => {
+  const handleToggleStar = async () => {
     if (!current) return;
     // Rəhbəri dəyiş rejimi aktivdirsə tac klik yeni rəhbər seçimi kimi işləyir.
     if (leaderCtx) {
@@ -937,11 +937,15 @@ const SlotRow = ({ slot, index }: SlotRowProps) => {
       return;
     }
     const next = !current.isStarPerson;
-    setStarPerson(current.id, next);
-    if (next) {
-      toast.success(`⭐ ${current.firstName} ${current.lastName} — Rəhbər rolu təyin edildi`);
-    } else {
-      toast.info(`${current.firstName} ${current.lastName} — Rəhbər rolu geri götürüldü`);
+    try {
+      await setStarPersonInCloud(current.id, next);
+      if (next) {
+        toast.success(`⭐ ${current.firstName} ${current.lastName} — Rəhbər rolu təyin edildi`);
+      } else {
+        toast.info(`${current.firstName} ${current.lastName} — Rəhbər rolu geri götürüldü`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Rəhbər rolu database-ə yazılmadı.");
     }
   };
 
