@@ -46,10 +46,41 @@ export interface SharedKpiCard {
 const KEY = "shared_kpi_cards_v1";
 const EVT = "shared-kpi-cards-updated";
 
+const cardKey = (card: Pick<SharedKpiCard, "id" | "numericId" | "name" | "ownerId" | "startDate" | "endDate">) => {
+  if (card.numericId != null) return `num:${card.numericId}`;
+  const name = String(card.name || "").trim().toLowerCase().replace(/\s+/g, " ");
+  return `name:${name}::${card.ownerId || ""}::${card.startDate || ""}::${card.endDate || ""}`;
+};
+
+const betterCard = (a: SharedKpiCard, b: SharedKpiCard) => {
+  const au = Date.parse(a.updatedAt || a.createdAt || "") || 0;
+  const bu = Date.parse(b.updatedAt || b.createdAt || "") || 0;
+  const aUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(a.id);
+  const bUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.id);
+  if (aUuid !== bUuid) return aUuid ? a : b;
+  return bu > au ? b : a;
+};
+
+export const dedupeSharedKpiCards = (rows: SharedKpiCard[]): SharedKpiCard[] => {
+  const byId = new Map<string, SharedKpiCard>();
+  rows.forEach(row => byId.set(row.id, byId.has(row.id) ? betterCard(byId.get(row.id)!, row) : row));
+  const byCard = new Map<string, SharedKpiCard>();
+  Array.from(byId.values()).forEach(row => {
+    const key = cardKey(row);
+    byCard.set(key, byCard.has(key) ? betterCard(byCard.get(key)!, row) : row);
+  });
+  return Array.from(byCard.values()).sort((a, b) => (Date.parse(b.updatedAt || b.createdAt || "") || 0) - (Date.parse(a.updatedAt || a.createdAt || "") || 0));
+};
+
 const load = (): SharedKpiCard[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const compact = dedupeSharedKpiCards(Array.isArray(parsed) ? parsed : []);
+      if (Array.isArray(parsed) && compact.length !== parsed.length) localStorage.setItem(KEY, JSON.stringify(compact));
+      return compact;
+    }
   } catch {}
   const seed = seedCards();
   localStorage.setItem(KEY, JSON.stringify(seed));
@@ -57,7 +88,7 @@ const load = (): SharedKpiCard[] => {
 };
 
 const save = (list: SharedKpiCard[]) => {
-  localStorage.setItem(KEY, JSON.stringify(list));
+  localStorage.setItem(KEY, JSON.stringify(dedupeSharedKpiCards(list)));
   window.dispatchEvent(new Event(EVT));
 };
 
@@ -65,7 +96,8 @@ export const getSharedKpiCards = (): SharedKpiCard[] => load();
 
 export const upsertSharedKpiCard = (card: SharedKpiCard) => {
   const list = load();
-  const idx = list.findIndex(c => c.id === card.id);
+  const key = cardKey(card);
+  const idx = list.findIndex(c => c.id === card.id || cardKey(c) === key);
   if (idx >= 0) list[idx] = { ...card, updatedAt: new Date().toISOString() };
   else list.unshift({ ...card, createdAt: card.createdAt || new Date().toISOString(), updatedAt: new Date().toISOString() });
   save(list);
