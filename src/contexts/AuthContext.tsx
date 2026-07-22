@@ -396,6 +396,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const syncKeyRef = useRef<string | null>(null);
+  const syncTimersRef = useRef<number[]>([]);
+
+  const clearBusinessSyncTimers = () => {
+    syncTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    syncTimersRef.current = [];
+  };
 
   const startBusinessSyncs = (
     u: AuthUser,
@@ -404,6 +410,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!u.currentOrgId || !u.supabaseUserId) return;
     const key = `${u.currentOrgId}:${u.supabaseUserId}`;
     if (syncKeyRef.current === key) return;
+    clearBusinessSyncTimers();
     syncKeyRef.current = key;
 
     const orgId = u.currentOrgId;
@@ -414,23 +421,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }, 0);
     }
 
+    const schedule = (fn: () => void, delay: number) => {
+      const timer = window.setTimeout(() => {
+        syncTimersRef.current = syncTimersRef.current.filter((item) => item !== timer);
+        if (syncKeyRef.current === key) fn();
+      }, delay);
+      syncTimersRef.current.push(timer);
+    };
+
     // Start heavy data sync after the app has navigated, and stagger modules so
     // login/page paint is never blocked by multiple large database hydrations.
-    window.setTimeout(() => { void activateOrgSync(orgId, uid); }, 150);
-    window.setTimeout(() => { void activatePhase1Sync(orgId); }, 450);
-    window.setTimeout(() => { void activateTeamsSync(orgId); }, 700);
-    window.setTimeout(() => { void activateKpiCardsSync(orgId); }, 950);
-    window.setTimeout(() => { void activateApprovalsSync(orgId); }, 1200);
-    window.setTimeout(() => { void activatePayrollSync(orgId); }, 1450);
-    window.setTimeout(() => { void activateLifecycleSync(orgId); }, 1700);
-    window.setTimeout(() => { activateNotificationsSync(orgId); }, 1950);
-    window.setTimeout(() => { void hydrateLanguageFromProfile(uid); }, 2200);
+    schedule(() => { void activateOrgSync(orgId, uid); }, 800);
+    schedule(() => { void activatePhase1Sync(orgId); }, 1200);
+    schedule(() => { void activateTeamsSync(orgId); }, 1500);
+    schedule(() => { void activateKpiCardsSync(orgId); }, 1800);
+    schedule(() => { void activateApprovalsSync(orgId); }, 2100);
+    schedule(() => { void activatePayrollSync(orgId); }, 2400);
+    schedule(() => { void activateLifecycleSync(orgId); }, 2700);
+    schedule(() => { activateNotificationsSync(orgId); }, 3000);
+    schedule(() => { void hydrateLanguageFromProfile(uid); }, 3300);
   };
 
   useEffect(() => {
     // Subscribe first so we never miss an auth event.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
+        if (syncKeyRef.current?.endsWith(`:${session.user.id}`)) return;
         // Defer supabase calls to avoid deadlocks inside the callback.
         setTimeout(() => {
           buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then(u => {
@@ -449,6 +465,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivateNotificationsSync();
         deactivatePhase1Sync();
         deactivateTeamsSync();
+        clearBusinessSyncTimers();
         syncKeyRef.current = null;
         setUser(null);
       }
@@ -464,7 +481,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
+          const u = (await fetchAuthUserDirect(
+            session.user.id,
+            session.user.email ?? "",
+            session.access_token,
+            2500,
+          )) ?? await withTimeout(
+            buildAuthUserFromSupabase(session.user.id, session.user.email ?? ""),
+            3000,
+            "Sessiya məlumatları gecikdi",
+          ).catch(() => null);
           if (u) {
             setUser(u);
             startBusinessSyncs(u);
@@ -591,6 +617,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     deactivateNotificationsSync();
     deactivatePhase1Sync();
     deactivateTeamsSync();
+    clearBusinessSyncTimers();
     syncKeyRef.current = null;
     await supabase.auth.signOut();
   };
