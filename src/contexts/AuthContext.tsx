@@ -133,11 +133,87 @@ const deriveRoleFromSlugs = (roleCodes: string[], dbCodes: string[]): AppRole =>
   return "USER";
 };
 
+type AuthContextRpc = {
+  profile?: {
+    id: string;
+    email: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    is_platform_super_admin: boolean | null;
+    must_change_password: boolean | null;
+  } | null;
+  organizations?: OrgMembership[];
+  currentOrgId?: string | null;
+  roleCodes?: string[];
+  permissionCodes?: string[];
+};
+
+const buildAuthUserFromContext = (
+  ctx: AuthContextRpc,
+  supabaseUserId: string,
+  email: string,
+): AuthUser | null => {
+  const profile = ctx.profile;
+  if (!profile) return null;
+
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim()
+    || (profile.email ?? email);
+  const avatar = (fullName || email).charAt(0).toUpperCase();
+  const organizations = Array.isArray(ctx.organizations) ? ctx.organizations : [];
+  const currentOrgId = ctx.currentOrgId ?? organizations[0]?.organizationId;
+  const mustChangePassword = !!profile.must_change_password;
+
+  if (profile.is_platform_super_admin) {
+    return {
+      name: fullName,
+      email: profile.email ?? email,
+      role: "SUPER_ADMIN",
+      avatar,
+      department: "Platform",
+      team: "—",
+      permissions: ["admin_users"],
+      mustChangePassword,
+      supabaseUserId,
+      currentOrgId,
+      organizations,
+    };
+  }
+
+  const dbCodes = Array.isArray(ctx.permissionCodes) ? ctx.permissionCodes : [];
+  const roleCodes = Array.isArray(ctx.roleCodes) ? ctx.roleCodes : [];
+  const role = deriveRoleFromSlugs(roleCodes, dbCodes);
+  const permissions = derivePermissionsFromDbCodes(dbCodes);
+
+  return {
+    name: fullName,
+    email: profile.email ?? email,
+    role,
+    avatar,
+    department: organizations[0]?.organizationName ?? "—",
+    team: "—",
+    permissions,
+    mustChangePassword,
+    supabaseUserId,
+    currentOrgId,
+    organizations,
+  };
+};
+
 // ── Resolve a Supabase-authenticated user into an AuthUser (role + perms) ─────
 const buildAuthUserFromSupabase = async (
   supabaseUserId: string,
   email: string,
 ): Promise<AuthUser | null> => {
+  const { data: authContext, error: authContextError } = await (supabase as any)
+    .rpc("get_user_auth_context", { _user_id: supabaseUserId });
+
+  if (!authContextError && authContext) {
+    const user = buildAuthUserFromContext(authContext as AuthContextRpc, supabaseUserId, email);
+    if (user) return user;
+  }
+
+  // Fallback for older environments where the optimized auth-context function
+  // is not available yet.
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, email, first_name, last_name, is_platform_super_admin, must_change_password")
