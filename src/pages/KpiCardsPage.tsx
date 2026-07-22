@@ -19,7 +19,7 @@ import TeamMultiSelect from "@/components/kpi/TeamMultiSelect";
 import FilterTeamSelect from "@/components/kpi/FilterTeamSelect";
 import { getTeams } from "@/lib/teamsStore";
 import { validateTarget, getTargetPlaceholder, getTargetUnitSuffix } from "@/lib/kpiValidation";
-import { getApprovalMatrices, getDeletionMatrix, getDeletionMatrices, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, type ApprovalMatrix, type DeletionMatrix } from "@/lib/matrixStore";
+import { getApprovalMatrices, getDeletionMatrix, getDeletionMatrices, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, userRoleMap, roleUserMap, type ApprovalMatrix, type DeletionMatrix } from "@/lib/matrixStore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
@@ -2002,8 +2002,26 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               const chain = (draft as any)?.approvalChain || (card as any)?.approvalChain || [];
               chain.forEach((c: any) => (c.persons || []).forEach((p: string) => cfg.tesdiq_gozlenilir.rows.push({ role: c.role, name: p, tone: "wait" })));
               if (cfg.tesdiq_gozlenilir.rows.length === 0) {
-                cfg.tesdiq_gozlenilir.rows.push({ role: "Şöbə Müdiri", name: "Abbas Əliyev Aqil", tone: "wait" });
-                cfg.tesdiq_gozlenilir.rows.push({ role: "HR Admin", name: "Super Adminov Blink", tone: "wait" });
+                const matrixId = (draft as any)?.matrixId || (card as any)?.matrixId;
+                if (matrixId) {
+                  try {
+                    const matrix = getApprovalMatrices().find(m => m.id === matrixId);
+                    (matrix?.steps || []).forEach(step => {
+                      (step.assignees || []).forEach(a => {
+                        if (a.type === "user") {
+                          cfg.tesdiq_gozlenilir.rows.push({ role: step.label || userRoleMap[a.name] || "Təsdiqləyici", name: a.name, tone: "wait" });
+                        } else {
+                          const users = roleUserMap[a.name] || [];
+                          if (users.length === 0) {
+                            cfg.tesdiq_gozlenilir.rows.push({ role: step.label || a.name, name: a.name, tone: "wait" });
+                          } else {
+                            users.forEach(u => cfg.tesdiq_gozlenilir.rows.push({ role: step.label || a.name, name: u, tone: "wait" }));
+                          }
+                        }
+                      });
+                    });
+                  } catch {}
+                }
               }
             }
 
