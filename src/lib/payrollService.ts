@@ -109,16 +109,22 @@ export const flushPayrollToCloud = async () => {
       })),
       { onConflict: "organization_id,local_id" },
     ) : Promise.resolve(),
-    salary.length ? supabase.from("salary_records").upsert(
-      salary.map(s => ({
-        organization_id: orgId,
-        legacy_id: s.id,
-        employee_legacy_id: s.employeeId,
-        operator: s.operator ?? null,
-        periods: s.periods ?? [],
-      })),
-      { onConflict: "organization_id,legacy_id" },
-    ) : Promise.resolve(),
+    // Salary records: authoritative replace so removed rows / consolidated
+    // duplicates disappear from the DB too.
+    (async () => {
+      await supabase.from("salary_records").delete().eq("organization_id", orgId);
+      if (salary.length) {
+        await supabase.from("salary_records").insert(
+          salary.map(s => ({
+            organization_id: orgId,
+            legacy_id: s.id,
+            employee_legacy_id: s.employeeId,
+            operator: s.operator ?? null,
+            periods: s.periods ?? [],
+          })),
+        );
+      }
+    })(),
     uploads.length ? supabase.from("salary_uploads").upsert(
       uploads.map(u => ({
         organization_id: orgId,

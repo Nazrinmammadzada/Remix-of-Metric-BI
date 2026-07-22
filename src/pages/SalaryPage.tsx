@@ -116,7 +116,9 @@ const SalaryPage = () => {
 
   const rows = useMemo<AggRow[]>(() => {
     if (appliedYear == null || appliedMonth == null) return [];
-    // Aggregate per employee
+    // Aggregate per employee — merge periods across any duplicate records for
+    // the same employee, and dedupe by (year, month) preferring the highest id
+    // (most recent write wins).
     const byEmp = new Map<number, { rec: SalaryRecord; periods: SalaryPeriod[] }>();
     for (const r of records) {
       const cur = byEmp.get(r.employeeId);
@@ -127,24 +129,33 @@ const SalaryPage = () => {
     byEmp.forEach((v, empId) => {
       const emp = employees.find(e => e.id === empId);
       if (!emp) return;
-      const periodMonth = v.periods.find(p => p.year === appliedYear && p.month === appliedMonth);
-      if (!periodMonth) return; // skip employees with no salary in selected month/year
+      const dedup = new Map<string, SalaryPeriod>();
+      for (const p of v.periods) {
+        const k = `${p.year}-${p.month}`;
+        const prev = dedup.get(k);
+        if (!prev || p.id > prev.id) dedup.set(k, p);
+      }
+      const periods = Array.from(dedup.values());
+      const periodMonth = periods.find(p => p.year === appliedYear && p.month === appliedMonth);
+      if (!periodMonth) return;
       const monthPay = computePay(periodMonth);
-      const totalPaid = v.periods.reduce((s, p) => s + computePay(p), 0);
-      const avgMonthly = v.periods.length ? Math.round(v.periods.reduce((s, p) => s + p.salary, 0) / v.periods.length) : 0;
+      const totalPaid = periods.reduce((s, p) => s + computePay(p), 0);
+      const avgMonthly = periods.length ? Math.round(periods.reduce((s, p) => s + p.salary, 0) / periods.length) : 0;
       const pctCurrent = avgMonthly ? Math.round((monthPay / avgMonthly) * 10000) / 100 : 0;
-      const last12 = v.periods.slice(-12);
+      const sorted = [...periods].sort((a, b) => a.year - b.year || MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month));
+      const last12 = sorted.slice(-12);
       const avg12 = last12.length ? last12.reduce((s, p) => s + p.salary, 0) / last12.length : 0;
       const pct12m = avg12 ? Math.round((monthPay / avg12) * 10000) / 100 : 0;
       out.push({
         employee: emp,
         operatorName: v.rec.operator,
         monthPay, totalPaid, avgMonthly, pctCurrent, pct12m,
-        allPeriods: v.periods.map(p => ({ ...p, _recordId: v.rec.id })),
+        allPeriods: periods.map(p => ({ ...p, _recordId: v.rec.id })),
       });
     });
     return out;
   }, [records, employees, appliedYear, appliedMonth]);
+
 
   const advCols = useMemo<DataTableColumn<AggRow>[]>(() => COLUMNS.map(c => ({
     key: c.key,
@@ -249,7 +260,7 @@ const SalaryPage = () => {
     // Also seed base records for the selected period for each employee
     employees.forEach(emp => {
       if (!emp.salary) return;
-      addRecord({
+      void addRecord({
         employeeId: emp.id,
         operator: "HR Departamenti",
         periods: [{
@@ -703,7 +714,18 @@ const SalaryPage = () => {
 
 
 
-      <AddSalaryDialog open={showAdd} onClose={() => setShowAdd(false)} employees={employees} />
+      <AddSalaryDialog
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        employees={employees}
+        onSaved={(yr, mo) => {
+          setYear(String(yr));
+          setMonth(mo);
+          setAppliedYear(yr);
+          setAppliedMonth(mo);
+        }}
+      />
+
 
       <EmployeeDetailDialog
         row={operatorView}
@@ -873,6 +895,7 @@ interface AddSalaryDialogProps {
   open: boolean;
   onClose: () => void;
   employees: OrgEmployee[];
+  onSaved?: (year: number, month: Month) => void;
 }
 
 const blankPeriod = (): Omit<SalaryPeriod, "id"> => ({
@@ -883,16 +906,18 @@ const blankPeriod = (): Omit<SalaryPeriod, "id"> => ({
   workedDays: 0,
 });
 
-const AddSalaryDialog = ({ open, onClose, employees }: AddSalaryDialogProps) => {
+const AddSalaryDialog = ({ open, onClose, employees, onSaved }: AddSalaryDialogProps) => {
   const [employeeId, setEmployeeId] = useState<string>("");
   const [periods, setPeriods] = useState<Array<Omit<SalaryPeriod, "id"> & { _key: number; _open: boolean }>>([
     { ...blankPeriod(), _key: Date.now(), _open: true },
   ]);
+  const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setEmployeeId("");
     setPeriods([{ ...blankPeriod(), _key: Date.now(), _open: true }]);
   };
+
 
   const addPeriod = () => {
     setPeriods(p => [...p, { ...blankPeriod(), _key: Date.now() + Math.random(), _open: true }]);
@@ -910,7 +935,7 @@ const AddSalaryDialog = ({ open, onClose, employees }: AddSalaryDialogProps) => 
     setPeriods(p => p.map(x => x._key === key ? { ...x, _open: !x._open } : x));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!employeeId) { toast.error("Əməkdaş seçin"); return; }
     const emp = employees.find(e => e.id === Number(employeeId));
     if (!emp) return;
@@ -918,22 +943,32 @@ const AddSalaryDialog = ({ open, onClose, employees }: AddSalaryDialogProps) => 
       toast.error("Bütün dövr sahələrini düzgün doldurun");
       return;
     }
-    addRecord({
-      employeeId: emp.id,
-      operator: "Admin",
-      periods: periods.map((p, i) => ({
-        id: Date.now() + i,
-        month: p.month,
-        year: p.year,
-        salary: p.salary,
-        totalDays: p.totalDays,
-        workedDays: p.workedDays,
-      })),
-    });
-    toast.success("Məlumat əlavə edildi");
-    reset();
-    onClose();
+    setSaving(true);
+    try {
+      await addRecord({
+        employeeId: emp.id,
+        operator: "Admin",
+        periods: periods.map((p, i) => ({
+          id: Date.now() + i,
+          month: p.month,
+          year: p.year,
+          salary: p.salary,
+          totalDays: p.totalDays,
+          workedDays: p.workedDays,
+        })),
+      });
+      const last = periods[periods.length - 1];
+      onSaved?.(last.year, last.month);
+      toast.success("Məlumat əlavə edildi və yadda saxlanıldı");
+      reset();
+      onClose();
+    } catch (e) {
+      toast.error("Yadda saxlama zamanı xəta baş verdi");
+    } finally {
+      setSaving(false);
+    }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
@@ -1040,7 +1075,7 @@ const AddSalaryDialog = ({ open, onClose, employees }: AddSalaryDialogProps) => 
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => { reset(); onClose(); }}>Ləğv et</Button>
-            <Button onClick={handleSave}>Yadda saxla</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "Saxlanılır..." : "Yadda saxla"}</Button>
           </div>
         </div>
       </DialogContent>
