@@ -17,12 +17,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   getEmployees, updateEmployee, toggleEmployeeActive,
-  getStructures, addRootStructure, addSubStructure, addPosition,
+  getStructures,
   removePosition, removeStructure, canRemoveStructure, renameStructure, getAssignedEmployeeIds,
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
-import { addSlotsInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud } from "@/lib/orgService";
+import { addPositionInCloud, addSlotsInCloud, addStructuresInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud } from "@/lib/orgService";
 
 
 import {
@@ -396,14 +396,17 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
 
 
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newStruct.type.trim()) { toast.error("Struktur tipini daxil edin"); return; }
     const count = Math.max(1, Math.min(50, Number(newStruct.count) || 1));
-    if (showCreate?.parentId == null) addRootStructure(newStruct.type.trim(), "", count);
-    else addSubStructure(showCreate.parentId, newStruct.type.trim(), "", count);
-    toast.success(count > 1 ? `${count} struktur yaradıldı — adlandırın` : "Struktur yaradıldı — adlandırın");
-    setShowCreate(null);
-    setNewStruct({ type: "", name: "", count: 1 });
+    try {
+      await addStructuresInCloud(showCreate?.parentId ?? null, newStruct.type.trim(), count);
+      toast.success(count > 1 ? `${count} struktur yaradıldı — database-də saxlandı` : "Struktur yaradıldı — database-də saxlandı");
+      setShowCreate(null);
+      setNewStruct({ type: "", name: "", count: 1 });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Struktur database-ə yazılmadı.");
+    }
   };
 
   // Sync the staffModal data with latest tree
@@ -710,12 +713,16 @@ const StaffModal = ({ node, onClose }: { node: OrgStructure | null; onClose: () 
   const [newPosName, setNewPosName] = useState("");
   const [search, setSearch] = useState("");
 
-  const handleCreatePos = () => {
+  const handleCreatePos = async () => {
     if (!node || !newPosName.trim()) return;
-    addPosition(node.id, newPosName.trim());
-    toast.success("Vəzifə yaradıldı");
-    setNewPosName("");
-    setShowAddPos(false);
+    try {
+      await addPositionInCloud(node.id, newPosName.trim());
+      toast.success("Vəzifə yaradıldı və database-də saxlandı");
+      setNewPosName("");
+      setShowAddPos(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Vəzifə database-ə yazılmadı.");
+    }
   };
 
   const filteredPositions = useMemo(() => {

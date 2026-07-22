@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/auditService";
 import {
   getEmployees, setEmployees, getStructures, setStructures,
-  assignSlot, addSlot, removeSlot,
+  assignSlot, addSlot, removeSlot, addRootStructure, addSubStructure, addPosition,
   type OrgEmployee, type OrgStructure, type OrgPosition, type OrgSlot,
   type OrgSlotFraction,
 } from "@/lib/orgStore";
@@ -338,6 +338,27 @@ type PositionContext = {
   structurePath: string;
 };
 
+type StructureContext = {
+  structure: OrgStructure;
+  parent: OrgStructure | null;
+  siblings: OrgStructure[];
+  index: number;
+};
+
+const findStructureContext = (
+  structureId: number,
+  nodes: OrgStructure[] = getStructures(),
+  parent: OrgStructure | null = null,
+): StructureContext | null => {
+  for (let index = 0; index < nodes.length; index++) {
+    const structure = nodes[index];
+    if (structure.id === structureId) return { structure, parent, siblings: nodes, index };
+    const child = findStructureContext(structureId, structure.children, structure);
+    if (child) return child;
+  }
+  return null;
+};
+
 const findSlotContext = (slotId: number, nodes: OrgStructure[] = getStructures(), path: string[] = []): SlotContext | null => {
   for (const node of nodes) {
     const nextPath = [...path, node.name];
@@ -388,6 +409,126 @@ const syncEmployeeAssignmentRows = async (orgId: string, localEmployeeIds: numbe
 
     if (error) console.warn("[orgSync] employee assignment denorm update failed", error);
   }));
+};
+
+export const addStructuresInCloud = async (
+  parentId: number | null,
+  type: string,
+  count: number = 1,
+) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  let map = loadMap(orgId);
+  let parentUuid: string | null = null;
+  const normalizedCount = Math.max(1, Math.min(50, Math.floor(count) || 1));
+
+  const beforeRoots = getStructures();
+  const beforeContext = parentId == null ? null : findStructureContext(parentId, beforeRoots);
+  if (parentId != null && !beforeContext) throw new Error("Ana struktur tapılmadı. Səhifəni yeniləyib yenidən cəhd edin.");
+
+  if (parentId != null) {
+    parentUuid = uuidFor(map, parentId);
+    if (!parentUuid) {
+      await doFlush(orgId);
+      map = loadMap(orgId);
+      parentUuid = uuidFor(map, parentId);
+    }
+    if (!parentUuid) throw new Error("Ana struktur database-də tapılmadı. Yenidən cəhd edin.");
+  }
+
+  const beforeSiblings = parentId == null ? beforeRoots : beforeContext!.structure.children;
+  const beforeIds = new Set(beforeSiblings.map((structure) => structure.id));
+  const startOrder = beforeSiblings.length;
+
+  suppressFlush = true;
+  try {
+    if (parentId == null) addRootStructure(type, "", normalizedCount);
+    else addSubStructure(parentId, type, "", normalizedCount);
+  } finally {
+    suppressFlush = false;
+  }
+
+  const afterContext = parentId == null ? null : findStructureContext(parentId);
+  const afterSiblings = parentId == null ? getStructures() : afterContext?.structure.children ?? [];
+  const newStructures = afterSiblings.filter((structure) => !beforeIds.has(structure.id));
+  if (newStructures.length === 0) return;
+
+  const rows = newStructures.map((structure, index) => ({
+    organization_id: orgId,
+    parent_id: parentUuid,
+    type: structure.type,
+    name: structure.name,
+    sort_order: startOrder + index,
+  }));
+
+  const { data, error } = await supabase.from("org_structures").insert(rows).select("id");
+  if (error || !data) {
+    console.error("[orgSync] structure insert failed", error, rows);
+    void hydrateOrgFromCloud(orgId);
+    throw new Error(error?.message || "Struktur database-ə yazılmadı.");
+  }
+
+  data.forEach((row, index) => {
+    const localId = newStructures[index]?.id;
+    if (localId == null) return;
+    map.toUuid[localId] = row.id;
+    map.toNum[row.id] = localId;
+    if (localId >= map.next) map.next = localId + 1;
+  });
+  saveMap(orgId, map);
+  markLocalDbWrite();
+};
+
+export const addPositionInCloud = async (structureId: number, name: string) => {
+  const orgId = requireActiveOrg();
+  await waitForIdleFlush();
+
+  let map = loadMap(orgId);
+  const before = findStructureContext(structureId);
+  if (!before) throw new Error("Struktur tapılmadı. Səhifəni yeniləyib yenidən cəhd edin.");
+
+  let structureUuid = uuidFor(map, structureId);
+  if (!structureUuid) {
+    await doFlush(orgId);
+    map = loadMap(orgId);
+    structureUuid = uuidFor(map, structureId);
+  }
+  if (!structureUuid) throw new Error("Struktur database-də tapılmadı. Yenidən cəhd edin.");
+
+  const beforeIds = new Set(before.structure.positions.map((position) => position.id));
+  const sortOrder = before.structure.positions.length;
+
+  suppressFlush = true;
+  try {
+    addPosition(structureId, name);
+  } finally {
+    suppressFlush = false;
+  }
+
+  const after = findStructureContext(structureId);
+  const newPosition = after?.structure.positions.find((position) => !beforeIds.has(position.id));
+  if (!newPosition) return;
+
+  const payload = {
+    organization_id: orgId,
+    structure_id: structureUuid,
+    name: newPosition.name,
+    sort_order: sortOrder,
+  };
+
+  const { data, error } = await supabase.from("org_positions").insert(payload).select("id").single();
+  if (error || !data) {
+    console.error("[orgSync] position insert failed", error, payload);
+    void hydrateOrgFromCloud(orgId);
+    throw new Error(error?.message || "Vəzifə database-ə yazılmadı.");
+  }
+
+  map.toUuid[newPosition.id] = data.id;
+  map.toNum[data.id] = newPosition.id;
+  if (newPosition.id >= map.next) map.next = newPosition.id + 1;
+  saveMap(orgId, map);
+  markLocalDbWrite();
 };
 
 export const assignSlotInCloud = async (
@@ -462,6 +603,16 @@ export const addSlotsInCloud = async (positionId: number, count: number = 1, fra
 
   const before = findPositionContext(positionId);
   if (!before) throw new Error("Vəzifə tapılmadı. Səhifəni yeniləyib yenidən cəhd edin.");
+
+  let map = loadMap(orgId);
+  let positionUuid = uuidFor(map, positionId);
+  if (!positionUuid) {
+    await doFlush(orgId);
+    map = loadMap(orgId);
+    positionUuid = uuidFor(map, positionId);
+  }
+  if (!positionUuid) throw new Error("Vəzifə database-də tapılmadı. Yenidən cəhd edin.");
+
   const beforeIds = new Set(before.position.slots.map((slot) => slot.id));
   const startOrder = before.position.slots.length;
 
@@ -475,15 +626,6 @@ export const addSlotsInCloud = async (positionId: number, count: number = 1, fra
   const after = findPositionContext(positionId);
   const newSlots = (after?.position.slots ?? []).filter((slot) => !beforeIds.has(slot.id));
   if (newSlots.length === 0) return;
-
-  let map = loadMap(orgId);
-  let positionUuid = uuidFor(map, positionId);
-  if (!positionUuid) {
-    await doFlush(orgId);
-    map = loadMap(orgId);
-    positionUuid = uuidFor(map, positionId);
-  }
-  if (!positionUuid) throw new Error("Vəzifə database-də tapılmadı. Yenidən cəhd edin.");
 
   const rows = newSlots.map((slot, index) => ({
     organization_id: orgId,
