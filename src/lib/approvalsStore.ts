@@ -126,6 +126,10 @@ const save = (list: ApprovalItem[]) => {
   window.dispatchEvent(new Event(EVT));
 };
 
+const flushSoon = () => {
+  void import("./approvalsService").then(m => m.flushApprovalsToCloud()).catch(() => undefined);
+};
+
 export const getApprovals = (): ApprovalItem[] => load();
 
 export const enqueueApproval = (input: {
@@ -158,6 +162,7 @@ export const enqueueApproval = (input: {
   };
   list.unshift(item);
   save(list);
+  flushSoon();
   firstStep.forEach(approverId => {
     pushNotification({
       toEmployeeId: approverId,
@@ -221,6 +226,7 @@ export const decideApproval = (
   item.updatedAt = new Date().toISOString();
   list[idx] = item;
   save(list);
+  flushSoon();
 
   // Mirror the decision onto the shared KPI card itself.
   if (item.status === "approved") {

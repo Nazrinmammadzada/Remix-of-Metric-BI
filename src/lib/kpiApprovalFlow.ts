@@ -11,6 +11,7 @@ import { enqueueApproval, getApprovals } from "./approvalsStore";
 import { getKpiCardMeta } from "./kpiCardMetaStore";
 import { submitToMatrix } from "./kpiCardStatusStore";
 import { enrichedEmployees } from "@/data/mockExtras";
+import { getEmployees } from "./orgStore";
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
 
@@ -20,8 +21,11 @@ const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
  * 2) Alınmasa, ad+soyad-ın hər biri üzrə partial (ilk ad uyğunluğu).
  */
 const nameToEmployeeId = (name: string): string | null => {
-  const target = normalize(name);
+  const cleanName = String(name || "").split(" — ")[0].trim();
+  const target = normalize(cleanName);
   if (!target) return null;
+  const orgExact = getEmployees().find(e => normalize(`${e.firstName} ${e.lastName}`) === target);
+  if (orgExact) return String(orgExact.id);
   const exact = enrichedEmployees.find(e => normalize(e.fullName) === target);
   if (exact) return exact.id;
   // Partial: ilk sözü (ad) və ya sonuncu sözü (soyad) uyğun gələn ilk şəxs.
@@ -33,6 +37,20 @@ const nameToEmployeeId = (name: string): string | null => {
     return ep.includes(first) || ep.includes(last);
   });
   return partial?.id ?? null;
+};
+
+const roleToEmployeeIds = (roleName: string): string[] => {
+  const ids = new Set<string>();
+  (roleUserMap[roleName] || []).forEach(name => {
+    const id = nameToEmployeeId(name);
+    if (id) ids.add(id);
+  });
+  const roleNorm = normalize(roleName);
+  getEmployees().forEach(e => {
+    const pos = normalize(e.positionName || "");
+    if (pos === roleNorm || pos.includes(roleNorm) || roleNorm.includes(pos)) ids.add(String(e.id));
+  });
+  return Array.from(ids);
 };
 
 interface CardContext {
@@ -83,7 +101,7 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
     const ctx = resolveCardContext(cardId);
     if (!ctx) return;
 
-    if (ctx.currentStatus === "tesdiq_gozlenilir" || ctx.currentStatus === "aktiv") return;
+    if (ctx.currentStatus === "aktiv") return;
 
     // Eyni kart üçün pending approval varsa təkrar yaratma.
     const existing = getApprovals().find(a => a.kpiCardId === ctx.id && a.status === "pending");
@@ -97,11 +115,10 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
     const stepsChain: string[][] = matrix.steps.map(step => {
       const ids = new Set<string>();
       step.assignees.forEach(a => {
-        const names = a.type === "user" ? [a.name] : (roleUserMap[a.name] || []);
-        names.forEach(n => {
-          const id = nameToEmployeeId(n);
-          if (id) ids.add(id);
-        });
+          const resolved = a.type === "user"
+            ? [nameToEmployeeId(a.name)].filter((id): id is string => !!id)
+            : roleToEmployeeIds(a.name);
+          resolved.forEach(id => ids.add(id));
       });
       return Array.from(ids);
     }).filter(step => step.length > 0);
@@ -122,6 +139,8 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
     // Həm SharedKpiCard, həm də lokal KpiCard status store-u yenilə.
     try { setKpiStatus(ctx.id, "tesdiq_gozlenilir", "system", "Set tamamlandı — avtomatik təsdiq axını başladıldı"); } catch {}
     try { submitToMatrix(cardId); } catch {}
+    void import("./approvalsService").then(m => m.flushApprovalsToCloud()).catch(() => undefined);
+    void import("./kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
   } catch (err) {
     console.warn("triggerCardApprovalIfComplete failed", err);
   }
