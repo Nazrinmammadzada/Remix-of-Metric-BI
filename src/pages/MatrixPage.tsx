@@ -599,6 +599,7 @@ const ApprovalDialog = ({ open, onClose, initial, onSaved }: { open: boolean; on
 // ===== Deletion Matrix Dialog =====
 const DeletionDialog = ({ open, onClose, initial, onSaved }: { open: boolean; onClose: () => void; initial: DeletionMatrix | null; onSaved: () => void }) => {
   const positionRoles = useCatalogValues("approver_roles", POSITION_ROLE_DEFAULTS);
+  const allUsers = useAllUsers();
   const [name, setName] = useState("");
   const [mode, setMode] = useState<"position" | "user">("user");
   const [selected, setSelected] = useState<string>("");
