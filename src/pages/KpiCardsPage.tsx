@@ -901,6 +901,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       } catch (err) { console.warn("kpi card meta upsert failed", err); }
     }
 
+    // Kick off approval workflow immediately when card is submitted for approval.
+    if (nextStatus === "tesdiq_gozlenilir") {
+      try {
+        const flow = await import("@/lib/kpiApprovalFlow");
+        flow.triggerCardApprovalIfComplete(id);
+        void import("@/lib/approvalsService").then(m => m.flushApprovalsToCloud()).catch(() => undefined);
+      } catch (err) { console.warn("approval trigger failed", err); }
+    }
+
+
 
 
 
