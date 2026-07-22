@@ -1762,6 +1762,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_auth_context: { Args: { _user_id: string }; Returns: Json }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_permission: {
         Args: { _org_id: string; _permission_code: string; _user_id: string }

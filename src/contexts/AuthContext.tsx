@@ -62,6 +62,101 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+type PasswordSignInData = {
+  access_token: string;
+  refresh_token: string;
+  expires_in?: number;
+  expires_at?: number;
+  token_type?: string;
+  user: { id: string; email?: string | null };
+};
+
+const getSupabaseStorageKey = () => {
+  try {
+    const ref = new URL(SUPABASE_URL).hostname.split(".")[0];
+    return `sb-${ref}-auth-token`;
+  } catch {
+    return null;
+  }
+};
+
+const storeSessionDirectly = (data: PasswordSignInData) => {
+  const key = getSupabaseStorageKey();
+  if (!key) return;
+  const expiresAt = data.expires_at ?? Math.floor(Date.now() / 1000) + (data.expires_in ?? 3600);
+  const sessionPayload = {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_in: data.expires_in ?? Math.max(0, expiresAt - Math.floor(Date.now() / 1000)),
+    expires_at: expiresAt,
+    token_type: data.token_type ?? "bearer",
+    user: data.user,
+  };
+  localStorage.setItem(key, JSON.stringify(sessionPayload));
+  // Older/newer client versions use one of these wrappers; writing both avoids
+  // hydration gaps after manual REST login.
+  localStorage.setItem(`${key}-code-verifier`, "");
+};
+
+const signInWithPasswordFast = async (
+  email: string,
+  password: string,
+  timeoutMs: number,
+): Promise<{ data?: PasswordSignInData; error?: { message?: string } }> => {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) return { error: { message: body?.msg || body?.message || "Email və ya şifrə yanlışdır" } };
+    const authData = body as PasswordSignInData;
+    storeSessionDirectly(authData);
+    return { data: authData };
+  } catch (err: any) {
+    return { error: { message: err?.name === "AbortError" ? "Giriş sorğusu cavab vermədi" : err?.message } };
+  } finally {
+    window.clearTimeout(timer);
+  }
+};
+
+const fetchAuthUserDirect = async (
+  supabaseUserId: string,
+  email: string,
+  accessToken: string,
+  timeoutMs: number,
+): Promise<AuthUser | null> => {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_user_auth_context`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ _user_id: supabaseUserId }),
+    });
+    if (!response.ok) return null;
+    const ctx = await response.json();
+    return buildAuthUserFromContext(ctx as AuthContextRpc, supabaseUserId, email);
+  } finally {
+    window.clearTimeout(timer);
+  }
+};
+
 
 // ── Fetch org memberships for a Supabase-authenticated user. ──────────────────
 const fetchOrgMemberships = async (userId: string): Promise<OrgMembership[]> => {
@@ -415,24 +510,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const lower = email.toLowerCase().trim();
 
     try {
-      // 1) Try real Supabase auth first, guarded by a hard timeout so the
-      // button never gets stuck in "Daxil olunur..." if the backend hangs.
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithPassword({ email: lower, password }),
-        LOGIN_TIMEOUT_MS,
-        "Giriş sorğusu cavab vermədi"
-      );
+      // 1) Authenticate via the Auth REST endpoint directly. In this project the
+      // generated client's signIn promise can occasionally wait forever after a
+      // 200 response, so this path keeps login deterministic and fast.
+      const { data, error } = await signInWithPasswordFast(lower, password, LOGIN_TIMEOUT_MS);
 
     if (!error && data?.user) {
       const u = await withTimeout(
-        buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower),
+        fetchAuthUserDirect(data.user.id, data.user.email ?? lower, data.access_token, LOGIN_TIMEOUT_MS)
+          .then(directUser => directUser ?? buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower)),
         LOGIN_TIMEOUT_MS,
         "İstifadəçi məlumatları alınmadı"
       );
       if (u) {
           setUser(u);
           if (u.currentOrgId && u.supabaseUserId) {
-            void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+            window.setTimeout(() => {
+              void supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
+              void activateOrgSync(u.currentOrgId!, u.supabaseUserId!);
                   void activateKpiCardsSync(u.currentOrgId);
                   void activateApprovalsSync(u.currentOrgId);
                   void activatePayrollSync(u.currentOrgId);
@@ -441,6 +536,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   void activatePhase1Sync(u.currentOrgId);
                   void activateTeamsSync(u.currentOrgId);
                   if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
+            }, 0);
           }
           void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
           return { success: true };
