@@ -242,27 +242,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    // Initial hydration from Supabase session.
+    // Initial hydration from Supabase session. Guarded by a hard timeout so
+    // a slow/hung backend call can never keep the app in a permanent
+    // "loading" (blank) state.
+    let settled = false;
+    const finish = () => { if (!settled) { settled = true; setLoading(false); } };
+    const safetyTimer = window.setTimeout(finish, 4000);
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
-        if (u) {
-          setUser(u);
-          if (u.currentOrgId && u.supabaseUserId) {
-            void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-            void activateKpiCardsSync(u.currentOrgId);
-            void activateApprovalsSync(u.currentOrgId);
-            void activatePayrollSync(u.currentOrgId);
-            void activateLifecycleSync(u.currentOrgId);
-            activateNotificationsSync(u.currentOrgId);
-            void activatePhase1Sync(u.currentOrgId);
-            void activateTeamsSync(u.currentOrgId);
-            if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
+          if (u) {
+            setUser(u);
+            if (u.currentOrgId && u.supabaseUserId) {
+              void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+              void activateKpiCardsSync(u.currentOrgId);
+              void activateApprovalsSync(u.currentOrgId);
+              void activatePayrollSync(u.currentOrgId);
+              void activateLifecycleSync(u.currentOrgId);
+              activateNotificationsSync(u.currentOrgId);
+              void activatePhase1Sync(u.currentOrgId);
+              void activateTeamsSync(u.currentOrgId);
+              if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
+            }
           }
         }
+      } catch (err) {
+        console.warn("[auth] initial hydration failed", err);
+      } finally {
+        window.clearTimeout(safetyTimer);
+        finish();
       }
-      setLoading(false);
     })();
 
     return () => subscription.subscription.unsubscribe();
