@@ -8,7 +8,10 @@ export interface MockEmployee {
   email: string;
 }
 
-export const mockEmployees: MockEmployee[] = [
+// Demo static staff — retained so peer-assignment / analytics keep enough
+// people to work in an empty-tenant demo. Real employees from the DB-synced
+// orgStore are unioned in dynamically below.
+const demoStaticEmployees: MockEmployee[] = [
   { id: "e1", fullName: "Aysel Məmmədova", department: "İnsan Resursları", position: "HR Mütəxəssisi", email: "aysel.memmedova@company.az" },
   { id: "e2", fullName: "Rəşad Hüseynov", department: "IT", position: "Backend Developer", email: "rasad.huseynov@company.az" },
   { id: "e3", fullName: "Nigar Əliyeva", department: "Marketinq", position: "Marketinq Meneceri", email: "nigar.aliyeva@company.az" },
@@ -17,7 +20,6 @@ export const mockEmployees: MockEmployee[] = [
   { id: "e6", fullName: "Tural Abbasov", department: "IT", position: "Frontend Developer", email: "tural.abbasov@company.az" },
   { id: "e7", fullName: "Leyla Həsənova", department: "İnsan Resursları", position: "Recruiter", email: "leyla.hesenova@company.az" },
   { id: "e8", fullName: "Kamran Rzayev", department: "Satış", position: "Satış Meneceri", email: "kamran.rzayev@company.az" },
-  // Extra IT staff so peer-assignment (>=3 in dept) works
   { id: "e9", fullName: "Nərmin Vəliyeva", department: "IT", position: "QA Engineer", email: "nermin.veliyeva@company.az" },
   { id: "e10", fullName: "Ramil Səfərov", department: "IT", position: "DevOps Engineer", email: "ramil.seferov@company.az" },
   { id: "e11", fullName: "Günel İsmayılova", department: "Satış", position: "Satış Analitiki", email: "gunel.ismayilova@company.az" },
@@ -27,6 +29,47 @@ export const mockEmployees: MockEmployee[] = [
   { id: "e15", fullName: "Ülviyyə Nəbiyeva", department: "Maliyyə", position: "Baş Mühasib", email: "ulviyye.nebiyeva@company.az" },
   { id: "e16", fullName: "Cavid Mustafayev", department: "İnsan Resursları", position: "L&D Specialist", email: "cavid.mustafayev@company.az" },
 ];
+
+// Pulled from orgStore lazily so any employee created via the Təşkilat module
+// (and synced to the DB) automatically appears in evaluator / peer / matrix
+// dropdowns across the app.
+const buildLiveEmployees = (): MockEmployee[] => {
+  try {
+    // Dynamic import to avoid a static circular reference during module init.
+    // orgStore does not import mockData, so this is safe at call-time.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require("@/lib/orgStore");
+    const emps = mod.getEmployees?.() ?? [];
+    return emps.map((e: any) => ({
+      id: String(e.id),
+      fullName: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || (e.email ?? "—"),
+      department: (e.structurePath || "").split(" › ")[0] || "—",
+      position: e.positionName || "—",
+      email: e.email || "",
+    }));
+  } catch {
+    return [];
+  }
+};
+
+const currentEmployees = (): MockEmployee[] => {
+  const live = buildLiveEmployees();
+  const seen = new Set(live.map(l => l.id));
+  const demo = demoStaticEmployees.filter(d => !seen.has(d.id));
+  return [...live, ...demo];
+};
+
+// Live proxy so every array read reflects the current DB-synced employee list.
+export const mockEmployees: MockEmployee[] = new Proxy([] as MockEmployee[], {
+  get(_t, prop) {
+    const c = currentEmployees();
+    const v: any = (c as any)[prop];
+    return typeof v === "function" ? v.bind(c) : v;
+  },
+  has(_t, p) { return p in currentEmployees(); },
+  ownKeys() { return Reflect.ownKeys(currentEmployees()); },
+  getOwnPropertyDescriptor(_t, p) { return Object.getOwnPropertyDescriptor(currentEmployees(), p); },
+}) as MockEmployee[];
 
 export const getInitials = (fullName: string) =>
   fullName
