@@ -31,8 +31,13 @@ export interface LogAuditInput {
  */
 export async function logAudit(input: LogAuditInput): Promise<void> {
   try {
-    const { data } = await supabase.auth.getUser();
-    const actorId = data.user?.id;
+    // High-frequency background mirror jobs used to write an audit row on every
+    // debounce cycle, saturating the backend and slowing auth/page loads. Audit
+    // real user actions only; sync bookkeeping is intentionally skipped.
+    if (input.action === "sync") return;
+
+    const { data } = await supabase.auth.getSession();
+    const actorId = data.session?.user?.id;
     if (!actorId) return;
 
     await supabase.from("audit_logs").insert({

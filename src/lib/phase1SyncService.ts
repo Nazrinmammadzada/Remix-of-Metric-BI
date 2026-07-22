@@ -22,10 +22,7 @@ interface StoreMirror {
 }
 
 const STORES: StoreMirror[] = [
-  { localKey: "kpi_teams_v2",                cloudKey: "teams",                event: "teams:updated",                       table: "org_catalogs" },
   { localKey: "kpi_periods_v1",              cloudKey: "periods",              event: "teams:updated",                       table: "org_catalogs" },
-  { localKey: "kpi_salary_records_v3",       cloudKey: "salary_records",       event: "salary:updated",                      table: "org_catalogs" },
-  { localKey: "kpi_salary_uploads_v3",       cloudKey: "salary_uploads",       event: "salary-uploads:updated",              table: "org_catalogs" },
   { localKey: "kpi_formulas_v4",             cloudKey: "formulas",             event: "formulas:updated",                    table: "org_catalogs" },
   { localKey: "kpi_formula_variables_v4",    cloudKey: "formula_variables",    event: "formulas:updated",                    table: "org_catalogs" },
   { localKey: "kpi_formula_assignments_v2",  cloudKey: "formula_assignments",  event: "formula-assignments:updated",         table: "org_catalogs" },
@@ -48,13 +45,10 @@ const STORES: StoreMirror[] = [
   { localKey: "kpi_set_entries_v6",          cloudKey: "kpi_set_entries",      event: "kpi-set-updated",                     table: "org_catalogs" },
   { localKey: "kpi_hr_admin_accounts_v1",    cloudKey: "hr_admin_accounts",    event: "hr-admins-updated",                   table: "org_catalogs" },
   { localKey: "kpi_roles_v1",                cloudKey: "roles_catalog",        event: "kpi-roles-updated",                   table: "org_catalogs" },
-  { localKey: "kpi_notification_settings_v2", cloudKey: "notification_settings_v2", event: "notification-settings-updated",  table: "org_catalogs" },
   { localKey: "manager_cascade_load_v1",     cloudKey: "manager_cascade_load", event: "manager-cascade-load-updated",        table: "org_catalogs" },
   { localKey: "kpi_companies_v1",            cloudKey: "companies",            event: "companies-updated",                   table: "org_catalogs" },
   { localKey: "user_kpi_subkpis_v3",         cloudKey: "user_kpi_subkpis",     event: "user-kpi-subkpis-updated",            table: "org_catalogs" },
-  { localKey: "kpi_card_meta_v1",            cloudKey: "kpi_card_meta",        event: "kpi-cards-updated",                   table: "org_catalogs" },
   { localKey: "kpi_eval_season_open_v1",     cloudKey: "season_open",          event: "season-updated",                      table: "org_catalogs" },
-  { localKey: "kpi_card_status_v1",          cloudKey: "kpi_card_status",      event: "kpi-cards-updated",                   table: "org_catalogs" },
   // Struktur tipləri / vəzifə / meyar kataloqları (catalogStore.ts)
   { localKey: "kpi_catalog_struct_types_v1", cloudKey: "catalog_struct_types", event: "catalog-updated",                     table: "org_catalogs" },
   { localKey: "kpi_catalog_positions_v1",    cloudKey: "catalog_positions",    event: "catalog-updated",                     table: "org_catalogs" },
@@ -66,8 +60,14 @@ const readLocal = <T>(key: string, fallback: T): T => {
   catch { return fallback; }
 };
 const writeLocal = (key: string, value: unknown) => {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
+  try {
+    const next = JSON.stringify(value);
+    if (localStorage.getItem(key) !== next) localStorage.setItem(key, next);
+  } catch { /* noop */ }
 };
+
+let suppressFlush = false;
+const lastWrittenJson = new Map<string, string>();
 
 // ── Hydrate ─────────────────────────────────────────────────────────────────
 export const hydratePhase1FromCloud = async (orgId: string): Promise<void> => {
@@ -81,12 +81,18 @@ export const hydratePhase1FromCloud = async (orgId: string): Promise<void> => {
 
   const byKey = new Map<string, unknown>(data.map(r => [r.catalog_key as string, r.entries]));
   const touchedEvents = new Set<string>();
-  for (const store of STORES) {
-    const val = byKey.get(store.cloudKey);
-    if (val !== undefined && val !== null) {
-      writeLocal(store.localKey, val);
-      touchedEvents.add(store.event);
+  suppressFlush = true;
+  try {
+    for (const store of STORES) {
+      const val = byKey.get(store.cloudKey);
+      if (val !== undefined && val !== null) {
+        writeLocal(store.localKey, val);
+        lastWrittenJson.set(store.localKey, JSON.stringify(val));
+        touchedEvents.add(store.event);
+      }
     }
+  } finally {
+    suppressFlush = false;
   }
   // Notify UI hooks so they re-read their stores.
   touchedEvents.forEach(evt => window.dispatchEvent(new Event(evt)));
@@ -97,7 +103,7 @@ let currentOrgId: string | null = null;
 const flushTimers = new Map<string, number>();
 
 const scheduleFlush = (localKey?: string) => {
-  if (!currentOrgId) return;
+  if (suppressFlush || !currentOrgId) return;
   const key = localKey ?? "*";
   const existing = flushTimers.get(key);
   if (existing) window.clearTimeout(existing);
@@ -113,17 +119,23 @@ export const flushPhase1ToCloud = async (localKey?: string) => {
   if (!orgId) return;
   type Row = { organization_id: string; catalog_key: string; entries: unknown };
   const stores = localKey ? STORES.filter(s => s.localKey === localKey) : STORES;
-  const rows: Row[] = stores.map(s => ({
-    organization_id: orgId,
-    catalog_key: s.cloudKey,
-    entries: readLocal<unknown>(s.localKey, null),
-  })).filter(r => r.entries !== null && r.entries !== undefined);
+  const rows: Row[] = [];
+  const changedKeys: string[] = [];
+  for (const s of stores) {
+    const entries = readLocal<unknown>(s.localKey, null);
+    if (entries === null || entries === undefined) continue;
+    const json = JSON.stringify(entries);
+    if (lastWrittenJson.get(s.localKey) === json) continue;
+    rows.push({ organization_id: orgId, catalog_key: s.cloudKey, entries });
+    changedKeys.push(s.localKey);
+  }
   if (rows.length === 0) return;
 
   const { error } = await supabase
     .from("org_catalogs")
     .upsert(rows as never, { onConflict: "organization_id,catalog_key" });
   if (error) return;
+  changedKeys.forEach((key, index) => lastWrittenJson.set(key, JSON.stringify(rows[index].entries)));
 };
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -138,8 +150,9 @@ const installStoragePatch = () => {
   const setItem = originalSetItem;
   const removeItem = originalRemoveItem;
   Storage.prototype.setItem = function (key: string, value: string) {
+    const prev = this === window.localStorage ? this.getItem(key) : null;
     setItem.call(this, key, value);
-    if (this === window.localStorage && trackedLocalKeys.has(key)) scheduleFlush(key);
+    if (this === window.localStorage && trackedLocalKeys.has(key) && prev !== value) scheduleFlush(key);
   };
   Storage.prototype.removeItem = function (key: string) {
     removeItem.call(this, key);
@@ -172,8 +185,14 @@ export const activatePhase1Sync = async (orgId: string) => {
   // Purge any stale local seed for tracked keys BEFORE hydrating.
   // This prevents a fresh browser from later flushing a demo seed back to the
   // cloud (which would overwrite the real data other browsers wrote).
-  for (const s of STORES) {
-    try { localStorage.removeItem(s.localKey); } catch { /* noop */ }
+  suppressFlush = true;
+  try {
+    for (const s of STORES) {
+      try { localStorage.removeItem(s.localKey); } catch { /* noop */ }
+      lastWrittenJson.delete(s.localKey);
+    }
+  } finally {
+    suppressFlush = false;
   }
   await hydratePhase1FromCloud(orgId);
   installStoragePatch();
