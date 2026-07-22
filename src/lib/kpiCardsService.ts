@@ -318,6 +318,20 @@ export const flushLocalKpiCardsToCloud = async () => {
   });
 };
 
+// ── Realtime / cross-browser sync ─────────────────────────────────────────────
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
+let onFocusHandler: (() => void) | null = null;
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (currentOrgId) void hydrateKpiCardsFromCloud(currentOrgId);
+  }, 400);
+};
+
 // ── Attach to auth lifecycle ──────────────────────────────────────────────────
 export const activateKpiCardsSync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
@@ -325,6 +339,17 @@ export const activateKpiCardsSync = async (orgId: string) => {
   await hydrateKpiCardsFromCloud(orgId);
   window.addEventListener(EVT_SHARED, scheduleFlush);
   window.addEventListener(EVT_ALL, scheduleFlush);
+
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`kpi-cards-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "kpi_cards", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "kpi_card_targets", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "kpi_card_history", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
+
+  onFocusHandler = () => scheduleRehydrate();
+  window.addEventListener("focus", onFocusHandler);
 };
 
 export const deactivateKpiCardsSync = () => {
@@ -332,4 +357,7 @@ export const deactivateKpiCardsSync = () => {
   window.removeEventListener(EVT_SHARED, scheduleFlush);
   window.removeEventListener(EVT_ALL, scheduleFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (onFocusHandler) { window.removeEventListener("focus", onFocusHandler); onFocusHandler = null; }
 };

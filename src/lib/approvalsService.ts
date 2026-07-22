@@ -3,7 +3,7 @@
 // into Supabase, hydrating on login and flushing on local changes.
 
 import { supabase } from "@/integrations/supabase/client";
-import { logAudit } from "@/lib/auditService";
+
 
 const APPROVAL_KEY = "kpi_approval_matrices_v3";
 const DELETION_KEY = "kpi_deletion_matrices_v3";
@@ -77,18 +77,21 @@ export const hydrateApprovalsFromCloud = async (orgId: string): Promise<void> =>
     })));
   }
 
-  // Notify UI hooks to re-read.
+  // Notify UI hooks to re-read. Suppress flush during rehydrate to avoid loop.
+  suppressFlush = true;
   window.dispatchEvent(new Event(MATRIX_EVT));
   window.dispatchEvent(new Event(CASCADE_EVT));
   window.dispatchEvent(new Event(QUEUE_EVT));
+  suppressFlush = false;
 };
 
 // ── FLUSH ───────────────────────────────────────────────────────────────────
 let currentOrgId: string | null = null;
 let flushTimer: number | null = null;
+let suppressFlush = false;
 
 const scheduleFlush = () => {
-  if (!currentOrgId) return;
+  if (suppressFlush || !currentOrgId) return;
   if (flushTimer) window.clearTimeout(flushTimer);
   flushTimer = window.setTimeout(() => { flushTimer = null; void flushApprovalsToCloud(); }, 500);
 };
@@ -152,20 +155,22 @@ export const flushApprovalsToCloud = async () => {
       { onConflict: "organization_id,local_id" },
     ) : Promise.resolve(),
   ]);
-  void logAudit({
-    organizationId: orgId,
-    action: "sync",
-    module: "approvals",
-    metadata: {
-      approvals: approvals.length,
-      deletions: deletions.length,
-      cascades: cascades.length,
-      queue: queue.length,
-    },
-  });
 };
 
 // ── LIFECYCLE ───────────────────────────────────────────────────────────────
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
+let onFocusHandler: (() => void) | null = null;
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (currentOrgId) void hydrateApprovalsFromCloud(currentOrgId);
+  }, 400);
+};
+
 export const activateApprovalsSync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
   currentOrgId = orgId;
@@ -173,6 +178,18 @@ export const activateApprovalsSync = async (orgId: string) => {
   window.addEventListener(MATRIX_EVT, scheduleFlush);
   window.addEventListener(CASCADE_EVT, scheduleFlush);
   window.addEventListener(QUEUE_EVT, scheduleFlush);
+
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`approvals-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "approval_queue", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "approval_matrices", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "deletion_matrices", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "cascade_matrices", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
+
+  onFocusHandler = () => scheduleRehydrate();
+  window.addEventListener("focus", onFocusHandler);
 };
 
 export const deactivateApprovalsSync = () => {
@@ -181,4 +198,7 @@ export const deactivateApprovalsSync = () => {
   window.removeEventListener(CASCADE_EVT, scheduleFlush);
   window.removeEventListener(QUEUE_EVT, scheduleFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (onFocusHandler) { window.removeEventListener("focus", onFocusHandler); onFocusHandler = null; }
 };
