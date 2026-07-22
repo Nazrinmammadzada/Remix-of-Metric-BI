@@ -31,10 +31,36 @@ const KEY = "cascade_tree_nodes_v4";
 try { ["cascade_tree_nodes_v1","cascade_tree_nodes_v2","cascade_tree_nodes_v3"].forEach(k => localStorage.removeItem(k)); } catch {}
 const EVT = "cascade-tree-updated";
 
+const norm = (value?: string | number | null) => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+const nodeKey = (node: CascadeTreeNode) => [
+  node.parentId || "root",
+  norm(node.cardName),
+  norm(node.goalName),
+  node.assigneeId,
+].join("::");
+
+const betterNode = (a: CascadeTreeNode, b: CascadeTreeNode) => (Number(b.updatedAt || b.createdAt) || 0) > (Number(a.updatedAt || a.createdAt) || 0) ? b : a;
+
+export const dedupeCascadeNodes = (rows: CascadeTreeNode[]): CascadeTreeNode[] => {
+  const byId = new Map<string, CascadeTreeNode>();
+  rows.forEach(row => byId.set(row.id, byId.has(row.id) ? betterNode(byId.get(row.id)!, row) : row));
+  const byNode = new Map<string, CascadeTreeNode>();
+  Array.from(byId.values()).forEach(row => {
+    const key = nodeKey(row);
+    byNode.set(key, byNode.has(key) ? betterNode(byNode.get(key)!, row) : row);
+  });
+  return Array.from(byNode.values()).sort((a, b) => (Number(b.updatedAt || b.createdAt) || 0) - (Number(a.updatedAt || a.createdAt) || 0));
+};
+
 const load = (): CascadeTreeNode[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const compact = dedupeCascadeNodes(Array.isArray(parsed) ? parsed : []);
+      if (Array.isArray(parsed) && compact.length !== parsed.length) localStorage.setItem(KEY, JSON.stringify(compact));
+      return compact;
+    }
   } catch {}
   const seed = seedNodes();
   localStorage.setItem(KEY, JSON.stringify(seed));
@@ -42,7 +68,7 @@ const load = (): CascadeTreeNode[] => {
 };
 
 const persist = (rows: CascadeTreeNode[]) => {
-  localStorage.setItem(KEY, JSON.stringify(rows));
+  localStorage.setItem(KEY, JSON.stringify(dedupeCascadeNodes(rows)));
   window.dispatchEvent(new Event(EVT));
 };
 
@@ -93,6 +119,8 @@ export const createRoot = (payload: {
   positionName?: string;
   limit: number;
 }): CascadeTreeNode => {
+  const existing = findRootByGoal(payload.cardName, payload.goalName, payload.assigneeId);
+  if (existing) return existing;
   const id = crypto.randomUUID();
   const node: CascadeTreeNode = {
     id, rootId: id, parentId: null,
