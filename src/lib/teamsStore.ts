@@ -122,6 +122,13 @@ export const saveTeams = (teams: Team[]) => {
   window.dispatchEvent(new Event("teams-updated"));
 };
 
+/** Replace the local team cache without re-broadcasting a "teams-updated"
+ *  event. Used by the cloud hydrator so it doesn't loop back into itself. */
+export const replaceTeamsSilent = (teams: Team[]) => {
+  localStorage.setItem(TEAMS_KEY, JSON.stringify(teams));
+  window.dispatchEvent(new Event("teams-hydrated"));
+};
+
 export const addTeam = (team: Team) => {
   const teams = getTeams();
   const next = [...teams, team];

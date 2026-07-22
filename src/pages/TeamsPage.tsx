@@ -9,12 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { getTeams, addTeam, type Team, type TeamMember } from "@/lib/teamsStore";
 import { toast } from "sonner";
 import DropdownMultiSelect from "@/components/kpi/DropdownMultiSelect";
-import { getStructures, type OrgStructure } from "@/lib/orgStore";
+import { getStructures, getEmployees as getLiveEmployees, type OrgStructure } from "@/lib/orgStore";
 import { useAuth } from "@/contexts/AuthContext";
 import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
 
-const allPeople: TeamMember[] = [
+// Legacy demo people — kept so an empty-tenant demo still has enough names
+// to render. Live DB employees are unioned in at render time inside the
+// component (see `allPeople` below).
+const demoStaticPeople: TeamMember[] = [
   { name: "Samir Həsənov", role: "Komanda Lideri", kpiScore: 90, avatar: "S" },
   { name: "Emin Məmmədov", role: "İpoteka Meneceri", kpiScore: 85, avatar: "E" },
   { name: "Ülviyyə Əliyeva", role: "HR Menecer", kpiScore: 82, avatar: "Ü" },
@@ -31,6 +34,19 @@ const allPeople: TeamMember[] = [
   { name: "Günel Əlizadə", role: "İpoteka Mütəxəssisi", kpiScore: 87, avatar: "G" },
   { name: "Orxan Məmmədov", role: "İpoteka Mütəxəssisi", kpiScore: 83, avatar: "O" },
 ];
+
+const liveOrgPeople = (_structures: OrgStructure[]): TeamMember[] => {
+  const emps = getLiveEmployees();
+  return emps.map((e) => {
+    const fullName = `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || (e.email ?? "—");
+    return {
+      name: fullName,
+      role: e.positionName || "Əməkdaş",
+      kpiScore: 0,
+      avatar: (e.firstName?.[0] ?? fullName[0] ?? "?").toUpperCase(),
+    };
+  });
+};
 
 
 const TeamsPage = () => {
@@ -69,6 +85,16 @@ const TeamsPage = () => {
       window.removeEventListener("org-updated", refreshOrg);
     };
   }, []);
+
+  // Selectable people for team creation — DB-synced live employees unioned
+  // with legacy demo names so an empty tenant still has options. Dedup by
+  // display name (case-insensitive).
+  const allPeople: TeamMember[] = useMemo(() => {
+    const live = liveOrgPeople(orgStructures);
+    const seen = new Set(live.map(p => p.name.toLowerCase()));
+    const demo = demoStaticPeople.filter(p => !seen.has(p.name.toLowerCase()));
+    return [...live, ...demo];
+  }, [orgStructures]);
 
   // Top-level structures from organization module
   const STRUCTURES = orgStructures.map(s => s.name);
