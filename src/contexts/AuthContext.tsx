@@ -397,6 +397,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const syncKeyRef = useRef<string | null>(null);
   const syncTimersRef = useRef<number[]>([]);
+  const initialHydrationRef = useRef(true);
 
   const clearBusinessSyncTimers = () => {
     syncTimersRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -445,6 +446,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Subscribe first so we never miss an auth event.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (initialHydrationRef.current) return;
       if (session?.user) {
         if (syncKeyRef.current?.endsWith(`:${session.user.id}`)) return;
         // Defer supabase calls to avoid deadlocks inside the callback.
@@ -500,6 +502,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.warn("[auth] initial hydration failed", err);
       } finally {
         window.clearTimeout(safetyTimer);
+        initialHydrationRef.current = false;
         finish();
       }
     })();
