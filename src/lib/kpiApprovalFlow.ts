@@ -75,8 +75,10 @@ const resolveCardContext = (cardId: number): CardContext | null => {
 export const triggerCardApprovalIfComplete = (cardId: number): void => {
   try {
     const entries = getKpiSetEntries().filter(e => e.cardId === cardId);
-    if (entries.length === 0) return;
-    if (entries.some(e => e.status !== "completed")) return;
+    // If there are Set entries, all must be completed. Otherwise (owner-only card
+    // with no target-setters), proceed directly — matrix approval still applies.
+    if (entries.length > 0 && entries.some(e => e.status !== "completed")) return;
+
 
     const ctx = resolveCardContext(cardId);
     if (!ctx) return;
