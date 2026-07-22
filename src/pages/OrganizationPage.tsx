@@ -568,12 +568,17 @@ const StructureCard = ({ node, depth, expanded, onToggle, onAddSub, onOpenStaff,
 
   useEffect(() => { setDraftName(node.name); }, [node.name]);
 
-  const commitRename = () => {
+  const commitRename = async () => {
     const v = draftName.trim();
     if (!v) { setDraftName(node.name); setEditing(false); return; }
     if (v !== node.name) {
-      renameStructure(node.id, v);
-      toast.success("Ad yeniləndi");
+      try {
+        await renameStructureInCloud(node.id, v);
+        toast.success("Ad yeniləndi");
+      } catch (err) {
+        setDraftName(node.name);
+        toast.error(err instanceof Error ? err.message : "Ad database-ə yazılmadı.");
+      }
     }
     setEditing(false);
   };
