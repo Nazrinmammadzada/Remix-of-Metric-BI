@@ -1545,6 +1545,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
                               )}
+                              {st.status === "imtina" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                                  title="Redaktə et və yenidən təsdiqə göndər"
+                                  className="p-1.5 rounded border border-blue-500/40 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               <button
                                 onClick={async (e) => {
                                   e.stopPropagation();
