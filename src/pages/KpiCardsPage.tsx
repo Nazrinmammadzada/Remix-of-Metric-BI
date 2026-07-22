@@ -764,11 +764,17 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     // Matris seçilibsə → əvvəlcə Set tamamlanmalıdır; Set bitəndə sistem avtomatik
     // "tesdiq_gozlenilir"-ə keçirir (bax: kpiApprovalFlow.triggerCardApprovalIfComplete).
     const hasPendingSet = (d.targets || []).some((t: any) => t.createdBy === "other");
+    // Status axını (bax: KPI Status Flow diaqramı):
+    //   Qaralama → Natamam → Təsdiq gözlənilir → (Aktiv | İmtina)
+    //   İmtinadan yalnız iki yol var: "Redaktə et və yenidən göndər" (→ Təsdiq gözlənilir)
+    //   və ya "Ləğv et" (→ Ləğv edildi). Birbaşa Aktiv-ə keçid yoxdur.
     const nextStatus: import("@/lib/kpiCardStatusStore").KpiCardStatus =
-      action === "create_active" ? "aktiv"
-      : action === "submit"
-        ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
-        : "qaralama";
+      wasRejected && action === "submit"
+        ? "tesdiq_gozlenilir"
+        : action === "create_active" ? "aktiv"
+        : action === "submit"
+          ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
+          : "qaralama";
     try {
       await upsertStatus({
         card_id: id,
@@ -1535,6 +1541,15 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                                   onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
                                   title="Redaktə et"
                                   className="p-1.5 rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              {st.status === "imtina" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openWizardForEdit(card.id); }}
+                                  title="Redaktə et və yenidən təsdiqə göndər"
+                                  className="p-1.5 rounded border border-blue-500/40 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400"
                                 >
                                   <Pencil className="w-3.5 h-3.5" />
                                 </button>
