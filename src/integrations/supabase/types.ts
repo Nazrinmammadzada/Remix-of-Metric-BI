@@ -1606,6 +1606,7 @@ export type Database = {
       salary_records: {
         Row: {
           created_at: string
+          employee_id: string | null
           employee_legacy_id: number
           id: string
           legacy_id: number
@@ -1616,6 +1617,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          employee_id?: string | null
           employee_legacy_id: number
           id?: string
           legacy_id: number
@@ -1626,6 +1628,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          employee_id?: string | null
           employee_legacy_id?: number
           id?: string
           legacy_id?: number
