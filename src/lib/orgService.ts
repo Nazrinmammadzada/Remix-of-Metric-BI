@@ -952,12 +952,6 @@ const doFlush = async (orgId: string) => {
   await walk(structures, null);
 
   saveMap(orgId, map);
-  void logAudit({
-    organizationId: orgId,
-    action: "sync",
-    module: "org_structure",
-    metadata: { employees: employees.length, structures: structures.length },
-  });
 
   // After mirroring, provision auth logins for any newly-added employees who
   // have an email but no auth_user_id yet. Fire-and-forget: the edge function

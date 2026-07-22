@@ -11,7 +11,6 @@
 // cache) while making cloud the source of truth across devices/sessions.
 
 import { supabase } from "@/integrations/supabase/client";
-import { logAudit } from "@/lib/auditService";
 
 // ── Local <-> Cloud key map ─────────────────────────────────────────────────
 // One entry per synced store. Each store dispatches `event` when it mutates.
@@ -97,23 +96,24 @@ export const hydratePhase1FromCloud = async (orgId: string): Promise<void> => {
 let currentOrgId: string | null = null;
 const flushTimers = new Map<string, number>();
 
-const scheduleFlush = (cloudKey?: string) => {
+const scheduleFlush = (localKey?: string) => {
   if (!currentOrgId) return;
-  const key = cloudKey ?? "*";
+  const key = localKey ?? "*";
   const existing = flushTimers.get(key);
   if (existing) window.clearTimeout(existing);
   const t = window.setTimeout(() => {
     flushTimers.delete(key);
-    void flushPhase1ToCloud();
-  }, 500);
+    void flushPhase1ToCloud(key === "*" ? undefined : key);
+  }, 1200);
   flushTimers.set(key, t);
 };
 
-export const flushPhase1ToCloud = async () => {
+export const flushPhase1ToCloud = async (localKey?: string) => {
   const orgId = currentOrgId;
   if (!orgId) return;
   type Row = { organization_id: string; catalog_key: string; entries: unknown };
-  const rows: Row[] = STORES.map(s => ({
+  const stores = localKey ? STORES.filter(s => s.localKey === localKey) : STORES;
+  const rows: Row[] = stores.map(s => ({
     organization_id: orgId,
     catalog_key: s.cloudKey,
     entries: readLocal<unknown>(s.localKey, null),
@@ -124,12 +124,6 @@ export const flushPhase1ToCloud = async () => {
     .from("org_catalogs")
     .upsert(rows as never, { onConflict: "organization_id,catalog_key" });
   if (error) return;
-  void logAudit({
-    organizationId: orgId,
-    action: "sync",
-    module: "phase1_catalogs",
-    metadata: { rows: rows.length },
-  });
 };
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -193,7 +187,7 @@ export const activatePhase1Sync = async (orgId: string) => {
   onFocusHandler = () => scheduleRehydrate();
   window.addEventListener("focus", onFocusHandler);
   if (refreshInterval) window.clearInterval(refreshInterval);
-  refreshInterval = window.setInterval(scheduleRehydrate, 15000);
+  refreshInterval = window.setInterval(scheduleRehydrate, 120000);
 };
 
 
