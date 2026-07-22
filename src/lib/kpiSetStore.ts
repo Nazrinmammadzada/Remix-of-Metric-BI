@@ -224,7 +224,9 @@ const norm = (value?: string | number | null) => String(value ?? "").split(" —
 
 const entryKey = (entry: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeId" | "assigneeName">) => {
   const assignee = entry.assigneeId != null ? String(entry.assigneeId) : norm(entry.assigneeName);
-  const target = norm(entry.subKpiName) || String(entry.subKpiId ?? "");
+  // Əgər hədəf adı hələ yazılmayıbsa, subKpiId çox vaxt Date.now/random olur və
+  // hər sync-də eyni boş hədəfi ayrı sətir kimi saxlayırdı. Boş adları birləşdir.
+  const target = norm(entry.subKpiName) || "__blank_target__";
   return `${entry.cardId}::${assignee}::${target}`;
 };
 
