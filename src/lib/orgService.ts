@@ -48,6 +48,17 @@ const numFor = (m: IdMap, uuid: string): number => {
 };
 const uuidFor = (m: IdMap, num: number): string | undefined => m.toUuid[num];
 
+export const getOrgUuidForLocalId = (orgId: string, localId: number): string | undefined => {
+  return uuidFor(loadMap(orgId), localId);
+};
+
+export const getOrgLocalIdForUuid = (orgId: string, uuid: string): number => {
+  const map = loadMap(orgId);
+  const localId = numFor(map, uuid);
+  saveMap(orgId, map);
+  return localId;
+};
+
 const employeeFromRow = (row: any, map: IdMap): OrgEmployee => ({
   id: numFor(map, row.id),
   firstName: row.first_name ?? "",
