@@ -63,7 +63,7 @@ const getSetterEntriesFromSharedCards = (
 ): KpiSetEntry[] => {
   const me = stripPos(userName);
   if (!me) return [];
-  const entryKey = (r: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeName">) => `${r.cardId}::${stripPos(r.assigneeName)}::${String(r.subKpiName || "__blank_target__").trim().toLowerCase()}`;
+  const entryKey = (r: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeName">) => `${r.cardId}::${stripPos(r.assigneeName)}`;
   const existing = new Set(localRows.map(entryKey));
   const rows: KpiSetEntry[] = [];
   sharedCards.forEach(card => {
