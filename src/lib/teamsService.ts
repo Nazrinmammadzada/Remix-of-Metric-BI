@@ -52,7 +52,7 @@ const rowToTeam = (row: Row): Team => {
 const teamToPayload = (team: Team, orgId: string) => ({
   organization_id: orgId,
   name: team.name,
-  members: team.members,
+  members: team.members as any,
   metadata: {
     local_id: team.id,
     leader: team.leader,
@@ -62,7 +62,7 @@ const teamToPayload = (team: Team, orgId: string) => ({
     activeKpi: team.activeKpi,
     completedKpi: team.completedKpi,
     totalKpi: team.totalKpi,
-  },
+  } as any,
 });
 
 export const hydrateTeamsFromCloud = async (orgId: string): Promise<void> => {
