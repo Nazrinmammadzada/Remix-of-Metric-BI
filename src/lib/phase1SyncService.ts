@@ -66,6 +66,21 @@ const writeLocal = (key: string, value: unknown) => {
   } catch { /* noop */ }
 };
 
+const normalizeKpiSetEntries = (value: unknown): unknown => {
+  if (!Array.isArray(value)) return value;
+  const norm = (v: unknown) => String(v ?? "").split(" — ")[0].trim().toLowerCase().replace(/\s+/g, " ");
+  const keyOf = (row: any) => `${row?.cardId}::${row?.assigneeId ?? norm(row?.assigneeName)}::${norm(row?.subKpiName) || row?.subKpiId || ""}`;
+  const map = new Map<string, any>();
+  value.forEach((row: any) => {
+    const key = keyOf(row);
+    const prev = map.get(key);
+    if (!prev || (prev.status !== "completed" && row?.status === "completed") || Number(row?.updatedAt || 0) > Number(prev?.updatedAt || 0)) {
+      map.set(key, row);
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => Number(b?.updatedAt || 0) - Number(a?.updatedAt || 0));
+};
+
 let suppressFlush = false;
 const lastWrittenJson = new Map<string, string>();
 
@@ -86,8 +101,9 @@ export const hydratePhase1FromCloud = async (orgId: string): Promise<void> => {
     for (const store of STORES) {
       const val = byKey.get(store.cloudKey);
       if (val !== undefined && val !== null) {
-        writeLocal(store.localKey, val);
-        lastWrittenJson.set(store.localKey, JSON.stringify(val));
+        const normalized = store.localKey === "kpi_set_entries_v6" ? normalizeKpiSetEntries(val) : val;
+        writeLocal(store.localKey, normalized);
+        lastWrittenJson.set(store.localKey, JSON.stringify(normalized));
         touchedEvents.add(store.event);
       }
     }

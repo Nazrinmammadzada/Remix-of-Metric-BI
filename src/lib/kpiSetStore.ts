@@ -220,17 +220,45 @@ const SEED: KpiSetEntry[] = [
   },
 ];
 
+const norm = (value?: string | number | null) => String(value ?? "").split(" — ")[0].trim().toLowerCase().replace(/\s+/g, " ");
+
+const entryKey = (entry: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeId" | "assigneeName">) => {
+  const assignee = entry.assigneeId != null ? String(entry.assigneeId) : norm(entry.assigneeName);
+  const target = norm(entry.subKpiName) || String(entry.subKpiId ?? "");
+  return `${entry.cardId}::${assignee}::${target}`;
+};
+
+const betterEntry = (a: KpiSetEntry, b: KpiSetEntry) => {
+  if (a.status !== b.status) return a.status === "completed" ? a : b;
+  return (Number(a.updatedAt) || 0) >= (Number(b.updatedAt) || 0) ? a : b;
+};
+
+const dedupeEntries = (rows: KpiSetEntry[]): KpiSetEntry[] => {
+  const map = new Map<string, KpiSetEntry>();
+  rows.forEach(row => {
+    const key = entryKey(row);
+    const existing = map.get(key);
+    map.set(key, existing ? betterEntry(existing, row) : row);
+  });
+  return Array.from(map.values()).sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0));
+};
+
 const load = (): KpiSetEntry[] => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw) as KpiSetEntry[];
+      const compact = dedupeEntries(Array.isArray(parsed) ? parsed : []);
+      if (compact.length !== parsed.length) localStorage.setItem(KEY, JSON.stringify(compact));
+      return compact;
+    }
   } catch {}
   localStorage.setItem(KEY, JSON.stringify(SEED));
   return SEED;
 };
 
 const persist = (rows: KpiSetEntry[]) => {
-  localStorage.setItem(KEY, JSON.stringify(rows));
+  localStorage.setItem(KEY, JSON.stringify(dedupeEntries(rows)));
   window.dispatchEvent(new Event(EVT));
 };
 
@@ -256,15 +284,14 @@ export const addPendingEntry = (input: {
 }): KpiSetEntry => {
   const list = load();
   const incomingName = String(input.subKpiName || "").trim();
-  const dupe = list.find(e =>
-    (input.id && e.id === input.id) ||
-    (
-      e.cardId === input.cardId &&
-      e.assigneeName === input.assigneeName &&
-      String(e.subKpiName || "").trim() === incomingName &&
-      e.status === "pending"
-    )
-  );
+  const incomingKey = entryKey({
+    cardId: input.cardId,
+    subKpiId: input.subKpiId ?? Date.now(),
+    subKpiName: incomingName,
+    assigneeId: input.assigneeId,
+    assigneeName: input.assigneeName,
+  });
+  const dupe = list.find(e => (input.id && e.id === input.id) || entryKey(e) === incomingKey);
   if (dupe) return dupe;
   const entry: KpiSetEntry = {
     id: input.id || `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,

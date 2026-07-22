@@ -60,7 +60,7 @@ export const hydrateApprovalsFromCloud = async (orgId: string): Promise<void> =>
       updatedAt: r.updated_at,
     })));
   }
-  if (!aqRes.error && aqRes.data && aqRes.data.length > 0) {
+  if (!aqRes.error && aqRes.data) {
     writeLocal(QUEUE_KEY, aqRes.data.map(r => ({
       id: r.local_id,
       kpiCardId: r.kpi_card_local_id,

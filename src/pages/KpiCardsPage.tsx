@@ -46,7 +46,6 @@ import { buildSharedCardFromDraft, upsertSharedKpiCard, useSharedKpiCards, type 
 import { withKartSuffix } from "@/lib/utils";
 import { WeightInput } from "@/components/kpi/WeightInput";
 import { findRootByGoal, createRoot } from "@/lib/cascadeTreeStore";
-import { enqueueApproval } from "@/lib/approvalsStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
 
 const STATUS_LABELS = {
@@ -971,7 +970,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
   const [employeeDrilldown, setEmployeeDrilldown] = useState<string | null>(null);
   useEffect(() => {
-    import("@/lib/kpiCardStatusStore").then(m => m.fetchAllStatuses().then(setStatusMap));
+    const refresh = () => import("@/lib/kpiCardStatusStore").then(m => m.fetchAllStatuses().then(setStatusMap));
+    void refresh();
+    window.addEventListener("kpi-cards-updated", refresh);
+    window.addEventListener("shared-kpi-cards-updated", refresh);
+    return () => {
+      window.removeEventListener("kpi-cards-updated", refresh);
+      window.removeEventListener("shared-kpi-cards-updated", refresh);
+    };
   }, []);
   const DEMO_STATUS: Record<number, Partial<import("@/lib/kpiCardStatusStore").KpiCardStatusRow>> = {
     1: { status: "aktiv", use_matrix: true, submitted_for_approval: true, assignees: [{ name: "Samir Həsənov", ok: true }, { name: "Leyla Məmmədova", ok: true }] },
@@ -989,6 +995,24 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   };
   const getStatusFor = (cardId: number) => {
     const remote = statusMap[cardId];
+    const shared = sharedCards.find(s => s.numericId === cardId);
+    if (shared?.status) {
+      const sharedUpdated = Date.parse(shared.updatedAt || shared.createdAt || "") || 0;
+      const remoteUpdated = Date.parse(remote?.updated_at || "") || 0;
+      if (!remote || sharedUpdated >= remoteUpdated) {
+        return {
+          card_id: cardId,
+          status: shared.status as import("@/lib/kpiCardStatusStore").KpiCardStatus,
+          use_matrix: !!shared.matrixId,
+          submitted_for_approval: shared.status === "tesdiq_gozlenilir" || shared.status === "aktiv",
+          rejected_by: null,
+          rejected_at: null,
+          rejection_reason: shared.rejectedReason ?? null,
+          assignees: (shared.assigneeIds || []).map(id => ({ name: id, ok: true })),
+          updated_at: shared.updatedAt || new Date().toISOString(),
+        } as import("@/lib/kpiCardStatusStore").KpiCardStatusRow;
+      }
+    }
     if (remote) return remote;
     const demo = DEMO_STATUS[cardId] || { status: "natamam" as const, assignees: [] };
     return {
@@ -1983,7 +2007,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         <DialogContent className="max-w-md">
           {statusDialogCardId !== null && (() => {
             const st = getStatusFor(statusDialogCardId);
-            const card = kpiCards.find(c => c.id === statusDialogCardId);
+            const card = mergedKpiCards.find(c => c.id === statusDialogCardId);
             const draft = cardDrafts[statusDialogCardId];
             const evaluators: { role: string; name: string }[] = [];
             (card?.subKpis || []).forEach(sk => {

@@ -119,7 +119,9 @@ export const getVisibleApprovals = (
   if (scope === "all") return all;
   const meId = getCurrentEmployeeId(user);
   if (!meId) return [];
-  if (scope === "team") return all.filter(a => a.approverIds.includes(meId));
-  return all.filter(a => a.createdBy === meId);
+  const aliases = new Set([meId, meId.startsWith("e") ? meId.slice(1) : `e${meId}`]);
+  const belongsToMe = (a: ApprovalItem) =>
+    a.approverIds.some(id => aliases.has(id)) || aliases.has(a.createdBy);
+  return all.filter(belongsToMe);
 };
 
