@@ -14,7 +14,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import PeriodPicker, { currentPeriod, periodLabel, type PeriodValue } from "@/components/common/PeriodPicker";
 
 
-const allPeople: TeamMember[] = [
+// Legacy demo people — kept so an empty-tenant demo still has enough names
+// to render. Live DB employees are unioned in at render time inside the
+// component (see `allPeople` below).
+const demoStaticPeople: TeamMember[] = [
   { name: "Samir Həsənov", role: "Komanda Lideri", kpiScore: 90, avatar: "S" },
   { name: "Emin Məmmədov", role: "İpoteka Meneceri", kpiScore: 85, avatar: "E" },
   { name: "Ülviyyə Əliyeva", role: "HR Menecer", kpiScore: 82, avatar: "Ü" },
@@ -31,6 +34,22 @@ const allPeople: TeamMember[] = [
   { name: "Günel Əlizadə", role: "İpoteka Mütəxəssisi", kpiScore: 87, avatar: "G" },
   { name: "Orxan Məmmədov", role: "İpoteka Mütəxəssisi", kpiScore: 83, avatar: "O" },
 ];
+
+const liveOrgPeople = (structures: OrgStructure[]): TeamMember[] => {
+  // Static import at top of the file. We reuse orgStore's live snapshot.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { getEmployees } = require("@/lib/orgStore") as typeof import("@/lib/orgStore");
+  const emps = getEmployees();
+  return emps.map((e) => {
+    const fullName = `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || (e.email ?? "—");
+    return {
+      name: fullName,
+      role: e.positionName || "Əməkdaş",
+      kpiScore: 0,
+      avatar: (e.firstName?.[0] ?? fullName[0] ?? "?").toUpperCase(),
+    };
+  });
+};
 
 
 const TeamsPage = () => {
