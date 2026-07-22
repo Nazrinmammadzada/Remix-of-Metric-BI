@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.dedupe_kpi_set_entries_json(jsonb) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.dedupe_cascade_tree_json(jsonb) FROM PUBLIC, anon, authenticated, service_role;
