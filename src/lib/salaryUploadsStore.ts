@@ -101,6 +101,7 @@ const load = (): SalaryUpload[] => {
 const save = (list: SalaryUpload[]) => {
   localStorage.setItem(STORAGE, JSON.stringify(list));
   window.dispatchEvent(new Event("salary-uploads-updated"));
+  import("@/lib/payrollService").then(m => m.flushPayrollToCloud?.()).catch(() => {});
 };
 
 export const getUploads = (): SalaryUpload[] => load();

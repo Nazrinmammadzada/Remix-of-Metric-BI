@@ -65,12 +65,33 @@ const load = (): SalaryRecord[] => {
 const save = (list: SalaryRecord[]) => {
   localStorage.setItem(STORAGE, JSON.stringify(list));
   window.dispatchEvent(new Event("salary-updated"));
+  // Fire-and-forget immediate cloud flush so periods per-month persist
+  // across refresh / logout / another browser / another device.
+  import("@/lib/payrollService").then(m => m.flushPayrollToCloud?.()).catch(() => {});
 };
 
 export const getRecords = (): SalaryRecord[] => load();
 
+/**
+ * Merge-oriented add: one record per employee. New periods with the same
+ * (year, month) REPLACE existing ones so the table always shows the most
+ * recent value the user entered for that month.
+ */
 export const addRecord = (data: Omit<SalaryRecord, "id" | "createdAt">) => {
   const list = load();
+  const existing = list.find(r => r.employeeId === data.employeeId);
+  if (existing) {
+    const key = (p: SalaryPeriod) => `${p.year}-${p.month}`;
+    const incomingKeys = new Set(data.periods.map(key));
+    const kept = existing.periods.filter(p => !incomingKeys.has(key(p)));
+    let nextPid = Math.max(0, ...list.flatMap(r => r.periods.map(p => p.id))) + 1;
+    const merged = [...kept, ...data.periods.map(p => ({ ...p, id: nextPid++ }))];
+    merged.sort((a, b) => a.year - b.year || MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month));
+    existing.periods = merged;
+    if (data.operator) existing.operator = data.operator;
+    save(list);
+    return list;
+  }
   const id = list.length ? Math.max(...list.map(r => r.id)) + 1 : 1;
   list.push({ ...data, id, createdAt: new Date().toISOString() });
   save(list);
