@@ -324,38 +324,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
 
+  const LOGIN_TIMEOUT_MS = 10000;
+
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} (timeout ${ms}ms)`)), ms)
+      ),
+    ]);
+  };
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     const lower = email.toLowerCase().trim();
 
-    // 1) Try real Supabase auth first.
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: lower,
-      password,
-    });
-    if (!error && data?.user) {
-      const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
-      if (u) {
-        setUser(u);
-        if (u.currentOrgId && u.supabaseUserId) {
-          void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                void activatePhase1Sync(u.currentOrgId);
-                void activateTeamsSync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-        }
-        void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
-        return { success: true };
-      }
-      // Fell through — no profile row. Sign out.
-      await supabase.auth.signOut();
-      return { success: false, error: "Profil tapılmadı" };
-    }
+    try {
+      // 1) Try real Supabase auth first, guarded by a hard timeout so the
+      // button never gets stuck in "Daxil olunur..." if the backend hangs.
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email: lower, password }),
+        LOGIN_TIMEOUT_MS,
+        "Giriş sorğusu cavab vermədi"
+      );
 
-    return { success: false, error: error?.message ?? "Email və ya şifrə yanlışdır" };
+      if (!error && data?.user) {
+        const u = await buildAuthUserFromSupabase(data.user.id, data.user.email ?? lower);
+        if (u) {
+          setUser(u);
+          if (u.currentOrgId && u.supabaseUserId) {
+            void activateOrgSync(u.currentOrgId, u.supabaseUserId);
+                  void activateKpiCardsSync(u.currentOrgId);
+                  void activateApprovalsSync(u.currentOrgId);
+                  void activatePayrollSync(u.currentOrgId);
+                  void activateLifecycleSync(u.currentOrgId);
+                  activateNotificationsSync(u.currentOrgId);
+                  void activatePhase1Sync(u.currentOrgId);
+                  void activateTeamsSync(u.currentOrgId);
+                  if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
+          }
+          void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
+          return { success: true };
+        }
+        // Fell through — no profile row. Sign out.
+        await supabase.auth.signOut();
+        return { success: false, error: "Profil tapılmadı" };
+      }
+
+      return { success: false, error: error?.message ?? "Email və ya şifrə yanlışdır" };
+    } catch (err: any) {
+      console.warn("[login] caught", err);
+      if (err?.message?.includes("timeout")) {
+        return { success: false, error: "Server cavab vermədi, zəhmət olmasa bir az sonra yenidən cəhd edin" };
+      }
+      if (!navigator.onLine) {
+        return { success: false, error: "İnternet bağlantısı yoxdur" };
+      }
+      return { success: false, error: "Giriş zamanı gözlənilməz xəta baş verdi" };
+    }
   };
 
 
