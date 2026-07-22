@@ -22,7 +22,7 @@ import {
   setStarPerson, findLeaderStructuresOf, isStructureTypeInUse, isPositionInUse,
   type OrgEmployee, type OrgStructure, type OrgPosition, type LeaderStructInfo,
 } from "@/lib/orgStore";
-import { addPositionInCloud, addSlotsInCloud, addStructuresInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud } from "@/lib/orgService";
+import { addPositionInCloud, addSlotsInCloud, addStructuresInCloud, assignSlotInCloud, createEmployeeInCloud, persistOrgNow, removeSlotInCloud, renameStructureInCloud, setStarPersonInCloud } from "@/lib/orgService";
 
 
 import {
