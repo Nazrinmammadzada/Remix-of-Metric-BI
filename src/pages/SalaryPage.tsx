@@ -703,7 +703,18 @@ const SalaryPage = () => {
 
 
 
-      <AddSalaryDialog open={showAdd} onClose={() => setShowAdd(false)} employees={employees} />
+      <AddSalaryDialog
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        employees={employees}
+        onSaved={(yr, mo) => {
+          setYear(String(yr));
+          setMonth(mo);
+          setAppliedYear(yr);
+          setAppliedMonth(mo);
+        }}
+      />
+
 
       <EmployeeDetailDialog
         row={operatorView}
