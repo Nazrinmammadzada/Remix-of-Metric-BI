@@ -361,10 +361,9 @@ const StructureTab = ({ changeLeaderFor, onClearChangeLeader }: StructureTabProp
       if (sourceSlotId !== leaderChange.slotId) {
         await assignSlotInCloud(sourceSlotId, { employeeId: null });
       }
-      // 3) Ulduz / rəhbər rolu bayrağını sinxronla.
-      setStarPerson(changeLeaderFor, false);
-      setStarPerson(newEmpId, true);
-      await persistOrgNow();
+      // 3) Ulduz / rəhbər rolu bayrağını database-də sinxronla.
+      await setStarPersonInCloud(changeLeaderFor, false);
+      await setStarPersonInCloud(newEmpId, true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Rəhbər dəyişikliyi database-ə yazılmadı.");
       return;
