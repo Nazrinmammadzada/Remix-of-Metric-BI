@@ -260,7 +260,17 @@ export const flushLocalKpiCardsToCloud = async () => {
     };
 
     let cardUuid: string | null = null;
-    if (isUuid(c.id)) {
+    if (numeric != null) {
+      const upsert = await supabase
+        .from("kpi_cards")
+        .upsert(payload, { onConflict: "organization_id,legacy_numeric_id" })
+        .select("id")
+        .single();
+      if (upsert.data) {
+        cardUuid = upsert.data.id as string;
+        if (c.id !== cardUuid) upsertSharedKpiCard({ ...c, id: cardUuid });
+      }
+    } else if (isUuid(c.id)) {
       const upd = await supabase.from("kpi_cards").update(payload).eq("id", c.id).select("id").maybeSingle();
       if (upd.data) cardUuid = upd.data.id as string;
       else {
