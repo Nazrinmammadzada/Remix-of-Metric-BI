@@ -796,34 +796,73 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       return Array.from(list);
     })();
 
+    const employeesAllForShared = getEmployees();
+    const nameToSharedEmployeeId = (raw: string): string | null => {
+      const clean = stripName(raw);
+      const emp = employeesAllForShared.find(e => `${e.firstName} ${e.lastName}` === clean);
+      return emp ? `e${emp.id}` : null;
+    };
+    const sharedAssigneeIds = Array.from(new Set(
+      ownerAssigneeNames.map(nameToSharedEmployeeId).filter((x): x is string => !!x)
+    ));
+
+    // === Shared KPI kartını əsas registry-yə yaz ===
+    // Bu registry backend sync servisinin oxuduğu mənbədir. Ona görə HR-in yaratdığı
+    // kart refresh-dən başqa, digər brauzer və cihazlarda da eyni təşkilat üçün görünür.
+    try {
+      const meId = getCurrentEmployeeId(user) || "e1";
+      const sharedStatus = ["aktiv", "tesdiq_gozlenilir", "imtina"].includes(String(nextStatus))
+        ? String(nextStatus) as "aktiv" | "tesdiq_gozlenilir" | "imtina"
+        : "natamam";
+      upsertSharedKpiCard(buildSharedCardFromDraft(d, {
+        id: editingId != null ? `kpi-${editingId}` : undefined,
+        numericId: id,
+        ownerId: meId,
+        status: sharedStatus,
+        matrixId: d.approvalMatrixId || null,
+        assigneeIds: sharedAssigneeIds,
+      }));
+      void import("@/lib/kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
+    } catch (err) { console.warn("shared kpi card sync failed", err); }
+
     // === Rəhbər üçün pending KpiSetEntry yarat ===
     // Target-Setter (createdBy==="other"): seçilmiş "Təyin edici"
     // Owner (createdBy==="self"): kartın öz assignee-si (individualEmployees / bulkSelections.persons)
     try {
-      const employeesAll = getEmployees();
+      const employeesAll = employeesAllForShared;
       const findEmp = (name: string) => employeesAll.find(e => `${e.firstName} ${e.lastName}` === name);
       const seen = new Set<string>();
-      const pushPending = (name: string) => {
-        if (!name || seen.has(name)) return;
-        seen.add(name);
+      const pushPending = (name: string, target: any, index: number) => {
+        const targetName = String(target?.name || `Hədəf ${index + 1}`).trim();
+        const key = `${name}::${targetName}`;
+        if (!name || seen.has(key)) return;
+        seen.add(key);
         const emp = findEmp(name);
         addPendingEntry({
+          id: `ks-${id}-${target?.id || index}-${emp?.id || name}`,
           cardId: id,
           cardName: d.name,
+          subKpiId: index + 1,
+          subKpiName: targetName,
+          type: target?.type,
+          target: String(target?.targetValue ?? ""),
+          unit: target?.type === "Məbləğ" ? (target?.currency || "AZN") : target?.type === "Faiz" ? "%" : (target?.unit || ""),
           assigneeName: name,
           assigneeId: emp?.id,
           ownerType: "manager",
+          weight: Number(target?.weight) || undefined,
           weightMin: 5,
           weightMax: 40,
+          cascadable: !!target?.cascading,
         });
       };
-      (d.targets || []).forEach((t: any) => {
+      (d.targets || []).forEach((t: any, index: number) => {
         // Yalnız "Digər əməkdaş təyin edir" modunda təyinedici üçün
         // "Məsul olduğum kartlar" entry-si yaradılır.
         // "Özüm təyin edirəm" (createdBy === "self") halında kart Owner-ə
         // aiddir — onun ÖZ kartıdır, məsul olduğu kart deyil.
         if (t.createdBy === "other") {
-          pushPending(stripName(t.assigner));
+          pushPending(stripName(t.assigner), t, index);
         }
       });
     } catch (err) { console.warn("pending kpi set seed failed", err); }
@@ -844,15 +883,14 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           const emp = empsAll.find(e => `${e.firstName} ${e.lastName}` === clean);
           return emp ? `e${emp.id}` : null;
         };
-        const assigneeIds = Array.from(new Set(
-          ownerAssigneeNames.map(nameToEId).filter((x): x is string => !!x)
-        ));
         meMod.upsertKpiCardMeta({
           cardId: id,
           name: d.name || "Adsız KPI",
           matrixId: d.approvalMatrixId || null,
           ownerId: meId,
-          assigneeIds,
+          assigneeIds: sharedAssigneeIds.length ? sharedAssigneeIds : Array.from(new Set(
+            ownerAssigneeNames.map(nameToEId).filter((x): x is string => !!x)
+          )),
         });
       } catch (err) { console.warn("kpi card meta upsert failed", err); }
     }

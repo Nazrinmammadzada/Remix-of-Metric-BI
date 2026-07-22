@@ -238,32 +238,51 @@ export const getKpiSetEntries = (): KpiSetEntry[] => load();
 
 /** Yeni pending entry əlavə et — HR kart yaradarkən rəhbərin "Məsul olduğum kartlar"-ında görünsün deyə. */
 export const addPendingEntry = (input: {
+  id?: string;
   cardId: number;
   cardName: string;
+  subKpiId?: number;
+  subKpiName?: string;
+  type?: KpiEntryType;
+  target?: string;
   assigneeName: string;
   assigneeId?: number;
   ownerType?: "manager" | "hr";
+  weight?: number;
   weightMin?: number;
   weightMax?: number;
   unit?: string;
+  cascadable?: boolean;
 }): KpiSetEntry => {
   const list = load();
-  const dupe = list.find(e => e.cardId === input.cardId && e.assigneeName === input.assigneeName && e.status === "pending");
+  const incomingName = String(input.subKpiName || "").trim();
+  const dupe = list.find(e =>
+    (input.id && e.id === input.id) ||
+    (
+      e.cardId === input.cardId &&
+      e.assigneeName === input.assigneeName &&
+      String(e.subKpiName || "").trim() === incomingName &&
+      e.status === "pending"
+    )
+  );
   if (dupe) return dupe;
   const entry: KpiSetEntry = {
-    id: `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    id: input.id || `ks-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     cardId: input.cardId,
     cardName: input.cardName,
-    subKpiId: Date.now(),
-    subKpiName: "",
-    target: "",
+    subKpiId: input.subKpiId ?? Date.now(),
+    subKpiName: input.subKpiName || "",
+    type: input.type,
+    target: input.target || "",
     unit: input.unit || "",
     assigneeId: input.assigneeId,
     assigneeName: input.assigneeName,
     ownerType: input.ownerType || "manager",
     status: "pending",
+    weight: input.weight,
     weightMin: input.weightMin,
     weightMax: input.weightMax,
+    cascadable: input.cascadable,
     updatedAt: Date.now(),
   };
   persist([entry, ...list]);
