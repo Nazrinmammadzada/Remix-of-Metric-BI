@@ -360,6 +360,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     deactivateLifecycleSync();
     deactivateNotificationsSync();
     deactivatePhase1Sync();
+    deactivateTeamsSync();
     await supabase.auth.signOut();
   };
 
