@@ -37,12 +37,8 @@ const demoStaticEmployees: MockEmployee[] = [
 // dropdowns across the app.
 const buildLiveEmployees = (): MockEmployee[] => {
   try {
-    // Dynamic import to avoid a static circular reference during module init.
-    // orgStore does not import mockData, so this is safe at call-time.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require("@/lib/orgStore");
-    const emps = mod.getEmployees?.() ?? [];
-    return emps.map((e: any) => ({
+    const emps = getLiveOrgEmployees();
+    return emps.map((e) => ({
       id: String(e.id),
       fullName: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || (e.email ?? "—"),
       department: (e.structurePath || "").split(" › ")[0] || "—",
