@@ -89,6 +89,16 @@ const TeamsPage = () => {
     };
   }, []);
 
+  // Selectable people for team creation — DB-synced live employees unioned
+  // with legacy demo names so an empty tenant still has options. Dedup by
+  // display name (case-insensitive).
+  const allPeople: TeamMember[] = useMemo(() => {
+    const live = liveOrgPeople(orgStructures);
+    const seen = new Set(live.map(p => p.name.toLowerCase()));
+    const demo = demoStaticPeople.filter(p => !seen.has(p.name.toLowerCase()));
+    return [...live, ...demo];
+  }, [orgStructures]);
+
   // Top-level structures from organization module
   const STRUCTURES = orgStructures.map(s => s.name);
   // Sub-structures are children of the selected top-level structures; fallback to all children
