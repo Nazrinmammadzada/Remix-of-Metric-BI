@@ -1772,8 +1772,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      dedupe_cascade_tree_json: { Args: { _entries: Json }; Returns: Json }
-      dedupe_kpi_set_entries_json: { Args: { _entries: Json }; Returns: Json }
       get_user_auth_context: { Args: { _user_id: string }; Returns: Json }
       get_user_org_ids: { Args: { _user_id: string }; Returns: string[] }
       has_permission: {
