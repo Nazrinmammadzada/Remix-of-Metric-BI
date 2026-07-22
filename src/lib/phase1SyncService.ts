@@ -56,6 +56,10 @@ const STORES: StoreMirror[] = [
   { localKey: "kpi_card_meta_v1",            cloudKey: "kpi_card_meta",        event: "kpi-cards-updated",                   table: "org_catalogs" },
   { localKey: "kpi_eval_season_open_v1",     cloudKey: "season_open",          event: "season-updated",                      table: "org_catalogs" },
   { localKey: "kpi_card_status_v1",          cloudKey: "kpi_card_status",      event: "kpi-cards-updated",                   table: "org_catalogs" },
+  // Struktur tipləri / vəzifə / meyar kataloqları (catalogStore.ts)
+  { localKey: "kpi_catalog_struct_types_v1", cloudKey: "catalog_struct_types", event: "catalog-updated",                     table: "org_catalogs" },
+  { localKey: "kpi_catalog_positions_v1",    cloudKey: "catalog_positions",    event: "catalog-updated",                     table: "org_catalogs" },
+  { localKey: "kpi_catalog_criteria_v1",     cloudKey: "catalog_criteria",     event: "catalog-updated",                     table: "org_catalogs" },
 ];
 
 const readLocal = <T>(key: string, fallback: T): T => {
