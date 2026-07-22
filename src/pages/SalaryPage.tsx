@@ -116,7 +116,9 @@ const SalaryPage = () => {
 
   const rows = useMemo<AggRow[]>(() => {
     if (appliedYear == null || appliedMonth == null) return [];
-    // Aggregate per employee
+    // Aggregate per employee — merge periods across any duplicate records for
+    // the same employee, and dedupe by (year, month) preferring the highest id
+    // (most recent write wins).
     const byEmp = new Map<number, { rec: SalaryRecord; periods: SalaryPeriod[] }>();
     for (const r of records) {
       const cur = byEmp.get(r.employeeId);
@@ -127,24 +129,33 @@ const SalaryPage = () => {
     byEmp.forEach((v, empId) => {
       const emp = employees.find(e => e.id === empId);
       if (!emp) return;
-      const periodMonth = v.periods.find(p => p.year === appliedYear && p.month === appliedMonth);
-      if (!periodMonth) return; // skip employees with no salary in selected month/year
+      const dedup = new Map<string, SalaryPeriod>();
+      for (const p of v.periods) {
+        const k = `${p.year}-${p.month}`;
+        const prev = dedup.get(k);
+        if (!prev || p.id > prev.id) dedup.set(k, p);
+      }
+      const periods = Array.from(dedup.values());
+      const periodMonth = periods.find(p => p.year === appliedYear && p.month === appliedMonth);
+      if (!periodMonth) return;
       const monthPay = computePay(periodMonth);
-      const totalPaid = v.periods.reduce((s, p) => s + computePay(p), 0);
-      const avgMonthly = v.periods.length ? Math.round(v.periods.reduce((s, p) => s + p.salary, 0) / v.periods.length) : 0;
+      const totalPaid = periods.reduce((s, p) => s + computePay(p), 0);
+      const avgMonthly = periods.length ? Math.round(periods.reduce((s, p) => s + p.salary, 0) / periods.length) : 0;
       const pctCurrent = avgMonthly ? Math.round((monthPay / avgMonthly) * 10000) / 100 : 0;
-      const last12 = v.periods.slice(-12);
+      const sorted = [...periods].sort((a, b) => a.year - b.year || MONTHS.indexOf(a.month) - MONTHS.indexOf(b.month));
+      const last12 = sorted.slice(-12);
       const avg12 = last12.length ? last12.reduce((s, p) => s + p.salary, 0) / last12.length : 0;
       const pct12m = avg12 ? Math.round((monthPay / avg12) * 10000) / 100 : 0;
       out.push({
         employee: emp,
         operatorName: v.rec.operator,
         monthPay, totalPaid, avgMonthly, pctCurrent, pct12m,
-        allPeriods: v.periods.map(p => ({ ...p, _recordId: v.rec.id })),
+        allPeriods: periods.map(p => ({ ...p, _recordId: v.rec.id })),
       });
     });
     return out;
   }, [records, employees, appliedYear, appliedMonth]);
+
 
   const advCols = useMemo<DataTableColumn<AggRow>[]>(() => COLUMNS.map(c => ({
     key: c.key,
