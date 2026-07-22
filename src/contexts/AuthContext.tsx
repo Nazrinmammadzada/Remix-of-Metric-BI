@@ -12,6 +12,7 @@ import { activateApprovalsSync, deactivateApprovalsSync } from "@/lib/approvalsS
 import { activatePayrollSync, deactivatePayrollSync } from "@/lib/payrollService";
 import { activateLifecycleSync, deactivateLifecycleSync } from "@/lib/lifecycleService";
 import { activateNotificationsSync, deactivateNotificationsSync } from "@/lib/notificationsService";
+import { activateTeamsSync, deactivateTeamsSync } from "@/lib/teamsService";
 import { activatePhase1Sync, deactivatePhase1Sync } from "@/lib/phase1SyncService";
 import { hydrateLanguageFromProfile } from "@/lib/languageService";
 import { logAudit } from "@/lib/auditService";
