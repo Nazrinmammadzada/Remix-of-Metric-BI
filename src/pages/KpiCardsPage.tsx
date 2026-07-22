@@ -817,8 +817,8 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     // kart refresh-dən başqa, digər brauzer və cihazlarda da eyni təşkilat üçün görünür.
     try {
       const meId = getCurrentEmployeeId(user) || "e1";
-      const sharedStatus = ["aktiv", "tesdiq_gozlenilir", "imtina"].includes(String(nextStatus))
-        ? String(nextStatus) as "aktiv" | "tesdiq_gozlenilir" | "imtina"
+      const sharedStatus = ["aktiv", "tesdiq_gozlenilir", "imtina", "qaralama"].includes(String(nextStatus))
+        ? String(nextStatus) as "aktiv" | "tesdiq_gozlenilir" | "imtina" | "qaralama"
         : "natamam";
       upsertSharedKpiCard(buildSharedCardFromDraft(d, {
         id: editingId != null ? `kpi-${editingId}` : undefined,
