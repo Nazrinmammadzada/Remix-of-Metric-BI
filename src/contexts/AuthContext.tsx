@@ -541,8 +541,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
           return { success: true };
         }
-        // Fell through — no profile row. Sign out.
-        await supabase.auth.signOut();
+        // Fell through — no profile row. Do not wait on client signOut here;
+        // the auth client can be the part that is blocked. Clearing local
+        // storage is enough to keep the UI responsive.
+        const storageKey = getSupabaseStorageKey();
+        if (storageKey) localStorage.removeItem(storageKey);
         return { success: false, error: "Profil tapılmadı" };
       }
 
