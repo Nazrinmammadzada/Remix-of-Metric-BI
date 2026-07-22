@@ -2,6 +2,7 @@
 // Hydrates local caches on login and mirrors mutations back to Supabase.
 
 import { supabase } from "@/integrations/supabase/client";
+import { getOrgLocalIdForUuid, getOrgUuidForLocalId } from "@/lib/orgService";
 
 const NOTIF_KEY = "kpi_notification_settings_v2";
 const SALARY_KEY = "kpi_salary_records_v3";
@@ -77,11 +78,23 @@ export const hydratePayrollFromCloud = async (orgId: string): Promise<void> => {
 // ── FLUSH ───────────────────────────────────────────────────────────────────
 let currentOrgId: string | null = null;
 let flushTimer: number | null = null;
+let suppressFlush = false;
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
 
 const scheduleFlush = () => {
-  if (!currentOrgId) return;
+  if (suppressFlush || !currentOrgId) return;
   if (flushTimer) window.clearTimeout(flushTimer);
   flushTimer = window.setTimeout(() => { flushTimer = null; void flushPayrollToCloud(); }, 500);
+};
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (currentOrgId) void hydratePayrollFromCloud(currentOrgId);
+  }, 500);
 };
 
 export const flushPayrollToCloud = async () => {
