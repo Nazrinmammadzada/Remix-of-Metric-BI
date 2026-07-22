@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ALL_MODULE_KEYS } from "@/lib/modulePermissions";
 import {
@@ -395,27 +395,66 @@ const buildAuthUserFromSupabase = async (
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const syncKeyRef = useRef<string | null>(null);
+  const syncTimersRef = useRef<number[]>([]);
+  const initialHydrationRef = useRef(true);
+
+  const clearBusinessSyncTimers = () => {
+    syncTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    syncTimersRef.current = [];
+  };
+
+  const startBusinessSyncs = (
+    u: AuthUser,
+    session?: { access_token: string; refresh_token: string },
+  ) => {
+    if (!u.currentOrgId || !u.supabaseUserId) return;
+    const key = `${u.currentOrgId}:${u.supabaseUserId}`;
+    if (syncKeyRef.current === key) return;
+    clearBusinessSyncTimers();
+    syncKeyRef.current = key;
+
+    const orgId = u.currentOrgId;
+    const uid = u.supabaseUserId;
+    if (session) {
+      window.setTimeout(() => {
+        void supabase.auth.setSession(session).catch(() => undefined);
+      }, 0);
+    }
+
+    const schedule = (fn: () => void, delay: number) => {
+      const timer = window.setTimeout(() => {
+        syncTimersRef.current = syncTimersRef.current.filter((item) => item !== timer);
+        if (syncKeyRef.current === key) fn();
+      }, delay);
+      syncTimersRef.current.push(timer);
+    };
+
+    // Start heavy data sync after the app has navigated, and stagger modules so
+    // login/page paint is never blocked by multiple large database hydrations.
+    schedule(() => { void activateOrgSync(orgId, uid); }, 800);
+    schedule(() => { void activatePhase1Sync(orgId); }, 1200);
+    schedule(() => { void activateTeamsSync(orgId); }, 1500);
+    schedule(() => { void activateKpiCardsSync(orgId); }, 1800);
+    schedule(() => { void activateApprovalsSync(orgId); }, 2100);
+    schedule(() => { void activatePayrollSync(orgId); }, 2400);
+    schedule(() => { void activateLifecycleSync(orgId); }, 2700);
+    schedule(() => { activateNotificationsSync(orgId); }, 3000);
+    schedule(() => { void hydrateLanguageFromProfile(uid); }, 3300);
+  };
 
   useEffect(() => {
     // Subscribe first so we never miss an auth event.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (initialHydrationRef.current) return;
       if (session?.user) {
+        if (syncKeyRef.current?.endsWith(`:${session.user.id}`)) return;
         // Defer supabase calls to avoid deadlocks inside the callback.
         setTimeout(() => {
           buildAuthUserFromSupabase(session.user.id, session.user.email ?? "").then(u => {
             if (u) {
               setUser(u);
-              if (u.currentOrgId && u.supabaseUserId) {
-                void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-                void activateKpiCardsSync(u.currentOrgId);
-                void activateApprovalsSync(u.currentOrgId);
-                void activatePayrollSync(u.currentOrgId);
-                void activateLifecycleSync(u.currentOrgId);
-                activateNotificationsSync(u.currentOrgId);
-                void activatePhase1Sync(u.currentOrgId);
-                void activateTeamsSync(u.currentOrgId);
-                if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-              }
+              startBusinessSyncs(u);
             }
           });
         }, 0);
@@ -428,6 +467,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         deactivateNotificationsSync();
         deactivatePhase1Sync();
         deactivateTeamsSync();
+        clearBusinessSyncTimers();
+        syncKeyRef.current = null;
         setUser(null);
       }
     });
@@ -442,26 +483,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const u = await buildAuthUserFromSupabase(session.user.id, session.user.email ?? "");
+          const u = (await fetchAuthUserDirect(
+            session.user.id,
+            session.user.email ?? "",
+            session.access_token,
+            2500,
+          )) ?? await withTimeout(
+            buildAuthUserFromSupabase(session.user.id, session.user.email ?? ""),
+            3000,
+            "Sessiya məlumatları gecikdi",
+          ).catch(() => null);
           if (u) {
             setUser(u);
-            if (u.currentOrgId && u.supabaseUserId) {
-              void activateOrgSync(u.currentOrgId, u.supabaseUserId);
-              void activateKpiCardsSync(u.currentOrgId);
-              void activateApprovalsSync(u.currentOrgId);
-              void activatePayrollSync(u.currentOrgId);
-              void activateLifecycleSync(u.currentOrgId);
-              activateNotificationsSync(u.currentOrgId);
-              void activatePhase1Sync(u.currentOrgId);
-              void activateTeamsSync(u.currentOrgId);
-              if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-            }
+            startBusinessSyncs(u);
           }
         }
       } catch (err) {
         console.warn("[auth] initial hydration failed", err);
       } finally {
         window.clearTimeout(safetyTimer);
+        initialHydrationRef.current = false;
         finish();
       }
     })();
@@ -542,20 +583,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       ).catch(() => null)) ?? buildImmediateAuthUser(data, lower);
       if (u) {
           setUser(u);
-          if (u.currentOrgId && u.supabaseUserId) {
-            window.setTimeout(() => {
-              void supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
-              void activateOrgSync(u.currentOrgId!, u.supabaseUserId!);
-                  void activateKpiCardsSync(u.currentOrgId);
-                  void activateApprovalsSync(u.currentOrgId);
-                  void activatePayrollSync(u.currentOrgId);
-                  void activateLifecycleSync(u.currentOrgId);
-                  activateNotificationsSync(u.currentOrgId);
-                  void activatePhase1Sync(u.currentOrgId);
-                  void activateTeamsSync(u.currentOrgId);
-                  if (u.supabaseUserId) void hydrateLanguageFromProfile(u.supabaseUserId);
-            }, 0);
-          }
+          startBusinessSyncs(u, { access_token: data.access_token, refresh_token: data.refresh_token });
           void logAudit({ organizationId: u.currentOrgId ?? null, action: "login", module: "auth", entityType: "user", entityId: u.supabaseUserId ?? null, metadata: { method: "password", email: lower } });
           return { success: true };
         }
@@ -592,6 +620,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     deactivateNotificationsSync();
     deactivatePhase1Sync();
     deactivateTeamsSync();
+    clearBusinessSyncTimers();
+    syncKeyRef.current = null;
     await supabase.auth.signOut();
   };
 
