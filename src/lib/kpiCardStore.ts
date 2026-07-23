@@ -118,7 +118,7 @@ export const upsertSharedKpiCard = (card: SharedKpiCard) => {
 
 export const setKpiStatus = (id: string, status: SharedKpiStatus, actor: string, note?: string) => {
   const list = load();
-  const idx = list.findIndex(c => c.id === id);
+  const idx = list.findIndex(c => c.id === id || (c.numericId != null && (`kpi-${c.numericId}` === id || String(c.numericId) === id)));
   if (idx < 0) return;
   list[idx] = {
     ...list[idx],

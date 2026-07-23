@@ -18,6 +18,7 @@ import { useSharedKpiCards } from "@/lib/kpiCardStore";
 import { useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
+import { getEmployees } from "@/lib/orgStore";
 import {
   useSubKpis, getKpiCardsFor, calcCompletion, isEvaluated, type SubKpi, type KpiCardInfo,
 } from "@/lib/kpiEvaluationStore";
@@ -66,6 +67,7 @@ const getSetterEntriesFromSharedCards = (
   const entryKey = (r: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeName">) => `${r.cardId}::${stripPos(r.assigneeName)}`;
   const existing = new Set(localRows.map(entryKey));
   const rows: KpiSetEntry[] = [];
+  const employees = getEmployees();
   sharedCards.forEach(card => {
     const cardId = card.numericId ?? stableNum(card.id);
     (card.targets || []).forEach((target, index) => {
@@ -82,6 +84,7 @@ const getSetterEntriesFromSharedCards = (
         type: target.type as KpiSetEntry["type"],
         target: String(target.targetValue || ""),
         unit: target.unit || "",
+        assigneeId: employees.find(e => `${e.firstName} ${e.lastName}` === me)?.id,
         assigneeName: me,
         ownerType: "manager",
         status: "pending",

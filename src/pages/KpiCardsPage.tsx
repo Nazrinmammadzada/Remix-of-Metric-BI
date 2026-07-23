@@ -19,7 +19,7 @@ import TeamMultiSelect from "@/components/kpi/TeamMultiSelect";
 import FilterTeamSelect from "@/components/kpi/FilterTeamSelect";
 import { getTeams } from "@/lib/teamsStore";
 import { validateTarget, getTargetPlaceholder, getTargetUnitSuffix } from "@/lib/kpiValidation";
-import { getApprovalMatrices, getDeletionMatrix, getDeletionMatrices, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, userRoleMap, roleUserMap, type ApprovalMatrix, type DeletionMatrix } from "@/lib/matrixStore";
+import { getApprovalMatrices, getDeletionMatrix, getDeletionMatrices, addDeletionRequest, getDeletedKpiIds, formatAssignee, formatUserWithRole, type ApprovalMatrix, type DeletionMatrix } from "@/lib/matrixStore";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { getStructures, findStructureById, findOccupantsByPosition, getEmployees, type OrgStructure } from "@/lib/orgStore";
 import { getPositions } from "@/lib/catalogStore";
@@ -48,6 +48,7 @@ import { withKartSuffix } from "@/lib/utils";
 import { WeightInput } from "@/components/kpi/WeightInput";
 import { findRootByGoal, createRoot } from "@/lib/cascadeTreeStore";
 import { getCurrentEmployeeId } from "@/lib/scope";
+import { getApprovals } from "@/lib/approvalsStore";
 
 const STATUS_LABELS = {
   qaralama: "Qaralama", natamam: "Natamam", tesdiq_gozlenilir: "Təsdiq gözlənilir",
@@ -807,7 +808,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const nameToSharedEmployeeId = (raw: string): string | null => {
       const clean = stripName(raw);
       const emp = employeesAllForShared.find(e => `${e.firstName} ${e.lastName}` === clean);
-      return emp ? `e${emp.id}` : null;
+      return emp ? String(emp.id) : null;
     };
     const sharedAssigneeIds = Array.from(new Set(
       ownerAssigneeNames.map(nameToSharedEmployeeId).filter((x): x is string => !!x)
@@ -817,12 +818,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     // Bu registry backend sync servisinin oxuduğu mənbədir. Ona görə HR-in yaratdığı
     // kart refresh-dən başqa, digər brauzer və cihazlarda da eyni təşkilat üçün görünür.
     try {
-      const meId = getCurrentEmployeeId(user) || "e1";
+      const meId = getCurrentEmployeeId(user) || "1";
       const sharedStatus = ["aktiv", "tesdiq_gozlenilir", "imtina", "qaralama"].includes(String(nextStatus))
         ? String(nextStatus) as "aktiv" | "tesdiq_gozlenilir" | "imtina" | "qaralama"
         : "natamam";
       upsertSharedKpiCard(buildSharedCardFromDraft(d, {
-        id: editingId != null ? `kpi-${editingId}` : undefined,
+        id: `kpi-${id}`,
         numericId: id,
         ownerId: meId,
         status: sharedStatus,
@@ -883,12 +884,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         const meMod = await import("@/lib/kpiCardMetaStore");
         const { getCurrentEmployeeId } = await import("@/lib/scope");
         const { getEmployees: getOrgEmps } = await import("@/lib/orgStore");
-        const meId = getCurrentEmployeeId(user) || "e1";
+        const meId = getCurrentEmployeeId(user) || "1";
         const empsAll = getOrgEmps();
         const nameToEId = (n: string): string | null => {
           const clean = stripName(n);
           const emp = empsAll.find(e => `${e.firstName} ${e.lastName}` === clean);
-          return emp ? `e${emp.id}` : null;
+          return emp ? String(emp.id) : null;
         };
         meMod.upsertKpiCardMeta({
           cardId: id,
