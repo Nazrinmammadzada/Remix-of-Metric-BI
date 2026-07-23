@@ -916,9 +916,18 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
 
 
-    // === Cascade root: HR cascadable Owner kartı yaradanda ağacın kökünü yarat ===
-    // Yalnız createdBy==="self" && cascading==true olan hədəflər üçün, hər assignee ilə.
+    // === Cascade root: cascadable Owner kartı üçün yalnız TAMAMİLƏ YENİ kaskad başladıqda root yarat ===
+    // Qayda:
+    //  - HR (və ya rəhbər) heç bir Cascade Load istifadə etmədən cascadable
+    //    hədəf yaradanda → assignee üçün yeni Root yaranır.
+    //  - Əgər assignee artıq mövcud kaskad ağacında child kimi mövcuddursa
+    //    (yəni yuxarıdan gələn Cascade Load-u var), yeni Root yaratma —
+    //    kaskadlama dialoqu (CascadeDistributeDialog) yeni hədəfləri həmin
+    //    child node-un altına yerləşdirəcək. Bu, istənilən dərinlikdə eyni
+    //    Root altında qalmasını təmin edir.
     try {
+      const { getNodes } = await import("@/lib/cascadeTreeStore");
+      const allNodes = getNodes();
       const employeesAll = getEmployees();
       const findEmp = (name: string) => employeesAll.find(e => `${e.firstName} ${e.lastName}` === name);
       (d.targets || []).forEach((t: any) => {
@@ -930,18 +939,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         ownerAssigneeNames.forEach(ownerName => {
           const emp = findEmp(ownerName);
           if (!emp) return;
+          // Eyni goal/card üçün mövcud root varsa yenidən yaratma.
           const existing = findRootByGoal(d.name || "Kart", goalName, emp.id);
-          if (!existing) {
-            createRoot({
-              cardName: d.name || "Kart",
-              goalName,
-              unit,
-              assigneeId: emp.id,
-              assigneeName: `${emp.firstName} ${emp.lastName}`,
-              positionName: emp.positionName,
-              limit,
-            });
-          }
+          if (existing) return;
+          // Bu şəxs artıq başqa bir kaskad ağacında child-dırsa (yuxarıdan
+          // Cascade Load alıb), yeni root açma — mövcud ağacın altında qalsın.
+          const hasIncomingCascade = allNodes.some(n => n.assigneeId === emp.id && n.parentId !== null);
+          if (hasIncomingCascade) return;
+          createRoot({
+            cardName: d.name || "Kart",
+            goalName,
+            unit,
+            assigneeId: emp.id,
+            assigneeName: `${emp.firstName} ${emp.lastName}`,
+            positionName: emp.positionName,
+            limit,
+          });
         });
       });
     } catch (err) {
