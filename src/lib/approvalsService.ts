@@ -200,6 +200,7 @@ export const activateApprovalsSync = async (orgId: string) => {
   window.addEventListener(MATRIX_EVT, scheduleFlush);
   window.addEventListener(CASCADE_EVT, scheduleFlush);
   window.addEventListener(QUEUE_EVT, scheduleFlush);
+  await flushApprovalsToCloud();
 
   if (realtimeChannel) supabase.removeChannel(realtimeChannel);
   realtimeChannel = supabase

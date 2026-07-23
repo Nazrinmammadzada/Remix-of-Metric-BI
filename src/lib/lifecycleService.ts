@@ -80,11 +80,24 @@ export const hydrateLifecycleFromCloud = async (orgId: string): Promise<void> =>
 // ── FLUSH ───────────────────────────────────────────────────────────────────
 let currentOrgId: string | null = null;
 let flushTimer: number | null = null;
+let suppressFlush = false;
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
+let onFocusHandler: (() => void) | null = null;
 
 const scheduleFlush = () => {
-  if (!currentOrgId) return;
+  if (suppressFlush || !currentOrgId) return;
   if (flushTimer) window.clearTimeout(flushTimer);
   flushTimer = window.setTimeout(() => { flushTimer = null; void flushLifecycleToCloud(); }, 500);
+};
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (currentOrgId) void hydrateLifecycleFromCloud(currentOrgId);
+  }, 400);
 };
 
 export const flushLifecycleToCloud = async () => {
@@ -133,10 +146,22 @@ export const flushLifecycleToCloud = async () => {
 export const activateLifecycleSync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
   currentOrgId = orgId;
+  suppressFlush = true;
   await hydrateLifecycleFromCloud(orgId);
+  suppressFlush = false;
   window.addEventListener(LIFECYCLE_EVT, scheduleFlush);
   window.addEventListener(TEMPLATES_EVT, scheduleFlush);
   await flushLifecycleToCloud();
+
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`lifecycle-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "kpi_lifecycles", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "lifecycle_templates", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
+
+  onFocusHandler = () => scheduleRehydrate();
+  window.addEventListener("focus", onFocusHandler);
 };
 
 export const deactivateLifecycleSync = () => {
@@ -144,4 +169,7 @@ export const deactivateLifecycleSync = () => {
   window.removeEventListener(LIFECYCLE_EVT, scheduleFlush);
   window.removeEventListener(TEMPLATES_EVT, scheduleFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (onFocusHandler) { window.removeEventListener("focus", onFocusHandler); onFocusHandler = null; }
 };
