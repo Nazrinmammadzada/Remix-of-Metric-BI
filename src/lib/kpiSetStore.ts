@@ -223,7 +223,7 @@ const SEED: KpiSetEntry[] = [
 const norm = (value?: string | number | null) => String(value ?? "").split(" — ")[0].trim().toLowerCase().replace(/\s+/g, " ");
 
 const entryKey = (entry: Pick<KpiSetEntry, "cardId" | "subKpiId" | "subKpiName" | "assigneeId" | "assigneeName">) => {
-  const assignee = entry.assigneeId != null ? String(entry.assigneeId) : norm(entry.assigneeName);
+  const assignee = norm(entry.assigneeName) || (entry.assigneeId != null ? String(entry.assigneeId) : "");
   return `${entry.cardId}::${assignee}`;
 };
 
@@ -340,8 +340,7 @@ export const setEntryDetails = (
   persist(load().map(e => {
     if (e.id !== id) return e;
     const next = { ...e, ...patch, updatedAt: Date.now() };
-    const hasLimits = !!(next.limits || (next.dynamicLimits && next.dynamicLimits.length) || (next.scoreDescriptions && next.scoreDescriptions.length));
-    if (hasLimits && next.subKpiName && next.target) next.status = "completed";
+    if (next.subKpiName && next.target) next.status = "completed";
     if (next.status === "completed") touchedCardId = next.cardId;
     return next;
   }));

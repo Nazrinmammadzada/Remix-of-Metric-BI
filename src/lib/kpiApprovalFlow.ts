@@ -6,11 +6,11 @@
 
 import { getKpiSetEntries } from "./kpiSetStore";
 import { getSharedKpiCards, setKpiStatus } from "./kpiCardStore";
-import { getApprovalMatrices, roleUserMap } from "./matrixStore";
+import { getApprovalMatrices } from "./matrixStore";
 import { enqueueApproval, getApprovals } from "./approvalsStore";
 import { getKpiCardMeta } from "./kpiCardMetaStore";
 import { submitToMatrix } from "./kpiCardStatusStore";
-import { enrichedEmployees } from "@/data/mockExtras";
+import { getEnrichedEmployee } from "@/data/mockExtras";
 import { getEmployees } from "./orgStore";
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -26,29 +26,15 @@ const nameToEmployeeId = (name: string): string | null => {
   if (!target) return null;
   const orgExact = getEmployees().find(e => normalize(`${e.firstName} ${e.lastName}`) === target);
   if (orgExact) return String(orgExact.id);
-  const exact = enrichedEmployees.find(e => normalize(e.fullName) === target);
-  if (exact) return exact.id;
-  // Partial: ilk sözü (ad) və ya sonuncu sözü (soyad) uyğun gələn ilk şəxs.
-  const parts = target.split(" ").filter(Boolean);
-  const first = parts[0];
-  const last = parts[parts.length - 1];
-  const partial = enrichedEmployees.find(e => {
-    const ep = normalize(e.fullName).split(" ").filter(Boolean);
-    return ep.includes(first) || ep.includes(last);
-  });
-  return partial?.id ?? null;
+  return null;
 };
 
 const roleToEmployeeIds = (roleName: string): string[] => {
   const ids = new Set<string>();
-  (roleUserMap[roleName] || []).forEach(name => {
-    const id = nameToEmployeeId(name);
-    if (id) ids.add(id);
-  });
   const roleNorm = normalize(roleName);
   getEmployees().forEach(e => {
     const pos = normalize(e.positionName || "");
-    if (pos === roleNorm || pos.includes(roleNorm) || roleNorm.includes(pos)) ids.add(String(e.id));
+    if (pos === roleNorm) ids.add(String(e.id));
   });
   return Array.from(ids);
 };
@@ -111,7 +97,7 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
     }
 
     // Eyni kart üçün pending approval varsa təkrar yaratma.
-    const existing = getApprovals().find(a => a.kpiCardId === ctx.id && a.status === "pending");
+    const existing = getApprovals().find(a => (a.kpiCardId === ctx.id || a.kpiCardId === `kpi-${cardId}`) && a.status === "pending");
     if (existing) return;
 
     const matrix = getApprovalMatrices().find(m => m.id === ctx.matrixId);
@@ -131,7 +117,7 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
     }).filter(step => step.length > 0);
 
     // Fallback: ən azı kart sahibi (HR) təsdiqçi olsun ki, approval boş qalmasın.
-    if (stepsChain.length === 0 && ctx.ownerId) stepsChain.push([ctx.ownerId]);
+    if (stepsChain.length === 0 && ctx.ownerId && getEnrichedEmployee(ctx.ownerId)) stepsChain.push([ctx.ownerId]);
     if (stepsChain.length === 0) return;
 
     enqueueApproval({

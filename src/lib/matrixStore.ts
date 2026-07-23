@@ -1,6 +1,8 @@
 // Approval & Deletion Matrix store.
 // Multiple matrices supported. Backed by localStorage. Matrices cannot be deleted, only edited.
 
+import { getEmployees } from "@/lib/orgStore";
+
 export interface ApprovalStep {
   id: string;
   label: string;
@@ -61,18 +63,24 @@ export const userRoleMap: Record<string, string> = {
 
 // Returns "Şəxs (Rol)" for users or "Rol (Şəxs1, Şəxs2)" for roles.
 export const formatAssignee = (a: { type: "user" | "role"; name: string }): string => {
+  const clean = String(a.name || "").split(" — ")[0].trim();
   if (a.type === "user") {
-    const role = userRoleMap[a.name];
-    return role ? `${a.name} (${role})` : a.name;
+    const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === clean);
+    const role = emp?.positionName || userRoleMap[clean];
+    return role ? `${clean} (${role})` : clean;
   }
-  const users = roleUserMap[a.name] || [];
-  return users.length > 0 ? `${a.name} (${users.join(", ")})` : a.name;
+  const users = getEmployees()
+    .filter(e => String(e.positionName || "").trim().toLowerCase() === clean.toLowerCase())
+    .map(e => `${e.firstName} ${e.lastName}`);
+  return users.length > 0 ? `${clean} (${users.join(", ")})` : clean;
 };
 
 // Helper for KPI create flow person dropdowns: "Şəxs adı (Rol)".
 export const formatUserWithRole = (name: string): string => {
-  const role = userRoleMap[name];
-  return role ? `${name} (${role})` : name;
+  const clean = String(name || "").split(" — ")[0].trim();
+  const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === clean);
+  const role = emp?.positionName || userRoleMap[clean];
+  return role ? `${clean} (${role})` : clean;
 };
 
 // ---- Approval matrices (list)
