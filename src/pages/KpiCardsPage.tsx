@@ -2026,9 +2026,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               }
             });
 
+            // For "natamam" popover: show target-setters (təyin edicilər) with completion state
+            // derived from live kpiSetStore entries so it stays accurate across browsers.
+            const setEntries = (() => {
+              try { return getKpiSetEntries().filter(e => e.cardId === statusDialogCardId); }
+              catch { return []; }
+            })();
+            const setterRows = setEntries.length > 0
+              ? Array.from(new Map(setEntries.map(e => [
+                  `${e.assigneeId || ""}::${e.assigneeName || ""}`,
+                  { name: e.assigneeName || "—", ok: e.status === "completed" },
+                ])).values()).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: (a.ok ? "ok" : "err") as "ok" | "err" }))
+              : (st.assignees || []).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: (a.ok ? "ok" : "err") as "ok" | "err" }));
+
             const cfg: Record<string, { title: string; empty: string; rows: { role: string; name: string; tone?: "ok" | "wait" | "err" }[] }> = {
               qaralama:        { title: "Qaralama — hazırlanır", empty: "Kart yaradılıb, hələ təyinə göndərilməyib.", rows: [{ role: "Yaradan", name: card?.responsible || "—", tone: "wait" }] },
-              natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "Təyin edən", name: a.name, tone: a.ok ? "ok" : "err" })) },
+              natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: setterRows },
               tesdiq_gozlenilir: { title: "Təsdiqləyəcək şəxslər", empty: "Təsdiq zənciri təyin edilməyib.", rows: [] },
               imtina:          { title: "İmtina edən", empty: "—", rows: [{ role: (st as any).rejected_by || "Təsdiq mərhələsi", name: (st as any).rejection_reason || "İmtina edildi", tone: "err" }] },
               aktiv:           { title: "İcra edən əməkdaşlar", empty: "Bu kart üçün icraçı tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "İcraçı", name: a.name, tone: "ok" })) },
