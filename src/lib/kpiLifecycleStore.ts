@@ -81,8 +81,7 @@ const load = (): CardLifecycle[] => {
     const raw = localStorage.getItem(KEY);
     if (raw) return JSON.parse(raw) as CardLifecycle[];
   } catch {}
-  localStorage.setItem(KEY, JSON.stringify(SEED));
-  return SEED;
+  return [];
 };
 
 const persist = (list: CardLifecycle[]) => {

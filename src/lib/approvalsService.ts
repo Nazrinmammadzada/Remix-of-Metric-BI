@@ -22,6 +22,24 @@ const writeLocal = (key: string, value: unknown) => {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
 };
 
+const isSeedQueueRow = (row: any) => typeof row?.id === "string" && row.id.startsWith("ap-seed-");
+
+const newer = (a: any, b: any) => {
+  const at = Date.parse(a?.updatedAt || a?.updated_at || a?.createdAt || a?.created_at || "") || 0;
+  const bt = Date.parse(b?.updatedAt || b?.updated_at || b?.createdAt || b?.created_at || "") || 0;
+  return bt > at ? b : a;
+};
+
+const mergeBy = <T extends Record<string, any>>(localRows: T[], cloudRows: T[], keyOf: (row: T) => string): T[] => {
+  const map = new Map<string, T>();
+  localRows.forEach(row => map.set(keyOf(row), row));
+  cloudRows.forEach(row => {
+    const key = keyOf(row);
+    map.set(key, map.has(key) ? newer(map.get(key), row) : row);
+  });
+  return Array.from(map.values());
+};
+
 // ── HYDRATE ─────────────────────────────────────────────────────────────────
 export const hydrateApprovalsFromCloud = async (orgId: string): Promise<void> => {
   const [amRes, dmRes, cmRes, aqRes] = await Promise.all([
@@ -61,7 +79,8 @@ export const hydrateApprovalsFromCloud = async (orgId: string): Promise<void> =>
     })));
   }
   if (!aqRes.error && aqRes.data) {
-    writeLocal(QUEUE_KEY, aqRes.data.map(r => ({
+    const localQueue = readLocal<any[]>(QUEUE_KEY, []).filter(row => !isSeedQueueRow(row));
+    const cloudQueue = aqRes.data.map(r => ({
       id: r.local_id,
       kpiCardId: r.kpi_card_local_id,
       kpiName: r.kpi_name,
@@ -74,7 +93,10 @@ export const hydrateApprovalsFromCloud = async (orgId: string): Promise<void> =>
       createdBy: r.created_by ?? "",
       createdAt: r.created_at,
       updatedAt: r.updated_at,
-    })));
+    }));
+    const mergedQueue = mergeBy(localQueue, cloudQueue, row => row.id)
+      .sort((a, b) => (Date.parse(b.createdAt || "") || 0) - (Date.parse(a.createdAt || "") || 0));
+    writeLocal(QUEUE_KEY, mergedQueue);
   }
 
   // Notify UI hooks to re-read. Suppress flush during rehydrate to avoid loop.
@@ -103,7 +125,7 @@ export const flushApprovalsToCloud = async () => {
   const approvals = readLocal<any[]>(APPROVAL_KEY, []);
   const deletions = readLocal<any[]>(DELETION_KEY, []);
   const cascades = readLocal<any[]>(CASCADE_KEY, []);
-  const queue = readLocal<any[]>(QUEUE_KEY, []);
+  const queue = readLocal<any[]>(QUEUE_KEY, []).filter(row => !isSeedQueueRow(row));
 
   await Promise.all([
     approvals.length ? supabase.from("approval_matrices").upsert(
@@ -178,6 +200,7 @@ export const activateApprovalsSync = async (orgId: string) => {
   window.addEventListener(MATRIX_EVT, scheduleFlush);
   window.addEventListener(CASCADE_EVT, scheduleFlush);
   window.addEventListener(QUEUE_EVT, scheduleFlush);
+  await flushApprovalsToCloud();
 
   if (realtimeChannel) supabase.removeChannel(realtimeChannel);
   realtimeChannel = supabase

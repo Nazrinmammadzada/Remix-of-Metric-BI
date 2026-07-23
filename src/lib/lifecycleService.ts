@@ -18,6 +18,22 @@ const writeLocal = (key: string, value: unknown) => {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
 };
 
+const newer = (a: any, b: any) => {
+  const at = Date.parse(a?.updatedAt || a?.updated_at || a?.createdAt || a?.created_at || "") || 0;
+  const bt = Date.parse(b?.updatedAt || b?.updated_at || b?.createdAt || b?.created_at || "") || 0;
+  return bt > at ? b : a;
+};
+
+const mergeBy = <T extends Record<string, any>>(localRows: T[], cloudRows: T[], keyOf: (row: T) => string): T[] => {
+  const map = new Map<string, T>();
+  localRows.forEach(row => map.set(keyOf(row), row));
+  cloudRows.forEach(row => {
+    const key = keyOf(row);
+    map.set(key, map.has(key) ? newer(map.get(key), row) : row);
+  });
+  return Array.from(map.values());
+};
+
 // ── HYDRATE ─────────────────────────────────────────────────────────────────
 export const hydrateLifecycleFromCloud = async (orgId: string): Promise<void> => {
   const [lcRes, tplRes] = await Promise.all([
@@ -25,8 +41,9 @@ export const hydrateLifecycleFromCloud = async (orgId: string): Promise<void> =>
     supabase.from("lifecycle_templates").select("*").eq("organization_id", orgId),
   ]);
 
-  if (!lcRes.error && lcRes.data && lcRes.data.length > 0) {
-    writeLocal(LIFECYCLE_KEY, lcRes.data.map(r => ({
+  if (!lcRes.error && lcRes.data) {
+    const localLifecycles = readLocal<any[]>(LIFECYCLE_KEY, []);
+    const cloudLifecycles = lcRes.data.map(r => ({
       cardId: r.card_local_id,
       cardName: r.card_name,
       assignment: r.assignment ?? undefined,
@@ -34,10 +51,16 @@ export const hydrateLifecycleFromCloud = async (orgId: string): Promise<void> =>
       bonus: r.bonus ?? undefined,
       reviews: r.reviews ?? [],
       updatedAt: r.updated_at,
-    })));
+    }));
+    writeLocal(
+      LIFECYCLE_KEY,
+      mergeBy(localLifecycles, cloudLifecycles, row => String(row.cardId))
+        .sort((a, b) => String(a.cardName || "").localeCompare(String(b.cardName || ""))),
+    );
   }
-  if (!tplRes.error && tplRes.data && tplRes.data.length > 0) {
-    writeLocal(TEMPLATES_KEY, tplRes.data.map(r => ({
+  if (!tplRes.error && tplRes.data) {
+    const localTemplates = readLocal<any[]>(TEMPLATES_KEY, []);
+    const cloudTemplates = tplRes.data.map(r => ({
       id: r.local_id,
       name: r.name,
       description: r.description ?? undefined,
@@ -45,7 +68,9 @@ export const hydrateLifecycleFromCloud = async (orgId: string): Promise<void> =>
       isSystem: r.is_system,
       active: r.active,
       createdAt: r.created_at,
-    })));
+      updatedAt: r.updated_at,
+    }));
+    writeLocal(TEMPLATES_KEY, mergeBy(localTemplates, cloudTemplates, row => String(row.id)));
   }
 
   window.dispatchEvent(new Event(LIFECYCLE_EVT));
@@ -55,11 +80,26 @@ export const hydrateLifecycleFromCloud = async (orgId: string): Promise<void> =>
 // ── FLUSH ───────────────────────────────────────────────────────────────────
 let currentOrgId: string | null = null;
 let flushTimer: number | null = null;
+let suppressFlush = false;
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+let rehydrateTimer: number | null = null;
+let onFocusHandler: (() => void) | null = null;
 
 const scheduleFlush = () => {
-  if (!currentOrgId) return;
+  if (suppressFlush || !currentOrgId) return;
   if (flushTimer) window.clearTimeout(flushTimer);
   flushTimer = window.setTimeout(() => { flushTimer = null; void flushLifecycleToCloud(); }, 500);
+};
+
+const scheduleRehydrate = () => {
+  if (!currentOrgId) return;
+  if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
+  rehydrateTimer = window.setTimeout(() => {
+    rehydrateTimer = null;
+    if (!currentOrgId) return;
+    suppressFlush = true;
+    void hydrateLifecycleFromCloud(currentOrgId).finally(() => { suppressFlush = false; });
+  }, 400);
 };
 
 export const flushLifecycleToCloud = async () => {
@@ -108,9 +148,22 @@ export const flushLifecycleToCloud = async () => {
 export const activateLifecycleSync = async (orgId: string) => {
   if (currentOrgId === orgId) return;
   currentOrgId = orgId;
+  suppressFlush = true;
   await hydrateLifecycleFromCloud(orgId);
+  suppressFlush = false;
   window.addEventListener(LIFECYCLE_EVT, scheduleFlush);
   window.addEventListener(TEMPLATES_EVT, scheduleFlush);
+  await flushLifecycleToCloud();
+
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  realtimeChannel = supabase
+    .channel(`lifecycle-live-${orgId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "kpi_lifecycles", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .on("postgres_changes", { event: "*", schema: "public", table: "lifecycle_templates", filter: `organization_id=eq.${orgId}` }, scheduleRehydrate)
+    .subscribe();
+
+  onFocusHandler = () => scheduleRehydrate();
+  window.addEventListener("focus", onFocusHandler);
 };
 
 export const deactivateLifecycleSync = () => {
@@ -118,4 +171,7 @@ export const deactivateLifecycleSync = () => {
   window.removeEventListener(LIFECYCLE_EVT, scheduleFlush);
   window.removeEventListener(TEMPLATES_EVT, scheduleFlush);
   if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
+  if (rehydrateTimer) { window.clearTimeout(rehydrateTimer); rehydrateTimer = null; }
+  if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (onFocusHandler) { window.removeEventListener("focus", onFocusHandler); onFocusHandler = null; }
 };

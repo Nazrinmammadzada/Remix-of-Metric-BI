@@ -38,6 +38,7 @@ import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView, { REVIEW_STATUS_STYLES } from "@/components/kpi/LifecycleView";
 import PerformanceDynamicsDrilldownTab from "@/components/kpi/PerformanceDynamicsDrilldownTab";
 import { setCardLifecycle, emptyLifecycleDraft, getLifecycle, getLifecycleWithFallback, computeReviewStatus, setReviewOutcome, type CardLifecycle } from "@/lib/kpiLifecycleStore";
+import { flushLifecycleToCloud } from "@/lib/lifecycleService";
 
 import CreateKpiWizard, { type CreateKpiWizardDraft } from "@/components/kpi/CreateKpiWizard";
 import EmployeesTreeView from "@/components/kpi/EmployeesTreeView";
@@ -756,6 +757,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           end: r.end || "",
         })),
       });
+      void flushLifecycleToCloud();
     } catch (err) { console.warn("lifecycle save failed", err); }
 
     // === Status ===
