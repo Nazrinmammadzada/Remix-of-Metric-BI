@@ -2032,12 +2032,12 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               try { return getKpiSetEntries().filter(e => e.cardId === statusDialogCardId); }
               catch { return []; }
             })();
-            const setterRows = setEntries.length > 0
+            const setterRows: { role: string; name: string; tone: "ok" | "err" }[] = setEntries.length > 0
               ? Array.from(new Map(setEntries.map(e => [
                   `${e.assigneeId || ""}::${e.assigneeName || ""}`,
-                  { name: e.assigneeName || "—", ok: e.status === "completed" },
-                ])).values()).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: (a.ok ? "ok" : "err") as "ok" | "err" }))
-              : (st.assignees || []).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: (a.ok ? "ok" : "err") as "ok" | "err" }));
+                  { name: e.assigneeName || "—", ok: e.status === "completed" } as { name: string; ok: boolean },
+                ])).values()).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: a.ok ? "ok" : "err" }))
+              : (st.assignees || []).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: a.ok ? "ok" : "err" }));
 
             const cfg: Record<string, { title: string; empty: string; rows: { role: string; name: string; tone?: "ok" | "wait" | "err" }[] }> = {
               qaralama:        { title: "Qaralama — hazırlanır", empty: "Kart yaradılıb, hələ təyinə göndərilməyib.", rows: [{ role: "Yaradan", name: card?.responsible || "—", tone: "wait" }] },
