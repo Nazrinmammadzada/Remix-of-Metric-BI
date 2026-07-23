@@ -33,7 +33,7 @@ import ExportMenu from "@/components/common/ExportMenu";
 import { LayoutGrid, List, Briefcase, Copy, Eye, Send } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import ScoreLimitsDialog from "@/components/kpi/ScoreLimitsDialog";
-import { getLimitsFor, getEntriesForCard, addPendingEntry, suggestLimitsFromTarget, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
+import { getLimitsFor, getEntriesForCard, addPendingEntry, suggestLimitsFromTarget, getKpiSetEntries, type LimitSet, type ScoreDescRow } from "@/lib/kpiSetStore";
 import LifecycleWizardStep from "@/components/kpi/LifecycleWizardStep";
 import LifecycleView, { REVIEW_STATUS_STYLES } from "@/components/kpi/LifecycleView";
 import PerformanceDynamicsDrilldownTab from "@/components/kpi/PerformanceDynamicsDrilldownTab";
@@ -774,7 +774,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         ? "tesdiq_gozlenilir"
         : action === "create_active" ? "aktiv"
         : action === "submit"
-          ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
+          ? (hasPendingSet ? "natamam" : (d.useMatrix ? "tesdiq_gozlenilir" : "aktiv"))
           : "qaralama";
     try {
       await upsertStatus({
@@ -2026,9 +2026,22 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
               }
             });
 
+            // For "natamam" popover: show target-setters (təyin edicilər) with completion state
+            // derived from live kpiSetStore entries so it stays accurate across browsers.
+            const setEntries = (() => {
+              try { return getKpiSetEntries().filter(e => e.cardId === statusDialogCardId); }
+              catch { return []; }
+            })();
+            const setterRows: { role: string; name: string; tone: "ok" | "err" }[] = setEntries.length > 0
+              ? Array.from(new Map(setEntries.map(e => [
+                  `${e.assigneeId || ""}::${e.assigneeName || ""}`,
+                  { name: e.assigneeName || "—", ok: e.status === "completed" } as { name: string; ok: boolean },
+                ])).values()).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: a.ok ? "ok" : "err" }))
+              : (st.assignees || []).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: a.ok ? "ok" : "err" }));
+
             const cfg: Record<string, { title: string; empty: string; rows: { role: string; name: string; tone?: "ok" | "wait" | "err" }[] }> = {
               qaralama:        { title: "Qaralama — hazırlanır", empty: "Kart yaradılıb, hələ təyinə göndərilməyib.", rows: [{ role: "Yaradan", name: card?.responsible || "—", tone: "wait" }] },
-              natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "Təyin edən", name: a.name, tone: a.ok ? "ok" : "err" })) },
+              natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: setterRows },
               tesdiq_gozlenilir: { title: "Təsdiqləyəcək şəxslər", empty: "Təsdiq zənciri təyin edilməyib.", rows: [] },
               imtina:          { title: "İmtina edən", empty: "—", rows: [{ role: (st as any).rejected_by || "Təsdiq mərhələsi", name: (st as any).rejection_reason || "İmtina edildi", tone: "err" }] },
               aktiv:           { title: "İcra edən əməkdaşlar", empty: "Bu kart üçün icraçı tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "İcraçı", name: a.name, tone: "ok" })) },

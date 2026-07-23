@@ -64,22 +64,22 @@ interface CardContext {
 const resolveCardContext = (cardId: number): CardContext | null => {
   // 1) SharedKpiCard varsa oradan.
   const shared = getSharedKpiCards().find(c => c.numericId === cardId);
-  if (shared && shared.matrixId) {
+  if (shared) {
     return {
       id: shared.id,
       name: shared.name,
-      matrixId: shared.matrixId,
+      matrixId: shared.matrixId || "",
       ownerId: shared.ownerId,
       currentStatus: shared.status,
     };
   }
   // 2) HR wizard-in yaratdığı yüngül meta.
   const meta = getKpiCardMeta(cardId);
-  if (meta && meta.matrixId) {
+  if (meta) {
     return {
       id: meta.stringId,
       name: meta.name,
-      matrixId: meta.matrixId,
+      matrixId: meta.matrixId || "",
       ownerId: meta.ownerId,
     };
   }
@@ -88,20 +88,27 @@ const resolveCardContext = (cardId: number): CardContext | null => {
 
 /**
  * Verilmiş kartın bütün Set entry-ləri "completed" olubsa və kartda matris varsa,
- * approval workflow-nu başlat. Təkrar çağırışlar təhlükəsizdir — dedupe var.
+ * approval workflow-nu başlat. Matris yoxdursa — birbaşa "aktiv"-ə keçir.
+ * Təkrar çağırışlar təhlükəsizdir — dedupe var.
  */
 export const triggerCardApprovalIfComplete = (cardId: number): void => {
   try {
     const entries = getKpiSetEntries().filter(e => e.cardId === cardId);
     // If there are Set entries, all must be completed. Otherwise (owner-only card
-    // with no target-setters), proceed directly — matrix approval still applies.
+    // with no target-setters), proceed directly.
     if (entries.length > 0 && entries.some(e => e.status !== "completed")) return;
-
 
     const ctx = resolveCardContext(cardId);
     if (!ctx) return;
 
     if (ctx.currentStatus === "aktiv") return;
+
+    // NO MATRIX — bütün təyinedicilər hədəfləri təyin edib bitirdikdə kart avtomatik "aktiv".
+    if (!ctx.matrixId) {
+      try { setKpiStatus(ctx.id, "aktiv", "system", "Bütün təyinedicilər hədəfləri təyin etdi"); } catch {}
+      void import("./kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
+      return;
+    }
 
     // Eyni kart üçün pending approval varsa təkrar yaratma.
     const existing = getApprovals().find(a => a.kpiCardId === ctx.id && a.status === "pending");
