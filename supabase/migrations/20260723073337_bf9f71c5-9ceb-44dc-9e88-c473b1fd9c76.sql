@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_kpi_card_status_from_approval() FROM PUBLIC, anon, authenticated;
