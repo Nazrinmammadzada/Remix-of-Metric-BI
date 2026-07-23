@@ -20,6 +20,7 @@ interface ApprovalRequest {
   kpiOwner: string; department: string; currentStep: number; approvalChain: ApprovalStep[];
   status: "pending" | "approved" | "rejected"; target: string; description: string;
   canAct: boolean;
+  actionApproverId: string | null;
 }
 
 const PAGE_SIZE = 3;
@@ -28,11 +29,14 @@ const empDepartment = (id?: string | null) => (id ? getEnrichedEmployee(id)?.dep
 const formatDate = (value?: string | null) => value ? new Date(value).toLocaleDateString("az-AZ") : "—";
 
 const decisionNote = (d?: { note?: string; comment?: string }) => d?.note || d?.comment || undefined;
+const aliasesFor = (id: string | null) => id ? [id, id.startsWith("e") ? id.slice(1) : `e${id}`] : [];
 
 const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKpiCards>, meId: string | null): ApprovalRequest => {
   const card = cards.find(c => c.id === a.kpiCardId);
   const chain = a.stepsChain && a.stepsChain.length > 0 ? a.stepsChain : [a.approverIds];
   const currentStep = a.currentStep ?? Math.max(0, chain.findIndex(step => step.some(id => a.approverIds.includes(id))));
+  const myAliases = new Set(aliasesFor(meId));
+  const actionApproverId = a.approverIds.find(id => myAliases.has(id)) ?? null;
   const approvalChain: ApprovalStep[] = chain.map((ids, index) => {
     const stepDecisions = ids.map(id => a.decisions[id]);
     const rejected = stepDecisions.find(d => d?.decision === "rejected");
@@ -50,7 +54,7 @@ const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKp
     };
   });
   const firstTarget = card?.targets?.[0];
-  const currentDecision = meId ? a.decisions[meId]?.decision : undefined;
+  const currentDecision = actionApproverId ? a.decisions[actionApproverId]?.decision : undefined;
   return {
     id: a.id,
     kpiCode: a.id.slice(0, 12).toUpperCase(),
@@ -66,6 +70,7 @@ const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKp
     target: firstTarget ? `${firstTarget.name}${firstTarget.targetValue ? ` — ${firstTarget.targetValue}${firstTarget.unit ? ` ${firstTarget.unit}` : ""}` : ""}` : "—",
     description: "KPI kartı təsdiqləmə matrisi üzrə yoxlanılır.",
     canAct: a.status === "pending" && currentDecision === "pending",
+    actionApproverId,
   };
 };
 
@@ -95,15 +100,15 @@ const UserApprovalsPage = () => {
   const rejectedRequests = requests.filter(r => r.status === "rejected");
 
   const handleApprove = (req: ApprovalRequest) => {
-    if (!meId) return;
-    decideApproval(req.id, meId, "approved", approveComment || undefined);
+    if (!req.actionApproverId) return;
+    decideApproval(req.id, req.actionApproverId, "approved", approveComment || undefined);
     setApproveComment(""); setShowApproveInput(false); setSelectedRequest(null);
     toast.success("Sorğu təsdiqləndi");
   };
 
   const handleReject = (req: ApprovalRequest) => {
-    if (!rejectReason.trim() || !meId) return;
-    decideApproval(req.id, meId, "rejected", rejectReason);
+    if (!rejectReason.trim() || !req.actionApproverId) return;
+    decideApproval(req.id, req.actionApproverId, "rejected", rejectReason);
     setRejectReason(""); setShowRejectInput(false); setSelectedRequest(null);
     toast.error("Sorğu imtina edildi");
   };
