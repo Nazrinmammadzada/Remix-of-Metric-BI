@@ -58,7 +58,7 @@ const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKp
   return {
     id: a.id,
     kpiCode: a.id.slice(0, 12).toUpperCase(),
-    kpiName: a.kpiName,
+    kpiName: card?.name || a.kpiName,
     kpiType: card?.scoringSystem || "KPI təsdiq sorğusu",
     createdDate: formatDate(a.createdAt),
     createdBy: empName(a.createdBy),
