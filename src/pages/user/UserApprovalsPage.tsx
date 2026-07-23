@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
-import { Eye, Check, X, Bell, CheckCircle, XCircle, AlertCircle, ChevronDown, Sparkles } from "lucide-react";
+import { Eye, Check, X, CheckCircle, XCircle, AlertCircle, ChevronDown, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PageHero } from "@/components/ui/page-hero";
+import { decideApproval, useApprovals, type ApprovalItem } from "@/lib/approvalsStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { getCurrentEmployeeId, getVisibleApprovals } from "@/lib/scope";
+import { getEnrichedEmployee } from "@/data/mockExtras";
 
 interface ApprovalStep {
   role: string; person: string; status: "pending" | "approved" | "rejected" | "waiting";
@@ -15,69 +19,66 @@ interface ApprovalRequest {
   id: string; kpiCode: string; kpiName: string; kpiType: string; createdDate: string; createdBy: string;
   kpiOwner: string; department: string; currentStep: number; approvalChain: ApprovalStep[];
   status: "pending" | "approved" | "rejected"; target: string; description: string;
+  canAct: boolean;
 }
 
 const PAGE_SIZE = 3;
+const empName = (id?: string | null) => (id ? getEnrichedEmployee(id)?.fullName || id : "—");
+const empDepartment = (id?: string | null) => (id ? getEnrichedEmployee(id)?.department || "—" : "—");
+const formatDate = (value?: string | null) => value ? new Date(value).toLocaleDateString("az-AZ") : "—";
+
+const decisionNote = (d?: { note?: string; comment?: string }) => d?.note || d?.comment || undefined;
+
+const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKpiCards>, meId: string | null): ApprovalRequest => {
+  const card = cards.find(c => c.id === a.kpiCardId);
+  const chain = a.stepsChain && a.stepsChain.length > 0 ? a.stepsChain : [a.approverIds];
+  const currentStep = a.currentStep ?? Math.max(0, chain.findIndex(step => step.some(id => a.approverIds.includes(id))));
+  const approvalChain: ApprovalStep[] = chain.map((ids, index) => {
+    const stepDecisions = ids.map(id => a.decisions[id]);
+    const rejected = stepDecisions.find(d => d?.decision === "rejected");
+    const approved = ids.length > 0 && ids.every(id => a.decisions[id]?.decision === "approved");
+    const pending = a.status === "pending" && index === currentStep;
+    const decided = stepDecisions.find(d => d?.at);
+    return {
+      role: `Mərhələ ${index + 1}`,
+      person: ids.map(empName).join(", ") || "—",
+      status: rejected ? "rejected" : approved ? "approved" : pending ? "pending" : "waiting",
+      date: decided?.at ? formatDate(decided.at) : undefined,
+      rejectReason: rejected ? decisionNote(rejected as any) : undefined,
+      comment: approved ? decisionNote(stepDecisions.find(d => decisionNote(d as any)) as any) : undefined,
+      createdDate: formatDate(a.createdAt),
+    };
+  });
+  const firstTarget = card?.targets?.[0];
+  const currentDecision = meId ? a.decisions[meId]?.decision : undefined;
+  return {
+    id: a.id,
+    kpiCode: a.id.slice(0, 12).toUpperCase(),
+    kpiName: a.kpiName,
+    kpiType: card?.scoringSystem || "KPI təsdiq sorğusu",
+    createdDate: formatDate(a.createdAt),
+    createdBy: empName(a.createdBy),
+    kpiOwner: empName(card?.ownerId || a.createdBy),
+    department: empDepartment(card?.ownerId || a.createdBy),
+    currentStep,
+    approvalChain,
+    status: a.status,
+    target: firstTarget ? `${firstTarget.name}${firstTarget.targetValue ? ` — ${firstTarget.targetValue}${firstTarget.unit ? ` ${firstTarget.unit}` : ""}` : ""}` : "—",
+    description: "KPI kartı təsdiqləmə matrisi üzrə yoxlanılır.",
+    canAct: a.status === "pending" && currentDecision === "pending",
+  };
+};
 
 const UserApprovalsPage = () => {
   const { user } = useAuth();
-  const userName = user?.name || "Samir Həsənov";
-
-  const [requests, setRequests] = useState<ApprovalRequest[]>([
-    {
-      id: "1", kpiCode: "KPI-2026-007", kpiName: "Komanda Satış Performansı", kpiType: "Absolut Hədəf",
-      createdDate: "10.04.2026", createdBy: "Leyla Məmmədova", kpiOwner: "Leyla Məmmədova",
-      department: "Satış Departamenti", currentStep: 0, status: "pending", target: "3M AZN",
-      description: "Komanda satış performansının qiymətləndirilməsi.",
-      approvalChain: [
-        { role: "Komanda Lideri", person: userName, status: "pending", createdDate: "10.04.2026" },
-        { role: "Departament Direktoru", person: "Farid Həsənov", status: "waiting", createdDate: "10.04.2026" },
-        { role: "HR", person: "Günel Əlizadə", status: "waiting", createdDate: "10.04.2026" },
-      ],
-    },
-    {
-      id: "2", kpiCode: "KPI-2026-008", kpiName: "Müştəri Ziyarətləri", kpiType: "Say Hədəfi",
-      createdDate: "08.04.2026", createdBy: "Rəşad Əliyev", kpiOwner: "Rəşad Əliyev",
-      department: "Satış Departamenti", currentStep: 0, status: "pending", target: "200",
-      description: "Aylıq müştəri ziyarətlərinin sayı.",
-      approvalChain: [
-        { role: "Komanda Lideri", person: userName, status: "pending", createdDate: "08.04.2026" },
-        { role: "HR", person: "Günel Əlizadə", status: "waiting", createdDate: "08.04.2026" },
-      ],
-    },
-    {
-      id: "5", kpiCode: "KPI-2026-006", kpiName: "Marketinq ROI", kpiType: "Faiz Hədəfi",
-      createdDate: "12.04.2026", createdBy: "Emin Məmmədov", kpiOwner: "Emin Məmmədov",
-      department: "Marketinq", currentStep: 0, status: "pending", target: "150%",
-      description: "Marketinq xərclərinin gəlirə nisbəti.",
-      approvalChain: [
-        { role: "Şöbə Müdiri", person: userName, status: "pending", createdDate: "12.04.2026" },
-        { role: "Departament Direktoru", person: "Farid Həsənov", status: "waiting", createdDate: "12.04.2026" },
-        { role: "HR", person: "Günel Əlizadə", status: "waiting", createdDate: "12.04.2026" },
-      ],
-    },
-    {
-      id: "3", kpiCode: "KPI-2026-009", kpiName: "Parakəndə Satış", kpiType: "Faiz Hədəfi",
-      createdDate: "05.04.2026", createdBy: "Leyla Məmmədova", kpiOwner: "Leyla Məmmədova",
-      department: "Satış Departamenti", currentStep: 2, status: "approved", target: "2M AZN",
-      description: "Parakəndə satış göstəricisinin artırılması.",
-      approvalChain: [
-        { role: "Komanda Lideri", person: userName, status: "approved", date: "06.04.2026", comment: "Uyğundur.", createdDate: "05.04.2026" },
-        { role: "Departament Direktoru", person: "Farid Həsənov", status: "approved", date: "07.04.2026", createdDate: "05.04.2026" },
-        { role: "HR", person: "Günel Əlizadə", status: "approved", date: "08.04.2026", createdDate: "05.04.2026" },
-      ],
-    },
-    {
-      id: "4", kpiCode: "KPI-2026-004", kpiName: "Əməliyyat Xərcləri", kpiType: "Absolut Hədəf",
-      createdDate: "03.04.2026", createdBy: "Tural İsmayılov", kpiOwner: "Kamran Quliyev",
-      department: "Əməliyyatlar", currentStep: 1, status: "rejected", target: "500K AZN",
-      description: "Əməliyyat xərclərinin optimallaşdırılması hədəfi.",
-      approvalChain: [
-        { role: "Komanda Lideri", person: userName, status: "approved", date: "04.04.2026", comment: "Təsdiqləndi.", createdDate: "03.04.2026" },
-        { role: "Departament Direktoru", person: "Farid Həsənov", status: "rejected", date: "05.04.2026", rejectReason: "Hədəf dəyəri real bazar şəraitinə uyğun deyil.", createdDate: "03.04.2026" },
-      ],
-    },
-  ]);
+  const approvals = useApprovals();
+  const cards = useSharedKpiCards();
+  const meId = getCurrentEmployeeId(user);
+  const visibleApprovals = useMemo(() => getVisibleApprovals(user, approvals), [user, approvals]);
+  const requests = useMemo(
+    () => visibleApprovals.map(a => toApprovalRequest(a, cards, meId)),
+    [visibleApprovals, cards, meId],
+  );
 
   const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -88,41 +89,21 @@ const UserApprovalsPage = () => {
   const [pendingPage, setPendingPage] = useState(1);
   const [approvedPage, setApprovedPage] = useState(1);
   const [rejectedPage, setRejectedPage] = useState(1);
-  const [notifications, setNotifications] = useState([
-    { id: "n1", message: "KPI-2026-007 təsdiqiniz gözləyir", date: "10.04.2026", read: false },
-    { id: "n2", message: "KPI-2026-008 təsdiqiniz gözləyir", date: "08.04.2026", read: false },
-    { id: "n3", message: "KPI-2026-006 təsdiqiniz gözləyir", date: "12.04.2026", read: false },
-  ]);
-  const [showNotifications, setShowNotifications] = useState(false);
 
-  const pendingRequests = requests.filter(r => r.status === "pending" && r.approvalChain[r.currentStep]?.person === userName);
+  const pendingRequests = requests.filter(r => r.status === "pending" && r.canAct);
   const approvedRequests = requests.filter(r => r.status === "approved");
   const rejectedRequests = requests.filter(r => r.status === "rejected");
 
   const handleApprove = (req: ApprovalRequest) => {
-    setRequests(prev => prev.map(r => {
-      if (r.id !== req.id) return r;
-      const chain = [...r.approvalChain];
-      chain[r.currentStep] = { ...chain[r.currentStep], status: "approved", date: new Date().toLocaleDateString("az-AZ"), comment: approveComment || undefined };
-      const nextStep = r.currentStep + 1;
-      const isLast = nextStep >= chain.length;
-      if (!isLast) chain[nextStep] = { ...chain[nextStep], status: "pending" };
-      setNotifications(prev => [...prev, { id: `n-${Date.now()}`, message: isLast ? `${r.kpiCode} tam təsdiq edildi!` : `${r.kpiCode} növbəti mərhələyə keçdi`, date: new Date().toLocaleDateString("az-AZ"), read: false }]);
-      return { ...r, approvalChain: chain, currentStep: isLast ? chain.length : nextStep, status: isLast ? "approved" : "pending" };
-    }));
+    if (!meId) return;
+    decideApproval(req.id, meId, "approved", approveComment || undefined);
     setApproveComment(""); setShowApproveInput(false); setSelectedRequest(null);
     toast.success("Sorğu təsdiqləndi");
   };
 
   const handleReject = (req: ApprovalRequest) => {
-    if (!rejectReason.trim()) return;
-    setRequests(prev => prev.map(r => {
-      if (r.id !== req.id) return r;
-      const chain = [...r.approvalChain];
-      chain[r.currentStep] = { ...chain[r.currentStep], status: "rejected", date: new Date().toLocaleDateString("az-AZ"), rejectReason };
-      setNotifications(prev => [...prev, { id: `n-${Date.now()}`, message: `${r.kpiCode} imtina edildi`, date: new Date().toLocaleDateString("az-AZ"), read: false }]);
-      return { ...r, approvalChain: chain, status: "rejected" };
-    }));
+    if (!rejectReason.trim() || !meId) return;
+    decideApproval(req.id, meId, "rejected", rejectReason);
     setRejectReason(""); setShowRejectInput(false); setSelectedRequest(null);
     toast.error("Sorğu imtina edildi");
   };
@@ -135,8 +116,6 @@ const UserApprovalsPage = () => {
       default: return <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">Gözləyir</span>;
     }
   };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   const variantStyles = {
     pending: {
@@ -388,7 +367,7 @@ const UserApprovalsPage = () => {
                                 <span className="font-medium">İmtina səbəbi: </span>{step.rejectReason}
                               </div>
                             )}
-                            {step.status === "pending" && step.person === userName && (
+                            {step.status === "pending" && selectedRequest.canAct && i === selectedRequest.currentStep && (
                               <div className="flex gap-2 mt-2">
                                 <button
                                   onClick={() => { setShowApproveInput(true); setShowRejectInput(false); setSelectedStepIndex(null); }}
@@ -412,7 +391,7 @@ const UserApprovalsPage = () => {
                 </div>
 
                 {/* Action buttons */}
-                {selectedRequest.status === "pending" && selectedRequest.approvalChain[selectedRequest.currentStep]?.person === userName && (
+                {selectedRequest.status === "pending" && selectedRequest.canAct && (
                   <div className="space-y-3 pt-2">
                     {showApproveInput ? (
                       <div className="space-y-3">
