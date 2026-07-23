@@ -181,8 +181,6 @@ interface LifecycleViewProps {
 
 const LifecycleView = ({ lifecycle, editable, cardId, cardName, cardMeta }: LifecycleViewProps) => {
   const [newReviewOpen, setNewReviewOpen] = useState(false);
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
   const { toast } = useToast();
 
   if (!lifecycle) {
@@ -206,14 +204,16 @@ const LifecycleView = ({ lifecycle, editable, cardId, cardName, cardMeta }: Life
 
   const canCreate = editable && cardId != null && cardName != null;
 
-  const handleCreate = () => {
+  // Ən son review-un iştirakçıları — "əvvəlki review iştirakçıları" seçimi üçün.
+  const previousParticipantIds = (() => {
+    const sorted = [...lifecycle.reviews].sort((a, b) => (b.start || "").localeCompare(a.start || ""));
+    return sorted.find(r => r.participantIds && r.participantIds.length > 0)?.participantIds || [];
+  })();
+
+  const handleCreate = ({ start, end, participantIds }: { start: string; end: string; participantIds: string[] }) => {
     if (!canCreate) return;
-    if (!start || !end) { toast({ title: "Tarixlər tələb olunur", variant: "destructive" }); return; }
-    if (new Date(end) < new Date(start)) { toast({ title: "Bitmə tarixi başlama tarixindən əvvəl ola bilməz", variant: "destructive" }); return; }
-    appendReviewToCard(cardId!, cardName!, cardMeta, { start, end });
+    appendReviewToCard(cardId!, cardName!, cardMeta, { start, end, participantIds });
     toast({ title: "Yeni review yaradıldı" });
-    setNewReviewOpen(false);
-    setStart(""); setEnd("");
   };
 
   return (
