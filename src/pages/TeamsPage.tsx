@@ -341,8 +341,8 @@ const TeamsPage = () => {
 
       {/* Team detail dialog — real Organization data ilə */}
       <Dialog open={!!selectedTeam} onOpenChange={() => setSelectedTeam(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col overflow-hidden p-0">
+          <DialogHeader className="shrink-0 px-6 pt-6 pb-2">
             <DialogTitle className="text-xl uppercase">{selectedTeam?.name}</DialogTitle>
             <p className="text-sm text-muted-foreground">Komanda təfərrüatları və üzvlər</p>
           </DialogHeader>
