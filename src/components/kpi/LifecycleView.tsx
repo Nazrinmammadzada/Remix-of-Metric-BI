@@ -9,11 +9,9 @@ import {
   type LifecycleReview,
   type ReviewComputedStatus,
 } from "@/lib/kpiLifecycleStore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import NewReviewDialog from "./NewReviewDialog";
 
 type StageStatus = "completed" | "in_progress" | "pending";
 
