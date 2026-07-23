@@ -1184,7 +1184,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
     const byNumId = new Map<number, KpiCard>();
     kpiCards.forEach(c => byNumId.set(c.id, c));
     const existingNumIds = new Set<number>(kpiCards.map(c => c.id));
-    const employeeById = new Map(getEmployees().map(e => [`e${e.id}`, e]));
+    const employeeById = new Map<string, ReturnType<typeof getEmployees>[number]>();
+    getEmployees().forEach(e => {
+      employeeById.set(String(e.id), e);
+      employeeById.set(`e${e.id}`, e);
+    });
     const toKpiCard = (s: SharedKpiCard): KpiCard => {
       const owner = employeeById.get(s.ownerId);
       const responsible = owner ? `${owner.firstName} ${owner.lastName}` : s.ownerId;
@@ -2040,18 +2044,45 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                 ])).values()).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: a.ok ? "ok" : "err" }))
               : (st.assignees || []).map(a => ({ role: a.ok ? "Təyin edildi" : "Təyin etməyib", name: a.name, tone: a.ok ? "ok" : "err" }));
 
+            const sharedCard = sharedCards.find(s => s.numericId === statusDialogCardId || s.id === `kpi-${statusDialogCardId}`);
+            const approval = getApprovals().find(a =>
+              a.kpiCardId === `kpi-${statusDialogCardId}`
+              || a.kpiCardId === sharedCard?.id
+              || a.kpiCardId === String(statusDialogCardId)
+            );
+            const employeeNameById = (id: string) => {
+              const emp = getEmployees().find((e: any) => String(e.id) === String(id) || `e${e.id}` === String(id));
+              return emp ? `${emp.firstName} ${emp.lastName}` : id;
+            };
+            const approvalRows = (() => {
+              if (!approval) return [] as { role: string; name: string; tone?: "ok" | "wait" | "err" }[];
+              const ids = approval.stepsChain?.length
+                ? Array.from(new Set(approval.stepsChain.flat()))
+                : Array.from(new Set([...approval.approverIds, ...Object.keys(approval.decisions || {})]));
+              return ids.map(id => {
+                const d = approval.decisions?.[id];
+                const decision = d?.decision || "pending";
+                return {
+                  name: employeeNameById(id),
+                  role: decision === "approved" ? "Təsdiqlədi" : decision === "rejected" ? (d?.note || "İmtina etdi") : "Təsdiq gözlənir",
+                  tone: decision === "approved" ? "ok" as const : decision === "rejected" ? "err" as const : "wait" as const,
+                };
+              });
+            })();
+            const rejectedRows = approvalRows.filter(r => r.tone === "err");
+
             const cfg: Record<string, { title: string; empty: string; rows: { role: string; name: string; tone?: "ok" | "wait" | "err" }[] }> = {
               qaralama:        { title: "Qaralama — hazırlanır", empty: "Kart yaradılıb, hələ təyinə göndərilməyib.", rows: [{ role: "Yaradan", name: card?.responsible || "—", tone: "wait" }] },
               natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: setterRows },
-              tesdiq_gozlenilir: { title: "Təsdiqləyəcək şəxslər", empty: "Təsdiq zənciri təyin edilməyib.", rows: [] },
-              imtina:          { title: "İmtina edən", empty: "—", rows: [{ role: (st as any).rejected_by || "Təsdiq mərhələsi", name: (st as any).rejection_reason || "İmtina edildi", tone: "err" }] },
+              tesdiq_gozlenilir: { title: "Təsdiqləyəcək şəxslər", empty: "Təsdiq zənciri təyin edilməyib.", rows: approvalRows },
+              imtina:          { title: "İmtina edən", empty: "—", rows: rejectedRows.length ? rejectedRows : [{ role: (st as any).rejection_reason || "İmtina edildi", name: (st as any).rejected_by || "Təsdiq mərhələsi", tone: "err" }] },
               aktiv:           { title: "İcra edən əməkdaşlar", empty: "Bu kart üçün icraçı tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "İcraçı", name: a.name, tone: "ok" })) },
               qiymetlendirme:  { title: "Qiymətləndirəcək şəxslər", empty: "Qiymətləndirici təyin edilməyib.", rows: evaluators.map(e => ({ ...e, tone: "wait" as const })) },
               tamamlanib:      { title: "Tamamlanıb — qiymətləndirənlər", empty: "—", rows: evaluators.map(e => ({ ...e, tone: "ok" as const })) },
               legv_olundu:     { title: "Ləğv olunub", empty: "—", rows: [{ role: "Ləğv edən", name: card?.responsible || "—", tone: "err" }] },
             };
 
-            if (st.status === "tesdiq_gozlenilir") {
+            if (st.status === "tesdiq_gozlenilir" && cfg.tesdiq_gozlenilir.rows.length === 0) {
               const chain = (draft as any)?.approvalChain || (card as any)?.approvalChain || [];
               chain.forEach((c: any) => (c.persons || []).forEach((p: string) => cfg.tesdiq_gozlenilir.rows.push({ role: c.role, name: p, tone: "wait" })));
               if (cfg.tesdiq_gozlenilir.rows.length === 0) {
@@ -2062,14 +2093,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
                     (matrix?.steps || []).forEach(step => {
                       (step.assignees || []).forEach(a => {
                         if (a.type === "user") {
-                          cfg.tesdiq_gozlenilir.rows.push({ role: step.label || userRoleMap[a.name] || "Təsdiqləyici", name: a.name, tone: "wait" });
+                          cfg.tesdiq_gozlenilir.rows.push({ role: step.label || "Təsdiqləyici", name: String(a.name || "").split(" — ")[0].trim(), tone: "wait" });
                         } else {
-                          const users = roleUserMap[a.name] || [];
-                          if (users.length === 0) {
-                            cfg.tesdiq_gozlenilir.rows.push({ role: step.label || a.name, name: a.name, tone: "wait" });
-                          } else {
-                            users.forEach(u => cfg.tesdiq_gozlenilir.rows.push({ role: step.label || a.name, name: u, tone: "wait" }));
-                          }
+                          getEmployees()
+                            .filter(e => String(e.positionName || "").trim().toLowerCase() === String(a.name || "").trim().toLowerCase())
+                            .forEach(e => cfg.tesdiq_gozlenilir.rows.push({ role: step.label || a.name, name: `${e.firstName} ${e.lastName}`, tone: "wait" }));
                         }
                       });
                     });
