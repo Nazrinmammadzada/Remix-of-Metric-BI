@@ -339,75 +339,111 @@ const TeamsPage = () => {
         </div>
       </main>
 
-      {/* Team detail dialog — komanda-özəl məlumatlar, KPI göstərilmir */}
+      {/* Team detail dialog — real Organization data ilə */}
       <Dialog open={!!selectedTeam} onOpenChange={() => setSelectedTeam(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl">{selectedTeam?.name}</DialogTitle>
+            <DialogTitle className="text-xl uppercase">{selectedTeam?.name}</DialogTitle>
             <p className="text-sm text-muted-foreground">Komanda təfərrüatları və üzvlər</p>
           </DialogHeader>
-          {selectedTeam && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Komanda Lideri</p>
-                  <p className="font-semibold text-foreground mt-1 inline-flex items-center gap-1.5">
-                    <Crown className="w-4 h-4 text-amber-500" fill="currentColor" />
-                    {selectedTeam.leader}
-                  </p>
+          {selectedTeam && (() => {
+            const liveEmps = getLiveEmployees();
+            const findEmp = (displayName: string) => {
+              const key = displayName.trim().toLowerCase();
+              return liveEmps.find(e => `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim().toLowerCase() === key);
+            };
+            const deptOf = (path?: string) => {
+              if (!path) return "—";
+              const first = path.split("›")[0]?.trim();
+              return first || "—";
+            };
+            type Row = { name: string; position: string; department: string; avatar: string; isLeader: boolean };
+            const rows: Row[] = [];
+            const leaderEmp = findEmp(selectedTeam.leader);
+            rows.push({
+              name: selectedTeam.leader,
+              position: leaderEmp?.positionName || "Komanda Lideri",
+              department: deptOf(leaderEmp?.structurePath),
+              avatar: (selectedTeam.leaderAvatar || selectedTeam.leader.charAt(0)).toUpperCase(),
+              isLeader: true,
+            });
+            for (const m of selectedTeam.members) {
+              if (m.name === selectedTeam.leader) continue;
+              const e = findEmp(m.name);
+              rows.push({
+                name: m.name,
+                position: e?.positionName || m.role || "—",
+                department: deptOf(e?.structurePath),
+                avatar: (m.avatar || m.name.charAt(0)).toUpperCase(),
+                isLeader: false,
+              });
+            }
+            const q = memberSearch.trim().toLowerCase();
+            const visible = q
+              ? rows.filter(r =>
+                  r.name.toLowerCase().includes(q) ||
+                  r.position.toLowerCase().includes(q) ||
+                  r.department.toLowerCase().includes(q))
+              : rows;
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Üzv sayı</p>
+                    <p className="font-semibold text-foreground mt-1 text-lg">{rows.length}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground">Yaradılma</p>
+                    <p className="font-semibold text-foreground mt-1 text-lg">
+                      {selectedTeam.createdAt ? new Date(selectedTeam.createdAt).toISOString().slice(0, 10) : "—"}
+                    </p>
+                  </div>
                 </div>
-                <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Struktur</p>
-                  <p className="font-semibold text-foreground mt-1">{selectedTeam.branch}</p>
-                </div>
-                <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Üzv sayı</p>
-                  <p className="font-semibold text-foreground mt-1">{selectedTeam.members.length + 1}</p>
-                </div>
-                <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Yaradılma</p>
-                  <p className="font-semibold text-foreground mt-1">{selectedTeam.createdAt ? new Date(selectedTeam.createdAt).toLocaleDateString("az-AZ") : "—"}</p>
-                </div>
-              </div>
-              <div className="border border-border rounded-lg p-4">
-                <h4 className="font-semibold text-foreground mb-3">Komanda Üzvləri</h4>
-                <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input value={memberSearch} onChange={e => setMemberSearch(e.target.value)} placeholder="Üzv axtar..." className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background" />
-                </div>
-                <div className="space-y-2">
-                  {/* Komanda lideri həmişə birinci və ayrı işarə ilə */}
-                  {(selectedTeam.leader.toLowerCase().includes(memberSearch.toLowerCase())) && (
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/30">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-sm font-semibold text-primary-foreground">{(selectedTeam.leaderAvatar || selectedTeam.leader.charAt(0)).toUpperCase()}</div>
-                          <Crown className="absolute -top-1.5 -right-1.5 w-4 h-4 text-amber-500 drop-shadow" fill="currentColor" />
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-3">Komanda Üzvləri</h4>
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      placeholder="Üzv axtar..."
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background"
+                    />
+                  </div>
+                  <div className="divide-y divide-border">
+                    {visible.map((r, i) => (
+                      <div key={i} className="flex items-start gap-3 py-3">
+                        <div className="relative flex-shrink-0">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${r.isLeader ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                            {r.avatar}
+                          </div>
+                          {r.isLeader && (
+                            <Crown className="absolute -top-1.5 -right-1.5 w-4 h-4 text-amber-500 drop-shadow" fill="currentColor" />
+                          )}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground inline-flex items-center gap-1.5">{selectedTeam.leader}
-                            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold">Lider</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-foreground">{r.name}</p>
+                            {r.isLeader && (
+                              <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 font-semibold">Lider</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{r.position}</p>
+                          <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/></svg>
+                            <span>Departament: <span className="text-foreground font-medium">{r.department}</span></span>
                           </p>
-                          <p className="text-xs text-muted-foreground">Komanda Lideri</p>
                         </div>
                       </div>
-                    </div>
-                  )}
-                  {(filteredMembers || []).filter(m => m.name !== selectedTeam.leader).map((m, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground">{m.avatar}</div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{m.name}</p>
-                          <p className="text-xs text-muted-foreground">{m.role}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                    {visible.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-6">Uyğun üzv tapılmadı</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
