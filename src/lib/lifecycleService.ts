@@ -96,7 +96,9 @@ const scheduleRehydrate = () => {
   if (rehydrateTimer) window.clearTimeout(rehydrateTimer);
   rehydrateTimer = window.setTimeout(() => {
     rehydrateTimer = null;
-    if (currentOrgId) void hydrateLifecycleFromCloud(currentOrgId);
+    if (!currentOrgId) return;
+    suppressFlush = true;
+    void hydrateLifecycleFromCloud(currentOrgId).finally(() => { suppressFlush = false; });
   }, 400);
 };
 
