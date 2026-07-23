@@ -43,6 +43,10 @@ const flushSoon = () => {
   void import("./approvalsService").then(m => m.flushApprovalsToCloud()).catch(() => undefined);
 };
 
+const flushCardsSoon = () => {
+  void import("./kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
+};
+
 export const getApprovals = (): ApprovalItem[] => load();
 
 export const enqueueApproval = (input: {
@@ -144,6 +148,7 @@ export const decideApproval = (
   // Mirror the decision onto the shared KPI card itself.
   if (item.status === "approved") {
     setKpiStatus(item.kpiCardId, "aktiv", approverId, "Matris vasitəsilə təsdiq edildi");
+    flushCardsSoon();
     pushNotification({
       toEmployeeId: item.createdBy,
       type: "approval_result",
@@ -153,6 +158,7 @@ export const decideApproval = (
     });
   } else if (item.status === "rejected") {
     setKpiStatus(item.kpiCardId, "imtina", approverId, note || "Rəhbər imtina etdi");
+    flushCardsSoon();
     pushNotification({
       toEmployeeId: item.createdBy,
       type: "approval_result",
