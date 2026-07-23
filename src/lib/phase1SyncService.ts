@@ -25,7 +25,7 @@ const STORES: StoreMirror[] = [
   { localKey: "kpi_periods_v1",              cloudKey: "periods",              event: "teams:updated",                       table: "org_catalogs" },
   { localKey: "kpi_formulas_v4",             cloudKey: "formulas",             event: "formulas:updated",                    table: "org_catalogs" },
   { localKey: "kpi_formula_variables_v4",    cloudKey: "formula_variables",    event: "formulas:updated",                    table: "org_catalogs" },
-  { localKey: "kpi_formula_assignments_v2",  cloudKey: "formula_assignments",  event: "formula-assignments:updated",         table: "org_catalogs" },
+  { localKey: "kpi_formula_assignments_v1",  cloudKey: "formula_assignments",  event: "formula-assignments-updated",         table: "org_catalogs" },
   { localKey: "kpi_catalog_v2",              cloudKey: "catalog",              event: "catalog:updated",                     table: "org_catalogs" },
   { localKey: "kpi_dropdown_catalog_v1",     cloudKey: "dropdown_catalog",     event: "dropdown-catalog:updated",            table: "org_catalogs" },
   { localKey: "kpi_deletion_requests_v1",    cloudKey: "deletion_requests",    event: "kpi-deletion-requests-updated",       table: "org_catalogs" },
