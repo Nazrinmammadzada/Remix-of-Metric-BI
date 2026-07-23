@@ -774,7 +774,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         ? "tesdiq_gozlenilir"
         : action === "create_active" ? "aktiv"
         : action === "submit"
-          ? (d.useMatrix ? (hasPendingSet ? "natamam" : "tesdiq_gozlenilir") : "aktiv")
+          ? (hasPendingSet ? "natamam" : (d.useMatrix ? "tesdiq_gozlenilir" : "aktiv"))
           : "qaralama";
     try {
       await upsertStatus({
