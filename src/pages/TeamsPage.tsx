@@ -412,7 +412,7 @@ const TeamsPage = () => {
                       />
                     </div>
                   </div>
-                  <div className="divide-y divide-border overflow-y-auto flex-1 min-h-0 px-4">
+                  <div className="divide-y divide-border overflow-y-auto flex-1 min-h-0 px-4 max-h-[240px]">
                     {visible.map((r, i) => (
                       <div key={i} className="flex items-start gap-3 py-3">
                         <div className="relative flex-shrink-0">
