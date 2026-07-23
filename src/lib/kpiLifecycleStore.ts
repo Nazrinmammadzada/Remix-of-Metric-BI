@@ -25,6 +25,8 @@ export interface LifecycleReview extends LifecycleStage {
   outcomeAt?: string;
   /** Nəticəni qeyd edən şəxsin adı. */
   outcomeBy?: string;
+  /** Review üçün seçilmiş iştirakçı əməkdaş id-ləri (Təşkilat modulundan). */
+  participantIds?: string[];
 }
 
 
