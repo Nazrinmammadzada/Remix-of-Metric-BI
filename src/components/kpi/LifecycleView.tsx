@@ -260,25 +260,12 @@ const LifecycleView = ({ lifecycle, editable, cardId, cardName, cardMeta }: Life
         <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-400" /><span><strong className="text-foreground">Planlaşdırılıb</strong></span></div>
       </div>
 
-      <Dialog open={newReviewOpen} onOpenChange={setNewReviewOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Yeni Review yarat</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label htmlFor="rv-start">Review başlanma tarixi</Label>
-              <Input id="rv-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="rv-end">Review bitmə tarixi</Label>
-              <Input id="rv-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewReviewOpen(false)}>Ləğv et</Button>
-            <Button onClick={handleCreate}>Yarat</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NewReviewDialog
+        open={newReviewOpen}
+        onOpenChange={setNewReviewOpen}
+        previousParticipantIds={previousParticipantIds}
+        onCreate={handleCreate}
+      />
     </div>
   );
 };
