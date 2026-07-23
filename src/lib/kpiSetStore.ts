@@ -393,10 +393,10 @@ export const getIncomingCascadeLoad = (
   try {
     const emp = getEmployees().find(e => `${e.firstName} ${e.lastName}` === assigneeName);
     if (emp) {
-      const empKey = `e${emp.id}`;
+      const empKeys = new Set([String(emp.id), `e${emp.id}`]);
       const cards = getSharedKpiCards()
         .filter(c =>
-          (c.ownerId === empKey || (c.assigneeIds || []).includes(empKey)) &&
+          (empKeys.has(c.ownerId) || (c.assigneeIds || []).some(id => empKeys.has(id))) &&
           (excludeCardId == null || c.numericId !== excludeCardId)
         )
         .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime());
