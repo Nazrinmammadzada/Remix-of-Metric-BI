@@ -1012,7 +1012,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           rejection_reason: shared.rejectedReason ?? null,
           assignees: (shared.assigneeIds || []).map(id => {
             const emp = getEmployees().find((e: any) => `e${e.id}` === id || String(e.id) === String(id));
-            return { name: emp ? `${emp.firstName} ${emp.lastName}` : (getEnrichedEmployee(id)?.fullName || id), ok: true };
+            return { name: emp ? `${emp.firstName} ${emp.lastName}` : id, ok: true };
           }),
           updated_at: shared.updatedAt || new Date().toISOString(),
         } as import("@/lib/kpiCardStatusStore").KpiCardStatusRow;
