@@ -181,10 +181,11 @@ const ApprovalsPage = () => {
                   {items.map(a => {
                     const myDecision = meId ? a.decisions[meId]?.decision : undefined;
                     const canActMe = isManagerActor && a.status === "pending" && myDecision === "pending";
+                    const liveName = cards.find(c => c.id === a.kpiCardId)?.name || a.kpiName;
                     return (
                       <ApprovalCard
                         key={a.id}
-                        a={a}
+                        a={{ ...a, kpiName: liveName }}
                         canAct={canActMe}
                         onView={() => { setDetailId(a.id); setDetailNote(""); }}
                         onApprove={() => { setDetailId(a.id); setDetailNote(""); }}
