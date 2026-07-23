@@ -121,7 +121,10 @@ export const getVisibleApprovals = (
   if (!meId) return [];
   const aliases = new Set([meId, meId.startsWith("e") ? meId.slice(1) : `e${meId}`]);
   const belongsToMe = (a: ApprovalItem) =>
-    a.approverIds.some(id => aliases.has(id)) || aliases.has(a.createdBy);
+    a.approverIds.some(id => aliases.has(id))
+    || aliases.has(a.createdBy)
+    || Object.keys(a.decisions || {}).some(id => aliases.has(id))
+    || (a.stepsChain || []).some(step => step.some(id => aliases.has(id)));
   return all.filter(belongsToMe);
 };
 
