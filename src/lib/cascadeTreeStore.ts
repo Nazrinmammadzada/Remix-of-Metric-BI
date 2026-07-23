@@ -24,6 +24,8 @@ export interface CascadeTreeNode {
   updatedAt: number;
   /** Rəhbər bu hədəfi daha aşağı kaskadlamamaq qərarı verib */
   frozen?: boolean;
+  /** Bu node növbəti səviyyəyə Cascade Load verə bilər. Köhnə datada boşdursa true kimi qəbul edilir. */
+  cascadable?: boolean;
 }
 
 const KEY = "cascade_tree_nodes_v4";
@@ -132,6 +134,7 @@ export const createRoot = (payload: {
     positionName: payload.positionName,
     isStar: isStarPerson(payload.assigneeId),
     limit: Number(payload.limit) || 0,
+    cascadable: true,
     createdAt: Date.now(), updatedAt: Date.now(),
   };
   persist([...load(), node]);
@@ -143,6 +146,7 @@ export interface CascadeSliceInput {
   assigneeName: string;
   positionName?: string;
   limit: number;
+  cascadable?: boolean;
 }
 
 /** Bir node-u alt şəxslər arasında bölüşdürür.
@@ -166,6 +170,7 @@ export const distribute = (parentId: string, slices: CascadeSliceInput[]): { ok:
     positionName: s.positionName,
     isStar: isStarPerson(s.assigneeId),
     limit: Number(s.limit),
+    cascadable: s.cascadable ?? true,
     createdAt: now, updatedAt: now,
   }));
   persist([...list, ...newKids]);

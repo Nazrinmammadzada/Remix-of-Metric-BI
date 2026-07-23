@@ -916,18 +916,11 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
 
 
 
-    // === Cascade root: cascadable Owner kartı üçün yalnız TAMAMİLƏ YENİ kaskad başladıqda root yarat ===
-    // Qayda:
-    //  - HR (və ya rəhbər) heç bir Cascade Load istifadə etmədən cascadable
-    //    hədəf yaradanda → assignee üçün yeni Root yaranır.
-    //  - Əgər assignee artıq mövcud kaskad ağacında child kimi mövcuddursa
-    //    (yəni yuxarıdan gələn Cascade Load-u var), yeni Root yaratma —
-    //    kaskadlama dialoqu (CascadeDistributeDialog) yeni hədəfləri həmin
-    //    child node-un altına yerləşdirəcək. Bu, istənilən dərinlikdə eyni
-    //    Root altında qalmasını təmin edir.
+    // === Cascade root: yalnız Cascade Load İSTİFADƏ OLUNMAYAN cascadable hədəf root yaradır ===
+    // Vacib qayda: şəxsin artıq başqa ağacdan Cascade Load-u olsa belə, əgər bu
+    // yeni hədəf həmin load bölüşdürülmədən yaradılıbsa və "Kaskadlana bilər"dirsə,
+    // bu ayrıca müstəqil root-dur. Load istifadə ediləndə child node-u bölgü dialoqu yaradır.
     try {
-      const { getNodes } = await import("@/lib/cascadeTreeStore");
-      const allNodes = getNodes();
       const employeesAll = getEmployees();
       const findEmp = (name: string) => employeesAll.find(e => `${e.firstName} ${e.lastName}` === name);
       (d.targets || []).forEach((t: any) => {
@@ -942,10 +935,6 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           // Eyni goal/card üçün mövcud root varsa yenidən yaratma.
           const existing = findRootByGoal(d.name || "Kart", goalName, emp.id);
           if (existing) return;
-          // Bu şəxs artıq başqa bir kaskad ağacında child-dırsa (yuxarıdan
-          // Cascade Load alıb), yeni root açma — mövcud ağacın altında qalsın.
-          const hasIncomingCascade = allNodes.some(n => n.assigneeId === emp.id && n.parentId !== null);
-          if (hasIncomingCascade) return;
           createRoot({
             cardName: d.name || "Kart",
             goalName,
