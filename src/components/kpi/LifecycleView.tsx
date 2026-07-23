@@ -9,11 +9,9 @@ import {
   type LifecycleReview,
   type ReviewComputedStatus,
 } from "@/lib/kpiLifecycleStore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import NewReviewDialog from "./NewReviewDialog";
 
 type StageStatus = "completed" | "in_progress" | "pending";
 
@@ -183,8 +181,6 @@ interface LifecycleViewProps {
 
 const LifecycleView = ({ lifecycle, editable, cardId, cardName, cardMeta }: LifecycleViewProps) => {
   const [newReviewOpen, setNewReviewOpen] = useState(false);
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
   const { toast } = useToast();
 
   if (!lifecycle) {
@@ -208,14 +204,16 @@ const LifecycleView = ({ lifecycle, editable, cardId, cardName, cardMeta }: Life
 
   const canCreate = editable && cardId != null && cardName != null;
 
-  const handleCreate = () => {
+  // Ən son review-un iştirakçıları — "əvvəlki review iştirakçıları" seçimi üçün.
+  const previousParticipantIds = (() => {
+    const sorted = [...lifecycle.reviews].sort((a, b) => (b.start || "").localeCompare(a.start || ""));
+    return sorted.find(r => r.participantIds && r.participantIds.length > 0)?.participantIds || [];
+  })();
+
+  const handleCreate = ({ start, end, participantIds }: { start: string; end: string; participantIds: string[] }) => {
     if (!canCreate) return;
-    if (!start || !end) { toast({ title: "Tarixlər tələb olunur", variant: "destructive" }); return; }
-    if (new Date(end) < new Date(start)) { toast({ title: "Bitmə tarixi başlama tarixindən əvvəl ola bilməz", variant: "destructive" }); return; }
-    appendReviewToCard(cardId!, cardName!, cardMeta, { start, end });
+    appendReviewToCard(cardId!, cardName!, cardMeta, { start, end, participantIds });
     toast({ title: "Yeni review yaradıldı" });
-    setNewReviewOpen(false);
-    setStart(""); setEnd("");
   };
 
   return (
@@ -262,25 +260,12 @@ const LifecycleView = ({ lifecycle, editable, cardId, cardName, cardMeta }: Life
         <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-400" /><span><strong className="text-foreground">Planlaşdırılıb</strong></span></div>
       </div>
 
-      <Dialog open={newReviewOpen} onOpenChange={setNewReviewOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Yeni Review yarat</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label htmlFor="rv-start">Review başlanma tarixi</Label>
-              <Input id="rv-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="rv-end">Review bitmə tarixi</Label>
-              <Input id="rv-end" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewReviewOpen(false)}>Ləğv et</Button>
-            <Button onClick={handleCreate}>Yarat</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <NewReviewDialog
+        open={newReviewOpen}
+        onOpenChange={setNewReviewOpen}
+        previousParticipantIds={previousParticipantIds}
+        onCreate={handleCreate}
+      />
     </div>
   );
 };
