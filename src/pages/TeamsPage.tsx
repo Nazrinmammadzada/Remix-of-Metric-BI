@@ -386,8 +386,8 @@ const TeamsPage = () => {
                   r.department.toLowerCase().includes(q))
               : rows;
             return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col overflow-hidden flex-1 px-6 pb-6 min-h-0">
+                <div className="grid grid-cols-2 gap-3 shrink-0">
                   <div className="border border-border rounded-lg p-3">
                     <p className="text-xs text-muted-foreground">Üzv sayı</p>
                     <p className="font-semibold text-foreground mt-1 text-lg">{rows.length}</p>
@@ -399,18 +399,20 @@ const TeamsPage = () => {
                     </p>
                   </div>
                 </div>
-                <div className="border border-border rounded-lg p-4">
-                  <h4 className="font-semibold text-foreground mb-3">Komanda Üzvləri</h4>
-                  <div className="relative mb-3">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      value={memberSearch}
-                      onChange={e => setMemberSearch(e.target.value)}
-                      placeholder="Üzv axtar..."
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background"
-                    />
+                <div className="border border-border rounded-lg flex flex-col overflow-hidden mt-4 flex-1 min-h-0">
+                  <div className="p-4 shrink-0 space-y-3">
+                    <h4 className="font-semibold text-foreground">Komanda Üzvləri</h4>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        value={memberSearch}
+                        onChange={e => setMemberSearch(e.target.value)}
+                        placeholder="Üzv axtar..."
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background"
+                      />
+                    </div>
                   </div>
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-border overflow-y-auto flex-1 min-h-0 px-4">
                     {visible.map((r, i) => (
                       <div key={i} className="flex items-start gap-3 py-3">
                         <div className="relative flex-shrink-0">
