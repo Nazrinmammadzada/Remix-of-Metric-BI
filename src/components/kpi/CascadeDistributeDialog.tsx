@@ -22,6 +22,8 @@ interface Props {
     assigneeId?: number;
     limit: number;
     defaultSliceValue?: number;
+    /** Bu bölgüdən yaranan child node-lar növbəti səviyyəyə load verə bilərmi? */
+    cascadable?: boolean;
     /** Cascade Load popup-un tapdığı MƏHZ node ID-si.
      *  Verildikdə dialoq heç bir başqa node axtarmır və yeni root yaratmır —
      *  paylanma məhz bu node-un altında baş verir. */
@@ -71,6 +73,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
     if (rootNode) { setNode(rootNode); return; }
     const existingRoot = findRootByGoal(bootstrap.cardName, bootstrap.goalName, emp.id);
     if (existingRoot) { setNode(existingRoot); return; }
+    if (bootstrap.cascadable === false) return;
     setNode(createRoot({
       cardName: bootstrap.cardName, goalName: bootstrap.goalName, unit: bootstrap.unit,
       assigneeId: emp.id, assigneeName: `${emp.firstName} ${emp.lastName}`,
@@ -125,6 +128,7 @@ const CascadeDistributeDialog = ({ open, onOpenChange, existingNode, bootstrap, 
           assigneeName: `${emp.firstName} ${emp.lastName}`,
           positionName: emp.positionName,
           limit: parseFloat(v),
+          cascadable: bootstrap?.cascadable ?? true,
         } : null;
       })
       .filter(Boolean) as any[];

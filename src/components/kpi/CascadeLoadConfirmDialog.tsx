@@ -9,11 +9,12 @@ interface Props {
   value: number;
   unit: string;
   onConfirm: () => void;
+  onDecline?: () => void;
 }
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
 
-const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }: Props) => {
+const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm, onDecline }: Props) => {
   const hasLoad = Number(value) > 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,7 +42,9 @@ const CascadeLoadConfirmDialog = ({ open, onOpenChange, value, unit, onConfirm }
           </div>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Bağla</Button>
+          <Button variant="outline" onClick={() => { onDecline?.(); onOpenChange(false); }}>
+            {hasLoad ? "Load istifadə etmədən saxla" : "Bağla"}
+          </Button>
           {hasLoad && (
             <Button onClick={() => { onConfirm(); onOpenChange(false); }}>Bəli, indi bölüşdür</Button>
           )}

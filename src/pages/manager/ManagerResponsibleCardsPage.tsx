@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useKpiSet, getIncomingCascadeLoad, dedupeKpiSetEntries, type KpiSetEntry } from "@/lib/kpiSetStore";
 import { addPendingEntry } from "@/lib/kpiSetStore";
 import { useSharedKpiCards } from "@/lib/kpiCardStore";
-import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { createRoot, findRootByGoal, useCascadeTree } from "@/lib/cascadeTreeStore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentEmployeeId } from "@/lib/scope";
 import { getEmployees } from "@/lib/orgStore";
@@ -267,6 +267,25 @@ const AssignView = () => {
     };
   }, [groups]);
 
+  const createIndependentCascadeRoot = (entry: KpiSetEntry) => {
+    if (!entry.cascadable) return;
+    const emp = entry.assigneeId
+      ? getEmployees().find(e => e.id === entry.assigneeId)
+      : getEmployees().find(e => `${e.firstName} ${e.lastName}` === stripPos(entry.assigneeName));
+    if (!emp) return;
+    const goalName = entry.subKpiName || entry.cardName;
+    if (findRootByGoal(entry.cardName, goalName, emp.id)) return;
+    createRoot({
+      cardName: entry.cardName,
+      goalName,
+      unit: entry.unit,
+      assigneeId: emp.id,
+      assigneeName: `${emp.firstName} ${emp.lastName}`,
+      positionName: emp.positionName,
+      limit: (entry as any).defaultSliceValue ?? parseNum(entry.target),
+    });
+  };
+
   return (
     <>
       <PageHero
@@ -409,6 +428,7 @@ const AssignView = () => {
             assigneeId: distribute.assigneeId,
             limit: (distribute as any).cascadeLimit ?? parseNum(distribute.target),
             defaultSliceValue: (distribute as any).defaultSliceValue ?? parseNum(distribute.target),
+            cascadable: !!distribute.cascadable,
             nodeId: (distribute as any).cascadeNodeId,
           }}
         />
@@ -435,13 +455,17 @@ const AssignView = () => {
             ...entry,
             target: String(assignedValue),
             unit,
-            cascadable: true,
+            cascadable: saved?.cascadable ?? !!entry.cascadable,
             cascadeLimit: value,
             cascadeNodeId: incoming?.nodeId,
             defaultSliceValue: assignedValue,
             subKpiName: saved?.name || entry.subKpiName,
           } as KpiSetEntry;
-          setCascadeConfirm({ entry: refreshed, value, unit });
+          if (incoming?.nodeId && value > 0) {
+            setCascadeConfirm({ entry: refreshed, value, unit });
+          } else {
+            createIndependentCascadeRoot(refreshed);
+          }
         }}
       />
 
@@ -451,6 +475,10 @@ const AssignView = () => {
           onOpenChange={(o) => !o && setCascadeConfirm(null)}
           value={cascadeConfirm.value}
           unit={cascadeConfirm.unit}
+          onDecline={() => {
+            createIndependentCascadeRoot(cascadeConfirm.entry);
+            setCascadeConfirm(null);
+          }}
           onConfirm={() => {
             setDistribute(cascadeConfirm.entry);
             setCascadeConfirm(null);

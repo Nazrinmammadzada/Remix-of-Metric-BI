@@ -375,7 +375,7 @@ export const getIncomingCascadeLoad = (
   try {
     const newestFirst = (a: any, b: any) => (Number(b.updatedAt || b.createdAt) || 0) - (Number(a.updatedAt || a.createdAt) || 0);
     const personNodes = getCascadeNodes()
-      .filter(n => n.assigneeName === assigneeName && (Number(n.limit) || 0) > 0)
+      .filter(n => n.assigneeName === assigneeName && (n.cascadable !== false) && (Number(n.limit) || 0) > 0)
       .sort(newestFirst);
     const exactNodes = personNodes.filter(n =>
       (!match?.cardName || n.cardName === match.cardName) &&

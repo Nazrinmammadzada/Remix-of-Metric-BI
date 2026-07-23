@@ -17,6 +17,11 @@ import {
   Target as TargetIcon, AlertTriangle,
 } from "lucide-react";
 import KpiAccordionList, { type AccordionKpi } from "@/components/kpi/KpiAccordionList";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCascadeTree } from "@/lib/cascadeTreeStore";
+import { useSharedKpiCards } from "@/lib/kpiCardStore";
+import { getEmployees } from "@/lib/orgStore";
+import { getCurrentEmployeeId } from "@/lib/scope";
 
 // ============================================================
 // Demo data model
@@ -73,6 +78,8 @@ const STATUS_META: Record<ItemStatus, { label: string; cls: string }> = {
 };
 
 const fmt = (n: number) => new Intl.NumberFormat("az-AZ").format(n);
+const toDate = (v: string | number | undefined) => v ? new Date(v).toLocaleDateString("az-AZ") : "—";
+const parseMetric = (v: unknown) => parseFloat(String(v ?? "").replace(/[^\d.\-]/g, "")) || 0;
 
 // ============================================================
 // Seeded demo KPIs — hər kart üçün tam dolğun məzmun
@@ -330,6 +337,71 @@ type View = "hub" | "own" | "team" | "structure";
 
 const UserKpiCardsPage = () => {
   const [view, setView] = useState<View>("hub");
+  const { user } = useAuth();
+  const tree = useCascadeTree();
+  const sharedCards = useSharedKpiCards();
+
+  const ownKpis = useMemo<DemoKpi[]>(() => {
+    const result: DemoKpi[] = [];
+    const meId = getCurrentEmployeeId(user);
+    const me = getEmployees().find(e => String(e.id) === meId || `e${e.id}` === meId || `${e.firstName} ${e.lastName}` === user?.name);
+    const aliases = new Set<string>();
+    if (me) { aliases.add(String(me.id)); aliases.add(`e${me.id}`); }
+    if (meId) { aliases.add(meId); aliases.add(meId.startsWith("e") ? meId.slice(1) : `e${meId}`); }
+    const name = user?.name || (me ? `${me.firstName} ${me.lastName}` : "");
+
+    tree.filter(n => n.assigneeName === name || (me && n.assigneeId === me.id)).forEach(n => {
+      const plan = Number(n.limit) || 0;
+      result.push({
+        id: `cascade-${n.id}`,
+        scope: "own",
+        name: `${n.cardName} — ${n.goalName || "Hədəf"}`,
+        description: n.parentId ? "Cascade Load ilə formalaşan hədəf" : "Müstəqil kaskadlanan hədəf",
+        period: toDate(n.createdAt), deadline: "—",
+        createdAt: toDate(n.createdAt), updatedAt: toDate(n.updatedAt),
+        unit: n.unit || "", plan, fakt: 0, status: "in_progress",
+        frequency: "Cascade", measure: n.unit || "", type: "Cascade", method: "Cascade bölgü", weight: 100,
+        responsible: { name: n.assigneeName, role: n.positionName || "İcraçı" },
+        bsc: { perspective: "Cascade", strategicGoal: n.goalName || n.cardName },
+        targets: [{ id: `target-${n.id}`, name: n.goalName || n.cardName, weight: 100, plan, fakt: 0, unit: n.unit || "", status: "in_progress" }],
+        members: [{ name: n.assigneeName, role: n.positionName || "İcraçı", status: "in_progress", progress: 0 }],
+        comments: [],
+        history: [{ id: `hist-${n.id}`, date: toDate(n.createdAt), author: "Sistem", field: "Cascade", from: "—", to: `${fmt(plan)} ${n.unit || ""}`.trim() }],
+        reminders: [],
+        lifecycle: [{ name: "Təyin edildi", date: toDate(n.createdAt), done: true }, { name: "İcra", date: toDate(n.updatedAt), done: false }],
+      });
+    });
+
+    sharedCards
+      .filter(c => (c.status === "aktiv" || c.status === "natamam" || c.status === "tesdiq_gozlenilir") && c.assigneeIds.some(id => aliases.has(id)))
+      .forEach(c => {
+        (c.targets || []).forEach((t: any) => {
+          const existsInTree = tree.some(n => n.cardName === c.name && n.goalName === (t.name || "Hədəf") && (n.assigneeName === name || (me && n.assigneeId === me.id)));
+          if (existsInTree) return;
+          const plan = parseMetric(t.targetValue);
+          result.push({
+            id: `shared-${c.id}-${t.id}`,
+            scope: "own",
+            name: `${c.name} — ${t.name || "Hədəf"}`,
+            description: "Sizə təyin olunmuş KPI hədəfi",
+            period: c.startDate || "—", deadline: c.endDate || "—",
+            createdAt: c.createdAt?.slice(0, 10) || "—", updatedAt: c.updatedAt?.slice(0, 10) || "—",
+            unit: t.unit || "", plan, fakt: 0, status: "in_progress",
+            frequency: c.frequency || "—", measure: t.unit || "", type: t.type || "Hədəf", method: "Təyin edilmiş KPI", weight: t.weight || 100,
+            responsible: { name: name || "İcraçı", role: me?.positionName || "İcraçı" },
+            bsc: { perspective: "KPI", strategicGoal: c.name },
+            targets: [{ id: String(t.id), name: t.name || "Hədəf", weight: t.weight || 100, plan, fakt: 0, unit: t.unit || "", status: "in_progress" }],
+            members: [{ name: name || "İcraçı", role: me?.positionName || "İcraçı", status: "in_progress", progress: 0 }],
+            comments: [],
+            history: [{ id: `hist-${c.id}-${t.id}`, date: c.createdAt?.slice(0, 10) || "—", author: "Sistem", field: "KPI", from: "—", to: `${fmt(plan)} ${t.unit || ""}`.trim() }],
+            reminders: [],
+            lifecycle: [{ name: "Təyin edildi", date: c.createdAt?.slice(0, 10) || "—", done: true }, { name: "İcra", date: c.endDate || "—", done: false }],
+          });
+        });
+      });
+
+    return [...result, ...OWN_KPIS];
+  }, [tree, sharedCards, user]);
 
   return (
     <div className="min-h-screen">
@@ -355,7 +427,7 @@ const UserKpiCardsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mt-2">
               <HubCard icon={User} title="Fərdi KPI-lar"
                 subtitle="Sizə şəxsən təyin olunmuş hədəflərin tam icrası və nəticələri."
-                count={OWN_KPIS.length}
+                count={ownKpis.length}
                 gradient="from-indigo-500/15 via-indigo-500/5 to-transparent border-indigo-400/40"
                 onClick={() => setView("own")} />
               <HubCard icon={Users} title="Komanda KPI-ları"
@@ -376,7 +448,7 @@ const UserKpiCardsPage = () => {
           title="Fərdi KPI-lar"
           subtitle="Sizə təyin olunmuş hədəflərin tam siyahısı və icra vəziyyəti."
           icon={User}
-          data={OWN_KPIS} scope="own" />}
+          data={ownKpis} scope="own" />}
         {view === "team" && <KpiListView
           title="Komanda KPI-ları"
           subtitle="Toplu təyinatlar — digər əməkdaşların fərdi hədəf və nəticələri gizlədilir."
