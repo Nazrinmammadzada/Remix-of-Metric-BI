@@ -16,6 +16,7 @@ import { getEnrichedEmployee } from "@/data/mockExtras";
 import { toast } from "sonner";
 
 const empName = (id: string) => getEnrichedEmployee(id)?.fullName || id;
+const aliasesFor = (id: string | null | undefined) => id ? [id, id.startsWith("e") ? id.slice(1) : `e${id}`] : [];
 
 const ApprovalCard = ({
   a, canAct, onView, onApprove, onReject,
@@ -111,7 +112,7 @@ const ApprovalsPage = () => {
   const [detailNote, setDetailNote] = useState("");
 
   const detail = visible.find(a => a.id === detailId) || null;
-  const cardOf = (kpiCardId: string) => cards.find(c => c.id === kpiCardId);
+  const cardOf = (kpiCardId: string) => cards.find(c => c.id === kpiCardId || (c.numericId != null && (`kpi-${c.numericId}` === kpiCardId || String(c.numericId) === kpiCardId)));
 
   const isManagerActor = user?.role === "MANAGER";
 
@@ -119,7 +120,8 @@ const ApprovalsPage = () => {
 
   const handleApproveInDetail = () => {
     if (!detail || !meId) return;
-    decideApproval(detail.id, meId, "approved", detailNote || undefined);
+    const approverId = detail.approverIds.find(id => aliasesFor(meId).includes(id)) || meId;
+    decideApproval(detail.id, approverId, "approved", detailNote || undefined);
     toast.success("KPI təsdiqləndi");
     closeDetail();
   };
@@ -129,7 +131,8 @@ const ApprovalsPage = () => {
       toast.error("İmtina üçün rəy yazın");
       return;
     }
-    decideApproval(detail.id, meId, "rejected", detailNote);
+    const approverId = detail.approverIds.find(id => aliasesFor(meId).includes(id)) || meId;
+    decideApproval(detail.id, approverId, "rejected", detailNote);
     toast.success("İmtina qeyd olundu");
     closeDetail();
   };
@@ -179,9 +182,10 @@ const ApprovalsPage = () => {
                     <div className="text-center text-xs text-muted-foreground py-10">Boş</div>
                   )}
                   {items.map(a => {
-                    const myDecision = meId ? a.decisions[meId]?.decision : undefined;
+                    const actionApproverId = a.approverIds.find(id => aliasesFor(meId).includes(id)) || null;
+                    const myDecision = actionApproverId ? a.decisions[actionApproverId]?.decision : undefined;
                     const canActMe = isManagerActor && a.status === "pending" && myDecision === "pending";
-                    const liveName = cards.find(c => c.id === a.kpiCardId)?.name || a.kpiName;
+                    const liveName = cardOf(a.kpiCardId)?.name || a.kpiName;
                     return (
                       <ApprovalCard
                         key={a.id}
@@ -204,7 +208,8 @@ const ApprovalsPage = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {detail && (() => {
             const c = cardOf(detail.kpiCardId);
-            const myDecision = meId ? detail.decisions[meId]?.decision : undefined;
+            const actionApproverId = detail.approverIds.find(id => aliasesFor(meId).includes(id)) || null;
+            const myDecision = actionApproverId ? detail.decisions[actionApproverId]?.decision : undefined;
             const canAct = isManagerActor && detail.status === "pending" && myDecision === "pending";
             const statusBadge = detail.status === "pending"
               ? { text: "Təsdiq gözləyir", cls: "bg-amber-100 text-amber-800 border-amber-300" }

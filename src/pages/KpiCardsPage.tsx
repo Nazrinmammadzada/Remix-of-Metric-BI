@@ -761,10 +761,16 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       void flushLifecycleToCloud();
     } catch (err) { console.warn("lifecycle save failed", err); }
 
+    const targetAssignerNames = Array.from(new Set(
+      (d.targets || [])
+        .filter((t: any) => t.createdBy === "other")
+        .map((t: any) => stripNameLoc(t.assigner))
+        .filter(Boolean),
+    ));
+
     // === Status ===
-    // Matris seçilməyibsə → əvvəlki davranış: submit dərhal "aktiv" (heç bir approval axını yoxdur).
-    // Matris seçilibsə → əvvəlcə Set tamamlanmalıdır; Set bitəndə sistem avtomatik
-    // "tesdiq_gozlenilir"-ə keçirir (bax: kpiApprovalFlow.triggerCardApprovalIfComplete).
+    // Matris yoxdursa: təyinedici varsa "natamam", hamısı bitəndən sonra avtomatik "aktiv".
+    // Matris varsa: təyinedici varsa "natamam", hamısı bitəndən sonra avtomatik "təsdiq gözlənilir".
     const hasPendingSet = (d.targets || []).some((t: any) => t.createdBy === "other");
     // Status axını (bax: KPI Status Flow diaqramı):
     //   Qaralama → Natamam → Təsdiq gözlənilir → (Aktiv | İmtina)
@@ -781,9 +787,9 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
       await upsertStatus({
         card_id: id,
         status: nextStatus,
-        use_matrix: d.useMatrix,
+        use_matrix: !!d.useMatrix,
         submitted_for_approval: action === "submit",
-        assignees: [],
+        assignees: targetAssignerNames.map(name => ({ name, ok: !hasPendingSet })),
       });
       const mod = await import("@/lib/kpiCardStatusStore");
       const next = await mod.fetchAllStatuses();
@@ -827,7 +833,7 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
         numericId: id,
         ownerId: meId,
         status: sharedStatus,
-        matrixId: d.approvalMatrixId || null,
+        matrixId: d.useMatrix ? (d.approvalMatrixId || null) : null,
         assigneeIds: sharedAssigneeIds,
       }));
       void import("@/lib/kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
@@ -975,13 +981,30 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
   const [statusDialogCardId, setStatusDialogCardId] = useState<number | null>(null);
   const [employeeDrilldown, setEmployeeDrilldown] = useState<string | null>(null);
   useEffect(() => {
+    let timer: number | null = null;
     const refresh = () => import("@/lib/kpiCardStatusStore").then(m => m.fetchAllStatuses().then(setStatusMap));
+    const reconcileAndRefresh = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        timer = null;
+        import("@/lib/kpiApprovalFlow")
+          .then(m => m.reconcileKpiStatusFlow())
+          .catch(() => undefined)
+          .finally(() => { void refresh(); });
+      }, 250);
+    };
     void refresh();
+    reconcileAndRefresh();
     window.addEventListener("kpi-cards-updated", refresh);
     window.addEventListener("shared-kpi-cards-updated", refresh);
+    window.addEventListener("kpi-set-updated", reconcileAndRefresh);
+    window.addEventListener("kpi-approval-queue-updated", reconcileAndRefresh);
     return () => {
+      if (timer) window.clearTimeout(timer);
       window.removeEventListener("kpi-cards-updated", refresh);
       window.removeEventListener("shared-kpi-cards-updated", refresh);
+      window.removeEventListener("kpi-set-updated", reconcileAndRefresh);
+      window.removeEventListener("kpi-approval-queue-updated", reconcileAndRefresh);
     };
   }, []);
   const DEMO_STATUS: Record<number, Partial<import("@/lib/kpiCardStatusStore").KpiCardStatusRow>> = {
@@ -1010,13 +1033,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
           status: shared.status as import("@/lib/kpiCardStatusStore").KpiCardStatus,
           use_matrix: !!shared.matrixId,
           submitted_for_approval: shared.status === "tesdiq_gozlenilir" || shared.status === "aktiv",
-          rejected_by: null,
-          rejected_at: null,
-          rejection_reason: shared.rejectedReason ?? null,
-          assignees: (shared.assigneeIds || []).map(id => {
+          rejected_by: remote?.rejected_by ?? null,
+          rejected_at: remote?.rejected_at ?? null,
+          rejection_reason: shared.rejectedReason ?? remote?.rejection_reason ?? null,
+          assignees: (remote?.assignees?.length ? remote.assignees : (shared.assigneeIds || []).map(id => {
             const emp = getEmployees().find((e: any) => `e${e.id}` === id || String(e.id) === String(id));
             return { name: emp ? `${emp.firstName} ${emp.lastName}` : id, ok: true };
-          }),
+          })),
           updated_at: shared.updatedAt || new Date().toISOString(),
         } as import("@/lib/kpiCardStatusStore").KpiCardStatusRow;
       }
@@ -2073,12 +2096,13 @@ const KpiCardsPage = ({ onBack, forcedKartView }: KpiCardsPageProps = {}) => {
             })();
             const rejectedRows = approvalRows.filter(r => r.tone === "err");
 
+            const completedSetterRows = setterRows.length ? setterRows.map(r => ({ ...r, role: "Təyin etdi", tone: "ok" as const })) : [];
             const cfg: Record<string, { title: string; empty: string; rows: { role: string; name: string; tone?: "ok" | "wait" | "err" }[] }> = {
               qaralama:        { title: "Qaralama — hazırlanır", empty: "Kart yaradılıb, hələ təyinə göndərilməyib.", rows: [{ role: "Yaradan", name: card?.responsible || "—", tone: "wait" }] },
               natamam:         { title: "Təyin edənlər", empty: "Təyin edənlər tapılmadı.", rows: setterRows },
               tesdiq_gozlenilir: { title: "Təsdiqləyəcək şəxslər", empty: "Təsdiq zənciri təyin edilməyib.", rows: approvalRows },
               imtina:          { title: "İmtina edən", empty: "—", rows: rejectedRows.length ? rejectedRows : [{ role: (st as any).rejection_reason || "İmtina edildi", name: (st as any).rejected_by || "Təsdiq mərhələsi", tone: "err" }] },
-              aktiv:           { title: "İcra edən əməkdaşlar", empty: "Bu kart üçün icraçı tapılmadı.", rows: (st.assignees || []).map(a => ({ role: "İcraçı", name: a.name, tone: "ok" })) },
+              aktiv:           { title: card?.matrixId ? "Təsdiq tamamlandı" : "Təyin edənlər tamamlandı", empty: "Bu kart üçün tamamlanmış iştirakçı tapılmadı.", rows: completedSetterRows.length ? completedSetterRows : (st.assignees || []).map(a => ({ role: a.ok ? "Tamamladı" : "İcraçı", name: a.name, tone: "ok" })) },
               qiymetlendirme:  { title: "Qiymətləndirəcək şəxslər", empty: "Qiymətləndirici təyin edilməyib.", rows: evaluators.map(e => ({ ...e, tone: "wait" as const })) },
               tamamlanib:      { title: "Tamamlanıb — qiymətləndirənlər", empty: "—", rows: evaluators.map(e => ({ ...e, tone: "ok" as const })) },
               legv_olundu:     { title: "Ləğv olunub", empty: "—", rows: [{ role: "Ləğv edən", name: card?.responsible || "—", tone: "err" }] },

@@ -5,11 +5,11 @@
 // və kart statusunu "tesdiq_gozlenilir" olaraq təyin edir.
 
 import { getKpiSetEntries } from "./kpiSetStore";
-import { getSharedKpiCards, setKpiStatus } from "./kpiCardStore";
+import { getSharedKpiCards, setKpiStatus, type SharedKpiCard, type SharedKpiStatus } from "./kpiCardStore";
 import { getApprovalMatrices } from "./matrixStore";
 import { enqueueApproval, getApprovals } from "./approvalsStore";
 import { getKpiCardMeta } from "./kpiCardMetaStore";
-import { submitToMatrix } from "./kpiCardStatusStore";
+import { fetchAllStatuses, submitToMatrix, upsertStatus } from "./kpiCardStatusStore";
 import { getEnrichedEmployee } from "@/data/mockExtras";
 import { getEmployees } from "./orgStore";
 
@@ -46,6 +46,44 @@ interface CardContext {
   ownerId: string;
   currentStatus?: string;
 }
+
+const idsForCard = (card: Pick<SharedKpiCard, "id" | "numericId">): string[] => {
+  const ids = new Set<string>([card.id]);
+  if (card.numericId != null) {
+    ids.add(String(card.numericId));
+    ids.add(`kpi-${card.numericId}`);
+  }
+  return Array.from(ids);
+};
+
+const sameCard = (approvalCardId: string, card: Pick<SharedKpiCard, "id" | "numericId">) =>
+  idsForCard(card).includes(approvalCardId);
+
+const approvalForCard = (card: Pick<SharedKpiCard, "id" | "numericId">) =>
+  getApprovals()
+    .filter(a => sameCard(a.kpiCardId, card))
+    .sort((a, b) => (Date.parse(b.updatedAt || b.createdAt || "") || 0) - (Date.parse(a.updatedAt || a.createdAt || "") || 0))[0] || null;
+
+const setterStateForCard = (numericId: number) => {
+  const bySetter = new Map<string, { name: string; ok: boolean }>();
+  getKpiSetEntries()
+    .filter(e => e.cardId === numericId)
+    .forEach(e => {
+      const key = e.assigneeId != null ? String(e.assigneeId) : e.assigneeName;
+      const prev = bySetter.get(key);
+      bySetter.set(key, {
+        name: e.assigneeName || key,
+        ok: (prev?.ok ?? true) && e.status === "completed",
+      });
+    });
+  return Array.from(bySetter.values());
+};
+
+const setSharedStatusIfNeeded = (card: SharedKpiCard, status: SharedKpiStatus, actor: string, note?: string) => {
+  if (card.status !== status || (status === "imtina" && note && card.rejectedReason !== note)) {
+    setKpiStatus(card.id, status, actor, note);
+  }
+};
 
 const resolveCardContext = (cardId: number): CardContext | null => {
   // 1) SharedKpiCard varsa oradan.
@@ -98,7 +136,12 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
 
     // Eyni kart üçün pending approval varsa təkrar yaratma.
     const existing = getApprovals().find(a => (a.kpiCardId === ctx.id || a.kpiCardId === `kpi-${cardId}`) && a.status === "pending");
-    if (existing) return;
+    if (existing) {
+      try { setKpiStatus(ctx.id, "tesdiq_gozlenilir", "system", "Set tamamlandı — təsdiq axını davam edir"); } catch {}
+      try { submitToMatrix(cardId); } catch {}
+      void import("./kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
+      return;
+    }
 
     const matrix = getApprovalMatrices().find(m => m.id === ctx.matrixId);
     if (!matrix) return;
@@ -137,4 +180,76 @@ export const triggerCardApprovalIfComplete = (cardId: number): void => {
   } catch (err) {
     console.warn("triggerCardApprovalIfComplete failed", err);
   }
+};
+
+/**
+ * Reconciles the exact KPI status flow from persisted sources on every browser:
+ * - pending target setters => natamam
+ * - no matrix + all target setters done => aktiv
+ * - matrix + all target setters done => tesdiq_gozlenilir, then approval result
+ */
+export const reconcileKpiStatusFlow = async (): Promise<void> => {
+  const cards = getSharedKpiCards();
+  const statusRows = await fetchAllStatuses();
+
+  for (const card of cards) {
+    if (card.numericId == null) continue;
+    if (card.status === "qaralama") continue;
+
+    const setters = setterStateForCard(card.numericId);
+    const hasSetterFlow = setters.length > 0;
+    const allSettersDone = !hasSetterFlow || setters.every(s => s.ok);
+    const approval = approvalForCard(card);
+
+    let nextStatus: SharedKpiStatus;
+    let note: string | undefined;
+    let rejectedBy: string | null = null;
+    let rejectedAt: string | null = null;
+
+    if (!allSettersDone) {
+      nextStatus = "natamam";
+    } else if (!card.matrixId) {
+      nextStatus = "aktiv";
+    } else if (approval?.status === "approved") {
+      nextStatus = "aktiv";
+    } else if (approval?.status === "rejected") {
+      nextStatus = "imtina";
+      const rejected = Object.entries(approval.decisions || {}).find(([, d]) => d?.decision === "rejected");
+      rejectedBy = rejected?.[0] ?? null;
+      rejectedAt = rejected?.[1]?.at ?? null;
+      note = rejected?.[1]?.note || "İmtina edildi";
+    } else {
+      nextStatus = "tesdiq_gozlenilir";
+      if (!approval) triggerCardApprovalIfComplete(card.numericId);
+    }
+
+    setSharedStatusIfNeeded(card, nextStatus, "system", note);
+
+    const current = statusRows[card.numericId];
+    const nextAssignees = hasSetterFlow
+      ? setters
+      : (card.assigneeIds || []).map(id => {
+          const emp = getEmployees().find(e => String(e.id) === String(id) || `e${e.id}` === String(id));
+          return { name: emp ? `${emp.firstName} ${emp.lastName}` : id, ok: true };
+        });
+    const changed = !current
+      || current.status !== nextStatus
+      || !!current.use_matrix !== !!card.matrixId
+      || JSON.stringify(current.assignees || []) !== JSON.stringify(nextAssignees)
+      || (nextStatus === "imtina" && current.rejection_reason !== (note ?? null));
+    if (changed) {
+      await upsertStatus({
+        card_id: card.numericId,
+        status: nextStatus,
+        use_matrix: !!card.matrixId,
+        submitted_for_approval: !!card.matrixId && allSettersDone,
+        rejected_by: rejectedBy,
+        rejected_at: rejectedAt,
+        rejection_reason: nextStatus === "imtina" ? note ?? "İmtina edildi" : null,
+        assignees: nextAssignees,
+      });
+    }
+  }
+
+  void import("./kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
 };
