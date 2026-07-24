@@ -30,9 +30,11 @@ const formatDate = (value?: string | null) => value ? new Date(value).toLocaleDa
 
 const decisionNote = (d?: { note?: string; comment?: string }) => d?.note || d?.comment || undefined;
 const aliasesFor = (id: string | null) => id ? [id, id.startsWith("e") ? id.slice(1) : `e${id}`] : [];
+const findApprovalCard = (cards: ReturnType<typeof useSharedKpiCards>, kpiCardId: string) =>
+  cards.find(c => c.id === kpiCardId || (c.numericId != null && (`kpi-${c.numericId}` === kpiCardId || String(c.numericId) === kpiCardId)));
 
 const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKpiCards>, meId: string | null): ApprovalRequest => {
-  const card = cards.find(c => c.id === a.kpiCardId);
+  const card = findApprovalCard(cards, a.kpiCardId);
   const chain = a.stepsChain && a.stepsChain.length > 0 ? a.stepsChain : [a.approverIds];
   const currentStep = a.currentStep ?? Math.max(0, chain.findIndex(step => step.some(id => a.approverIds.includes(id))));
   const myAliases = new Set(aliasesFor(meId));
@@ -59,7 +61,7 @@ const toApprovalRequest = (a: ApprovalItem, cards: ReturnType<typeof useSharedKp
     id: a.id,
     kpiCode: a.id.slice(0, 12).toUpperCase(),
     kpiName: card?.name || a.kpiName,
-    kpiType: card?.scoringSystem || "KPI təsdiq sorğusu",
+    kpiType: "KPI təsdiq sorğusu",
     createdDate: formatDate(a.createdAt),
     createdBy: empName(a.createdBy),
     kpiOwner: empName(card?.ownerId || a.createdBy),
@@ -157,7 +159,7 @@ const UserApprovalsPage = () => {
     return (
       <div className={`${styles.card} rounded-lg border overflow-hidden`}>
         <div className={`${styles.title} px-4 py-2 text-center font-semibold text-sm`}>
-          {req.kpiType ? `${req.kpiType} sorğusu` : "Sorğu"}
+          {req.kpiName}
         </div>
         <div className="px-4 py-3 space-y-1 text-sm">
           <div><span className="opacity-90">Sorğu NO</span> - {req.kpiCode}</div>
@@ -300,7 +302,7 @@ const UserApprovalsPage = () => {
             <>
               <DialogHeader>
                 <div className="flex items-center gap-3">
-                  <DialogTitle className="text-lg">{selectedRequest.kpiCode} - {selectedRequest.kpiName}</DialogTitle>
+                  <DialogTitle className="text-lg">{selectedRequest.kpiName}</DialogTitle>
                   {getStatusBadge(selectedRequest.status)}
                 </div>
                 <p className="text-sm text-muted-foreground">{selectedRequest.description}</p>
