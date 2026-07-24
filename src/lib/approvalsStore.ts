@@ -2,7 +2,7 @@
 // Both HR (/sistem-tesdiq) and Manager (/manager/sistem-tesdiq) read from here.
 
 import { useEffect, useState } from "react";
-import { setKpiStatus } from "./kpiCardStore";
+import { getSharedKpiCards, setKpiStatus, type SharedKpiStatus } from "./kpiCardStore";
 import { pushNotification } from "./notificationsStore";
 
 export type ApprovalDecision = "pending" | "approved" | "rejected";
@@ -45,6 +45,29 @@ const flushSoon = () => {
 
 const flushCardsSoon = () => {
   void import("./kpiCardsService").then(m => m.flushLocalKpiCardsToCloud()).catch(() => undefined);
+};
+
+const cardAliases = (cardId: string) => {
+  const cards = getSharedKpiCards();
+  const card = cards.find(c => c.id === cardId || (c.numericId != null && (`kpi-${c.numericId}` === cardId || String(c.numericId) === cardId)));
+  if (!card) return { canonicalId: cardId, numericId: null as number | null };
+  return { canonicalId: card.id, numericId: card.numericId ?? null };
+};
+
+const syncCardStatus = (item: ApprovalItem, status: SharedKpiStatus, actor: string, note?: string) => {
+  const { canonicalId, numericId } = cardAliases(item.kpiCardId);
+  setKpiStatus(canonicalId, status, actor, note);
+  if (numericId != null) {
+    void import("./kpiCardStatusStore").then(m => m.upsertStatus({
+      card_id: numericId,
+      status,
+      use_matrix: true,
+      submitted_for_approval: true,
+      rejected_by: status === "imtina" ? actor : null,
+      rejected_at: status === "imtina" ? new Date().toISOString() : null,
+      rejection_reason: status === "imtina" ? note || "Rəhbər imtina etdi" : null,
+    })).catch(() => undefined);
+  }
 };
 
 export const getApprovals = (): ApprovalItem[] => load();
@@ -147,7 +170,7 @@ export const decideApproval = (
 
   // Mirror the decision onto the shared KPI card itself.
   if (item.status === "approved") {
-    setKpiStatus(item.kpiCardId, "aktiv", approverId, "Matris vasitəsilə təsdiq edildi");
+    syncCardStatus(item, "aktiv", approverId, "Matris vasitəsilə təsdiq edildi");
     flushCardsSoon();
     pushNotification({
       toEmployeeId: item.createdBy,
@@ -157,7 +180,7 @@ export const decideApproval = (
       link: "/kpi-kartlari",
     });
   } else if (item.status === "rejected") {
-    setKpiStatus(item.kpiCardId, "imtina", approverId, note || "Rəhbər imtina etdi");
+    syncCardStatus(item, "imtina", approverId, note || "Rəhbər imtina etdi");
     flushCardsSoon();
     pushNotification({
       toEmployeeId: item.createdBy,
